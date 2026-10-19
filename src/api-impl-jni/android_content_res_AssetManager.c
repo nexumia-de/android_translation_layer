@@ -64,6 +64,11 @@ JNIEXPORT jint JNICALL Java_android_content_res_AssetManager_openAssetFd(JNIEnv 
 	struct Asset *asset = AssetManager_openNonAsset(asset_manager, file_name, mode);
 	android_log_printf(ANDROID_LOG_VERBOSE, "[" __FILE__ "]", "AssetManager_openAssetFd(%p, %s, %d, ...)\n", asset_manager, file_name, mode);
 
+	if (asset == NULL) {
+		(*env)->ThrowNew(env, (*env)->FindClass(env, "java/io/FileNotFoundException"), file_name);
+		return -1;
+	}
+
 	fd = Asset_openFileDescriptor(asset, &offset, &size);
 
 	(*env)->SetLongArrayRegion(env, _offset, 0, 1, (jlong[]){offset});
