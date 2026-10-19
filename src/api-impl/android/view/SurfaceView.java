@@ -30,6 +30,12 @@ public class SurfaceView extends View {
 		mSurface.widget = this.widget;
 	}
 
+	public SurfaceView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+		super(context, attrs, defStyleAttr, defStyleRes);
+
+		mSurface.widget = this.widget;
+	}
+
 	@Export
 	private void surfaceChanged(int format, int width, int height) {
 		for (SurfaceHolder.Callback c : mCallbacks) {

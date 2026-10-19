@@ -2684,4 +2684,6 @@ public class View implements Drawable.Callback {
 	public int getTextDirection() { return 0; /* TEXT_DIRECTION_INHERIT */ }
 
 	public TouchDelegate getTouchDelegate() { return null; }
+
+	public void setZ(float z) {}
 }
