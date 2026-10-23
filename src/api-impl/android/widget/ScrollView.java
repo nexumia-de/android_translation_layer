@@ -2,6 +2,7 @@ package android.widget;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -20,6 +21,16 @@ public class ScrollView extends FrameLayout {
 	protected native void native_addView(long widget, long child, int index, ViewGroup.LayoutParams params);
 	@Override
 	protected native void native_removeView(long widget, long child);
+
+	@Override
+	public boolean onInterceptTouchEvent(MotionEvent event) {
+		return native_gtkEventPropagation();
+	}
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		return native_gtkEventPropagation();
+	}
 
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {

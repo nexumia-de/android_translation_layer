@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.util.AttributeSet;
 import android.util.Base64;
+import android.view.MotionEvent;
 import android.view.ViewGroup;
 
 public class WebView extends ViewGroup {
@@ -21,6 +22,11 @@ public class WebView extends ViewGroup {
 
 	public WebView(Context context, AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
+	}
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		return native_gtkEventPropagation();
 	}
 
 	public WebSettings getSettings() {

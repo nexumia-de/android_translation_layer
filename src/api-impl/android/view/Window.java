@@ -43,6 +43,8 @@ public class Window {
 		this.callback = callback;
 		this.context = context;
 		decorView = new FrameLayout(context);
+		// DecorView grabs all touch events and propagates them in Java
+		decorView.native_registerTouchEventPropagation(decorView.widget);
 		decorView.setId(android.R.id.content);
 	}
 

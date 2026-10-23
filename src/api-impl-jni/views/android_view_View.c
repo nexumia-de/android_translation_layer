@@ -51,7 +51,7 @@ int canceled_action = 0;
 
 static struct pointer pointers[MAX_POINTERS] = {};
 
-extern GdkEvent *synthetic_propagation_failed;
+static GdkEvent *synthetic_propagation_failed = NULL;
 
 /** JavaWidget:
  * Minimal gtk widget class which does nothing.
@@ -1031,4 +1031,17 @@ JNIEXPORT void JNICALL Java_android_view_View_getWindowVisibleDisplayFrame(JNIEn
 	_SET_INT_FIELD(rect, "top", 0);
 	_SET_INT_FIELD(rect, "right", width);
 	_SET_INT_FIELD(rect, "bottom", height);
+}
+
+JNIEXPORT jboolean JNICALL Java_android_view_View_native_1gtkEventPropagation(JNIEnv *env, jobject this)
+{
+	synthetic_propagation_failed = GINT_TO_POINTER(1);
+	return true;
+}
+
+JNIEXPORT void JNICALL Java_android_view_View_native_1registerTouchEventPropagation(JNIEnv *env, jobject this, jlong widget_ptr)
+{
+	GtkWidget *wrapper = gtk_widget_get_parent(GTK_WIDGET(_PTR(widget_ptr)));
+	WRAPPER_WIDGET(wrapper)->custom_dispatch_touch = TRUE;
+	_setOnTouchListener(env, this, wrapper);
 }

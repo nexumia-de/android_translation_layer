@@ -130,11 +130,82 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 		}
 	}
 
-	/* We never call this ourselves */
+	private View touchTarget;
+	private boolean intercepting_touch = false;
+
+	private boolean isTouchPointInView(float x, float y, View child) {
+		if (child.getVisibility() != View.VISIBLE)
+			return false;
+		float localX = x + getScrollX() - child.getLeft() - child.getTranslationX();
+		float localY = y + getScrollY() - child.getTop() - child.getTranslationY();
+		return localX >= 0 && localX <= child.getWidth() && localY >= 0 && localY <= child.getHeight();
+	}
+
+	private boolean dispatchTransformedTouchEvent(MotionEvent event, boolean cancel, View child) {
+		int oldAction = event.getAction();
+		if (cancel)
+			event.setAction(MotionEvent.ACTION_CANCEL);
+
+		float offsetX = getScrollX() - child.getLeft() - child.getTranslationX();
+		float offsetY = getScrollY() - child.getTop() - child.getTranslationY();
+		event.offsetLocation(offsetX, offsetY);
+		boolean handled = child.dispatchTouchEvent(event);
+		event.offsetLocation(-offsetX, -offsetY);
+
+		if (cancel)
+			event.setAction(oldAction);
+		return handled;
+	}
+
 	@Export
 	@Override
 	public boolean dispatchTouchEvent(MotionEvent event) {
-		return native_dispatchTouchEvent(widget, event, event.getX(), event.getY());
+		int action = event.getActionMasked();
+		if (action == MotionEvent.ACTION_DOWN) {
+			if (touchTarget != null) {
+				dispatchTransformedTouchEvent(event, true, touchTarget);
+				touchTarget = null;
+			}
+			disallowIntercept = false;
+			intercepting_touch = false;
+		}
+
+		if (!intercepting_touch && !disallowIntercept) {
+			intercepting_touch = onInterceptTouchEvent(event);
+			if ((intercepting_touch) && touchTarget != null) {
+				dispatchTransformedTouchEvent(event, true, touchTarget);
+				touchTarget = null;
+			}
+		}
+
+		boolean handled = false;
+
+		if (!intercepting_touch && touchTarget != null) {
+			handled = dispatchTransformedTouchEvent(event, false, touchTarget);
+		} else if (!intercepting_touch && action == MotionEvent.ACTION_DOWN) {
+			// Find a child that handles the gesture, trying siblings front to back.
+			for (int i = children.size() - 1; i >= 0; i--) {
+				View child = children.get(i);
+				if (!isTouchPointInView(event.getX(), event.getY(), child))
+					continue;
+				handled = dispatchTransformedTouchEvent(event, false, child);
+				if (handled) {
+					touchTarget = child;
+					break;
+				}
+			}
+		}
+
+		if (touchTarget == null)
+			handled = super.dispatchTouchEvent(event);
+
+		if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+			touchTarget = null;
+			intercepting_touch = false;
+			disallowIntercept = false;
+		}
+
+		return handled;
 	}
 
 	protected boolean addViewInLayout(View child, int index, LayoutParams params) {
@@ -714,8 +785,6 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	public boolean getClipChildren() {
 		return false;
 	}
-
-	public native boolean native_dispatchTouchEvent(long widget, MotionEvent event, double x, double y);
 
 	@Override
 	public void onDescendantInvalidated(View child, View target) {}

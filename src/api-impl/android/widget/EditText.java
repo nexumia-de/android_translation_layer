@@ -6,6 +6,7 @@ import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 
 public class EditText extends TextView {
 	public EditText(Context context) {
@@ -29,6 +30,11 @@ public class EditText extends TextView {
 	protected native void native_setText(long widget, String text);
 	protected native void native_setHint(long widget, CharSequence s);
 	protected native CharSequence native_getHint(long widget); // gtk_entry_set_placeholder_text
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		return native_gtkEventPropagation();
+	}
 
 	public Editable getText() {
 		return new SpannableStringBuilder(native_getText(widget));
