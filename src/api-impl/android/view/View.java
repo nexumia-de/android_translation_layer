@@ -1734,7 +1734,8 @@ public class View implements Drawable.Callback {
 	@Export
 	protected void onLayout(boolean changed, int l, int t, int r, int b) {}
 
-	boolean layouted = false;
+	private boolean layouted = false;
+	private boolean in_layout = false;
 
 	public void layout(int l, int t, int r, int b) {
 		this.layouted = true;
@@ -1742,12 +1743,16 @@ public class View implements Drawable.Callback {
 		this.top = t;
 		this.right = r;
 		this.bottom = b;
-		native_layout(widget, l, t, r, b);
+		if (this.in_layout)                   // check re-entrancy
+			native_queueAllocate(widget); // GTK is not re-entrant-safe. Queue allocation
+		else
+			native_layout(widget, l, t, r, b);
 	}
 
 	/** Helper function to be called from GTKs LayoutManager via JNI */
 	@Export
 	private void layoutInternal(int width, int height) {
+		in_layout = true;
 		// if the layout is triggered from a native widget, we might not have measured yet
 		if (!(parent instanceof ViewGroup) && (width != getMeasuredWidth() || height != getMeasuredHeight())) {
 			requestLayout();
@@ -1776,6 +1781,7 @@ public class View implements Drawable.Callback {
 		}
 		oldWidth = width;
 		oldHeight = height;
+		in_layout = false;
 	}
 
 	/** Prefill the measureSpec cache, so that AndroidLayout can use it from native code if GTK measure spec is incomplete */
