@@ -266,6 +266,10 @@ public final class Bitmap implements Parcelable {
 		return this.copy(config, mutable);
 	}
 
+	public int getDensity() {
+		return DisplayMetrics.DENSITY_DEFAULT;
+	}
+
 	@SuppressWarnings("deprecation")
 	@Override
 	protected void finalize() throws Throwable {

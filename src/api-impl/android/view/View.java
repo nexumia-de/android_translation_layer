@@ -1024,6 +1024,17 @@ public class View implements Drawable.Callback {
 		}
 	};
 
+	public static final Property<View, Float> ROTATION = new FloatProperty<View>("rotation") {
+		@Override
+		public void setValue(View object, float value) {
+			object.setRotation(value);
+		}
+		@Override
+		public Float get(View object) {
+			return object.getRotation();
+		}
+	};
+
 	public View(Context context, AttributeSet attrs) {
 		this(context, attrs, 0);
 	}
@@ -2686,4 +2697,9 @@ public class View implements Drawable.Callback {
 	public TouchDelegate getTouchDelegate() { return null; }
 
 	public void setZ(float z) {}
+
+	public void drawableStateChanged() {
+		if (background != null && background.isStateful() && background.setState(getDrawableState()))
+			invalidate();
+	}
 }

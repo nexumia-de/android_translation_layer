@@ -61,6 +61,18 @@ public class WindowInsets {
 		return Insets.NONE;
 	}
 
+	public Insets getSystemGestureInsets() {
+		return Insets.NONE;
+	}
+
+	public Insets getMandatorySystemGestureInsets() {
+		return Insets.NONE;
+	}
+
+	public Insets getTappableElementInsets() {
+		return Insets.NONE;
+	}
+
 	public DisplayCutout getDisplayCutout() {
 		return null;
 	}

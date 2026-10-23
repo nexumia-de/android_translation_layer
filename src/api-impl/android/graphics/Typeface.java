@@ -49,6 +49,10 @@ public class Typeface {
 		return typeface != null ? typeface : DEFAULT;
 	}
 
+	public static Typeface create(Typeface typeface, int style, boolean italic) {
+		return typeface != null ? typeface : DEFAULT;
+	}
+
 	public static Typeface createFromFile(String path) {
 		return DEFAULT;
 	}
