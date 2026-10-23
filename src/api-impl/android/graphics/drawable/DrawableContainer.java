@@ -42,6 +42,10 @@ public class DrawableContainer extends Drawable {
 
 		public DrawableContainerState(DrawableContainerState orig, DrawableContainer owner, Resources res) {
 			this.owner = owner;
+			if (orig != null) {
+				drawables = orig.drawables.clone();
+				childCount = orig.childCount;
+			}
 		}
 
 		public int getCapacity() {
