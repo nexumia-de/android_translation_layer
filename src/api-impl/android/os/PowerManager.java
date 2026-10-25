@@ -42,6 +42,10 @@ public final class PowerManager {
 				}
 			}).start();
 		}
+
+		public void release(int flags) {
+			release();
+		}
 	}
 
 	public WakeLock newWakeLock(int levelAndFlags, String tag) {
