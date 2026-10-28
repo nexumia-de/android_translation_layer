@@ -3,7 +3,7 @@ type: Playbook
 title: Development environment
 description: The owner's Phosh phone as build and test device - separate user, build into ~/.local, headless test display, required hosts.
 tags: [development, phone, testing, network]
-generated: { by: claude-code/2.1.312, at: 2026-10-28T08:15:00Z }
+generated: { by: claude-code/2.1.308, at: 2026-10-28T09:20:00Z }
 ---
 
 # Why the phone
@@ -120,7 +120,9 @@ packages, with four differences:
   build ATL with `openjdk17-jdk`; the Java sources still target 1.8
   (`-source 1.8 -target 1.8`). art_standalone is built with JDK 8 like
   Alpine's package. `tools/phone-setup.sh` sets `JAVA_HOME` and `PATH`
-  per step, so the system's default JVM does not matter.
+  per step, so the system's default JVM does not matter: installing
+  `openjdk17-jdk` moved `/usr/lib/jvm/default-jvm` from JDK 8 to
+  `java-17-openjdk`.
 
 # Building into ~/.local
 
@@ -140,7 +142,7 @@ little free memory.
 | `bionic` | `meson setup --prefix ~/.local --libdir lib`, compile, install | 6 s |
 | `art` | `make ____PREFIX=~/.local ____LIBDIR=lib`, then `make ... install` | 18 min |
 | `opensles` | meson as for `bionic` | 19 s |
-| `atl` | meson as for `bionic`, with `-Ddownload_tool_deps=true` | ATL_TIME |
+| `atl` | meson as for `bionic`, with `-Ddownload_tool_deps=true` | 1 min (rebuild after a Java change: 47 s) |
 
 Details that are not obvious:
 
@@ -160,7 +162,26 @@ android-translation-layer path/to/app.apk [-l activity/Class]
 
 `env` sets `PATH`, `LD_LIBRARY_PATH` (for `libdl_bio` and the other
 bionic_translation libraries in `~/.local/lib`), `XDG_DATA_DIRS` and the
-build variables. ATL_RUN_NOTES
+build variables. Without `-l`, ATL starts the APK's main activity.
+
+- The launcher has a `RUNPATH` to `~/.local/lib/art` only. Without
+  `LD_LIBRARY_PATH` it loads the bionic_translation libraries of the
+  system package (next section), not those from `~/.local`; check with
+  `ldd ~/.local/bin/android-translation-layer`.
+- App data goes to `~/.local/share/android_translation_layer/<apk
+  name>_/`, the dex2oat cache to `~/.cache/art/`.
+- ATL opens the phone's vibrator (`/dev/input/event4`); as `claude` this
+  fails with "Permission denied", which is harmless.
+
+## Alpine's ATL packages on the phone
+
+The owner installed Alpine's `android-translation-layer` on 2026-10-23
+(in `/etc/apk/world`), which pulls `art_standalone`,
+`bionic_translation` and `libopensles-standalone` into `/usr`. They do
+not get in the way: with `tools/phone-setup.sh env`, `PATH` and
+`LD_LIBRARY_PATH` find the `~/.local` build first. bionic_translation
+reads `bionic_translation/cfg.d` from every `XDG_DATA_DIRS` entry, so it
+also sees the system package's identical `bionic_translation.cfg`.
 
 # Headless test display
 
