@@ -62,3 +62,21 @@ the separate user `claude` without sudo or doas.
   [docs/fork-workflow.md](docs/fork-workflow.md).
 - Merge requests go to GitLab from the owner's GitLab fork; the owner
   opens them.
+
+## Autonomy and merging
+
+This overrides the shared rule "Do not merge; merging stays with the
+owner" for this repository only. Every other repository keeps it.
+
+- Work autonomously: do not ask the owner between steps and do not wait
+  for confirmation. The owner follows progress in
+  [docs/apps.md](docs/apps.md); keep it current after every fix.
+- Merge your own pull requests into `phosh` yourself, as soon as ATL
+  builds and the apps in [docs/apps.md](docs/apps.md) are not worse than
+  before. Use a merge commit, never squash or rebase, so fix commits
+  stay cherry-pickable for upstream.
+- Never push to or merge into `master`.
+- When something large blocks an app, record it with a size estimate
+  in [docs/apps.md](docs/apps.md) and continue with other work. Things
+  only the owner can do (system packages, decisions) go under "Needs
+  owner" there; stop only when nothing is left without them.

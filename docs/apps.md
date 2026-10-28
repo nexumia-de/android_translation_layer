@@ -14,6 +14,15 @@ States: `works`, `partly` (starts, some features fail), `crashes`,
 | App | Version | ATL commit | State | Cause / notes | Fix |
 |---|---|---|---|---|---|
 
+# Needs owner
+
+System packages to install and decisions only the owner can make. Each
+entry: date, what, why. Remove an entry once it is done.
+
+None yet.
+
+# Notes
+
 No app tried yet. For each app, first search upstream's issue tracker
 (`https://gitlab.com/android_translation_layer/android_translation_layer/-/issues`)
 and link known reports in the notes.
