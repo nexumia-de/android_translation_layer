@@ -247,6 +247,35 @@ renderer, Adreno 810); `WLR_RENDERER=pixman` switches to software
 rendering. Verified with GNOME Calculator: it filled the 360×720
 screen.
 
+# Tests with the owner on the real screen
+
+The headless display has one pointer and no hardware: several fingers at
+once, the vibrator and the owner's Phosh session are out of its reach,
+and as `claude` ATL cannot open the vibrator (`/dev/input/event4`) nor
+reach the owner's Wayland socket (`/run/user/10000`). For those tests
+the owner starts the app as their user `user` in a terminal, with the
+log in `/tmp` where `claude` can read it:
+
+```sh
+android-translation-layer /home/claude/work/apks/<app>.apk 2>&1 | tee /tmp/<app>.log
+```
+
+This uses the installed package (`/usr`). To try a fix before it is in
+the apk repository, the owner runs the `~/.local` build of `claude`
+instead:
+
+```sh
+env PATH=/home/claude/.local/bin:$PATH LD_LIBRARY_PATH=/home/claude/.local/lib \
+  XDG_DATA_DIRS=/home/claude/.local/share:/usr/local/share:/usr/share \
+  android-translation-layer /home/claude/work/apks/<app>.apk 2>&1 | tee /tmp/<app>.log
+```
+
+For that, `~/.local` and `~/.local/share` of `claude` are `o+x` only
+(traverse, not list) and `bin`, `lib`, `share/atl` and
+`share/bionic_translation` are world-readable; app data and keyrings
+stay private. The agent says what to do in the app and reads the log
+when the owner reports back. `apks/` is world-readable.
+
 # GitHub access
 
 `gh` is logged in on the phone as the owner's account `suitably` with a
