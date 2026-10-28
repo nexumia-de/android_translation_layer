@@ -108,6 +108,7 @@ srcs = [
 	'android/content/AbstractThreadedSyncAdapter.java',
 	'android/content/ActivityNotFoundException.java',
 	'android/content/AsyncQueryHandler.java',
+	'android/content/AttributionSource.java',
 	'android/content/BroadcastReceiver.java',
 	'android/content/ClipboardManager.java',
 	'android/content/ClipData.java',

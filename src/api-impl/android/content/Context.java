@@ -581,6 +581,10 @@ public abstract class Context {
 	public String getAttributionTag() {
 		return null;
 	}
+
+	public AttributionSource getAttributionSource() {
+		return new AttributionSource(android.os.Process.myUid(), getPackageName(), getAttributionTag());
+	}
 	public abstract boolean isDeviceProtectedStorage();
 
 	public Drawable getWallpaper() {
