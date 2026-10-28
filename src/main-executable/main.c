@@ -18,6 +18,7 @@
 #include <dlfcn.h>
 #include <glib/gstdio.h>
 #include <errno.h>
+#include <ftw.h>
 #include <libgen.h>
 #include <locale.h>
 #include <stdio.h>
@@ -173,6 +174,67 @@ struct dynamic_launcher_callback_data {
 	char *desktop_file_id;
 	char *desktop_entry;
 };
+static void remove_launcher_icons(const char *app_data_dir_base, const char *package_name);
+
+/* outside a sandbox, ATL writes the launcher itself: no dialog (the user already chose to install,
+ * in the app store or by running --install), and with actions, which the portal's Install() rejects.
+ * Exits. */
+static void install_launcher_file(XdpPortal *portal, const char *package_name, const char *app_label, GVariant *icon_serialized,
+                                  const char *app_data_dir_base, GString *desktop_entry)
+{
+	char *desktop_file_id = g_strdup_printf("%s.desktop", package_name);
+	/* a launcher made through the portal by an earlier install */
+	xdp_portal_dynamic_launcher_uninstall(portal, desktop_file_id, NULL);
+
+	remove_launcher_icons(app_data_dir_base, package_name);
+	GString *keys = g_string_new("");
+	g_string_append_printf(keys, "Name=%s\n", app_label);
+	GIcon *icon = icon_serialized ? g_icon_deserialize(icon_serialized) : NULL;
+	if (icon && G_IS_BYTES_ICON(icon)) {
+		gsize size;
+		const char *data = g_bytes_get_data(g_bytes_icon_get_bytes(G_BYTES_ICON(icon)), &size);
+		const char *extension = "png";
+		if (size >= 4 && !memcmp(data, "RIFF", 4))
+			extension = "webp";
+		else if (size >= 1 && data[0] == '<')
+			extension = "svg";
+		char *icons_dir = g_build_filename(app_data_dir_base, "_launcher_icons_", NULL);
+		g_mkdir_with_parents(icons_dir, 0755);
+		char *icon_name = g_strdup_printf("%s.%s", package_name, extension);
+		char *icon_path = g_build_filename(icons_dir, icon_name, NULL);
+		GError *err = NULL;
+		if (g_file_set_contents(icon_path, data, size, &err)) {
+			g_string_append_printf(keys, "Icon=%s\n", icon_path);
+		} else {
+			fprintf(stderr, "could not write the launcher icon %s: %s\n", icon_path, err->message);
+			g_clear_error(&err);
+		}
+		g_free(icon_path);
+		g_free(icon_name);
+		g_free(icons_dir);
+	}
+	if (icon)
+		g_object_unref(icon);
+	/* into [Desktop Entry], which ends where the action's group starts */
+	char *action_group = strstr(desktop_entry->str, "\n[Desktop Action ");
+	g_string_insert(desktop_entry, action_group ? action_group - desktop_entry->str : desktop_entry->len, keys->str);
+	g_string_free(keys, TRUE);
+
+	char *applications_dir = g_build_filename(g_get_user_data_dir(), "applications", NULL);
+	g_mkdir_with_parents(applications_dir, 0755);
+	char *desktop_file_path = g_build_filename(applications_dir, desktop_file_id, NULL);
+	printf("installing %s\n\n%s\n", desktop_file_path, desktop_entry->str);
+	GError *err = NULL;
+	if (!g_file_set_contents(desktop_file_path, desktop_entry->str, -1, &err)) {
+		fprintf(stderr, "could not write the launcher %s: %s\n", desktop_file_path, err->message);
+		exit(1);
+	}
+	char *update_desktop_database = g_strdup_printf("update-desktop-database %s", applications_dir);
+	printf("running: `%s`\n", update_desktop_database);
+	system(update_desktop_database);
+	exit(0);
+}
+
 static void dynamic_launcher_ready_callback(GObject *portal, GAsyncResult *res, gpointer user_data)
 {
 	struct dynamic_launcher_callback_data *data = user_data;
@@ -238,9 +300,189 @@ struct jni_callback_data {
 	char **extra_jvm_options;
 	char **extra_string_keys;
 	char *sdk_int;
+	gboolean uninstall;
+	gboolean dbus_activated;
 };
 
 static char *uri_option = NULL;
+
+/* the installed apk and its data directory, for the launcher's "uninstall" action */
+static char *uninstall_apk_path = NULL;
+static char *uninstall_data_dir = NULL;
+static gboolean uninstall_allowed = FALSE;
+static char *uninstall_data_dir_base = NULL;
+
+static void remove_launcher_icons(const char *app_data_dir_base, const char *package_name)
+{
+	const char *extensions[] = {"png", "webp", "svg"};
+	for (int i = 0; i < ARRAY_SIZE(extensions); i++) {
+		char *icon_name = g_strdup_printf("%s.%s", package_name, extensions[i]);
+		char *icon_path = g_build_filename(app_data_dir_base, "_launcher_icons_", icon_name, NULL);
+		remove(icon_path);
+		g_free(icon_path);
+		g_free(icon_name);
+	}
+}
+
+static int remove_entry(const char *path, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
+{
+	if (remove(path))
+		fprintf(stderr, "uninstall: can't remove %s (%m)\n", path);
+	return 0;
+}
+
+static void remove_recursively(const char *path)
+{
+	struct stat st;
+	if (!lstat(path, &st))
+		nftw(path, remove_entry, 16, FTW_DEPTH | FTW_PHYS);
+}
+
+/* removes what --install created: the apk with its splits, the app's data and cache, the D-Bus
+ * service file and the launcher; the same as PackageInstaller.uninstallPackage */
+static void uninstall_package(GApplication *app)
+{
+	const char *app_id = g_application_get_application_id(app);
+	printf("uninstalling %s (%s)\n", app_id, uninstall_apk_path);
+
+	remove_recursively(uninstall_apk_path);
+	char *splits = g_strdup_printf("%s.splits", uninstall_apk_path);
+	remove_recursively(splits);
+	g_free(splits);
+	remove_recursively(uninstall_data_dir);
+	char *cache_dir = g_build_filename(g_get_user_cache_dir(), "android_translation_layer", app_id, NULL);
+	remove_recursively(cache_dir);
+	g_free(cache_dir);
+	char *service_name = g_strdup_printf("%s.service", app_id);
+	char *service_path = g_build_filename(g_get_user_data_dir(), "dbus-1", "services", service_name, NULL);
+	remove_recursively(service_path);
+	g_free(service_path);
+	g_free(service_name);
+
+	remove_launcher_icons(uninstall_data_dir_base, app_id);
+	char *desktop_file_id = g_strdup_printf("%s.desktop", app_id);
+	char *desktop_file_path = g_build_filename(g_get_user_data_dir(), "applications", desktop_file_id, NULL);
+	remove(desktop_file_path);
+	g_free(desktop_file_path);
+	/* a launcher made through the portal (in a sandbox, or by an older ATL) */
+	XdpPortal *portal = xdp_portal_new();
+	xdp_portal_dynamic_launcher_uninstall(portal, desktop_file_id, NULL);
+	g_free(desktop_file_id);
+	g_object_unref(portal);
+	char *update_desktop_database = g_strdup_printf("update-desktop-database %s/applications", g_get_user_data_dir());
+	system(update_desktop_database);
+	g_free(update_desktop_database);
+}
+
+static void uninstall_dialog_done(GObject *source, GAsyncResult *res, gpointer user_data)
+{
+	GApplication *app = user_data;
+	if (gtk_alert_dialog_choose_finish(GTK_ALERT_DIALOG(source), res, NULL) == 1) {
+		uninstall_package(app);
+		exit(0);
+	}
+	g_application_release(app);
+}
+
+/* asks first, like Android; the label comes from the launcher */
+static void ask_uninstall(GApplication *app)
+{
+	if (!uninstall_allowed) {
+		fprintf(stderr, "uninstall: %s is not an installed apk\n", uninstall_apk_path);
+		return;
+	}
+	const char *app_id = g_application_get_application_id(app);
+	char *desktop_file = g_strdup_printf("applications/%s.desktop", app_id);
+	GKeyFile *key_file = g_key_file_new();
+	char *label = NULL;
+	if (g_key_file_load_from_data_dirs(key_file, desktop_file, NULL, G_KEY_FILE_NONE, NULL))
+		label = g_key_file_get_locale_string(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, NULL, NULL);
+	g_key_file_free(key_file);
+	g_free(desktop_file);
+
+	GtkAlertDialog *dialog = gtk_alert_dialog_new("Uninstall %s?", label ? label : app_id);
+	g_free(label);
+	gtk_alert_dialog_set_detail(dialog, "The app and its data will be removed.");
+	const char *buttons[] = {"Cancel", "Uninstall", NULL};
+	gtk_alert_dialog_set_buttons(dialog, buttons);
+	gtk_alert_dialog_set_cancel_button(dialog, 0);
+	gtk_alert_dialog_set_default_button(dialog, 0);
+	g_application_hold(app);
+	gtk_alert_dialog_choose(dialog, window ? GTK_WINDOW(window) : NULL, NULL, uninstall_dialog_done, app);
+	g_object_unref(dialog);
+}
+
+static gboolean uninstall_pending = FALSE;
+static gboolean app_starting = FALSE;
+
+static void action_uninstall(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+	GApplication *app = G_APPLICATION(user_data);
+	ask_uninstall(app);
+	if (uninstall_pending) { // the hold from open(), which did not start the app
+		uninstall_pending = FALSE;
+		g_application_release(app);
+	}
+}
+
+static GMutex dbus_request_mutex;
+static GCond dbus_request_cond;
+enum dbus_request {
+	DBUS_REQUEST_NONE,
+	DBUS_REQUEST_OTHER,
+	DBUS_REQUEST_UNINSTALL,
+};
+static enum dbus_request dbus_request = DBUS_REQUEST_NONE;
+
+/* runs in GDBus' worker thread; only looks at the request, which is still dispatched as usual */
+static GDBusMessage *dbus_request_filter(GDBusConnection *connection, GDBusMessage *message, gboolean incoming, gpointer user_data)
+{
+	if (!incoming || g_dbus_message_get_message_type(message) != G_DBUS_MESSAGE_TYPE_METHOD_CALL ||
+	    g_strcmp0(g_dbus_message_get_interface(message), "org.freedesktop.Application"))
+		return message;
+	enum dbus_request request = DBUS_REQUEST_OTHER;
+	GVariant *body = g_dbus_message_get_body(message);
+	if (!g_strcmp0(g_dbus_message_get_member(message), "ActivateAction") && body &&
+	    g_variant_is_of_type(body, G_VARIANT_TYPE("(sava{sv})"))) {
+		const char *action_name;
+		g_variant_get_child(body, 0, "&s", &action_name);
+		if (!strcmp(action_name, "uninstall"))
+			request = DBUS_REQUEST_UNINSTALL;
+	}
+	g_mutex_lock(&dbus_request_mutex);
+	if (dbus_request == DBUS_REQUEST_NONE)
+		dbus_request = request;
+	g_cond_signal(&dbus_request_cond);
+	g_mutex_unlock(&dbus_request_mutex);
+	return message;
+}
+
+/* D-Bus activation starts us for whatever was asked of the app (activate it, open a URI, run a
+ * launcher action), but the request only arrives once we own the bus name. Own it before the app
+ * starts and wait briefly for the request, so the launcher's "uninstall" action does not start the
+ * app first (which it might not survive). */
+static gboolean dbus_activation_asks_uninstall(GApplication *app)
+{
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!bus)
+		return FALSE;
+	guint filter = g_dbus_connection_add_filter(bus, dbus_request_filter, NULL, NULL);
+	GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+	                                              "RequestName", g_variant_new("(su)", g_application_get_application_id(app), G_BUS_NAME_OWNER_FLAGS_NONE),
+	                                              G_VARIANT_TYPE("(u)"), 0, -1, NULL, NULL);
+	if (reply)
+		g_variant_unref(reply);
+	gint64 end_time = g_get_monotonic_time() + 500 * G_TIME_SPAN_MILLISECOND;
+	g_mutex_lock(&dbus_request_mutex);
+	while (dbus_request == DBUS_REQUEST_NONE)
+		if (!g_cond_wait_until(&dbus_request_cond, &dbus_request_mutex, end_time))
+			break;
+	gboolean uninstall = dbus_request == DBUS_REQUEST_UNINSTALL;
+	g_mutex_unlock(&dbus_request_mutex);
+	g_dbus_connection_remove_filter(bus, filter);
+	g_object_unref(bus);
+	return uninstall;
+}
 
 static void parse_string_extras(JNIEnv *env, char **extra_string_keys, jobject intent)
 {
@@ -325,7 +567,7 @@ static gboolean install_dbus_service_file(const char *package_name, const char *
 
 	GString *service_file = g_string_new("[D-BUS Service]\n");
 	g_string_append_printf(service_file, "Name=%s\n", package_name);
-	g_string_append_printf(service_file, "Exec=%s\n", exec_cmd);
+	g_string_append_printf(service_file, "Exec=%s --dbus-activated\n", exec_cmd);
 
 	GError *error = NULL;
 	if (!g_file_set_contents(service_path, service_file->str, -1, &error)) {
@@ -386,6 +628,10 @@ static char *install_split_apks(GFile *dest, GFile **files, gint nfiles)
 
 static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *hint, struct jni_callback_data *d)
 {
+	if (app_starting && !window) { // the bus name is owned early when D-Bus activated
+		fprintf(stderr, "ignoring a D-Bus open request while the app starts\n");
+		return;
+	}
 	if (window) { // this is not the first launch, but a DBus request to open an URI in the running app
 		fprintf(stderr, "opening uri over DBus %p\n", files[0]);
 		char *uri = g_file_get_uri(files[0]);
@@ -463,6 +709,31 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	// arguably both the app id and the apk name might have an issue with duplicates, but if two apks use the same app id, chances are it's less of an issue than when two apks have the same name
 	// !IMPORTANT! Unity can't comprehend that a directory name could end in .apk, so we have to avoid that here by adding `_`
 	app_data_dir = g_strdup_printf("%s/%s_/", app_data_dir_base, apk_name);
+
+	uninstall_apk_path = g_file_get_path(files[0]);
+	uninstall_data_dir = g_strdup(app_data_dir);
+	uninstall_data_dir_base = g_strdup(app_data_dir_base);
+	char *apk_dir = g_path_get_dirname(uninstall_apk_path);
+	char *installed_apks_dir = g_build_filename(app_data_dir_base, "_installed_apks_", NULL);
+	/* only what --install put there, never an apk the user started from elsewhere */
+	uninstall_allowed = !strcmp(apk_dir, installed_apks_dir) &&
+	                    strcmp(g_application_get_application_id(G_APPLICATION(app)), "com.example.demo_application");
+	g_free(apk_dir);
+	g_free(installed_apks_dir);
+	if (d->uninstall) {
+		if (!uninstall_allowed) {
+			fprintf(stderr, "error: --uninstall needs an apk installed with --install and --gapplication-app-id\n");
+			exit(1);
+		}
+		ask_uninstall(G_APPLICATION(app));
+		return;
+	}
+	if (d->dbus_activated && !d->install && uninstall_allowed && dbus_activation_asks_uninstall(G_APPLICATION(app))) {
+		uninstall_pending = TRUE;
+		g_application_hold(G_APPLICATION(app));
+		return;
+	}
+	app_starting = TRUE;
 
 	ret = mkdir(app_data_dir, DEFFILEMODE | S_IXUSR | S_IXGRP | S_IXOTH);
 	if (ret && errno != EEXIST) {
@@ -721,9 +992,14 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		if (dbus_activatable)
 			g_string_append(desktop_entry, "DBusActivatable=true\n");
 		g_string_append_printf(desktop_entry, "Exec=%s --uri %%u\n", exec_cmd->str);
-		g_string_free(exec_cmd, TRUE);
 		if (supported_mime_types)
 			g_string_append_printf(desktop_entry, "MimeType=%s\n", supported_mime_types);
+		if (dbus_activatable) { // not in a Flatpak sandbox
+			/* shown in the launcher's context menu, e.g. a long press in Phosh's app grid */
+			g_string_append_printf(desktop_entry, "Actions=uninstall;\n\n[Desktop Action uninstall]\nName=Uninstall\nExec=%s --uninstall\n", exec_cmd->str);
+			install_launcher_file(portal, package_name, app_label, icon_serialized, app_data_dir_base, desktop_entry);
+		}
+		g_string_free(exec_cmd, TRUE);
 		struct dynamic_launcher_callback_data *cb_data = g_new(struct dynamic_launcher_callback_data, 1);
 		cb_data->desktop_file_id = g_strdup_printf("%s.desktop", package_name);
 		cb_data->desktop_entry = g_string_free(desktop_entry, FALSE);
@@ -803,6 +1079,8 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 static void activate(GtkApplication *app, struct jni_callback_data *d)
 {
+	if (app_starting && !window) // D-Bus activation's own request, which started us
+		return;
 	if (window) { // this is not the first launch, but a DBus activate request to the running app
 		gtk_window_present(GTK_WINDOW(window));
 		return;
@@ -830,6 +1108,8 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "window-height",    'h', 0, G_OPTION_ARG_INT,          &d->window_height,             "window height to launch with (some apps react poorly to runtime window size adjustments)",     "HEIGHT"        },
 		{ "install",          'i', 0, G_OPTION_ARG_NONE,         &d->install,                   "install .desktop file for the given apk",                                                      NULL            },
 		{ "install-internal",  0 , 0, G_OPTION_ARG_NONE,         &d->install_internal,          "copy an apk to _installed_apks_ but don't create a desktop entry",                             NULL            },
+		{ "uninstall",         0 , 0, G_OPTION_ARG_NONE,         &d->uninstall,                 "remove an apk installed with --install, its data and its launcher (asks first)",                NULL            },
+		{ "dbus-activated",    0 , G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &d->dbus_activated, "started through the launcher's D-Bus service file",                                          NULL            },
 		{ "extra-jvm-option", 'X', 0, G_OPTION_ARG_STRING_ARRAY, &d->extra_jvm_options,         "pass an additional option directly to art (e.g -X \"-verbose:jni\")",                          "\"OPTION\""    },
 		{ "extra-string-key", 'e', 0, G_OPTION_ARG_STRING_ARRAY, &d->extra_string_keys,         "pass a string extra (-e key=value)",                                                           "\"KEY=VALUE\"" },
 		{ "sdk-int",           0 , 0, G_OPTION_ARG_STRING,       &d->sdk_int,                   "shorthand for -X \"-DBuild.VERSION.SDK_INT=<version>\"",                                                           "SDK_INT" },
@@ -902,6 +1182,8 @@ int main(int argc, char **argv)
 	callback_data->extra_jvm_options = NULL;
 	callback_data->extra_string_keys = NULL;
 	callback_data->sdk_int = NULL;
+	callback_data->uninstall = FALSE;
+	callback_data->dbus_activated = FALSE;
 
 	app = gtk_application_new("com.example.demo_application", G_APPLICATION_NON_UNIQUE | G_APPLICATION_HANDLES_OPEN | G_APPLICATION_CAN_OVERRIDE_APP_ID);
 
@@ -912,6 +1194,8 @@ int main(int argc, char **argv)
 	g_signal_connect(app, "activate", G_CALLBACK(activate), callback_data);
 	g_signal_connect(app, "open", G_CALLBACK(open), callback_data);
 	g_action_map_add_action_entries(G_ACTION_MAP(app), action_entries, action_entries_count, NULL);
+	const GActionEntry uninstall_action_entry = {"uninstall", action_uninstall};
+	g_action_map_add_action_entries(G_ACTION_MAP(app), &uninstall_action_entry, 1, app);
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	remove_ongoing_notifications();
 	g_object_unref(app);

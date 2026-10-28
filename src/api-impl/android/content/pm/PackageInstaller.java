@@ -171,6 +171,14 @@ public class PackageInstaller {
 		if (dataHome == null || dataHome.isEmpty())
 			dataHome = System.getenv("HOME") + "/.local/share";
 		new File(dataHome + "/dbus-1/services/" + packageName + ".service").delete();
+		/* the launcher ATL writes itself outside a sandbox, with its icon */
+		new File(dataHome + "/applications/" + packageName + ".desktop").delete();
+		for (String extension : new String[] {"png", "webp", "svg"})
+			new File(ATLPaths.app_data_dir_base, "_launcher_icons_/" + packageName + "." + extension).delete();
+		String cacheHome = System.getenv("XDG_CACHE_HOME");
+		if (cacheHome == null || cacheHome.isEmpty())
+			cacheHome = System.getenv("HOME") + "/.cache";
+		deleteRecursively(new File(cacheHome + "/android_translation_layer/" + packageName));
 		String output = run("gdbus", "call", "--session", "--dest", "org.freedesktop.portal.Desktop",
 		                    "--object-path", "/org/freedesktop/portal/desktop",
 		                    "--method", "org.freedesktop.portal.DynamicLauncher.Uninstall",
