@@ -127,7 +127,7 @@ packages, with four differences:
 # Building into ~/.local
 
 ```sh
-tools/phone-setup.sh            # check, libunwind, bionic, art, opensles, atl
+tools/phone-setup.sh            # check, libunwind, bionic, art, opensles, atl, tools
 tools/phone-setup.sh atl        # only rebuild ATL from this checkout
 ```
 
@@ -143,6 +143,7 @@ little free memory.
 | `art` | `make ____PREFIX=~/.local ____LIBDIR=lib`, then `make ... install` | 18 min |
 | `opensles` | meson as for `bionic` | 19 s |
 | `atl` | meson as for `bionic`, with `-Ddownload_tool_deps=true` | 1 min (rebuild after a Java change: 47 s) |
+| `tools` | `wayland-scanner` and `cc` for `tools/wl-pointer` | 1 s |
 
 Details that are not obvious:
 
@@ -208,9 +209,38 @@ tools/headless-shot.sh -o shot.png -l app.log -- android-translation-layer app.a
    GTK's first start on the phone took more than 5 s, and a screenshot
    taken earlier is black), and takes the screenshot with `grim`
    (wlr-screencopy);
-5. stops the placeholder client (cage exits with it) and the app
+5. before that runs the `-x` steps in order, with helpers `tap X Y`,
+   `swipe X1 Y1 X2 Y2 [MS]` and `shot FILE` (see below), waiting `-w`
+   seconds after each;
+6. stops the placeholder client (cage exits with it) and the app
    (`dbus-run-session` then ends the bus), and unmounts the FUSE
    mounts gvfs and the document portal leave in the runtime directory.
+
+## Input
+
+cage supports the wlroots virtual pointer and keyboard protocols.
+`tools/wl-pointer` (built by `tools/phone-setup.sh tools` into
+`~/.local/bin`) clicks and drags through one virtual pointer, in
+logical pixels with absolute positions:
+
+```sh
+tools/headless-shot.sh -d 45 -w 3 -x 'tap 320 695' -x 'shot page2.png' -- android-translation-layer app.apk
+# inside a step, for a long press with a screenshot while holding:
+#   -x 'wl-pointer -s 360x720 move 180 380 down wait 9000 up & sleep 4; shot hold.png; wait'
+```
+
+ATL turns the pointer into single-finger touch events, so taps, long
+presses and swipes work. There is no virtual touch protocol, so
+gestures with several fingers cannot be tested headless.
+
+`wlrctl` (installed on 2026-10-28) does not work for clicks: every call
+creates its own virtual pointer and destroys it on exit, so the seat
+loses and regains its pointer capability. GTK then binds a new
+`wl_pointer` that never got an enter event and drops the click; in GNOME
+Calculator, `wlrctl pointer move` plus `wlrctl pointer click` typed
+nothing, `wl-pointer tap` typed the digits. `wl-pointer` keeps one
+device for all its commands and waits 300 ms after creating it until
+clients have bound it.
 
 cage renders on the GPU through the render node (wlroots GLES2
 renderer, Adreno 810); `WLR_RENDERER=pixman` switches to software

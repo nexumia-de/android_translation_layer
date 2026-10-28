@@ -675,6 +675,7 @@ srcs = [
 	'android/view/animation/AnimationUtils.java',
 	'android/view/animation/AnticipateInterpolator.java',
 	'android/view/animation/BaseInterpolator.java',
+	'android/view/animation/BounceInterpolator.java',
 	'android/view/animation/CycleInterpolator.java',
 	'android/view/animation/DecelerateInterpolator.java',
 	'android/view/animation/Interpolator.java',
