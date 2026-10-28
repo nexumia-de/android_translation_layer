@@ -66,8 +66,8 @@ owner does not want to flood the maintainers.
   running Claude Code on my phone to install Android apps on Phosh. This
   is one finding: …". Optional last line, without asking for anything:
   "Other fixes found along the way are collected in
-  https://github.com/nexumia-de/android_translation_layer (docs/apps.md);
-  no need to look, I'll send the useful ones as separate small MRs."
+  https://github.com/nexumia-de/android_translation_layer (docs/apps.md),
+  in case they are of interest; no need to look."
 - Fixes in ATL's dependencies (`art_standalone`, …) go to that project's
   GitLab repository the same way.
 
