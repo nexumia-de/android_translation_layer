@@ -12,6 +12,7 @@
 #   art        build art_standalone (the long one: about an hour)
 #   opensles   build libopensles-standalone
 #   atl        build ATL from this checkout
+#   tools      build tools/wl-pointer (input for tools/headless-shot.sh)
 #   env        print the environment for running ATL from $PREFIX,
 #              use as: eval "$(tools/phone-setup.sh env)"
 #
@@ -44,7 +45,7 @@ packages="build-base meson samurai bash zip python3 java-common java-cacerts ope
   libsndfile-dev sdl2-compat-dev
   alsa-lib-dev ffmpeg-dev fontconfig-dev glib-dev gtk4.0-dev gtk4-layer-shell-dev libdrm-dev
   libgudev-dev libportal-dev libsecret-dev openxr-dev vulkan-loader-dev wayland-protocols webkit2gtk-6.0-dev
-  cage grim wlr-randr wlrctl libunwind"
+  cage grim wlr-randr libunwind"
 
 log() { printf '\n==> %s\n' "$*"; }
 
@@ -159,7 +160,21 @@ step_atl() {
 	meson_build "$ATL" -Ddownload_tool_deps=true
 }
 
-[ $# -gt 0 ] || set -- check libunwind bionic art opensles atl
+step_tools() {
+	log "Building wl-pointer"
+	dir=$ATL/tools/wl-pointer
+	tmp=$(mktemp -d)
+	wayland-scanner client-header "$dir/wlr-virtual-pointer-unstable-v1.xml" "$tmp/wlr-virtual-pointer-unstable-v1-client-protocol.h"
+	wayland-scanner private-code "$dir/wlr-virtual-pointer-unstable-v1.xml" "$tmp/wlr-virtual-pointer-unstable-v1-protocol.c"
+	mkdir -p "$PREFIX/bin"
+	# shellcheck disable=SC2046
+	cc -O2 -Wall -I"$tmp" -o "$PREFIX/bin/wl-pointer" "$dir/wl-pointer.c" "$tmp/wlr-virtual-pointer-unstable-v1-protocol.c" \
+		$(pkg-config --cflags --libs wayland-client)
+	rm -rf "$tmp"
+	echo "Installed $PREFIX/bin/wl-pointer"
+}
+
+[ $# -gt 0 ] || set -- check libunwind bionic art opensles atl tools
 
 if [ "$1" = env ]; then
 	print_env
@@ -170,7 +185,7 @@ eval "$(print_env)"
 for step in "$@"; do
 	case $step in
 	# A subshell per step, so use_jdk applies to that step only.
-	check | libunwind | bionic | art | opensles | atl) ("step_$step") ;;
+	check | libunwind | bionic | art | opensles | atl | tools) ("step_$step") ;;
 	*) echo "unknown step: $step" >&2; exit 1 ;;
 	esac
 done

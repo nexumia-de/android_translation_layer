@@ -13,7 +13,7 @@ States: `works`, `partly` (starts, some features fail), `crashes`,
 
 | App | Version | ATL commit | State | Cause / notes | Fix |
 |---|---|---|---|---|---|
-| [Chooser](https://f-droid.org/packages/com.uravgcode.chooser/) (`com.uravgcode.chooser`, F-Droid) | 1.5.0 (26) | `7d31932e` | `partly` | Owner's app. Jetpack Compose. Starts and shows the first onboarding page correctly at 360×720 ([screenshot](screenshots/chooser-2026-10-28.png)). Interaction not tested yet: the headless display has no input (see "Needs owner"); the main feature needs several fingers at once, which cannot be simulated there and needs a test on the real touch screen. No upstream report. | Crashed at startup with `NoClassDefFoundError: android.view.animation.BounceInterpolator`: fixed by `f01f23bb api-impl: add BounceInterpolator`. The onboarding text began with `<ContentHandlerReplacementTag />`: `Html.fromHtml` did not parse HTML; fixed by `7d31932e api-impl: Html: parse tags and entities in fromHtml`. Both upstream candidates. |
+| [Chooser](https://f-droid.org/packages/com.uravgcode.chooser/) (`com.uravgcode.chooser`, F-Droid) | 1.5.0 (26) | `5071ca6b` | `partly` | Owner's app. Jetpack Compose. In the headless display at 360×720 with `tools/wl-pointer`: the five onboarding pages ([first](screenshots/chooser-2026-10-28.png)) with their animations, the check mark, the main screen with the mode and number buttons ([screenshot](screenshots/chooser-main-2026-10-28.png)), and one held finger with its animated circle ([screenshot](screenshots/chooser-hold-2026-10-28.png)) work. Not tested: choosing among several fingers, the app's main feature, because several fingers at once cannot be simulated headless (see "Needs owner"); the mode and number buttons and the settings. No upstream report. | 1. Crashed at startup with `NoClassDefFoundError: android.view.animation.BounceInterpolator`: `f01f23bb api-impl: add BounceInterpolator`. 2. The onboarding text began with `<ContentHandlerReplacementTag />`, as `Html.fromHtml` did not parse HTML: `7d31932e api-impl: Html: parse tags and entities in fromHtml`. 3. The finger's ring circled about two radii away from the finger, as arcs of 360° and more were drawn on the wrong ellipse: `5071ca6b Path: draw arcs of 360 degrees and more as a full ellipse`. All upstream candidates. |
 | [Blokish](https://f-droid.org/packages/org.scoutant.blokish/) (`org.scoutant.blokish`, F-Droid) | 3.6 (24) | `01084c1c` | `partly` | Smoke test of the phone setup (2026-10-28), not a target app. Starts with the title bar and the four player colour bars at the bottom; the board (black area) is not drawn: GTK warns `Trying to measure WrapperWidget ... for width of 0, but it needs at least 252`. Not investigated further. No upstream report. [Screenshot](screenshots/blokish-2026-10-28.png). Started with `tools/headless-shot.sh -d 40 -- android-translation-layer org.scoutant.blokish_24.apk`. | Crashed at startup with `NoClassDefFoundError: android.view.animation.RotateAnimation`; fixed by `01084c1c api-impl: add RotateAnimation stub` (upstream candidate). |
 
 # Needs owner
@@ -21,9 +21,15 @@ States: `works`, `partly` (starts, some features fail), `crashes`,
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
-- 2026-10-28: `apk add wlrctl`. Clicks and key presses in the headless
-  cage (virtual pointer and keyboard protocols, which cage supports), to
-  test apps beyond their first screen, e.g. Chooser's onboarding.
+- 2026-10-28: Try Chooser with several fingers on the real touch
+  screen; headless tests cannot do that. ATL is installed for the user
+  `claude` only (`~/.local` is `chmod 700`). Options: (a) `claude`
+  opens only the ATL parts of `~/.local` (`bin`, `lib`, `share/atl`,
+  `share/bionic_translation`) for reading, and the owner starts Chooser
+  in Phosh with `PREFIX=/home/claude/.local` in front of
+  `tools/phone-setup.sh env`; app data then lands in the owner's home;
+  (b) the owner builds ATL from this repository as their own user with
+  `tools/phone-setup.sh`.
 
 # Notes
 

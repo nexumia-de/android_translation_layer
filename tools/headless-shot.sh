@@ -11,6 +11,15 @@
 #   -l FILE   also write the app's stdout/stderr to FILE
 #   -m WxH    output mode in physical pixels (default: 720x1440)
 #   -s SCALE  output scale (default: 2, so 360x720 logical like Phosh)
+#   -x STEP   shell command run after the delay (repeatable, in order), with
+#             WAYLAND_DISPLAY set and these helpers:
+#               tap X Y    click at X,Y in logical pixels
+#               swipe X1 Y1 X2 Y2 [MS]  drag from X1,Y1 to X2,Y2
+#               shot FILE  take a screenshot now
+#             e.g. -x 'tap 330 70' -x 'shot page2.png'. tap and swipe use
+#             wl-pointer (tools/phone-setup.sh tools); "wl-pointer -s WxH
+#             ..." does more, and wlrctl can type text and keys
+#   -w SEC    seconds to wait after each step (default: 2)
 #
 # cage shows the app maximized, like Phosh. It renders on the GPU through
 # the render node; set WLR_RENDERER=pixman to render in software. The app
@@ -24,15 +33,21 @@ applog=
 mode=720x1440
 scale=2
 
-usage() { sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+steps=
+step_wait=2
 
-while getopts "o:d:l:m:s:h" opt; do
+usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit "${1:-0}"; }
+
+while getopts "o:d:l:m:s:x:w:h" opt; do
 	case $opt in
 	o) out=$OPTARG ;;
 	d) delay=$OPTARG ;;
 	l) applog=$OPTARG ;;
 	m) mode=$OPTARG ;;
 	s) scale=$OPTARG ;;
+	x) steps="$steps$OPTARG
+" ;;
+	w) step_wait=$OPTARG ;;
 	h) usage 0 ;;
 	*) usage 1 ;;
 	esac
@@ -41,7 +56,9 @@ shift $((OPTIND - 1))
 [ "${1:-}" = "--" ] && shift
 [ $# -gt 0 ] || usage 1
 
-for tool in cage wlr-randr grim dbus-run-session; do
+tools="cage wlr-randr grim dbus-run-session"
+[ -n "$steps" ] && tools="$tools wl-pointer"
+for tool in $tools; do
 	command -v "$tool" >/dev/null || { echo "$tool not found" >&2; exit 1; }
 done
 
@@ -91,19 +108,37 @@ wlr-randr --output HEADLESS-1 --custom-mode "$mode" --scale "$scale"
 dbus-run-session -- sh -c 'echo $$ >"$0/app.pid"; exec "$@"' "$run" "$@" >"$run/app.log" 2>&1 &
 app_pid=$!
 
-# Wait, but stop early if the app dies.
-i=0
-while [ $i -lt "$delay" ] && kill -0 "$app_pid" 2>/dev/null; do
-	sleep 1
-	i=$((i + 1))
-done
-[ -n "$applog" ] && cp "$run/app.log" "$applog"
-if ! kill -0 "$app_pid" 2>/dev/null; then
-	wait "$app_pid" && status=0 || status=$?
-	app_pid=
-	echo "App exited with status $status before the screenshot. Last lines of its log:" >&2
-	tail -n 30 "$run/app.log" >&2
-	exit 1
-fi
+# Wait $1 seconds, but stop early if the app dies.
+wait_alive() {
+	i=0
+	while [ $i -lt "$1" ] && kill -0 "$app_pid" 2>/dev/null; do
+		sleep 1
+		i=$((i + 1))
+	done
+	if ! kill -0 "$app_pid" 2>/dev/null; then
+		if [ -n "$applog" ]; then cp "$run/app.log" "$applog"; fi
+		wait "$app_pid" && status=0 || status=$?
+		app_pid=
+		echo "App exited with status $status before the screenshot. Last lines of its log:" >&2
+		tail -n 30 "$run/app.log" >&2
+		exit 1
+	fi
+}
+
+# Coordinates are logical pixels: the output mode divided by the scale.
+size=$(echo "$mode $scale" | awk '{ split($1, m, "x"); printf "%dx%d", m[1] / $2, m[2] / $2 }')
+helpers="tap() { wl-pointer -s $size tap \"\$1\" \"\$2\"; }
+swipe() { wl-pointer -s $size swipe \"\$1\" \"\$2\" \"\$3\" \"\$4\" \"\${5:-300}\"; }
+shot() { grim \"\$1\" && echo \"Saved \$1\"; }"
+
+wait_alive "$delay"
+printf '%s' "$steps" >"$run/steps"
+while IFS= read -r step; do
+	echo "Step: $step"
+	sh -c "$helpers
+$step" || { echo "Step failed: $step" >&2; exit 1; }
+	wait_alive "$step_wait"
+done <"$run/steps"
+if [ -n "$applog" ]; then cp "$run/app.log" "$applog"; fi
 grim "$out"
 echo "Saved $out ($mode, scale $scale)"
