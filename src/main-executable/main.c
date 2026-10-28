@@ -642,7 +642,8 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		if ((*env)->ExceptionCheck(env))
 			(*env)->ExceptionDescribe(env);
 
-		GString *exec_cmd = g_string_new("env ");
+		/* the D-Bus service file needs an absolute path, dbus-daemon does not search PATH */
+		GString *exec_cmd = g_string_new("/usr/bin/env ");
 		if (getenv("RUN_FROM_BUILDDIR")) {
 			printf("WARNING: RUN_FROM_BUILDDIR set and --install given: using current directory in desktop entry\n");
 			g_string_append_printf(exec_cmd, "-C %s ", g_get_current_dir());
