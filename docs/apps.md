@@ -19,7 +19,10 @@ States: `works`, `partly` (starts, some features fail), `crashes`,
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
-None yet.
+- 2026-10-28: `apk add openjdk17-jdk`. ATL's `tools/jni_upcall_gen`
+  uses Java 12 APIs (`Path.of`, `Files.mismatch`) and fails to compile
+  with JDK 8; upstream's nightlies build ATL with `openjdk17-jdk`.
+  Blocks the ATL build and every app test.
 
 # Notes
 
