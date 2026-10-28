@@ -24,12 +24,26 @@ public class PendingIntent implements Parcelable {
 	}
 
 	public IntentSender getIntentSender() {
-		return null;
+		return new IntentSender(this);
 	}
 
-	public void send(Context context, int code, Intent intent) {}
+	public void send(Context context, int code, Intent fillIn) {
+		Intent intent = this.intent;
+		if (fillIn != null) {
+			Bundle extras = intent.getExtras() != null ? new Bundle(intent.getExtras()) : new Bundle();
+			if (fillIn.getExtras() != null)
+				extras.putAll(fillIn.getExtras());
+			intent = new Intent(intent);
+			intent.replaceExtras(extras);
+		}
+		send(intent);
+	}
 
 	public void send() {
+		send(intent);
+	}
+
+	private void send(Intent intent) {
 		Context context = ATLLoadedApp.getPrimaryApplication().getApplication();
 		if (type == 0) { // type Activity
 			context.startActivity(intent);

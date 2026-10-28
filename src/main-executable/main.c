@@ -175,14 +175,19 @@ struct dynamic_launcher_callback_data {
 static void dynamic_launcher_ready_callback(GObject *portal, GAsyncResult *res, gpointer user_data)
 {
 	struct dynamic_launcher_callback_data *data = user_data;
-	GVariant *result = xdp_portal_dynamic_launcher_prepare_install_finish(XDP_PORTAL(portal), res, NULL);
+	GError *err = NULL;
+	GVariant *result = xdp_portal_dynamic_launcher_prepare_install_finish(XDP_PORTAL(portal), res, &err);
 	if (!result) {
-		fprintf(stderr, "cancelled\n");
-		exit(0);
+		/* exit status 2 tells PackageInstaller that the user said no */
+		if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+			fprintf(stderr, "cancelled\n");
+			exit(2);
+		}
+		fprintf(stderr, "failed to prepare dynamic launcher: %s\n", err ? err->message : "unknown error");
+		exit(1);
 	}
 	const char *token;
 	g_variant_lookup(result, "token", "s", &token);
-	GError *err = NULL;
 	xdp_portal_dynamic_launcher_install(XDP_PORTAL(portal), token, data->desktop_file_id, data->desktop_entry, &err);
 	g_free(data->desktop_file_id);
 	g_free(data->desktop_entry);

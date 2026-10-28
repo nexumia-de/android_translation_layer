@@ -1771,7 +1771,21 @@ public class PackageManager {
 	 */
 	public List<PackageInfo> getInstalledPackages(int flags) {
 		List<PackageInfo> ret = new ArrayList<PackageInfo>();
-		ret.add(package_info);
+		String primary = ATLLoadedApp.getPrimaryApplication().pkg.packageName;
+		try {
+			ret.add(getPackageInfo(primary, flags));
+		} catch (NameNotFoundException e) {
+			ret.add(package_info);
+		}
+		for (String packageName : ATLLoadedAppManager.getInstalledPackageNames()) {
+			if (packageName.equals(primary))
+				continue;
+			try {
+				ret.add(getPackageInfo(packageName, flags));
+			} catch (NameNotFoundException e) {
+				Slog.w(TAG, "getInstalledPackages: failed to load " + packageName);
+			}
+		}
 		return ret;
 	}
 
@@ -2132,7 +2146,10 @@ public class PackageManager {
 	 * @see #GET_UNINSTALLED_PACKAGES
 	 */
 	public List<ApplicationInfo> getInstalledApplications(int flags) {
-		return null;
+		List<ApplicationInfo> ret = new ArrayList<ApplicationInfo>();
+		for (PackageInfo info : getInstalledPackages(flags))
+			ret.add(info.applicationInfo);
+		return ret;
 	}
 
 	/**

@@ -6,8 +6,11 @@ import android.atl.annotation.Export;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInstaller;
+import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -44,6 +47,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 
 	public static final int RESULT_CANCELED = 0;
 	public static final int RESULT_OK = -1;
+	public static final int RESULT_FIRST_USER = 1;
 
 	Window window;
 	int requested_orientation = -1 /*ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED*/; // dummy
@@ -344,11 +348,42 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 				e.printStackTrace();
 				onActivityResult(requestCode, 0 /*RESULT_CANCELED*/, new Intent());
 			}
+		} else if ((Intent.ACTION_DELETE.equals(intent.getAction()) || Intent.ACTION_UNINSTALL_PACKAGE.equals(intent.getAction()))
+		           && intent.getData() != null && "package".equals(intent.getData().getScheme())) {
+			confirmUninstall(intent.getData().getSchemeSpecificPart(), requestCode);
 		} else {
 			Slog.i(TAG, "startActivityForResult: intent was not handled. Calling onActivityResult(RESULT_CANCELED).");
 			onActivityResult(requestCode, 0 /*RESULT_CANCELED*/, new Intent());
 		}
 	}
+	private void confirmUninstall(final String packageName, final int requestCode) {
+		CharSequence label = packageName;
+		try {
+			PackageManager pm = getPackageManager();
+			label = pm.getApplicationLabel(pm.getApplicationInfo(packageName, 0));
+		} catch (Exception e) {
+			Slog.w(TAG, "confirmUninstall: no label for " + packageName);
+		}
+		new AlertDialog.Builder(this)
+		    .setTitle("Uninstall " + label + "?")
+		    .setMessage("The app and its data will be removed.")
+		    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			    @Override
+			    public void onClick(DialogInterface dialog, int which) {
+				    onActivityResult(requestCode, RESULT_FIRST_USER, new Intent());
+			    }
+		    })
+		    .setPositiveButton("Uninstall", new DialogInterface.OnClickListener() {
+			    @Override
+			    public void onClick(DialogInterface dialog, int which) {
+				    boolean success = PackageInstaller.uninstallPackage(packageName);
+				    onActivityResult(requestCode, success ? RESULT_OK : RESULT_FIRST_USER, new Intent());
+			    }
+		    })
+		    .setCancelable(false)
+		    .show();
+	}
+
 	public void startActivityForResult(Intent intent, int requestCode) {
 		startActivityForResult(intent, requestCode, null);
 	}
