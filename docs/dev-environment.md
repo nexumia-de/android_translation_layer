@@ -86,7 +86,7 @@ apk add build-base meson samurai bash zip python3 java-common java-cacerts openj
   libsndfile-dev sdl2-compat-dev \
   alsa-lib-dev ffmpeg-dev fontconfig-dev glib-dev gtk4.0-dev gtk4-layer-shell-dev libdrm-dev \
   libgudev-dev libportal-dev libsecret-dev openxr-dev vulkan-loader-dev wayland-protocols webkit2gtk-6.0-dev \
-  cage grim wlr-randr
+  cage grim wlr-randr wlrctl
 ```
 
 The list follows the `makedepends` of Alpine's APKBUILDs for the four
@@ -211,6 +211,11 @@ tools/headless-shot.sh -o shot.png -l app.log -- android-translation-layer app.a
 5. stops the placeholder client (cage exits with it) and the app
    (`dbus-run-session` then ends the bus), and unmounts the FUSE
    mounts gvfs and the document portal leave in the runtime directory.
+
+Input: cage supports the wlroots virtual pointer and keyboard
+protocols, so `wlrctl` (requested from the owner on 2026-10-28) can
+click and type into the app. There is no virtual touch protocol, so
+gestures with several fingers cannot be tested headless.
 
 cage renders on the GPU through the render node (wlroots GLES2
 renderer, Adreno 810); `WLR_RENDERER=pixman` switches to software
