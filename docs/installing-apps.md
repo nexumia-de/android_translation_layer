@@ -25,7 +25,7 @@ installs, lists and uninstalls apps. Tested headless on 2026-10-28 with
 Chooser: install from the details page, the portal's "Create
 Application" dialog, F-Droid then shows it as installed with **Open**
 ([screenshot](screenshots/fdroid-chooser-installed-2026-10-28.png)),
-and **Uninstall** in the ⋮ menu asks first
+**Open** starts Chooser through its launcher, and **Uninstall** in the ⋮ menu asks first
 ([screenshot](screenshots/fdroid-uninstall-2026-10-28.png)) and removes
 it.
 
@@ -55,6 +55,15 @@ desktop portal's `DynamicLauncher` (`android-translation-layer
   D-Bus service file and its launcher (portal
   `DynamicLauncher.Uninstall`), and broadcasts `ACTION_PACKAGE_REMOVED`.
   `PackageInstaller.uninstall` does the same without a dialog.
+- **Open**: `startActivity` with `ACTION_MAIN` for a component of another
+  installed package runs `gtk-launch <package>`, which starts the app
+  through its launcher in its own ATL process, as Phosh does.
+- **Launchers**: the launcher is `DBusActivatable`, so Phosh starts the
+  app through the D-Bus service file `--install` writes. dbus-daemon does
+  not search `PATH`, so its `Exec` starts with `/usr/bin/env`; launchers
+  created by older ATL builds start with a bare `env` and fail to start
+  (`Failed to execute program <package>`) until the app is installed
+  again.
 
 # Setting F-Droid up on the phone
 
@@ -90,7 +99,6 @@ android-translation-layer --install --sdk-int 26 -w 360 -h 720 org.fdroid.fdroid
   build (rebuild just that jar with `make wolfssljni-hostdex` in
   art_standalone, 12 s); Alpine's `art_standalone-0_git20261018-r0` on
   the phone does not have it.
-- **Open** in F-Droid (launch another installed app) is not tested.
 - Installed apps show a generic icon in F-Droid.
 - Split APKs are refused (`STATUS_FAILURE_INCOMPATIBLE`); F-Droid only
   ships single APKs.
