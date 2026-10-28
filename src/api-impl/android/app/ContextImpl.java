@@ -6,6 +6,7 @@ import android.app.SearchManager;
 import android.app.job.JobScheduler;
 import android.atl.ATLLoadedApp;
 import android.atl.ATLLoadedAppManager;
+import android.atl.ATLPaths;
 import android.bluetooth.BluetoothManager;
 import android.content.*;
 import android.content.pm.ApplicationInfo;
@@ -36,6 +37,7 @@ import android.view.WindowManagerImpl;
 import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.CaptioningManager;
 import android.view.inputmethod.InputMethodManager;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -379,6 +381,20 @@ public final class ContextImpl extends Context {
 		if (className == null) {
 			Slog.w(TAG, "startActivity: intent could not be handled.");
 			return;
+		}
+		if (intent.getComponent() != null && !intent.getComponent().getPackageName().equals(atl_loaded_app.pkg.packageName)
+		    && Intent.ACTION_MAIN.equals(intent.getAction())) {
+			// another installed app runs in its own process: start it through the launcher --install created
+			String packageName = intent.getComponent().getPackageName();
+			if (new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
+				Slog.i(TAG, "startActivity: launching " + packageName + " through its desktop entry");
+				try {
+					new ProcessBuilder("gtk-launch", packageName).inheritIO().start();
+				} catch (IOException e) {
+					Slog.e(TAG, "startActivity: failed to launch " + packageName, e);
+				}
+				return;
+			}
 		}
 		final String className_ = className;
 		final Intent intent_ = intent;
