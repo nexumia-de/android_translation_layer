@@ -12,6 +12,10 @@ public class InputDevice {
 	public static final int SOURCE_KEYBOARD = 0x00000100 | SOURCE_CLASS_BUTTON;
 	public static final int SOURCE_TOUCHSCREEN = 0x00001000 | SOURCE_CLASS_POINTER;
 
+	public static final int KEYBOARD_TYPE_NONE = 0;
+	public static final int KEYBOARD_TYPE_NON_ALPHABETIC = 1;
+	public static final int KEYBOARD_TYPE_ALPHABETIC = 2;
+
 	public static int[] getDeviceIds() {
 		return new int[] {0}; // might work?
 	}
@@ -38,6 +42,11 @@ public class InputDevice {
 
 	public String getDescriptor() {
 		return "FIXME-descriptor";
+	}
+
+	/* key events come from GTK, which gets typed text (also from an on-screen keyboard) as keys */
+	public int getKeyboardType() {
+		return KEYBOARD_TYPE_ALPHABETIC;
 	}
 
 	public boolean isVirtual() {
