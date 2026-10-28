@@ -176,6 +176,24 @@ struct dynamic_launcher_callback_data {
 };
 static void remove_launcher_icons(const char *app_data_dir_base, const char *package_name);
 
+/* dbus-broker (unlike dbus-daemon) only reads service files again when asked to */
+static void reload_dbus_config(void)
+{
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!bus)
+		return;
+	GError *err = NULL;
+	GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+	                                              "ReloadConfig", NULL, NULL, 0, -1, NULL, &err);
+	if (reply)
+		g_variant_unref(reply);
+	else {
+		fprintf(stderr, "could not reload the D-Bus configuration: %s\n", err->message);
+		g_clear_error(&err);
+	}
+	g_object_unref(bus);
+}
+
 /* outside a sandbox, ATL writes the launcher itself: no dialog (the user already chose to install,
  * in the app store or by running --install), and with actions, which the portal's Install() rejects.
  * Exits. */
@@ -232,7 +250,10 @@ static void install_launcher_file(XdpPortal *portal, const char *package_name, c
 	char *update_desktop_database = g_strdup_printf("update-desktop-database %s", applications_dir);
 	printf("running: `%s`\n", update_desktop_database);
 	system(update_desktop_database);
-	exit(0);
+	/* not exit(): its cleanup crashed the runtime's still running JIT thread (SIGSEGV),
+	 * and the installing app store would take the status as a failed install */
+	fflush(NULL);
+	_exit(0);
 }
 
 static void dynamic_launcher_ready_callback(GObject *portal, GAsyncResult *res, gpointer user_data)
@@ -358,6 +379,7 @@ static void uninstall_package(GApplication *app)
 	remove_recursively(service_path);
 	g_free(service_path);
 	g_free(service_name);
+	reload_dbus_config();
 
 	remove_launcher_icons(uninstall_data_dir_base, app_id);
 	char *desktop_file_id = g_strdup_printf("%s.desktop", app_id);
@@ -379,7 +401,8 @@ static void uninstall_dialog_done(GObject *source, GAsyncResult *res, gpointer u
 	GApplication *app = user_data;
 	if (gtk_alert_dialog_choose_finish(GTK_ALERT_DIALOG(source), res, NULL) == 1) {
 		uninstall_package(app);
-		exit(0);
+		fflush(NULL);
+		_exit(0); // the app's runtime may be running, see install_launcher_file
 	}
 	g_application_release(app);
 }
@@ -579,6 +602,7 @@ static gboolean install_dbus_service_file(const char *package_name, const char *
 	}
 	g_string_free(service_file, TRUE);
 	g_free(service_path);
+	reload_dbus_config();
 
 	return TRUE;
 }

@@ -171,6 +171,9 @@ public class PackageInstaller {
 		if (dataHome == null || dataHome.isEmpty())
 			dataHome = System.getenv("HOME") + "/.local/share";
 		new File(dataHome + "/dbus-1/services/" + packageName + ".service").delete();
+		// dbus-broker (unlike dbus-daemon) only reads service files again when asked to
+		run("gdbus", "call", "--session", "--dest", "org.freedesktop.DBus", "--object-path", "/org/freedesktop/DBus",
+		    "--method", "org.freedesktop.DBus.ReloadConfig");
 		/* the launcher ATL writes itself outside a sandbox, with its icon */
 		new File(dataHome + "/applications/" + packageName + ".desktop").delete();
 		for (String extension : new String[] {"png", "webp", "svg"})
