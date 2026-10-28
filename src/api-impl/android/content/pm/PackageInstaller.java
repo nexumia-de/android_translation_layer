@@ -362,6 +362,10 @@ public class PackageInstaller {
 							// the installed app starts with the installer's window size instead of the 960x540 default
 							List<String> command = new ArrayList<>(Arrays.asList("/usr/bin/env", "android-translation-layer", "--install",
 							                    "-w", String.valueOf(Display.window_width), "-h", String.valueOf(Display.window_height)));
+							// a store started with --sdk-int passes it on to the apps it installs
+							String sdkInt = System.getProperty("Build.VERSION.SDK_INT");
+							if (sdkInt != null)
+								command.addAll(Arrays.asList("--sdk-int", sdkInt));
 							// --install takes the split APKs after the base APK
 							command.add(apk.getPath());
 							for (File file : files) {
