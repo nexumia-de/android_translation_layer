@@ -247,6 +247,16 @@ renderer, Adreno 810); `WLR_RENDERER=pixman` switches to software
 rendering. Verified with GNOME Calculator: it filled the 360×720
 screen.
 
+# ATL for the owner
+
+The owner uses ATL in Phosh from the package `android-translation-layer`
+of [nexumia-de/aports](https://github.com/nexumia-de/aports), which pins
+a commit of `phosh` and publishes a signed apk repository at
+`https://apk.nexumia.de/edge` (tag `@nexumia`); how it works is in that
+repository's `docs/repository.md`. After a fix is merged into `phosh`,
+its daily update check (or `scripts/update.sh android-translation-layer`
+there) moves the pin. Alpine's own `android-translation-layer` lacks the
+fork's fixes. The owner runs root commands themselves with `sudo`.
 # Tests with the owner on the real screen
 
 The headless display has one pointer and no hardware: several fingers at
