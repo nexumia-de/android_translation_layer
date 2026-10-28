@@ -33,8 +33,8 @@ entry: date, what, why. Remove an entry once it is done.
   that. The owner runs every root command themselves.
 
 - 2026-10-28: For DB Navigator from Aurora Store on the phone: merge
-  nexumia-de/aports pull request for `art_standalone` r101 and the new
-  `bionic_translation`, let it publish, then
+  nexumia-de/aports pull request #5 (`art_standalone` r101 and the new
+  `bionic_translation`), let it publish, then
   `sudo apk add art_standalone@nexumia libandroidfw@nexumia bionic_translation@nexumia`
   and `sudo apk upgrade`; then try a journey search in DB Navigator
   (typing could not be tested headless).
