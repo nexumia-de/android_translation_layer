@@ -5,6 +5,7 @@ import android.atl.ATLLoadedApp;
 import android.atl.annotation.Export;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageParser;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -35,7 +36,13 @@ public class Application extends ContextWrapper {
 
 	@Export
 	String get_app_label() {
-		return getString(this.get_atl_loaded_app().pkg.applicationInfo.labelRes);
+		ApplicationInfo info = this.get_atl_loaded_app().pkg.applicationInfo;
+		if (info.labelRes != 0)
+			return getString(info.labelRes);
+		// android:label can also be a literal string
+		if (info.nonLocalizedLabel != null && info.nonLocalizedLabel.length() > 0)
+			return info.nonLocalizedLabel.toString();
+		return info.packageName;
 	}
 
 	@Export

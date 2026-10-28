@@ -574,9 +574,13 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 		XdpPortal *portal = xdp_portal_new();
 
-		const char *app_label = _CSTRING(J__Application__get_app_label(env, application_object));
+		jstring app_label_jstr = J__Application__get_app_label(env, application_object);
 		if ((*env)->ExceptionCheck(env))
 			(*env)->ExceptionDescribe(env);
+		const char *app_label = app_label_jstr ? _CSTRING(app_label_jstr) : NULL;
+		/* the portal rejects an empty name and never calls back */
+		if (!app_label || !*app_label)
+			app_label = package_name;
 
 		GVariant *icon_serialized = NULL;
 		if (!d->install_internal) {
