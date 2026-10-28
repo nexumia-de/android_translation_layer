@@ -164,24 +164,26 @@ android-translation-layer path/to/app.apk [-l activity/Class]
 bionic_translation libraries in `~/.local/lib`), `XDG_DATA_DIRS` and the
 build variables. Without `-l`, ATL starts the APK's main activity.
 
-- The launcher has a `RUNPATH` to `~/.local/lib/art` only. Without
-  `LD_LIBRARY_PATH` it loads the bionic_translation libraries of the
-  system package (next section), not those from `~/.local`; check with
+- The launcher's `RUNPATH` covers only `~/.local/lib/art` and ATL's
+  `natives` directory, not `~/.local/lib`. Without `LD_LIBRARY_PATH` it
+  fails with `Error loading shared library libdl_bio.so.0`; check with
   `ldd ~/.local/bin/android-translation-layer`.
 - App data goes to `~/.local/share/android_translation_layer/<apk
   name>_/`, the dex2oat cache to `~/.cache/art/`.
 - ATL opens the phone's vibrator (`/dev/input/event4`); as `claude` this
-  fails with "Permission denied", which is harmless.
+  fails with "Permission denied", which is harmles## Alpine's ATL packages
 
-## Alpine's ATL packages on the phone
+The owner had installed Alpine's `android-translation-layer` on
+2026-10-23, which pulled `art_standalone`, `bionic_translation` and
+`libopensles-standalone` into `/usr`. They hid the missing
+`LD_LIBRARY_PATH` above (the launcher found `/usr/lib/libdl_bio.so.0`),
+and bionic_translation reads `bionic_translation/cfg.d` from every
+`XDG_DATA_DIRS` entry, so both copies were in play. The owner removed
+them on 2026-10-28 (`apk del android-translation-layer`); the Blokish
+smoke test gave the same screenshot afterwards. Do not install them
+again next to the `~/.local` build.
 
-The owner installed Alpine's `android-translation-layer` on 2026-10-23
-(in `/etc/apk/world`), which pulls `art_standalone`,
-`bionic_translation` and `libopensles-standalone` into `/usr`. They do
-not get in the way: with `tools/phone-setup.sh env`, `PATH` and
-`LD_LIBRARY_PATH` find the `~/.local` build first. bionic_translation
-reads `bionic_translation/cfg.d` from every `XDG_DATA_DIRS` entry, so it
-also sees the system package's identical `bionic_translation.cfg`.
+`.
 
 # Headless test display
 
