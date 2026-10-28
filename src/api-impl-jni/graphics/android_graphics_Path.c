@@ -65,18 +65,23 @@ void Java_android_graphics_Path_native_1arc_1to(JNIEnv *env, jclass this, jlong 
 	const double rx = fabs(right - left) / 2.0;
 	const double ry = fabs(bottom - top) / 2.0;
 
+	/* like Android, a sweep of 360 degrees or more is a full ellipse */
+	if (sweep_angle_deg > 360.0)
+		sweep_angle_deg = 360.0;
+	else if (sweep_angle_deg < -360.0)
+		sweep_angle_deg = -360.0;
+
+	/* split arcs over 180 degrees in two: an SVG arc between two points that
+	 * are (nearly) the same is dropped or ends up on the wrong ellipse */
+	const int segments = fabs(sweep_angle_deg) > 180.0 ? 2 : 1;
+
 	/* compute points on the ellipse from angles */
 	const double start_angle = DEG2RAD(start_angle_deg);
-	const double end_angle = DEG2RAD(start_angle_deg + sweep_angle_deg);
 
 	graphene_point_t p1;
-	graphene_point_t p2;
 	graphene_point_init(&p1,
 	                    center.x + rx * cos(start_angle),
 	                    center.y + ry * sin(start_angle));
-	graphene_point_init(&p2,
-	                    center.x + rx * cos(end_angle),
-	                    center.y + ry * sin(end_angle));
 
 	/* handle force_move_to */
 	if (force_move_to)
@@ -84,11 +89,16 @@ void Java_android_graphics_Path_native_1arc_1to(JNIEnv *env, jclass this, jlong 
 	else if (!graphene_point_equal(gsk_path_builder_get_current_point(builder), &p1))
 		gsk_path_builder_line_to(builder, p1.x, p1.y);
 
-	/* compute flags */
-	const gboolean large_arc_flag = (fabs(sweep_angle_deg) >= 180.0);
 	const gboolean sweep_flag = (sweep_angle_deg > 0.0);
 
-	gsk_path_builder_svg_arc_to(builder, rx, ry, 0.0, large_arc_flag, sweep_flag, p2.x, p2.y);
+	for (int i = 1; i <= segments; i++) {
+		const double end_angle = DEG2RAD(start_angle_deg + sweep_angle_deg * i / segments);
+		graphene_point_t p2;
+		graphene_point_init(&p2,
+		                    center.x + rx * cos(end_angle),
+		                    center.y + ry * sin(end_angle));
+		gsk_path_builder_svg_arc_to(builder, rx, ry, 0.0, FALSE, sweep_flag, p2.x, p2.y);
+	}
 }
 
 JNIEXPORT void JNICALL Java_android_graphics_Path_native_1cubic_1to(JNIEnv *env, jclass this, jlong builder_ptr, jfloat x1, jfloat y1, jfloat x2, jfloat y2, jfloat x3, jfloat y3)
