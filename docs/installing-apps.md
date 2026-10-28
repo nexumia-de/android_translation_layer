@@ -145,11 +145,9 @@ checked), installed like F-Droid with `--install --sdk-int 26 -w 360 -h
   wolfssljni catches it[^wolfssljni-fix]. The one-line backport in
   `WolfSSLImplementSSLSession.setNativeTimeout` is in the `~/.local`
   build (rebuild just that jar with `make wolfssljni-hostdex` in
-  art_standalone, 12 s); Alpine's `art_standalone-0_git20261018-r0` on
-  the phone does not have it.
+  art_standalone, 12 s) and in `art_standalone@nexumia` from
+  nexumia-de/aports; Alpine's own `art_standalone` does not have it.
 - Installed apps show a generic icon in F-Droid.
-- Split APKs are refused (`STATUS_FAILURE_INCOMPATIBLE`); F-Droid only
-  ships single APKs.
 - An APK installed by hand with `--install` keeps its file name, e.g.
   `com.uravgcode.chooser_26.apk`, so F-Droid does not see it as
   installed. Install such APKs from F-Droid instead, or name the file
