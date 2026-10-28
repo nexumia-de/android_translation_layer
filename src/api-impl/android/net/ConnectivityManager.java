@@ -50,6 +50,8 @@ public class ConnectivityManager {
 
 		NetworkCapabilities capabilities = new NetworkCapabilities();
 		capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+		// WorkManager's network constraint on API 26+ also needs VALIDATED, else it stops running work
+		capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
 
 		if (!isActiveNetworkMetered())
 			capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
