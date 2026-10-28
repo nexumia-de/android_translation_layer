@@ -292,7 +292,11 @@ public abstract class Context {
 
 	public File getCacheDir() {
 		if (cache_dir == null) {
-			cache_dir = new File("/tmp/atl_cache/" + getPackageName());
+			/* per user: a shared directory in /tmp belongs to whichever user created it first */
+			String cache_home = System.getenv("XDG_CACHE_HOME");
+			if (cache_home == null || cache_home.isEmpty())
+				cache_home = System.getenv("HOME") + "/.cache";
+			cache_dir = new File(cache_home + "/android_translation_layer/" + getPackageName());
 		}
 		if (!cache_dir.exists()) {
 			if (!cache_dir.mkdirs()) {
