@@ -4,8 +4,8 @@
 
 Fork of [Android Translation Layer](https://gitlab.com/android_translation_layer/android_translation_layer)
 (ATL, GPL-3.0). Goal: get specific Android apps running natively on the
-owner's Phosh phone with ATL instead of Waydroid, and send every fix
-upstream. Knowledge of this fork: [docs/index.md](docs/index.md).
+owner's Phosh phone with ATL instead of Waydroid, and keep every fix
+ready for upstream. Knowledge of this fork: [docs/index.md](docs/index.md).
 Upstream's own documentation is in `doc/`.
 
 ## Branches
@@ -57,11 +57,26 @@ the separate user `claude` without sudo or doas.
 
 ## Upstream contributions
 
-- Before the first AI-written merge request, ask the ATL maintainers
-  whether they accept such contributions, and record the answer in
-  [docs/fork-workflow.md](docs/fork-workflow.md).
-- Merge requests go to GitLab from the owner's GitLab fork; the owner
-  opens them.
+The owner wants to support upstream without burdening the maintainers
+with AI-written work they did not ask for. The owner is not a developer
+and must be able to stand behind everything sent in their name.
+
+- Nothing goes upstream on the agent's initiative. The agent keeps
+  fixes upstream-ready and may suggest one; the owner decides.
+- Prefer a bug report (app, device, what fails, log excerpt, steps)
+  with a pointer to the fix in this fork over an unasked merge request.
+  Ask about larger features in an issue first.
+- A merge request only when it is small, understood (the owner can
+  explain it in one sentence), tested on the phone, and says that it
+  came from Claude Code. One fix per merge request, at most one open at
+  a time; the next waits until upstream has reacted.
+- Review answers are written in the owner's words; the agent helps but
+  does not supply text to paste verbatim.
+- If the maintainers decline AI-assisted contributions, stop and keep
+  the fixes in this fork.
+- Merge requests go to GitLab from the owner's GitLab fork (`Xilance`);
+  the owner opens them. Candidates, their status and the maintainers'
+  answers: [docs/fork-workflow.md](docs/fork-workflow.md).
 
 ## Autonomy and merging
 
