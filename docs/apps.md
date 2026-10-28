@@ -21,15 +21,13 @@ States: `works`, `partly` (starts, some features fail), `crashes`,
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
-- 2026-10-28: Try Chooser with several fingers on the real touch
-  screen; headless tests cannot do that. ATL is installed for the user
-  `claude` only (`~/.local` is `chmod 700`). Options: (a) `claude`
-  opens only the ATL parts of `~/.local` (`bin`, `lib`, `share/atl`,
-  `share/bionic_translation`) for reading, and the owner starts Chooser
-  in Phosh with `PREFIX=/home/claude/.local` in front of
-  `tools/phone-setup.sh env`; app data then lands in the owner's home;
-  (b) the owner builds ATL from this repository as their own user with
-  `tools/phone-setup.sh`.
+- 2026-10-28: Finish the apk repository in
+  [nexumia-de/aports](https://github.com/nexumia-de/aports) (signing
+  secret in the environment `apk-signing`, merge its pull request #1;
+  steps in its `docs/repository.md`), install
+  `android-translation-layer@nexumia` with `sudo`, and try Chooser with
+  several fingers on the real touch screen; headless tests cannot do
+  that. The owner runs every root command themselves.
 
 # Notes
 
