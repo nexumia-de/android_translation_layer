@@ -1,5 +1,6 @@
 package android.os;
 
+import android.media.AudioAttributes;
 import android.util.Slog;
 
 public class Vibrator {
@@ -40,6 +41,17 @@ public class Vibrator {
 			}
 		});
 		vibrateThread.start();
+	}
+
+	public void vibrate(VibrationEffect effect) {
+		if (effect.timings.length == 2 && effect.timings[0] == 0 && effect.repeat == -1)
+			vibrate(effect.timings[1]);
+		else
+			vibrate(effect.timings, effect.repeat);
+	}
+
+	public void vibrate(VibrationEffect effect, AudioAttributes attributes) {
+		vibrate(effect);
 	}
 
 	public void cancel() {

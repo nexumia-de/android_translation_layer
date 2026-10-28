@@ -90,6 +90,7 @@ public abstract class Context {
 	public static final String MEDIA_ROUTER_SERVICE = "media_router";
 	public static final String POWER_SERVICE = "power";
 	public static final String VIBRATOR_SERVICE = "vibrator";
+	public static final String VIBRATOR_MANAGER_SERVICE = "vibrator_manager";
 	public static final String WINDOW_SERVICE = "window";
 
 	public static Vibrator vibrator;
