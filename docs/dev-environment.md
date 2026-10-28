@@ -242,6 +242,33 @@ nothing, `wl-pointer tap` typed the digits. `wl-pointer` keeps one
 device for all its commands and waits 300 ms after creating it until
 clients have bound it.
 
+`wlrctl keyboard type` reaches GTK dialogs (gnome-keyring's prompt got
+the text), but on 2026-10-28 text typed into DB Navigator's station
+field did not arrive; keyboard input into ATL apps is unverified
+headless. The first tap after a new window often only focuses it; tap
+twice when a tap seems lost.
+
+## Keyring
+
+Apps using the Android keystore (Tink, androidx.security) make ATL
+store keys through the Secret Service. In the test display's own
+session bus gnome-keyring then asks for a password for a new "Default
+keyring", and that prompt did not take typed text. Create an
+unencrypted default keyring in the test's `XDG_DATA_HOME` first, then no
+prompt appears:
+
+```sh
+mkdir -p "$XDG_DATA_HOME/keyrings" && cd "$XDG_DATA_HOME/keyrings"
+printf 'Default_keyring' > default
+printf '[keyring]\ndisplay-name=Default keyring\nctime=0\nmtime=0\nlock-on-idle=false\nlock-after=false\n' > Default_keyring.keyring
+chmod 600 default Default_keyring.keyring
+```
+
+Runs need the environment from `tools/phone-setup.sh env`
+(`LD_LIBRARY_PATH`): the phone has Alpine's `bionic_translation` in
+`/usr/lib` again (a dependency of `android-translation-layer@nexumia`),
+and without it ATL loads that copy instead of the `~/.local` build.
+
 cage renders on the GPU through the render node (wlroots GLES2
 renderer, Adreno 810); `WLR_RENDERER=pixman` switches to software
 rendering. Verified with GNOME Calculator: it filled the 360×720

@@ -1,9 +1,9 @@
 ---
 type: Concept
-title: Installing apps with F-Droid
-description: How ATL installs, lists and uninstalls APKs for an app store like F-Droid, how to set F-Droid up on the phone, and what is still missing.
+title: Installing apps with F-Droid and Aurora Store
+description: How ATL installs, lists and uninstalls APKs (also split APKs) for app stores like F-Droid and Aurora Store, how to set them up on the phone, and what is still missing.
 resource: ../src/api-impl/android/content/pm/PackageInstaller.java
-tags: [fdroid, install, packageinstaller, launcher, portal]
+tags: [fdroid, aurora-store, google-play, split-apk, install, packageinstaller, launcher, portal]
 generated: { by: claude-code/2.1.308, at: 2026-10-28T15:50:00Z }
 sources:
   - id: fdroid-session
@@ -12,6 +12,12 @@ sources:
   - id: fdroid-compat
     resource: https://gitlab.com/fdroid/fdroidclient/-/blob/08f444713cefc97a8fa3cd3161a4484db6db54c8/libs/index/src/androidMain/kotlin/org/fdroid/CompatibilityChecker.kt
     title: F-Droid client 2.0.2, CompatibilityChecker (SDK, ABI and feature checks)
+  - id: aurora-session
+    resource: https://gitlab.com/AuroraOSS/AuroraStore/-/blob/4.8.4/app/src/main/java/com/aurora/store/data/installer/SessionInstaller.kt
+    title: Aurora Store 4.8.4, SessionInstaller (writes base APK and splits into one session)
+  - id: aurora-spoof
+    resource: https://gitlab.com/AuroraOSS/AuroraStore/-/blob/4.8.4/app/src/main/java/com/aurora/store/data/providers/SpoofProvider.kt
+    title: Aurora Store 4.8.4, SpoofProvider (device profile sent to Google Play)
   - id: wolfssljni-fix
     resource: https://github.com/wolfSSL/wolfssljni/blob/master/src/java/com/wolfssl/provider/jsse/WolfSSLImplementSSLSession.java
     title: wolfssljni master, WolfSSLImplementSSLSession.setNativeTimeout (catches a freed WOLFSSL)
@@ -29,6 +35,10 @@ Application" dialog, F-Droid then shows it as installed with **Open**
 ([screenshot](screenshots/fdroid-uninstall-2026-10-28.png)) and removes
 it.
 
+Aurora Store 4.8.4 (`com.aurora.store`, from F-Droid) installs apps from
+Google Play the same way, including split APKs; tested headless on
+2026-10-28 with DB Navigator ([screenshot](screenshots/aurora-db-navigator-installed-2026-10-28.png)).
+
 # How it works
 
 An app installed into ATL is an APK in
@@ -38,14 +48,24 @@ desktop portal's `DynamicLauncher` (`android-translation-layer
 
 - **Install**: F-Droid 2.0 uses `PackageInstaller` sessions[^fdroid-session]:
   `createSession`, `openWrite`, `commit(IntentSender)`. The session is a
-  directory in `_installer_sessions_/`. `commit` checks the APK (one
-  APK, package name as announced, same signer as an installed version),
-  names it `<package>.apk` and runs `android-translation-layer --install
-  -w <width> -h <height> <apk>` with the installer's window size. The
+  directory in `_installer_sessions_/`. `commit` finds the base APK
+  (the one whose manifest has no `split` attribute), checks it (package
+  name as announced, same signer as an installed version), names it
+  `<package>.apk` and runs `android-translation-layer --install -w
+  <width> -h <height> [--sdk-int <n>] <apk> [<split>...]` with the
+  installer's window size and, if the installer was started with one,
+  its `--sdk-int`. The
   exit status becomes the session status: 0 success, 2 the user
   cancelled the portal dialog (`STATUS_FAILURE_ABORTED`), anything else
   a failure. Then `ACTION_PACKAGE_ADDED` is broadcast and the status
   goes back through the `IntentSender`.
+- **Split APKs**: Google Play delivers most apps as a base APK plus
+  configuration splits (`config.arm64_v8a.apk` with the native
+  libraries, `config.xxhdpi.apk`, languages); Aurora Store writes all of
+  them into one session[^aurora-session]. ATL runs an app from several
+  APK files given on the command line; `--install` copies the files
+  after the first to `_installed_apks_/<package>.apk.splits/` and puts
+  them into the launcher's command line. Uninstalling removes them too.
 - **List**: `getInstalledPackages` and `getInstalledApplications` return
   the calling app plus every `<package>.apk` it may see, which with
   `QUERY_ALL_PACKAGES` (F-Droid declares it) is all of them.
@@ -88,6 +108,34 @@ android-translation-layer --install --sdk-int 26 -w 360 -h 720 org.fdroid.fdroid
 - F-Droid builds its compatibility flags when it updates the index; after
   changing `--sdk-int` it needs a fresh index (or new data directory).
 
+# Aurora Store
+
+Aurora Store 4.8.4 from F-Droid (`com.aurora.store_76.apk`, signature
+checked), installed like F-Droid with `--install --sdk-int 26 -w 360 -h
+720`; apps installed from it get the same `--sdk-int`.
+
+- **Account**: the anonymous login works.
+- **Device profile**: Aurora sends Google Play a device profile built
+  from what the device reports[^aurora-spoof]. ATL reports SDK 26 (with
+  `--sdk-int 26`), no features, no GL extensions and no touch screen, so
+  Google Play answers "App not supported" (`AppNotSupported(code=2)`)
+  for apps like DB Navigator. Choose a profile in Aurora's settings
+  (Spoof manager → device, e.g. **Google Pixel 9a**, arm64 only, SDK 35)
+  and log in again. Headless the profile was written to the preferences
+  instead (`DEVICE_SPOOF_ENABLED`, `DEVICE_SPOOF_PROPERTIES` = the
+  profile's `.properties` from Aurora's APK as a JSON object; the APK's
+  `res/*.properties` are the built-in profiles).
+- **Deep links**: `--uri market://details?id=<package>` opens the details
+  page, but the confirmation sheet for external links does not show in
+  ATL; headless it was turned off with
+  `PREFERENCE_CONFIRM_EXTERNAL_DEEPLINK=false`.
+- **Download**: Aurora's download worker (WorkManager) needs a validated
+  network and `StorageManager.getAllocatableBytes`; both are in ATL now.
+  Files go to `/tmp/atl_cache/com.aurora.store/Downloads/`.
+- **Install**: needs `canRequestPackageInstalls()`, which ATL reports
+  for apps declaring `REQUEST_INSTALL_PACKAGES`; the portal dialog is the
+  confirmation.
+
 # Gaps
 
 - **wolfSSL**: F-Droid's hostname verifier sets the TLS session timeout,
@@ -109,6 +157,11 @@ android-translation-layer --install --sdk-int 26 -w 360 -h 720 org.fdroid.fdroid
 - Install pre-approval (Android 14) and user-action confirmations are
   not offered; the portal dialog is the confirmation.
 
+- **SDK level of installed apps**: an app installed from a store
+  started with `--sdk-int` gets the same value. DB Navigator needs it:
+  at its own minSdk it needs `android.graphics.fonts` (API 29), which
+  ATL lacks.
+
 # Testing headless
 
 `tools/headless-shot.sh` starts its own session bus, so the portal and
@@ -120,3 +173,10 @@ https://f-droid.org/packages/<package>/` once the index exists. At
 at `tap 312 23`, the ⋮ menu at `tap 331 78`, its **Uninstall** at `tap
 96 348`, and the dialog's **Uninstall** at `tap 190 388`. The download
 and the portal dialog take about a minute (`-w 60`).
+
+Aurora Store at 360×720 with `--uri 'market://details?id=<package>'`:
+**Install** at about `tap 267 243`, the portal's **Create** at `tap 312
+23`; DB Navigator's three APKs (47 MB) took about 90 s to download.
+Aurora keeps a failed install as "Installing" in its database
+(`databases/aurora_database`, table `download`); delete the row to try
+again.

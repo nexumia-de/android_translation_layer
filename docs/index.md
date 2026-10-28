@@ -18,4 +18,4 @@ Change history is in [log.md](log.md).
 # Apps
 
 * [App status](apps.md) - Every Android app tried with ATL, its state, the cause of failures and the fixes.
-* [Installing apps with F-Droid](installing-apps.md) - How ATL installs, lists and uninstalls APKs for F-Droid, how to set F-Droid up, and the gaps.
+* [Installing apps with F-Droid and Aurora Store](installing-apps.md) - How ATL installs, lists and uninstalls APKs, also split APKs from Google Play, how to set up F-Droid and Aurora Store, and the gaps.
