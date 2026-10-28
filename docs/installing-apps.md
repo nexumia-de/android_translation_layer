@@ -131,7 +131,7 @@ checked), installed like F-Droid with `--install --sdk-int 26 -w 360 -h
   `PREFERENCE_CONFIRM_EXTERNAL_DEEPLINK=false`.
 - **Download**: Aurora's download worker (WorkManager) needs a validated
   network and `StorageManager.getAllocatableBytes`; both are in ATL now.
-  Files go to `/tmp/atl_cache/com.aurora.store/Downloads/`.
+  Files go to `~/.cache/android_translation_layer/com.aurora.store/Downloads/` (the app cache, per user since ATL used a shared `/tmp/atl_cache/` that only its first user could write).
 - **Install**: needs `canRequestPackageInstalls()`, which ATL reports
   for apps declaring `REQUEST_INSTALL_PACKAGES`; the portal dialog is the
   confirmation.
