@@ -12,7 +12,7 @@ Change history is in [log.md](log.md).
 
 # Development
 
-* [Fork workflow](fork-workflow.md) - Branches, updating from upstream, and how fixes go upstream as GitLab merge requests.
+* [Fork workflow](fork-workflow.md) - Branches, updating from upstream, how fixes go upstream as GitLab merge requests, and the fixes not yet upstream.
 * [Development environment](dev-environment.md) - The owner's phone as test device: separate user, build into `~/.local`, headless test display, required hosts.
 
 # Apps

@@ -1,7 +1,7 @@
 ---
 type: Playbook
 title: Fork workflow
-description: Branches of this fork, updating from upstream on GitLab, and how fixes go upstream as merge requests.
+description: Branches of this fork, updating from upstream on GitLab, how fixes go upstream as merge requests, and the fixes not yet upstream.
 tags: [development, git, upstream, gitlab]
 generated: { by: claude-code/2.1.312, at: 2026-10-28T08:15:00Z }
 ---
@@ -46,11 +46,57 @@ git checkout -b fix/<slug> origin/master
 git cherry-pick <commit>
 ```
 
-The owner pushes that branch to their GitLab fork of ATL and opens the
-merge request there. Once upstream merged it, the next update from
-upstream brings it back into `phosh`.
+The owner (GitLab `Xilance`) pushes that branch to their GitLab fork
+and opens the merge request there; the agent prepares the branch and
+the text. Once upstream merged it, the next update from upstream brings
+it back into `phosh`, and the commit drops out of
+`git log origin/master..origin/phosh`.
+
+The fork keeps every change. Upstream is **not** sent everything: the
+owner does not want to flood the maintainers.
+
+- The owner decides whether and which fix goes upstream; the agent only
+  suggests. At most one merge request is open at a time; the next one
+  waits until upstream has reacted to the previous one.
+- One fix per merge request, never a batch. A large feature (like
+  PackageInstaller) only after asking in an issue whether upstream
+  wants it.
+- Each text says where the fix comes from, what failed (app, log or
+  stack trace) and how it was tested, in the owner's words, e.g.: "I am
+  running Claude Code on my phone to install Android apps on Phosh. This
+  is one finding: …". Optional last line, without asking for anything:
+  "Other fixes found along the way are collected in
+  https://github.com/nexumia-de/android_translation_layer (docs/apps.md),
+  in case they are of interest; no need to look."
+- Fixes in ATL's dependencies (`art_standalone`, …) go to that project's
+  GitLab repository the same way.
+
+# Upstream candidates
+
+Fix commits on `phosh` that are not upstream yet, as of 2026-10-28. This
+is a record, not a sending plan. Status: `kept` (only in the fork),
+`sent` (merge request link), `merged`, `declined`. Keep it current when
+a commit is added, sent or merged.
+
+| Commit | Size | Status |
+|---|---|---|
+| `wolfssljni: ignore freed sessions in setNativeTimeout` (art_standalone; patch in nexumia-de/aports `art_standalone/`) | 5 lines | being sent by the owner (fork `Xilance/art_standalone`, `eee27f55`) |
+| `3c392697 main-executable: start launchers with an absolute /usr/bin/env` | 3 lines | kept |
+| `86bb2de7 main-executable: keep --sdk-int in the launcher` | 2 lines | kept |
+| `b40cd2a1 api-impl: Application: fall back to the literal android:label` | 15 lines | kept |
+| `467311b9 api-impl: add Context.startForegroundService` | 5 lines | kept |
+| `01084c1c api-impl: add RotateAnimation stub` | 16 lines | kept |
+| `5071ca6b Path: draw arcs of 360 degrees and more as a full ellipse` | 26 lines | kept |
+| `f01f23bb api-impl: add BounceInterpolator` | 55 lines | kept |
+| `c42b09f6 api-impl: add vibrate(VibrationEffect), VibratorManager and CombinedVibration` | 100 lines | kept |
+| `7d31932e api-impl: Html: parse tags and entities in fromHtml` | 108 lines | kept |
+| `8ae0dd2b api-impl: start activities of other installed apps through their launcher` | 16 lines | kept |
+| `888acc17 api-impl: implement PackageInstaller sessions on top of --install` | 680 lines | kept |
+
+Commit ids are those on `phosh`; cherry-pick them from there.
 
 # Open questions
 
 - Do the ATL maintainers accept AI-written merge requests? Not asked
-  yet; ask before the first one and record the answer here.
+  separately; the first merge request (art_standalone, 2026-10-28) says
+  that it came from Claude Code. Record their answer here.
