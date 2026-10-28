@@ -23,6 +23,8 @@ extern "C" {
 #define android_app_NativeActivity_RESULT_CANCELED 0L
 #undef android_app_NativeActivity_RESULT_OK
 #define android_app_NativeActivity_RESULT_OK -1L
+#undef android_app_NativeActivity_RESULT_FIRST_USER
+#define android_app_NativeActivity_RESULT_FIRST_USER 1L
 /*
  * Class:     android_app_NativeActivity
  * Method:    loadNativeCode

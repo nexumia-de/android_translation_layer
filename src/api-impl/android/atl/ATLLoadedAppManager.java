@@ -6,9 +6,11 @@ import android.util.DisplayMetrics;
 import android.util.Slog;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 public final class ATLLoadedAppManager {
 	private static final String TAG = "ATLLoadedAppManager";
@@ -144,7 +146,34 @@ public final class ATLLoadedAppManager {
 	}
 
 	private static boolean isPackageVisible(String sourcePackageName, String targetPackageName) {
-		return always_visible_packages.contains(targetPackageName) || always_allow_query_all_packages.contains(sourcePackageName);
+		return always_visible_packages.contains(targetPackageName) || always_allow_query_all_packages.contains(sourcePackageName) || (sourcePackageName.equals(ATLLoadedApp.getPrimaryApplication().pkg.packageName) && ATLLoadedApp.getPrimaryApplication().pkg.requestedPermissions.contains("android.permission.QUERY_ALL_PACKAGES"));
+	}
+
+	/**
+	 * Drops a cached package after it was installed, updated or uninstalled, so the next lookup
+	 * reads _installed_apks_ again. Applications already loaded into this process stay.
+	 */
+	public static void forgetPackage(String packageName) {
+		synchronized (load_lock) {
+			loaded_packages.remove(packageName);
+		}
+	}
+
+	/** Package names of the APKs in _installed_apks_ that the primary application may see. */
+	public static List<String> getInstalledPackageNames() {
+		List<String> names = new ArrayList<>();
+		String[] files = ATLPaths.installed_apks_dir.list();
+		if (files == null)
+			return names;
+		String source = ATLLoadedApp.getPrimaryApplication().pkg.packageName;
+		for (String file : files) {
+			if (!file.endsWith(".apk"))
+				continue;
+			String packageName = file.substring(0, file.length() - ".apk".length());
+			if (isPackageVisible(source, packageName))
+				names.add(packageName);
+		}
+		return names;
 	}
 
 	private static ATLLoadedApp loadGStub(String packageName) {

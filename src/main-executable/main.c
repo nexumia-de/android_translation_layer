@@ -175,14 +175,19 @@ struct dynamic_launcher_callback_data {
 static void dynamic_launcher_ready_callback(GObject *portal, GAsyncResult *res, gpointer user_data)
 {
 	struct dynamic_launcher_callback_data *data = user_data;
-	GVariant *result = xdp_portal_dynamic_launcher_prepare_install_finish(XDP_PORTAL(portal), res, NULL);
+	GError *err = NULL;
+	GVariant *result = xdp_portal_dynamic_launcher_prepare_install_finish(XDP_PORTAL(portal), res, &err);
 	if (!result) {
-		fprintf(stderr, "cancelled\n");
-		exit(0);
+		/* exit status 2 tells PackageInstaller that the user said no */
+		if (g_error_matches(err, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+			fprintf(stderr, "cancelled\n");
+			exit(2);
+		}
+		fprintf(stderr, "failed to prepare dynamic launcher: %s\n", err ? err->message : "unknown error");
+		exit(1);
 	}
 	const char *token;
 	g_variant_lookup(result, "token", "s", &token);
-	GError *err = NULL;
 	xdp_portal_dynamic_launcher_install(XDP_PORTAL(portal), token, data->desktop_file_id, data->desktop_entry, &err);
 	g_free(data->desktop_file_id);
 	g_free(data->desktop_entry);
@@ -574,9 +579,13 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 		XdpPortal *portal = xdp_portal_new();
 
-		const char *app_label = _CSTRING(J__Application__get_app_label(env, application_object));
+		jstring app_label_jstr = J__Application__get_app_label(env, application_object);
 		if ((*env)->ExceptionCheck(env))
 			(*env)->ExceptionDescribe(env);
+		const char *app_label = app_label_jstr ? _CSTRING(app_label_jstr) : NULL;
+		/* the portal rejects an empty name and never calls back */
+		if (!app_label || !*app_label)
+			app_label = package_name;
 
 		GVariant *icon_serialized = NULL;
 		if (!d->install_internal) {
@@ -652,6 +661,8 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 			g_string_append_printf(exec_cmd, "-w %d ", d->window_width);
 		if (d->window_height)
 			g_string_append_printf(exec_cmd, "-h %d ", d->window_height);
+		if (d->sdk_int)
+			g_string_append_printf(exec_cmd, "--sdk-int %s ", d->sdk_int);
 		g_string_append_printf(exec_cmd, "%s", g_file_get_path(dest));
 
 		gboolean dbus_activatable = install_dbus_service_file(package_name, exec_cmd->str);
