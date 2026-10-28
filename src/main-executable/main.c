@@ -661,6 +661,8 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 			g_string_append_printf(exec_cmd, "-w %d ", d->window_width);
 		if (d->window_height)
 			g_string_append_printf(exec_cmd, "-h %d ", d->window_height);
+		if (d->sdk_int)
+			g_string_append_printf(exec_cmd, "--sdk-int %s ", d->sdk_int);
 		g_string_append_printf(exec_cmd, "%s", g_file_get_path(dest));
 
 		gboolean dbus_activatable = install_dbus_service_file(package_name, exec_cmd->str);
