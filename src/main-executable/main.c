@@ -16,6 +16,7 @@
 #include "libc_bio_path_overrides.h"
 
 #include <dlfcn.h>
+#include <glib/gstdio.h>
 #include <errno.h>
 #include <libgen.h>
 #include <locale.h>
@@ -340,6 +341,49 @@ static gboolean install_dbus_service_file(const char *package_name, const char *
 	return TRUE;
 }
 
+/* split APKs (files after the first) go to <installed apk>.splits/, replacing those of an
+ * earlier install; returns their paths, each after a space, for the launcher's command line */
+static char *install_split_apks(GFile *dest, GFile **files, gint nfiles)
+{
+	char *dest_path = g_file_get_path(dest);
+	char *dir = g_strdup_printf("%s.splits", dest_path);
+	g_free(dest_path);
+
+	GDir *old = g_dir_open(dir, 0, NULL);
+	if (old) {
+		const char *name;
+		while ((name = g_dir_read_name(old))) {
+			char *path = g_build_filename(dir, name, NULL);
+			g_unlink(path);
+			g_free(path);
+		}
+		g_dir_close(old);
+		g_rmdir(dir);
+	}
+
+	GString *paths = g_string_new("");
+	if (nfiles > 1)
+		g_mkdir_with_parents(dir, 0755);
+	for (int i = 1; i < nfiles; i++) {
+		char *name = g_file_get_basename(files[i]);
+		char *path = g_build_filename(dir, name, NULL);
+		GFile *split = g_file_new_for_path(path);
+		GError *err = NULL;
+		printf("installing split %s to %s\n", name, path);
+		g_file_copy(files[i], split, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, &err);
+		if (err) {
+			fprintf(stderr, "error copying split apk: %s\n", err->message);
+			g_error_free(err);
+		}
+		g_string_append_printf(paths, " %s", path);
+		g_object_unref(split);
+		g_free(path);
+		g_free(name);
+	}
+	g_free(dir);
+	return g_string_free(paths, FALSE);
+}
+
 static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *hint, struct jni_callback_data *d)
 {
 	if (window) { // this is not the first launch, but a DBus request to open an URI in the running app
@@ -633,6 +677,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		g_file_copy(files[0], dest, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, &err);
 		if (err)
 			fprintf(stderr, "error copying apk: %s\n", err->message);
+		char *split_paths = install_split_apks(dest, files, nfiles);
 
 		if (d->install_internal)
 			exit(0);
@@ -664,7 +709,8 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 			g_string_append_printf(exec_cmd, "-h %d ", d->window_height);
 		if (d->sdk_int)
 			g_string_append_printf(exec_cmd, "--sdk-int %s ", d->sdk_int);
-		g_string_append_printf(exec_cmd, "%s", g_file_get_path(dest));
+		g_string_append_printf(exec_cmd, "%s%s", g_file_get_path(dest), split_paths);
+		g_free(split_paths);
 
 		gboolean dbus_activatable = install_dbus_service_file(package_name, exec_cmd->str);
 

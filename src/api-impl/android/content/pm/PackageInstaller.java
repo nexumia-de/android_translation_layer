@@ -6,6 +6,8 @@ import android.atl.ATLPaths;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.res.AssetManager;
+import android.content.res.XmlResourceParser;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Handler;
@@ -27,10 +29,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import org.xmlpull.v1.XmlPullParser;
 
 /**
  * Installs an APK by handing it to `android-translation-layer --install`, which copies it to
- * _installed_apks_/<package name>.apk and asks the desktop portal for a launcher.
+ * _installed_apks_/<package name>.apk, split APKs to _installed_apks_/<package name>.apk.splits/,
+ * and asks the desktop portal for a launcher.
  */
 public class PackageInstaller {
 	private static final String TAG = "PackageInstaller";
@@ -161,6 +165,7 @@ public class PackageInstaller {
 		}
 		Slog.i(TAG, "uninstall: " + packageName);
 		apk.delete();
+		deleteRecursively(new File(ATLPaths.installed_apks_dir, packageName + ".apk.splits"));
 		deleteRecursively(new File(ATLPaths.app_data_dir_base, packageName + ".apk_"));
 		String dataHome = System.getenv("XDG_DATA_HOME");
 		if (dataHome == null || dataHome.isEmpty())
@@ -323,20 +328,21 @@ public class PackageInstaller {
 			String packageName = params.appPackageName;
 			int status;
 			String message = null;
+			File base;
 			try {
 				File[] files = dir.listFiles();
 				if (files == null || files.length == 0) {
 					status = STATUS_FAILURE_INVALID;
 					message = "INSTALL_FAILED_INVALID_APK: no APK written";
-				} else if (files.length > 1) {
-					status = STATUS_FAILURE_INCOMPATIBLE;
-					message = "INSTALL_FAILED_INVALID_APK: split APKs are not supported";
+				} else if ((base = findBaseApk(files)) == null) {
+					status = STATUS_FAILURE_INVALID;
+					message = "INSTALL_FAILED_INVALID_APK: no base APK, only splits";
 				} else {
-					PackageParser parser = new PackageParser(files[0].getPath());
-					PackageParser.Package pkg = parser.parsePackage(files[0], files[0].getPath(), new DisplayMetrics(), 0);
+					PackageParser parser = new PackageParser(base.getPath());
+					PackageParser.Package pkg = parser.parsePackage(base, base.getPath(), new DisplayMetrics(), 0);
 					if (pkg == null) {
 						status = STATUS_FAILURE_INVALID;
-						message = "INSTALL_FAILED_INVALID_APK: failed to parse " + files[0].getName();
+						message = "INSTALL_FAILED_INVALID_APK: failed to parse " + base.getName();
 					} else if (packageName != null && !packageName.equals(pkg.packageName)) {
 						status = STATUS_FAILURE_INVALID;
 						message = "INSTALL_FAILED_INVALID_APK: package " + pkg.packageName + " does not match " + packageName;
@@ -350,13 +356,19 @@ public class PackageInstaller {
 						} else {
 							// --install names the installed file after the file it gets
 							File apk = new File(dir, packageName + ".apk");
-							files[0].renameTo(apk);
+							base.renameTo(apk);
 							File installed = new File(ATLPaths.installed_apks_dir, apk.getName());
 							boolean replacing = installed.isFile();
 							// the installed app starts with the installer's window size instead of the 960x540 default
-							String output = run("/usr/bin/env", "android-translation-layer", "--install",
-							                    "-w", String.valueOf(Display.window_width), "-h", String.valueOf(Display.window_height),
-							                    apk.getPath());
+							List<String> command = new ArrayList<>(Arrays.asList("/usr/bin/env", "android-translation-layer", "--install",
+							                    "-w", String.valueOf(Display.window_width), "-h", String.valueOf(Display.window_height)));
+							// --install takes the split APKs after the base APK
+							command.add(apk.getPath());
+							for (File file : files) {
+								if (file != base)
+									command.add(file.getPath());
+							}
+							String output = run(command.toArray(new String[0]));
 							int exit = Integer.parseInt(output.substring(0, output.indexOf('\n')));
 							// its output is a whole ATL startup log, only worth reading when it failed
 							if (exit == 0 || exit == INSTALL_EXIT_CANCELLED)
@@ -388,6 +400,29 @@ public class PackageInstaller {
 			for (SessionCallback callback : callbacks)
 				callback.onFinished(id, status == STATUS_SUCCESS);
 			sendStatus(statusReceiver, id, packageName, status, message);
+		}
+
+		/* the base APK is the one whose manifest has no split attribute */
+		private File findBaseApk(File[] files) {
+			for (File file : files) {
+				if (splitName(file) == null)
+					return file;
+			}
+			return null;
+		}
+
+		private String splitName(File apk) {
+			AssetManager assets = new AssetManager();
+			assets.addAssetPath(apk.getPath());
+			try (XmlResourceParser parser = assets.openXmlResourceParser(1, "AndroidManifest.xml")) {
+				int type;
+				while ((type = parser.next()) != XmlPullParser.START_TAG && type != XmlPullParser.END_DOCUMENT)
+					;
+				return type == XmlPullParser.START_TAG ? parser.getAttributeValue(null, "split") : null;
+			} catch (Exception e) {
+				Slog.w(TAG, "could not read the manifest of " + apk, e);
+				return null;
+			}
 		}
 
 		/* like Android, refuse an update signed by someone else */
