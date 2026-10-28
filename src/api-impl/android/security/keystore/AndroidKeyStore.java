@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
-import javax.crypto.spec.SecretKeySpec;
 
 public class AndroidKeyStore extends KeyStoreSpi {
 
@@ -39,7 +38,7 @@ public class AndroidKeyStore extends KeyStoreSpi {
 		buffer.get(algorithmBytes);
 		byte[] keyBytes = new byte[buffer.remaining()];
 		buffer.get(keyBytes);
-		return new SecretKeySpec(keyBytes, new String(algorithmBytes, StandardCharsets.UTF_8));
+		return new AndroidKeyStoreSecretKey(keyBytes, new String(algorithmBytes, StandardCharsets.UTF_8));
 	}
 
 	@Override

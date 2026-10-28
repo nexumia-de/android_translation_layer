@@ -92,6 +92,15 @@ a commit is added, sent or merged.
 | `7d31932e api-impl: Html: parse tags and entities in fromHtml` | 108 lines | kept |
 | `8ae0dd2b api-impl: start activities of other installed apps through their launcher` | 16 lines | kept |
 | `888acc17 api-impl: implement PackageInstaller sessions on top of --install` | 680 lines | kept |
+| `Make libcore's own lambdas work` (art_standalone: `LambdaMetafactory` and ART's bootstrap arguments; patch in nexumia-de/aports `art_standalone/`) | 250 lines | kept |
+| `Add __register_atfork and __strncat_chk` (bionic_translation; patch in nexumia-de/aports `bionic_translation/`) | 13 lines | kept |
+| `api-impl: ConnectivityManager: report the network as validated` | 2 lines | kept |
+| `api-impl: StorageManager: add getAllocatableBytes and allocateBytes` | 10 lines | kept |
+| `api-impl: PackageManager: let apps that request package installs install` | 5 lines | kept |
+| `api-impl: keystore: AES/GCM cipher with 12 byte IVs for keystore keys` | 170 lines | kept |
+| `api-impl: add Context.getAttributionSource` | 45 lines | kept |
+| `Install split APKs` | 110 lines | kept |
+| `api-impl: PackageInstaller: pass the installer's --sdk-int on` | 4 lines | kept |
 
 Commit ids are those on `phosh`; cherry-pick them from there.
 

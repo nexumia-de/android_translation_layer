@@ -25,4 +25,14 @@ public class StorageManager {
 	public long getCacheQuotaBytes(UUID storageUuid) throws IOException {
 		return new StatFs(Environment.getDataDirectory().getPath()).getAvailableBytes();
 	}
+
+	// AOSP adds cached data that installd could clear; there is none to clear here
+	public long getAllocatableBytes(UUID storageUuid) throws IOException {
+		return new StatFs(Environment.getDataDirectory().getPath()).getAvailableBytes();
+	}
+
+	public void allocateBytes(UUID storageUuid, long bytes) throws IOException {
+		if (getAllocatableBytes(storageUuid) < bytes)
+			throw new IOException("Not enough free space; wanted " + bytes);
+	}
 }
