@@ -92,6 +92,16 @@ as `<package>.apk`.
   chosen to install, and its `Install()` rejects a desktop entry with
   more than one group, so no actions. In a Flatpak ATL still uses the
   portal, with its dialog.
+- **dbus-broker**: postmarketOS' session bus is dbus-broker, which
+  (unlike dbus-daemon) reads service files only when asked. Without
+  that a newly installed app does not start from its launcher (`The name
+  is not activatable`) and a changed service file keeps its old `Exec`,
+  so ATL calls `org.freedesktop.DBus.ReloadConfig` after writing or
+  removing one. `tools/headless-shot.sh` runs dbus-daemon; to test
+  against dbus-broker, point `DBUS_SESSION_BUS_ADDRESS` inside the test
+  at `unix:path=/run/user/$(id -u)/bus` and give the activated services
+  the test display with `dbus-update-activation-environment --systemd
+  WAYLAND_DISPLAY="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"` (reset it after).
 - **Uninstall from the launcher**: the launcher has a desktop action
   **Uninstall**, which Phosh shows on a long press in the app grid. It
   asks "Uninstall <app>?" and removes the same as above. Because the
