@@ -1892,6 +1892,8 @@ public class PackageManager {
 				return PERMISSION_GRANTED;
 			case "android.permission.ACCESS_NETWORK_STATE":
 				return PERMISSION_GRANTED;
+			case "android.permission.REQUEST_INSTALL_PACKAGES":
+				return canRequestPackageInstalls() ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			// only tell the app that it can access location if it *actually* can
 			// (until we find apps that refuse to launch without being lied to anyway)
 			case "android.permission.ACCESS_FINE_LOCATION":
@@ -3641,7 +3643,8 @@ public class PackageManager {
 		return new PackageInstaller();
 	}
 
+	/* installs go through PackageInstaller, where the desktop portal asks the user for each launcher */
 	public boolean canRequestPackageInstalls() {
-		return false;
+		return ATLLoadedApp.getPrimaryApplication().pkg.requestedPermissions.contains("android.permission.REQUEST_INSTALL_PACKAGES");
 	}
 }
