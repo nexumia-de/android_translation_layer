@@ -126,7 +126,10 @@ public abstract class Context {
 		provider.put("KeyStore.AndroidKeyStore", "android.security.keystore.AndroidKeyStore");
 		provider.put("KeyGenerator.AES", "android.security.keystore.KeyGenerator$AES");
 		provider.put("KeyGenerator.HmacSHA512", "android.security.keystore.KeyGenerator$HmacSHA512");
-		Security.addProvider(provider);
+		provider.put("Cipher.AES/GCM/NoPadding", "android.security.keystore.AndroidKeyStoreCipher$AesGcmNoPadding");
+		provider.put("Cipher.AES/GCM/NoPadding SupportedKeyClasses", "android.security.keystore.AndroidKeyStoreSecretKey");
+		// first, so its Cipher wins for keystore keys; SupportedKeyClasses leaves other keys to the other providers
+		Security.insertProviderAt(provider, 1);
 
 		for (PackageParser.Activity receiver : primary_application.pkg.receivers) {
 			if (receiver.intents == null)

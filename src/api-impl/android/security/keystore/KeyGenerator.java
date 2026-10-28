@@ -46,7 +46,8 @@ public abstract class KeyGenerator extends KeyGeneratorSpi {
 	@Override
 	protected SecretKey engineGenerateKey() {
 		System.out.println("generating key with alias " + ((KeyGenParameterSpec)params).getKeystoreAlias());
-		SecretKey key = keyGenerator.generateKey();
+		SecretKey generated = keyGenerator.generateKey();
+		SecretKey key = new AndroidKeyStoreSecretKey(generated.getEncoded(), generated.getAlgorithm());
 		new AndroidKeyStore().engineSetKeyEntry(((KeyGenParameterSpec)params).getKeystoreAlias(), key, null, null);
 		return key;
 	}
