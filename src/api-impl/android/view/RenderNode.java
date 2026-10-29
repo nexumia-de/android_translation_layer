@@ -39,6 +39,8 @@ public class RenderNode {
 	private native long nativePatchNode(long node, long old_child, long new_child);
 	private native long nativeTransform(long node, float scaleX, float scaleY, float translationX, float translationY, float rotation, float pivotX, float pivotY);
 	private native long nativeClip(long node, float left, float top, float right, float bottom);
+	private native long nativeClipRounded(long node, float left, float top, float right, float bottom, float radius);
+	private native long nativeClipPath(long node, long path, int fill_rule);
 	private native void nativeUnref(long node);
 	private native long nativeAddStubNode(long snapshot);
 	private native long nativeCreateEmpyNode();
@@ -288,10 +290,17 @@ public class RenderNode {
 		if (transformed_node == 0 || old_render_node != render_node) {
 			nativeUnref(transformed_node);
 			transformed_node = nativeTransform(render_node, scaleX, scaleY, translationX, translationY, rotation, pivotX, pivotY);
-			if (clipToOutline) {
+			if (clipToOutline && outline != null) {
 				Rect bounds = new Rect();
-				outline.getRect(bounds);
-				transformed_node = nativeClip(transformed_node, bounds.left, bounds.top, bounds.right, bounds.bottom);
+				if (outline.mMode == Outline.MODE_PATH && outline.mPath != null) {
+					// getRect() is empty for a path, which clipped everything (Compose's shapes with unequal corners)
+					transformed_node = nativeClipPath(transformed_node, outline.mPath.getGskPath(), outline.mPath.getFillType().fill_rule);
+				} else if (outline.getRect(bounds) && outline.getRadius() > 0) {
+					transformed_node = nativeClipRounded(transformed_node, bounds.left, bounds.top, bounds.right, bounds.bottom, outline.getRadius());
+				} else {
+					outline.getRect(bounds);
+					transformed_node = nativeClip(transformed_node, bounds.left, bounds.top, bounds.right, bounds.bottom);
+				}
 			}
 		}
 		return transformed_node;

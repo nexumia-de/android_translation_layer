@@ -53,6 +53,22 @@ JNIEXPORT void JNICALL Java_android_view_Window_remove_1gtk_1background
 
 /*
  * Class:     android_view_Window
+ * Method:    set_dim_amount
+ * Signature: (JF)V
+ */
+JNIEXPORT void JNICALL Java_android_view_Window_set_1dim_1amount
+  (JNIEnv *, jobject, jlong, jfloat);
+
+/*
+ * Class:     android_view_Window
+ * Method:    set_gravity
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_android_view_Window_set_1gravity
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     android_view_Window
  * Method:    set_screen_brightness
  * Signature: (F)V
  */

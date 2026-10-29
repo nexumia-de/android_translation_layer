@@ -11,6 +11,7 @@
 
 #include "../generated_headers/android_view_MotionEvent.h"
 #include "../generated_headers/android_view_View.h"
+#include "../app/dialog.h"
 
 #define JAVA_ENUM_CLASS android_view_MotionEvent
 enum {
@@ -895,6 +896,10 @@ JNIEXPORT void JNICALL Java_android_view_View_native_1drawContent(JNIEnv *env, j
 JNIEXPORT void JNICALL Java_android_view_View_nativeSetFullscreen(JNIEnv *env, jobject this, jlong widget_ptr, jboolean fullscreen)
 {
 	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
+	/* a dialog's views (e.g. Compose's bottom sheet, drawn edge to edge) do not make the activity fullscreen */
+	for (GtkWidget *parent = widget; parent; parent = gtk_widget_get_parent(parent))
+		if (atl_is_dialog(parent))
+			return;
 	GtkWindow *window = GTK_WINDOW(gtk_widget_get_native(widget));
 	if (fullscreen) {
 		if (gtk_window_is_maximized(window)) {
@@ -1016,8 +1021,13 @@ JNIEXPORT jboolean JNICALL Java_android_view_View_nativeIsAttachedToWindow(JNIEn
 
 JNIEXPORT jobject JNICALL Java_android_view_View_native_1get_1window(JNIEnv *env, jobject this, jlong widget_ptr)
 {
-	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
-	return g_object_get_data(G_OBJECT(gtk_widget_get_root(widget)), "jobject");
+	/* the nearest Window: a dialog's layer inside the main window, or the main window */
+	for (GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr)); widget; widget = gtk_widget_get_parent(widget)) {
+		jobject window_jobj = g_object_get_data(G_OBJECT(widget), "jobject");
+		if (window_jobj)
+			return window_jobj;
+	}
+	return NULL;
 }
 
 extern GtkWindow *window;

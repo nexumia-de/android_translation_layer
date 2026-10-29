@@ -49,6 +49,22 @@ JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeClip
 
 /*
  * Class:     android_view_RenderNode
+ * Method:    nativeClipRounded
+ * Signature: (JFFFFF)J
+ */
+JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeClipRounded
+  (JNIEnv *, jobject, jlong, jfloat, jfloat, jfloat, jfloat, jfloat);
+
+/*
+ * Class:     android_view_RenderNode
+ * Method:    nativeClipPath
+ * Signature: (JJI)J
+ */
+JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeClipPath
+  (JNIEnv *, jobject, jlong, jlong, jint);
+
+/*
+ * Class:     android_view_RenderNode
  * Method:    nativeUnref
  * Signature: (J)V
  */

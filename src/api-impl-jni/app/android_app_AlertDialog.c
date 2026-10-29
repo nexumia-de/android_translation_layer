@@ -4,6 +4,7 @@
 #include "../defines.h"
 #include "../util.h"
 #include "../generated_headers/android_app_AlertDialog.h"
+#include "dialog.h"
 
 struct _ListEntry {
 	GObject parent;
@@ -40,8 +41,19 @@ static void activate_cb(GtkListView *list, guint position, gpointer user_data)
 
 JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeConstruct(JNIEnv *env, jobject this, jlong ptr, jlong button_positive_ptr, jlong button_negative_ptr, jlong button_neutral_ptr)
 {
-	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
+	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
 	GtkBox *content_area = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 1));
+	/* the layer has no background of its own, unlike the window a dialog used to be */
+	gtk_widget_add_css_class(GTK_WIDGET(content_area), "background");
+	gtk_widget_add_css_class(GTK_WIDGET(content_area), "ATL-dialog-card");
+
+	GtkLabel *title = GTK_LABEL(gtk_label_new(NULL));
+	gtk_widget_add_css_class(GTK_WIDGET(title), "title-4");
+	gtk_label_set_wrap(title, TRUE);
+	gtk_label_set_xalign(title, 0);
+	gtk_widget_set_visible(GTK_WIDGET(title), FALSE);
+	gtk_box_append(content_area, GTK_WIDGET(title));
+	atl_dialog_set_title_label(dialog, title);
 
 	GtkLabel *label = GTK_LABEL(gtk_label_new(NULL));
 	gtk_label_set_wrap(label, TRUE);
@@ -62,12 +74,12 @@ JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeConstruct(JNIEnv *env,
 	gtk_box_append(content_area, gtk_widget_get_parent(GTK_WIDGET(_PTR(button_negative_ptr))));
 	gtk_box_append(content_area, gtk_widget_get_parent(GTK_WIDGET(_PTR(button_neutral_ptr))));
 
-	gtk_window_set_child(dialog, GTK_WIDGET(content_area));
+	atl_dialog_set_child(dialog, GTK_WIDGET(content_area));
 }
 
 JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetMessage(JNIEnv *env, jobject this, jlong ptr, jstring message)
 {
-	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
+	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
 	GtkLabel *label = g_object_get_data(G_OBJECT(dialog), "label");
 	const char *nativeMessage = (*env)->GetStringUTFChars(env, message, NULL);
 	gtk_label_set_text(label, nativeMessage);
@@ -76,7 +88,7 @@ JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetMessage(JNIEnv *env
 
 JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetItems(JNIEnv *env, jobject this, jlong ptr, jobjectArray items, jobject on_click)
 {
-	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
+	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
 	GtkListView *list = g_object_get_data(G_OBJECT(dialog), "list");
 
 	GListStore *store = g_list_store_new(list_entry_get_type());

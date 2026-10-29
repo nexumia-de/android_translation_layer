@@ -1,11 +1,21 @@
 #include <gtk/gtk.h>
 
 #include "defines.h"
+#include "app/dialog.h"
 
 #include "generated_headers/android_view_Window.h"
 
 JNIEXPORT void JNICALL Java_android_view_Window_set_1title(JNIEnv *env, jobject this, jlong window, jstring title_jstr)
 {
+	if (!GTK_IS_WINDOW(_PTR(window))) { // a dialog's layer
+		GtkLabel *label = g_object_get_data(G_OBJECT(_PTR(window)), "title-label");
+		if (label) {
+			const char *title = (*env)->GetStringUTFChars(env, title_jstr, NULL);
+			gtk_label_set_text(label, title);
+			(*env)->ReleaseStringUTFChars(env, title_jstr, title);
+		}
+		return;
+	}
 	GtkWindow *gtk_window = GTK_WINDOW(_PTR(window));
 	const char *title = (*env)->GetStringUTFChars(env, title_jstr, NULL);
 	gtk_window_set_title(gtk_window, title);
@@ -39,9 +49,23 @@ JNIEXPORT void JNICALL Java_android_view_Window_take_1input_1queue(JNIEnv *env, 
 
 JNIEXPORT void JNICALL Java_android_view_Window_set_1layout(JNIEnv *env, jobject this, jlong window, jint width, jint height)
 {
+	if (!GTK_IS_WINDOW(_PTR(window))) // a dialog's layer: Dialog.show() measures from the layout params
+		return;
 	GtkWindow *gtk_window = GTK_WINDOW(_PTR(window));
 	if (width > 0 && height > 0)
 		gtk_window_set_default_size(gtk_window, width, height);
+}
+
+JNIEXPORT void JNICALL Java_android_view_Window_set_1dim_1amount(JNIEnv *env, jobject this, jlong window, jfloat dim_amount)
+{
+	if (atl_is_dialog(_PTR(window)))
+		atl_dialog_set_dim(_PTR(window), dim_amount);
+}
+
+JNIEXPORT void JNICALL Java_android_view_Window_set_1gravity(JNIEnv *env, jobject this, jlong window, jint gravity)
+{
+	if (atl_is_dialog(_PTR(window)))
+		atl_dialog_set_gravity(_PTR(window), gravity);
 }
 
 JNIEXPORT void JNICALL Java_android_view_Window_set_1jobject(JNIEnv *env, jclass this, jlong window, jobject window_jobj)
