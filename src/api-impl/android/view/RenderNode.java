@@ -16,6 +16,8 @@ public class RenderNode {
 	private List<RenderNode> children = new ArrayList<RenderNode>();
 	private List<Long> children_nodes = new ArrayList<Long>();
 
+	private int left = 0;
+	private int top = 0;
 	private float width = 0.0f;
 	private float height = 0.0f;
 	private float scaleX = 1.0f;
@@ -222,19 +224,24 @@ public class RenderNode {
 	}
 
 	public boolean setLeftTopRightBottom(int left, int top, int right, int bottom) {
-		float old_width = width;
-		float old_height = height;
+		boolean changed = this.left != left || this.top != top || width != right - left || height != bottom - top;
+		if (changed && transformed_node != 0) {
+			nativeUnref(transformed_node);
+			transformed_node = 0;
+		}
+		this.left = left;
+		this.top = top;
 		width = right - left;
 		height = bottom - top;
-		return old_width != width || old_height != height || setTranslationX(left) || setTranslationY(top);
+		return changed;
 	}
 
 	public boolean offsetLeftAndRight(int offset) {
-		return setTranslationX(translationX + offset);
+		return setLeftTopRightBottom(left + offset, top, left + offset + (int)width, top + (int)height);
 	}
 
 	public boolean offsetTopAndBottom(int offset) {
-		return setTranslationY(translationY + offset);
+		return setLeftTopRightBottom(left, top + offset, left + (int)width, top + offset + (int)height);
 	}
 
 	public void discardDisplayList() {
@@ -289,19 +296,22 @@ public class RenderNode {
 		}
 		if (transformed_node == 0 || old_render_node != render_node) {
 			nativeUnref(transformed_node);
-			transformed_node = nativeTransform(render_node, scaleX, scaleY, translationX, translationY, rotation, pivotX, pivotY);
+			// the outline is in the node's own coordinates, so clip before moving the node to its position
+			long clipped_node = nativeTransform(render_node, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 			if (clipToOutline && outline != null) {
 				Rect bounds = new Rect();
 				if (outline.mMode == Outline.MODE_PATH && outline.mPath != null) {
 					// getRect() is empty for a path, which clipped everything (Compose's shapes with unequal corners)
-					transformed_node = nativeClipPath(transformed_node, outline.mPath.getGskPath(), outline.mPath.getFillType().fill_rule);
+					clipped_node = nativeClipPath(clipped_node, outline.mPath.getGskPath(), outline.mPath.getFillType().fill_rule);
 				} else if (outline.getRect(bounds) && outline.getRadius() > 0) {
-					transformed_node = nativeClipRounded(transformed_node, bounds.left, bounds.top, bounds.right, bounds.bottom, outline.getRadius());
+					clipped_node = nativeClipRounded(clipped_node, bounds.left, bounds.top, bounds.right, bounds.bottom, outline.getRadius());
 				} else {
 					outline.getRect(bounds);
-					transformed_node = nativeClip(transformed_node, bounds.left, bounds.top, bounds.right, bounds.bottom);
+					clipped_node = nativeClip(clipped_node, bounds.left, bounds.top, bounds.right, bounds.bottom);
 				}
 			}
+			transformed_node = nativeTransform(clipped_node, scaleX, scaleY, left + translationX, top + translationY, rotation, pivotX, pivotY);
+			nativeUnref(clipped_node);
 		}
 		return transformed_node;
 	}
