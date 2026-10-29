@@ -99,6 +99,11 @@ install_data([
 install_data('res/desktop/com.gitlab.android_translation_layer.install.desktop',
              install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'applications'))
 
+# builds an app's own Flatpak, see --install-flatpak
+install_data('flatpak/make-app.sh', rename: 'make-app-flatpak',
+             install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
+             install_mode: 'rwxr-xr-x')
+
 #tools
 subdir('tools/jni_upcall_gen')
 
@@ -279,5 +284,6 @@ executable('android-translation-layer', [
                                         install_rpath: get_option('prefix') / get_option('libdir') / 'art' + ':' +
                                                        get_option('prefix') / get_option('libdir') / 'java/dex/android_translation_layer/natives',
                                         c_args: [
-						'-DINSTALL_DATADIR="'+join_paths(get_option('prefix'), get_option('datadir'))+'"'
+						'-DINSTALL_DATADIR="'+join_paths(get_option('prefix'), get_option('datadir'))+'"',
+						'-DINSTALL_LIBEXECDIR="'+join_paths(get_option('prefix'), get_option('libexecdir'))+'"'
                                         ])
