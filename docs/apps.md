@@ -35,7 +35,10 @@ entry: date, what, why. Remove an entry once it is done.
   confirm the threat model and the proposed
   [one Flatpak per app](decisions/app-sandbox.md), and send the output
   of, as `user`: `flatpak --version; flatpak remotes --user;
-  flatpak list --runtime; apk info -v | grep portal`.
+  flatpak list --runtime; apk info -v | grep portal`. Done by the agent
+  on the phone (see [dev-environment.md](dev-environment.md#app-flatpaks));
+  still open: the sign-off, `sudo apk add flatpak-builder` for the engine
+  build (phase 1), and the phone on the charger while it builds.
 
 - 2026-10-28: For DB Navigator from Aurora Store on the phone: merge
   nexumia-de/aports pull request #6 (ATL with the Aurora fixes; #5 with
