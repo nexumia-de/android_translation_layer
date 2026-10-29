@@ -106,34 +106,50 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeOpenFile(JNIEnv *env, 
 	g_object_unref(connection);
 }
 
-static gboolean launch_desktop_app(gpointer desktop_id)
+struct desktop_launch {
+	char *desktop_id;
+	char *action; // a [Desktop Action], or NULL for the app itself
+};
+
+static gboolean launch_desktop_app(gpointer user_data)
 {
-	GDesktopAppInfo *app_info = g_desktop_app_info_new(desktop_id);
+	struct desktop_launch *launch = user_data;
+	GDesktopAppInfo *app_info = g_desktop_app_info_new(launch->desktop_id);
 	if (!app_info) {
-		fprintf(stderr, "launch: no desktop entry %s\n", (char *)desktop_id);
-		g_free(desktop_id);
-		return G_SOURCE_REMOVE;
+		fprintf(stderr, "launch: no desktop entry %s\n", launch->desktop_id);
+	} else {
+		/* GTK's launch context hands the app an activation token for our window, so the compositor
+		 * also raises an app that is already running; a separate gtk-launch process has no window
+		 * for a token and needs its own display */
+		GdkAppLaunchContext *context = gdk_display_get_app_launch_context(gdk_display_get_default());
+		GError *err = NULL;
+		if (launch->action) {
+			g_desktop_app_info_launch_action(app_info, launch->action, G_APP_LAUNCH_CONTEXT(context));
+		} else if (!g_app_info_launch(G_APP_INFO(app_info), NULL, G_APP_LAUNCH_CONTEXT(context), &err)) {
+			fprintf(stderr, "launch: could not launch %s: %s\n", launch->desktop_id, err->message);
+			g_error_free(err);
+		}
+		g_object_unref(context);
+		g_object_unref(app_info);
 	}
-	/* GTK's launch context hands the app an activation token for our window, so the compositor
-	 * also raises an app that is already running; a separate gtk-launch process has no window
-	 * for a token and needs its own display */
-	GdkAppLaunchContext *context = gdk_display_get_app_launch_context(gdk_display_get_default());
-	GError *err = NULL;
-	if (!g_app_info_launch(G_APP_INFO(app_info), NULL, G_APP_LAUNCH_CONTEXT(context), &err)) {
-		fprintf(stderr, "launch: could not launch %s: %s\n", (char *)desktop_id, err->message);
-		g_error_free(err);
-	}
-	g_object_unref(context);
-	g_object_unref(app_info);
-	g_free(desktop_id);
+	g_free(launch->desktop_id);
+	g_free(launch->action);
+	g_free(launch);
 	return G_SOURCE_REMOVE;
 }
 
-JNIEXPORT void JNICALL Java_android_content_Context_nativeLaunchDesktopApp(JNIEnv *env, jclass class, jstring desktop_id_jstr)
+JNIEXPORT void JNICALL Java_android_content_Context_nativeLaunchDesktopApp(JNIEnv *env, jclass class, jstring desktop_id_jstr, jstring action_jstr)
 {
+	struct desktop_launch *launch = g_new0(struct desktop_launch, 1);
 	const char *desktop_id = (*env)->GetStringUTFChars(env, desktop_id_jstr, NULL);
-	g_main_context_invoke(NULL, launch_desktop_app, g_strdup(desktop_id));
+	launch->desktop_id = g_strdup(desktop_id);
 	(*env)->ReleaseStringUTFChars(env, desktop_id_jstr, desktop_id);
+	if (action_jstr) {
+		const char *action = (*env)->GetStringUTFChars(env, action_jstr, NULL);
+		launch->action = g_strdup(action);
+		(*env)->ReleaseStringUTFChars(env, action_jstr, action);
+	}
+	g_main_context_invoke(NULL, launch_desktop_app, launch);
 }
 
 char *fd_get_path(int fd)
