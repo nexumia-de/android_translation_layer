@@ -549,6 +549,31 @@ static void install_ask_installed(GObject *source, GAsyncResult *res, gpointer u
 	prompt_page_set_buttons(r->page, "_Done", "_Open", FALSE, install_ask_done, install_ask_open, r);
 }
 
+/* the --sdk-int in the launcher of the installed app, e.g. from the app store that installed it */
+static char *installed_launcher_sdk_int(const char *package_name)
+{
+	char *desktop_file = g_strdup_printf("%s/applications/%s.desktop", g_get_user_data_dir(), package_name);
+	GKeyFile *key_file = g_key_file_new();
+	char *exec = NULL;
+	if (g_key_file_load_from_file(key_file, desktop_file, G_KEY_FILE_NONE, NULL))
+		exec = g_key_file_get_string(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_EXEC, NULL);
+	g_key_file_free(key_file);
+	g_free(desktop_file);
+	char **argv = NULL;
+	char *sdk_int = NULL;
+	if (exec && g_shell_parse_argv(exec, NULL, &argv, NULL)) {
+		for (int i = 0; argv[i] && argv[i + 1]; i++) {
+			if (!strcmp(argv[i], "--sdk-int")) {
+				sdk_int = g_strdup(argv[i + 1]);
+				break;
+			}
+		}
+		g_strfreev(argv);
+	}
+	g_free(exec);
+	return sdk_int;
+}
+
 static void install_ask_copied(GObject *source, GAsyncResult *res, gpointer user_data)
 {
 	struct install_request *r = user_data;
@@ -561,16 +586,19 @@ static void install_ask_copied(GObject *source, GAsyncResult *res, gpointer user
 	/* the installed app starts with this window size, like one an app store installs */
 	char *width = g_strdup_printf("%d", r->d->window_width);
 	char *height = g_strdup_printf("%d", r->d->window_height);
+	/* an update keeps the SDK level the app ran at, e.g. the one its app store gave it */
+	char *sdk_int = r->d->sdk_int ? g_strdup(r->d->sdk_int) : r->updating ? installed_launcher_sdk_int(r->package_name) : NULL;
 	const char *argv[] = {r->d->prgname, "--install", "-w", width, "-h", height, r->staged_apk, NULL, NULL, NULL};
-	if (r->d->sdk_int) {
+	if (sdk_int) {
 		argv[6] = "--sdk-int";
-		argv[7] = r->d->sdk_int;
+		argv[7] = sdk_int;
 		argv[8] = r->staged_apk;
 	}
-	printf("install: running %s --install for %s\n", r->d->prgname, r->staged_apk);
+	printf("install: running %s --install%s%s for %s\n", r->d->prgname, sdk_int ? " --sdk-int " : "", sdk_int ? sdk_int : "", r->staged_apk);
 	GSubprocess *install = g_subprocess_newv(argv, G_SUBPROCESS_FLAGS_NONE, &err);
 	g_free(width);
 	g_free(height);
+	g_free(sdk_int);
 	if (!install) {
 		install_ask_show_failure(r, err->message);
 		g_error_free(err);
