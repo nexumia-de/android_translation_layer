@@ -31,6 +31,12 @@ entry: date, what, why. Remove an entry once it is done.
   `android-translation-layer@nexumia` with `sudo`, and try Chooser with
   several fingers on the real touch screen; headless tests cannot do
   that. The owner runs every root command themselves.
+- 2026-10-29: Decide on the [hardening roadmap](hardening-roadmap.md):
+  confirm its threat model and accept or change the proposed
+  [per-app bubblewrap sandbox](decisions/app-sandbox.md). For phase 0,
+  run as `user` and send the output: `unshare -U true && echo userns ok;
+  cat /sys/kernel/security/lsm; grep Seccomp /proc/self/status`. Later
+  packages: `sudo apk add bubblewrap xdg-dbus-proxy libseccomp-dev`.
 
 - 2026-10-28: For DB Navigator from Aurora Store on the phone: merge
   nexumia-de/aports pull request #6 (ATL with the Aurora fixes; #5 with
