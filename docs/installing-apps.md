@@ -139,7 +139,10 @@ icon, name, package, version and what installing does
 Like `PackageInstaller`, it copies the APK as `<package>.apk` into
 `_installer_sessions_/ask-*/` and runs `--install` with its own window
 size and `--sdk-int`, so the app gets the same launcher, D-Bus service
-and data directory as one installed from F-Droid. Afterwards the page
+and data directory as one installed from F-Droid. An update or reinstall
+without `--sdk-int` keeps the one in the installed app's launcher, e.g.
+the `--sdk-int 26` F-Droid and Aurora Store need; a new app gets its own
+minSdk. Afterwards the page
 offers **Open** (the launcher, through D-Bus activation) and **Done**.
 The data directory made for the opened file name is removed again,
 unless it existed before. Exit status: 0 done, 2 cancelled, 1 failed.
