@@ -129,6 +129,47 @@ modules:
         url: https://gitlab.com/android_translation_layer/libopensles-standalone
         commit: bdb857a4baadbc8c036db85a5da26c5269a751c5
 
+  # not in the GNOME 50 SDK
+  - name: libportal
+    buildsystem: meson
+    config-opts:
+      - -Dbackend-gtk3=disabled
+      - -Dbackend-gtk4=enabled
+      - -Dbackend-qt5=disabled
+      - -Dbackend-qt6=disabled
+      - -Dintrospection=false
+      - -Dvapi=false
+      - -Ddocs=false
+      - -Dtests=false
+    sources:
+      - type: archive
+        url: https://github.com/flatpak/libportal/releases/download/0.11.0/libportal-0.11.0.tar.xz
+        sha256: abb9e452a1c372133bd3eb8f0bb30d07b2d0a8fb02001c4155cf287555db4040
+
+  # Java libraries for tools/jni_upcall_gen, which finds them with Fedora's
+  # xmvn5-resolve; only needed while building ATL
+  - name: jni-upcall-gen-deps
+    buildsystem: simple
+    cleanup:
+      - '*'
+    build-commands:
+      - install -Dm644 asm-9.7.1.jar /app/share/jni-upcall-gen-deps/asm.jar
+      - install -Dm644 asm-tree-9.7.1.jar /app/share/jni-upcall-gen-deps/asm-tree.jar
+      - install -Dm644 java-getopt-1.0.13.jar /app/share/jni-upcall-gen-deps/java-getopt.jar
+      - install -Dm755 xmvn5-resolve /app/bin/xmvn5-resolve
+    sources:
+      - type: file
+        url: https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7.1/asm-9.7.1.jar
+        sha256: 8cadd43ac5eb6d09de05faecca38b917a040bb9139c7edeb4cc81c740b713281
+      - type: file
+        url: https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/9.7.1/asm-tree-9.7.1.jar
+        sha256: 9929881f59eb6b840e86d54570c77b59ce721d104e6dfd7a40978991c2d3b41f
+      - type: file
+        url: https://repo1.maven.org/maven2/gnu/getopt/java-getopt/1.0.13/java-getopt-1.0.13.jar
+        sha256: f09dc6369ffc4fe4362cbd49b6ac6c4a7471375ac5d884c71b0a625a889c38c4
+      - type: file
+        path: xmvn5-resolve
+
   # this checkout, so local changes are built too
   - name: android-translation-layer
     buildsystem: meson

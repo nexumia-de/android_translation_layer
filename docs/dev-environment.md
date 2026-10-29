@@ -315,7 +315,16 @@ root):
   newer ones need GNOME 51, a 416 MB download).
 - `flatpak/de.nexumia.atl.BaseApp.yml` builds the engine from this
   checkout and the dependency forks with `flatpak-builder` (system
-  package `flatpak-builder`).
+  package `flatpak-builder`). Keep the state and build directories on
+  disk: `/tmp` is a 3.6 GiB tmpfs in RAM, and art_standalone filled it
+  (`No space left on device` while linking dex2oat):
+
+  ```sh
+  C=~/.cache/atl-flatpak
+  flatpak-builder --user --jobs=4 --disable-rofiles-fuse --force-clean \
+    --state-dir=$C/state --repo=~/.local/share/android_translation_layer/flatpak-repo \
+    $C/build flatpak/de.nexumia.atl.BaseApp.yml
+  ```
 - `flatpak/make-app.sh -p <package> -n <name> <apk>` generates
   `de.nexumia.atl.<package>` from an APK, exports it into
   `~/.local/share/android_translation_layer/flatpak-repo` (user remote

@@ -62,9 +62,9 @@ date), so a new session knows where to continue.
 
 | Phase | State | Pull requests | Updated |
 |---|---|---|---|
-| 0 Facts, sign-off, prototype | facts done; sandbox works with upstream's engine, app needs the fork's engine (phase 1) | this branch | 2026-10-29 |
+| 0 Facts, sign-off, prototype | prototype works: Chooser runs in its own Flatpak on the fork's engine ([screenshot](screenshots/chooser-flatpak-2026-10-29.png)); open: owner sign-off, a WebView app, start time | this branch | 2026-10-29 |
 | T Escape test | `flatpak/escape-test.sh`: 18 checks, all blocked for a generated app; APK-level checks open | this branch | 2026-10-29 |
-| 1 ATL engine as Flatpak | manifest written; build needs the system package `flatpak-builder` | this branch | 2026-10-29 |
+| 1 ATL engine as Flatpak | builds on the phone (`de.nexumia.atl.BaseApp`, 82.6 MB); open: CI build and publishing in the owner's repository | this branch | 2026-10-29 |
 | 2 Installer and broker on the host | not started | - | - |
 | 3 ATL inside a per-app Flatpak | not started | - | - |
 | 4 Permissions | not started | - | - |
@@ -210,8 +210,18 @@ Results (2026-10-29, details in [dev-environment.md](dev-environment.md#app-flat
   sandbox, D-Bus proxy, portals, data in `~/.var/app/<id>/` and dex2oat
   into the app's own cache all work; the app reaches `onResume` and then
   crashes in `SoundPool.load` (`AssetManager.extractFromAPK` with a null
-  `ZipEntry`), which upstream's older ATL lacks fixes for. Next: the same
-  with the fork's engine.
+  `ZipEntry`), which upstream's older ATL lacks fixes for.
+- With the fork's engine (phase 1) the same generated Chooser runs: the
+  onboarding renders and reacts to taps
+  ([page 1](screenshots/chooser-flatpak-2026-10-29.png),
+  [page 2](screenshots/chooser-flatpak-page2-2026-10-29.png)), and the
+  escape test blocks all 18 attempts. Installed size 84.1 MB, of which
+  the engine is 82.6 MB and stored once for all apps.
+- Building the engine on the phone needed three fixes to the manifest:
+  state and build directories off `/tmp` (a RAM tmpfs), libportal (not in
+  the GNOME 50 SDK), and the Java libraries of `tools/jni_upcall_gen`
+  with a build-time `xmvn5-resolve` stand-in (upstream's Flathub base app
+  predates that tool).
 - Engine shipping: generated apps copy the base app's `/app`, like
   upstream's per-app Flatpaks; an extension or own runtime is not needed
   for now. An engine update regenerates the apps (no compiling).

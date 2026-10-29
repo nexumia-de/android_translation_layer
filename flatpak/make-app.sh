@@ -99,6 +99,7 @@ flatpak build-finish "$build" --socket=wayland --device=dri --share=ipc \
 	--talk-name=org.sigxcpu.Feedback $finish >/dev/null
 flatpak build-export "$repo" "$build" stable >/dev/null
 flatpak remote-add --user --if-not-exists --no-gpg-verify atl-local "$repo"
+flatpak remote-modify --user --url="file://$repo" atl-local
 if flatpak info --user "$id" >/dev/null 2>&1; then
 	flatpak update --user -y --noninteractive "$id"
 else
