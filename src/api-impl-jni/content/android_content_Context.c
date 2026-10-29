@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 
+#include <gio/gdesktopappinfo.h>
 #include <gtk/gtk.h>
 #include <libportal/portal.h>
 #include <string.h>
@@ -103,6 +104,36 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeOpenFile(JNIEnv *env, 
 	g_object_unref(fd_list);
 	g_object_unref(openuri);
 	g_object_unref(connection);
+}
+
+static gboolean launch_desktop_app(gpointer desktop_id)
+{
+	GDesktopAppInfo *app_info = g_desktop_app_info_new(desktop_id);
+	if (!app_info) {
+		fprintf(stderr, "launch: no desktop entry %s\n", (char *)desktop_id);
+		g_free(desktop_id);
+		return G_SOURCE_REMOVE;
+	}
+	/* GTK's launch context hands the app an activation token for our window, so the compositor
+	 * also raises an app that is already running; a separate gtk-launch process has no window
+	 * for a token and needs its own display */
+	GdkAppLaunchContext *context = gdk_display_get_app_launch_context(gdk_display_get_default());
+	GError *err = NULL;
+	if (!g_app_info_launch(G_APP_INFO(app_info), NULL, G_APP_LAUNCH_CONTEXT(context), &err)) {
+		fprintf(stderr, "launch: could not launch %s: %s\n", (char *)desktop_id, err->message);
+		g_error_free(err);
+	}
+	g_object_unref(context);
+	g_object_unref(app_info);
+	g_free(desktop_id);
+	return G_SOURCE_REMOVE;
+}
+
+JNIEXPORT void JNICALL Java_android_content_Context_nativeLaunchDesktopApp(JNIEnv *env, jclass class, jstring desktop_id_jstr)
+{
+	const char *desktop_id = (*env)->GetStringUTFChars(env, desktop_id_jstr, NULL);
+	g_main_context_invoke(NULL, launch_desktop_app, g_strdup(desktop_id));
+	(*env)->ReleaseStringUTFChars(env, desktop_id_jstr, desktop_id);
 }
 
 char *fd_get_path(int fd)
