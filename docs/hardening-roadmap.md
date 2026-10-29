@@ -66,7 +66,7 @@ date), so a new session knows where to continue.
 | T Escape test | `flatpak/escape-test.sh`: 18 checks, all blocked for a generated app; APK-level checks open | this branch | 2026-10-29 |
 | 1 ATL engine as Flatpak | builds on the phone (`de.nexumia.atl.BaseApp`, 82.6 MB); CI build on `ubuntu-24.04-arm` (`.github/workflows/engine-flatpak.yml`), published through the release `engine` and phosh-apps to `flatpak.nexumia.de`; open: first published build installed on the phone | #27, this branch | 2026-10-29 |
 | 2 Installer and broker on the host | `--install-flatpak`: name, icon, URL schemes and permissions from the APK without running app code, Flatpak built by `make-app-flatpak` ([installing apps](installing-apps.md#installing-an-apk-as-its-own-flatpak)); open: `--install-ask` and stores on it, uninstall, broker D-Bus API, settings page | this branch | 2026-10-29 |
-| 3 ATL inside a per-app Flatpak | not started | - | - |
+| 3 ATL inside a per-app Flatpak | vibration through feedbackd's Haptic D-Bus interface (reached from the sandbox, checked headless); open: data paths, broker calls, OpenURI, sensors, WebView | this branch | 2026-10-30 |
 | 4 Permissions | not started | - | - |
 | 5 Install integrity | not started | - | - |
 | 6 Migration and default | not started | - | - |
@@ -313,9 +313,14 @@ Changes in ATL for running sandboxed:
   `startActivity` to other packages go to the broker.
 - `ACTION_VIEW` of URLs and files: OpenURI portal.[^portals]
 - Vibration: feedbackd over D-Bus (`--talk-name=org.sigxcpu.Feedback`).
-  The sandbox hides `/dev/input`, so today's direct write to the vibra
-  device fails (`no feedbackd-recognized vibrator found`, Chooser on the
-  phone).
+  The sandbox hides `/dev/input`, so the direct write to the vibra
+  device failed (`no feedbackd-recognized vibrator found`, Chooser on the
+  phone). Done 2026-10-30: `Vibrator` uses `org.sigxcpu.Feedback.Haptic`
+  `Vibrate(app_id, a(du))` when feedbackd exports it (only with a
+  vibrator; checked by introspection, which has no side effect), and
+  the device otherwise. feedbackd caps a step at 10 s, so longer ones
+  are split; `cancel()` sends the empty pattern; the user's feedback
+  profile applies (silent: no vibration).
 - Sensors: iio-sensor-proxy on the system bus, only when granted.
 - Keystore: libsecret uses the Secret portal inside Flatpak (one secret
   per app, no access to other keyring items).[^portal-secret]

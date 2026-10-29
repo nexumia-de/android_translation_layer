@@ -1,3 +1,4 @@
+#include <gio/gio.h>
 #include <gudev/gudev.h>
 
 #include <fcntl.h>
@@ -8,7 +9,42 @@
 
 #include "defines.h"
 #include "util.h"
-#include "generated_headers/android_hardware_SensorManager.h"
+#include "generated_headers/android_os_Vibrator.h"
+
+/* the "fd" for vibrating through feedbackd instead of a device file */
+#define VIBRATOR_FEEDBACKD -2
+
+/* feedbackd's haptic interface (org.sigxcpu.Feedback.Haptic, feedbackd 0.4 and later) works inside
+ * a Flatpak sandbox, which hides the input devices, and follows the user's feedback profile */
+static GDBusConnection *feedbackd_bus = NULL;
+
+/* feedbackd exports the haptic interface only when it found a vibrator */
+static gboolean feedbackd_has_haptic(void)
+{
+	GVariant *reply = g_dbus_connection_call_sync(feedbackd_bus, "org.sigxcpu.Feedback", "/org/sigxcpu/Feedback",
+	                                              "org.freedesktop.DBus.Introspectable", "Introspect", NULL, G_VARIANT_TYPE("(s)"),
+	                                              G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL);
+	if (!reply)
+		return FALSE;
+	const char *xml;
+	g_variant_get(reply, "(&s)", &xml);
+	GDBusNodeInfo *node = g_dbus_node_info_new_for_xml(xml, NULL);
+	gboolean found = node && g_dbus_node_info_lookup_interface(node, "org.sigxcpu.Feedback.Haptic");
+	if (node)
+		g_dbus_node_info_unref(node);
+	g_variant_unref(reply);
+	return found;
+}
+
+/* takes a floating pattern of (amplitude 0..1, milliseconds) pairs; an empty one stops vibrating */
+static void feedbackd_vibrate(GVariant *pattern)
+{
+	GApplication *app = g_application_get_default();
+	const char *app_id = app ? g_application_get_application_id(app) : NULL;
+	g_dbus_connection_call(feedbackd_bus, "org.sigxcpu.Feedback", "/org/sigxcpu/Feedback", "org.sigxcpu.Feedback.Haptic",
+	                       "Vibrate", g_variant_new("(s@a(du))", app_id ? app_id : "android_translation_layer", pattern),
+	                       G_VARIANT_TYPE("(b)"), G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL, NULL);
+}
 
 /* finds a feedbackd-recognized vibrator */
 char *find_vibrator(void)
@@ -40,6 +76,13 @@ JNIEXPORT jint JNICALL Java_android_os_Vibrator_native_1constructor(JNIEnv *env,
 	if (fd != -1)
 		return fd;
 
+	feedbackd_bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (feedbackd_bus && feedbackd_has_haptic()) {
+		fd = VIBRATOR_FEEDBACKD;
+		return fd;
+	}
+	g_clear_object(&feedbackd_bus);
+
 	device_file = find_vibrator();
 	if (!device_file) {
 		g_log(NULL, G_LOG_LEVEL_WARNING, "no feedbackd-recognized vibrator found");
@@ -70,6 +113,16 @@ JNIEXPORT jint JNICALL Java_android_os_Vibrator_native_1constructor(JNIEnv *env,
 
 JNIEXPORT void JNICALL Java_android_os_Vibrator_native_1vibrate(JNIEnv *env, jobject this, jint fd, jlong duration)
 {
+	if (fd == VIBRATOR_FEEDBACKD) {
+		/* feedbackd plays at most 10 s per step */
+		GVariantBuilder pattern;
+		g_variant_builder_init(&pattern, G_VARIANT_TYPE("a(du)"));
+		for (jlong left = duration; left > 0; left -= 10000)
+			g_variant_builder_add(&pattern, "(du)", 1.0, (guint32)MIN(left, 10000));
+		feedbackd_vibrate(g_variant_builder_end(&pattern));
+		return;
+	}
+
 	/* FIXME: not thread-safe */
 	static struct ff_effect effect = {.id = -1};
 
@@ -110,4 +163,10 @@ JNIEXPORT void JNICALL Java_android_os_Vibrator_native_1vibrate(JNIEnv *env, job
 	if (write(fd, (const void *)&play, sizeof(play)) < 0) {
 		g_log(NULL, G_LOG_LEVEL_WARNING, "failed to play vibraton: %m");
 	}
+}
+
+JNIEXPORT void JNICALL Java_android_os_Vibrator_native_1cancel(JNIEnv *env, jobject this, jint fd)
+{
+	if (fd == VIBRATOR_FEEDBACKD)
+		feedbackd_vibrate(g_variant_new_array(G_VARIANT_TYPE("(du)"), NULL, 0));
 }
