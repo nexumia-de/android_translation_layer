@@ -11,6 +11,7 @@ import android.content.pm.PackageParser;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -22,7 +23,12 @@ public class Application extends ContextWrapper {
 	private String get_app_icon_path() {
 		String icon_path = null;
 		try {
-			icon_path = getString(this.get_atl_loaded_app().pkg.applicationInfo.icon);
+			/* the largest one: launchers and the install page show it at 128 px and more, the
+			 * one for ATL's own density is 48 px and looks blurry scaled up */
+			TypedValue value = new TypedValue();
+			getResources().getValueForDensity(this.get_atl_loaded_app().pkg.applicationInfo.icon, DisplayMetrics.DENSITY_XXXHIGH, value, true);
+			if (value.string != null)
+				icon_path = value.string.toString();
 		} catch (android.content.res.Resources.NotFoundException e) {
 			e.printStackTrace();
 		}

@@ -144,6 +144,11 @@ offers **Open** (the launcher, through D-Bus activation) and **Done**.
 The data directory made for the opened file name is removed again,
 unless it existed before. Exit status: 0 done, 2 cancelled, 1 failed.
 
+PNG icons are taken for xxxhdpi (640 dpi), the largest an APK has, for
+the page and the launcher; the one for ATL's own density is 48 px and
+looked blurry at 128 px. Launchers made earlier keep their icon until
+the app is installed again.
+
 The page is libadwaita (`src/main-executable/prompt_page.c`):
 `AdwStatusPage` with the buttons at the bottom, in reach of the thumb,
 following the system's light or dark style. It is its own
@@ -164,7 +169,7 @@ xdg-mime default com.gitlab.android_translation_layer.install.desktop applicatio
 Tested headless under phoc on 2026-10-29 with Blokish: `gio open` →
 page → Install → Open starts Blokish; the launcher's uninstall action →
 page → Uninstall removes it
-([page](screenshots/install-ask-2026-10-29.png),
+([page](screenshots/install-ask-2026-10-29.png), [F-Droid's icon](screenshots/install-ask-fdroid-2026-10-29.png),
 [uninstall](screenshots/uninstall-page-2026-10-29.png)).
 
 # Setting F-Droid up on the phone
