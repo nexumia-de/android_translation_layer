@@ -4,7 +4,7 @@ import android.media.AudioAttributes;
 import android.util.Slog;
 
 public class Vibrator {
-	int fd; // vibrator /dev/input/eventX
+	int fd; // vibrator /dev/input/eventX, -2 for feedbackd, -1 for none
 
 	public Vibrator() {
 		fd = native_constructor();
@@ -59,8 +59,11 @@ public class Vibrator {
 			vibrateThread.interrupt();
 			vibrateThread = null;
 		}
+		if (fd != -1)
+			native_cancel(fd);
 	}
 
 	private native void native_vibrate(int fd, long millis);
+	private native void native_cancel(int fd);
 	private native int native_constructor();
 }

@@ -17,6 +17,14 @@ JNIEXPORT void JNICALL Java_android_os_Vibrator_native_1vibrate
 
 /*
  * Class:     android_os_Vibrator
+ * Method:    native_cancel
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_android_os_Vibrator_native_1cancel
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     android_os_Vibrator
  * Method:    native_constructor
  * Signature: ()I
  */
