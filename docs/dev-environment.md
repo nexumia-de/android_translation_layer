@@ -274,6 +274,32 @@ renderer, Adreno 810); `WLR_RENDERER=pixman` switches to software
 rendering. Verified with GNOME Calculator: it filled the 360×720
 screen.
 
+## Headless phoc
+
+cage shows windows as they are, but the phone runs phoc, which in its
+phone mode maximizes every toplevel and does not draw what is below a
+maximized window. Bugs with dialogs or other extra windows (e.g. a
+transparent window showing the accent colour) only show under phoc,
+which also runs headless (`/usr/sbin/phoc`, 2026-10-29):
+
+```sh
+cat > phoc.ini <<EOF
+[output:HEADLESS-1]
+mode=720x1440
+scale=2
+EOF
+R=$(mktemp -d)
+env XDG_RUNTIME_DIR=$R WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
+  dbus-run-session -- phoc -C phoc.ini -E ./steps.sh
+```
+
+`steps.sh` starts the app in the background, then uses `grim FILE` and
+`wl-pointer -s 360x720 tap X Y` like `headless-shot.sh`'s steps. The
+window has a title bar of about 46 logical px. For the owner's look set
+`gsettings set org.gnome.desktop.interface accent-color green` and
+`color-scheme prefer-dark` for `claude` (settings reach the app through
+the portal).
+
 # ATL for the owner
 
 The owner uses ATL in Phosh from the package `android-translation-layer`
