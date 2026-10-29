@@ -351,10 +351,23 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		} else if ((Intent.ACTION_DELETE.equals(intent.getAction()) || Intent.ACTION_UNINSTALL_PACKAGE.equals(intent.getAction()))
 		           && intent.getData() != null && "package".equals(intent.getData().getScheme())) {
 			confirmUninstall(intent.getData().getSchemeSpecificPart(), requestCode);
+		} else if (intent.getAction() != null && intent.getData() == null && findOwnActivity(intent.getAction()) != null) {
+			// an action one of the app's own activities handles, e.g. DB Navigator's START_LOGIN
+			startActivityForResult(new Intent(intent).setComponent(new ComponentName(getPackageName(), findOwnActivity(intent.getAction()))), requestCode, options);
 		} else {
 			Slog.i(TAG, "startActivityForResult: intent was not handled. Calling onActivityResult(RESULT_CANCELED).");
 			onActivityResult(requestCode, 0 /*RESULT_CANCELED*/, new Intent());
 		}
+	}
+
+	private static String findOwnActivity(String action) {
+		for (PackageParser.Activity activity : ATLLoadedApp.getPrimaryApplication().pkg.activities) {
+			for (PackageParser.IntentInfo intentInfo : activity.intents) {
+				if (intentInfo.matchAction(action))
+					return activity.className;
+			}
+		}
+		return null;
 	}
 	private void confirmUninstall(final String packageName, final int requestCode) {
 		CharSequence label = packageName;
