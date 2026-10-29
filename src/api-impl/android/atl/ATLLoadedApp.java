@@ -6,6 +6,7 @@ import android.app.Application;
 import android.app.ContextImpl;
 import android.app.Service;
 import android.content.*;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
 import android.content.res.AssetManager;
@@ -43,6 +44,8 @@ public final class ATLLoadedApp {
 	private final HashMap<String, Service> running_services;
 	private Application application;
 	private Resources.Theme default_theme;
+	/* the paths of default_resources' AssetManager, for one with another configuration */
+	private String asset_path;
 
 	ATLLoadedApp(Resources resources, ClassLoader classLoader,
 	             PackageParser.Package pkg) {
@@ -106,7 +109,8 @@ public final class ATLLoadedApp {
 		}
 		BaseDexClassLoader classLoader = new PathClassLoader(
 		    classLoaderPath, nativePath, ATLLoadedApp.class.getClassLoader());
-		AssetManager assetManager = new AssetManager(classLoaderPath + ":" + System.getProperty("java.class.path"));
+		String assetPath = classLoaderPath + ":" + System.getProperty("java.class.path");
+		AssetManager assetManager = new AssetManager(assetPath);
 		PackageParser packageParser = new PackageParser(mainApk);
 		Resources resources = new Resources(assetManager, new DisplayMetrics(), Context.sys_config);
 		String[] outError = new String[1];
@@ -126,7 +130,9 @@ public final class ATLLoadedApp {
 			ATLSigHelper.addGMSSignatures(pkg);
 		}
 		pkg.applicationInfo.sourceDir = mainApk;
-		return new ATLLoadedApp(resources, classLoader, pkg);
+		ATLLoadedApp app = new ATLLoadedApp(resources, classLoader, pkg);
+		app.asset_path = assetPath;
+		return app;
 	}
 
 	public Resources createDefaultResources() {
@@ -138,7 +144,14 @@ public final class ATLLoadedApp {
 			displayMetrics = this.default_resources.getDisplayMetrics();
 		if (configuration == null)
 			configuration = Context.sys_config;
-		Resources resources = new Resources(this.default_resources.getAssets(), displayMetrics, configuration);
+		/* the AssetManager selects resources for the configuration of the Resources that was created or
+		 * updated last, so one with another configuration (createConfigurationContext) needs its own:
+		 * AppCompat asks for one with uiMode -1 for every activity, which left the shared one matching
+		 * neither day nor night resources */
+		AssetManager assets = this.default_resources.getAssets();
+		if (asset_path != null && (configuration.diff(this.default_resources.getConfiguration()) & ~ActivityInfo.CONFIG_FONT_SCALE) != 0)
+			assets = new AssetManager(asset_path);
+		Resources resources = new Resources(assets, displayMetrics, configuration);
 		return resources;
 	}
 
