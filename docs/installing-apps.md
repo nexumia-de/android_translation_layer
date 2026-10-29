@@ -4,7 +4,7 @@ title: Installing apps with F-Droid and Aurora Store
 description: How ATL installs, lists and uninstalls APKs (also split APKs) for app stores like F-Droid and Aurora Store, how to set them up on the phone, and what is still missing.
 resource: ../src/api-impl/android/content/pm/PackageInstaller.java
 tags: [fdroid, aurora-store, google-play, split-apk, install, packageinstaller, launcher, portal]
-generated: { by: claude-code/2.1.308, at: 2026-10-28T15:50:00Z }
+generated: { by: claude-code/2.1.308, at: 2026-10-29T11:45:00Z }
 sources:
   - id: fdroid-session
     resource: https://gitlab.com/fdroid/fdroidclient/-/blob/08f444713cefc97a8fa3cd3161a4484db6db54c8/app/src/main/kotlin/org/fdroid/install/SessionInstallManager.kt
@@ -115,6 +115,58 @@ as `<package>.apk`.
   only removes an APK in `_installed_apks_`. Launchers from older
   builds get the action when the app is installed again.
 
+# Opening an APK file
+
+Opening an `.apk` in a file manager or browser asks to install it, like
+Android's package installer. `res/desktop/com.gitlab.android_translation_layer.install.desktop`
+(installed to `share/applications`, hidden from the app grid) handles
+`application/vnd.android.package-archive` with
+`android-translation-layer --install-ask -w 360 -h 720 %f`.
+
+`--install-ask` loads the APK like `--install`, without starting it or
+extracting its native libraries, and shows a page in its own window:
+icon, name, package, version and what installing does
+(`Application.get_install_state`):
+
+| State | Message | Buttons |
+|---|---|---|
+| not installed | Do you want to install this app? | Cancel, Install |
+| newer version | Do you want to update this app? Its data stays. (version old → new) | Cancel, Update |
+| same version | This version is already installed… | Cancel, Reinstall |
+| older version | A newer version is already installed… | Close |
+| other signer | …signed by someone else. Uninstall it first… | Close |
+
+Like `PackageInstaller`, it copies the APK as `<package>.apk` into
+`_installer_sessions_/ask-*/` and runs `--install` with its own window
+size and `--sdk-int`, so the app gets the same launcher, D-Bus service
+and data directory as one installed from F-Droid. Afterwards the page
+offers **Open** (the launcher, through D-Bus activation) and **Done**.
+The data directory made for the opened file name is removed again,
+unless it existed before. Exit status: 0 done, 2 cancelled, 1 failed.
+
+The page is libadwaita (`src/main-executable/prompt_page.c`):
+`AdwStatusPage` with the buttons at the bottom, in reach of the thumb,
+following the system's light or dark style. It is its own
+`AdwApplicationWindow`, which phoc maximizes on the phone; a
+`GtkAlertDialog` without a parent window, as the uninstall question
+was, sat small in the top left corner. The launcher's **Uninstall**
+action uses the same page. libadwaita's style sheet is only loaded when
+no app runs in the process, since it would restyle the app's GTK
+widgets.
+
+To make ATL the default for APK files (instead of e.g. Waydroid), as
+the user:
+
+```sh
+xdg-mime default com.gitlab.android_translation_layer.install.desktop application/vnd.android.package-archive
+```
+
+Tested headless under phoc on 2026-10-29 with Blokish: `gio open` →
+page → Install → Open starts Blokish; the launcher's uninstall action →
+page → Uninstall removes it
+([page](screenshots/install-ask-2026-10-29.png),
+[uninstall](screenshots/uninstall-page-2026-10-29.png)).
+
 # Setting F-Droid up on the phone
 
 ```sh
@@ -180,8 +232,11 @@ checked), installed like F-Droid with `--install --sdk-int 26 -w 360 -h
 - Installed apps show a generic icon in F-Droid.
 - An APK installed by hand with `--install` keeps its file name, e.g.
   `com.uravgcode.chooser_26.apk`, so F-Droid does not see it as
-  installed. Install such APKs from F-Droid instead, or name the file
-  `<package>.apk` first.
+  installed. Open the file instead (`--install-ask`, see above), which
+  names it `<package>.apk`.
+- Each install compiles the APK from its staging path, so
+  `~/.cache/art/` keeps an unused oat file per install (also for
+  F-Droid's sessions and for the opened file).
 - Install pre-approval (Android 14) and user-action confirmations are
   not offered; the store's own install button is the confirmation.
 

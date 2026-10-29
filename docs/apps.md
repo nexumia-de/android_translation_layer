@@ -40,6 +40,14 @@ entry: date, what, why. Remove an entry once it is done.
   and `sudo apk upgrade`; then try a journey search in DB Navigator
   (typing could not be tested headless).
 
+- 2026-10-29: To open APK files with ATL instead of Waydroid: after
+  the ATL package with `--install-ask` is in the apk repository (its
+  aports pull request adds `libadwaita-dev` to `makedepends`),
+  `sudo apk upgrade`, then as `user`
+  `xdg-mime default com.gitlab.android_translation_layer.install.desktop application/vnd.android.package-archive`,
+  and open an APK from the file manager
+  ([installing apps](installing-apps.md#opening-an-apk-file)).
+
 # Notes
 
 APKs come from F-Droid with their `.asc` signature, checked against
