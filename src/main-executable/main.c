@@ -947,7 +947,9 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		                                                   _INTPTR(window), _JSTRING(uri));
 		if ((*env)->ExceptionCheck(env))
 			(*env)->ExceptionDescribe(env);
-		activity_start(env, activity);
+		if (activity) // NULL: an open singleTop/singleTask activity got the URI through onNewIntent
+			activity_start(env, activity);
+		gtk_window_present(GTK_WINDOW(window));
 		return;
 	}
 	char *dex_install_dir;

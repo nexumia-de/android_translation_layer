@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.TypedValue;
+import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -36,7 +38,14 @@ public class Dialog implements Window.Callback, DialogInterface {
 	private OnShowListener onShowListener;
 
 	public Dialog(Context context, int themeResId) {
-		this.context = context;
+		// like Android: the given theme, or else the context theme's android:dialogTheme
+		if (themeResId == 0) {
+			TypedValue outValue = new TypedValue();
+			context.getTheme().resolveAttribute(R.attr.dialogTheme, outValue, true);
+			themeResId = outValue.resourceId;
+		}
+		this.context = themeResId != 0 ? new ContextThemeWrapper(context, themeResId) : context;
+		context = this.context;
 		window = new Window(context, this);
 		nativePtr = nativeInit(window.getDecorView().widget);
 
@@ -46,6 +55,10 @@ public class Dialog implements Window.Callback, DialogInterface {
 		window.setDimAmount(a.getFloat(R.styleable.Window_backgroundDimAmount, 0.6f));
 		if (a.getBoolean(R.styleable.Window_backgroundDimEnabled, true))
 			window.addFlags(LayoutParams.FLAG_DIM_BEHIND);
+		// like Android's PhoneWindow: only a floating dialog wraps its content, others (DB Navigator's
+		// full screen progress dialog) fill the window; without a dialog theme ATL keeps wrapping
+		if (themeResId != 0 && !a.getBoolean(R.styleable.Window_windowIsFloating, false))
+			window.setLayout(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
 		a.recycle();
 	}
 

@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInstaller;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageParser;
@@ -76,21 +77,28 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	@Export
 	private static Activity createMainActivity(String className, long native_window, String uriString) throws ReflectiveOperationException {
 		Uri uri = uriString != null ? Uri.parse(uriString) : null;
+		int launchMode = ActivityInfo.LAUNCH_MULTIPLE;
 		if (className == null) {
+			// the launcher activity, or for a URI the activity whose filter matches it best (scheme, host, path)
+			int bestMatch = 0;
 			for (PackageParser.Activity activity : ATLLoadedApp.getPrimaryApplication().pkg.activities) {
 				if (!activity.info.enabled)
 					continue;
-				boolean done = false;
 				for (PackageParser.IntentInfo intent : activity.intents) {
-					Slog.i(TAG, intent.toString());
-					if ((uri == null && intent.hasCategory("android.intent.category.LAUNCHER") && intent.hasAction("android.intent.action.MAIN")) ||        // NOLINT
-					    (uri != null && intent.hasDataScheme(uri.getScheme())                  && intent.hasCategory("android.intent.category.DEFAULT"))) { // NOLINT
+					int match;
+					if (uri == null)
+						match = intent.hasCategory("android.intent.category.LAUNCHER") && intent.hasAction("android.intent.action.MAIN") ? 1 : 0;
+					else if (intent.hasCategory("android.intent.category.DEFAULT"))
+						match = Math.max(0, intent.match(intent.hasAction(Intent.ACTION_VIEW) ? Intent.ACTION_VIEW : null, null, uri.getScheme(), uri, null, TAG));
+					else
+						match = 0;
+					if (match > bestMatch) {
+						bestMatch = match;
 						className = activity.info.targetActivity != null ? activity.info.targetActivity : activity.className;
-						done = true;
-						break;
+						launchMode = activity.info.launchMode;
 					}
 				}
-				if (done)
+				if (uri == null && bestMatch > 0)
 					break;
 			}
 		} else {
@@ -103,7 +111,18 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 				System.err.println("Failed to find main Activity");
 			System.exit(1);
 		}
-		return internalCreateActivity(className, native_window, uri != null ? new Intent("android.intent.action.VIEW", uri) : new Intent());
+		Intent intent = uri != null ? new Intent("android.intent.action.VIEW", uri) : new Intent();
+		if (uri != null && launchMode != ActivityInfo.LAUNCH_MULTIPLE) {
+			// like Android, a singleTop/singleTask activity that is already open gets the URI in onNewIntent
+			// (a login page waiting for the browser's redirect); the caller then starts nothing
+			intent.setComponent(new ComponentName(ATLLoadedApp.getPrimaryApplication().pkg.packageName, className));
+			if (nativeResumeActivity(ATLLoadedApp.getPrimaryApplication().loadClass(className).asSubclass(Activity.class), intent)) {
+				Slog.i(TAG, "createMainActivity: " + uri + " went to the open " + className);
+				return null;
+			}
+		}
+		Slog.i(TAG, "createMainActivity: " + className + (uri != null ? " for " + uri : ""));
+		return internalCreateActivity(className, native_window, intent);
 	}
 
 	public Activity() {
