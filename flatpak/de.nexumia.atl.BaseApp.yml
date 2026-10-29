@@ -1,0 +1,228 @@
+# ATL engine for one-Flatpak-per-app (docs/hardening-roadmap.md, phase 1).
+# Modelled on upstream's Flathub base app
+# (https://github.com/flathub/io.gitlab.android_translation_layer.BaseApp),
+# but built from this fork and its dependency forks, and on the GNOME 50
+# runtime the phone already has. Generated app Flatpaks copy its /app.
+#
+#   flatpak-builder --user --force-clean --repo=flatpak/repo \
+#     flatpak/build flatpak/de.nexumia.atl.BaseApp.yml
+id: de.nexumia.atl.BaseApp
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.openjdk17
+command: android-translation-layer
+build-options:
+  append-path: /usr/lib/sdk/openjdk17/bin
+  env:
+    JAVA_HOME: /usr/lib/sdk/openjdk17/jvm/openjdk-17
+cleanup:
+  - /include
+  - /bin/dx
+  - '*.a'
+  - '*.la'
+  - /lib/libopenxr_loader.so*
+  - /lib/cmake
+  - /lib/girepository-1.0
+  - /lib/java/core-all_classes.jar
+  - /lib/java/core-junit_classes.jar
+  - /lib/java/junit-runner_classes.jar
+  - /lib/java/dx.jar
+  - /lib/pkgconfig
+  - /share/doc
+  - /share/gir-1.0
+  - /share/man
+  - /share/vala
+  - /etc/ssl/certs/java/cacerts.bks
+modules:
+  - name: libmd
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: https://libbsd.freedesktop.org/releases/libmd-1.3.0.tar.xz
+        sha256: fc0f1eb6b6766470326f2c014693809190e67dba84274a6fbae9d4912d066706
+
+  - name: libbsd
+    sources:
+      - type: archive
+        url: https://libbsd.freedesktop.org/releases/libbsd-0.12.2.tar.xz
+        sha256: b88cc9163d0c652aaf39a99991d974ddba1c3a9711db8f1b5838af2a14731014
+
+  - name: openxr
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_INSTALL_LIBDIR=lib
+    sources:
+      - type: git
+        url: https://github.com/KhronosGroup/OpenXR-SDK.git
+        tag: release-1.1.63
+        commit: f2448a8797c85814aa892efc1ab8707900fbcc78
+
+  - name: wolfssl
+    buildsystem: autotools
+    config-opts:
+      - --enable-shared
+      - --disable-opensslall
+      - --disable-opensslextra
+      - --enable-aescbc-length-checks
+      - --enable-curve25519
+      - --enable-ed25519
+      - --enable-ed25519-stream
+      - --enable-oldtls
+      - --enable-base64encode
+      - --enable-tlsx
+      - --enable-scrypt
+      - --disable-examples
+      - --enable-crl
+      - --enable-jni
+      - --enable-sessioncerts
+    sources:
+      - type: git
+        url: https://github.com/wolfSSL/wolfssl.git
+        tag: v5.9.4-stable
+        commit: 3c5eead44904df64e6a5a1f4ebdce377d35a849a
+
+  - name: vixl
+    buildsystem: meson
+    config-opts:
+      - -Dsimulator=none
+    only-arches:
+      - aarch64
+    sources:
+      - type: archive
+        url: https://github.com/Linaro/vixl/archive/refs/tags/8.0.0.tar.gz
+        sha256: 6aebbebcd9b66686ea246b450af529e1fc50fe25209522cc9ab42beae2377d38
+      # from upstream's Flathub base app
+      - type: patch
+        path: patches/vixl_meson_support.patch
+
+  - name: bionic_translation
+    buildsystem: meson
+    sources:
+      - type: git
+        url: https://github.com/nexumia-de/bionic_translation.git
+        commit: 2465522636e6ed5a79959b3b48ea0c248917d966
+        disable-submodules: true
+
+  - name: art_standalone
+    no-autogen: true
+    build-options:
+      make-args:
+        - ____PREFIX=/app
+        - ____LIBDIR=lib
+      make-install-args:
+        - ____PREFIX=/app
+        - ____LIBDIR=lib
+        - ____INSTALL_ETC=/app/etc
+      env:
+        LIBRARY_PATH: /app/lib
+    sources:
+      - type: git
+        url: https://github.com/nexumia-de/art_standalone.git
+        commit: 4acccadb06869fa8bae86c65ae7ea99cfbfde240
+
+  - name: libopensles-standalone
+    buildsystem: meson
+    sources:
+      - type: git
+        url: https://gitlab.com/android_translation_layer/libopensles-standalone
+        commit: bdb857a4baadbc8c036db85a5da26c5269a751c5
+
+  # not in the GNOME 50 SDK
+  - name: libportal
+    buildsystem: meson
+    config-opts:
+      - -Dbackend-gtk3=disabled
+      - -Dbackend-gtk4=enabled
+      - -Dbackend-qt5=disabled
+      - -Dbackend-qt6=disabled
+      - -Dintrospection=false
+      - -Dvapi=false
+      - -Ddocs=false
+      - -Dtests=false
+    sources:
+      - type: archive
+        url: https://github.com/flatpak/libportal/releases/download/0.11.0/libportal-0.11.0.tar.xz
+        sha256: abb9e452a1c372133bd3eb8f0bb30d07b2d0a8fb02001c4155cf287555db4040
+
+  # Java libraries for tools/jni_upcall_gen, which finds them with Fedora's
+  # xmvn5-resolve; only needed while building ATL
+  - name: jni-upcall-gen-deps
+    buildsystem: simple
+    cleanup:
+      - '*'
+    build-commands:
+      - install -Dm644 asm-9.7.1.jar /app/share/jni-upcall-gen-deps/asm.jar
+      - install -Dm644 asm-tree-9.7.1.jar /app/share/jni-upcall-gen-deps/asm-tree.jar
+      - install -Dm644 java-getopt-1.0.13.jar /app/share/jni-upcall-gen-deps/java-getopt.jar
+      - install -Dm755 xmvn5-resolve /app/bin/xmvn5-resolve
+    sources:
+      - type: file
+        url: https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7.1/asm-9.7.1.jar
+        sha256: 8cadd43ac5eb6d09de05faecca38b917a040bb9139c7edeb4cc81c740b713281
+      - type: file
+        url: https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/9.7.1/asm-tree-9.7.1.jar
+        sha256: 9929881f59eb6b840e86d54570c77b59ce721d104e6dfd7a40978991c2d3b41f
+      - type: file
+        url: https://repo1.maven.org/maven2/gnu/getopt/java-getopt/1.0.13/java-getopt-1.0.13.jar
+        sha256: f09dc6369ffc4fe4362cbd49b6ac6c4a7471375ac5d884c71b0a625a889c38c4
+      - type: file
+        path: xmvn5-resolve
+
+  # this checkout, so local changes are built too
+  - name: android-translation-layer
+    buildsystem: meson
+    sources:
+      - type: dir
+        path: ..
+        skip:
+          - build
+          - builddir
+          - flatpak/build
+          - flatpak/repo
+          - flatpak/apps
+          - .flatpak-builder
+
+  - name: cacerts
+    buildsystem: simple
+    build-commands:
+      - install -D /usr/lib/sdk/openjdk17/jvm/openjdk-17/lib/security/cacerts /app/share/ssl/certs/java/cacerts
+
+  - name: run-dex2oat
+    buildsystem: simple
+    build-options:
+      append-ld-library-path: /app/lib/art:/app/lib
+      arch:
+        x86_64:
+          env:
+            arch: x86_64
+        aarch64:
+          env:
+            arch: arm64
+    build-commands:
+      - mkdir -p /app/lib/java/dex/art/oat/$arch
+      - dex2oat -j1 --image=/app/lib/java/dex/art/oat/$arch/boot.art --dex-file=/app/lib/java/dex/art/core-oj-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/core-oj-hostdex.jar --dex-file=/app/lib/java/dex/art/apachehttp-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/apachehttp-hostdex.jar --dex-file=/app/lib/java/dex/art/apache-xml-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/apache-xml-hostdex.jar --dex-file=/app/lib/java/dex/art/bouncycastle-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/bouncycastle-hostdex.jar --dex-file=/app/lib/java/dex/art/core-junit-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/core-junit-hostdex.jar --dex-file=/app/lib/java/dex/art/core-libart-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/core-libart-hostdex.jar --dex-file=/app/lib/java/dex/art/hamcrest-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/hamcrest-hostdex.jar --dex-file=/app/lib/java/dex/art/junit-runner-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/junit-runner-hostdex.jar --dex-file=/app/lib/java/dex/art/okhttp-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/okhttp-hostdex.jar --dex-file=/app/lib/java/dex/art/wolfssljni-hostdex.jar
+        --dex-location=/app/lib/java/dex/art/wolfssljni-hostdex.jar --oat-file=/app/lib/java/dex/art/oat/$arch/boot.oat
+        --base=0x60cf8000 --host
+      - chmod +x /app/lib/java/dex/art/oat/$arch/*.oat
+      - mkdir -p /app/lib/java/dex/android_translation_layer/oat/$arch
+      - dex2oat --dex-file=/app/lib/java/dex/android_translation_layer/api-impl.jar
+        --oat-file=/app/lib/java/dex/android_translation_layer/oat/$arch/api-impl.odex
+        --host
+      - chmod +x /app/lib/java/dex/android_translation_layer/oat/$arch/*.odex
+
+  - name: strip-jars
+    buildsystem: simple
+    build-commands:
+      - for f in /app/lib/java/dex/art/*.jar /app/lib/java/dex/android_translation_layer/*.jar;
+        do mv $f tmp.jar; zip -d tmp.jar "classes*.dex"; mv tmp.jar $f; done

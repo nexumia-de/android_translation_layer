@@ -1,0 +1,17 @@
+#!/bin/sh
+# Build-time stand-in for Fedora's xmvn5-resolve, which tools/jni_upcall_gen
+# uses to find its Java libraries. Prints the classpath of the requested
+# artifacts from the jars the manifest downloads; fails for anything else.
+dir=/app/share/jni-upcall-gen-deps
+classpath=
+for arg in "$@"; do
+	case $arg in
+	-*) continue ;;
+	org.ow2.asm:asm) jar=asm.jar ;;
+	org.ow2.asm:asm-tree) jar=asm-tree.jar ;;
+	gnu.getopt:java-getopt) jar=java-getopt.jar ;;
+	*) echo "xmvn5-resolve: unknown artifact $arg" >&2; exit 1 ;;
+	esac
+	classpath=${classpath:+$classpath:}$dir/$jar
+done
+echo "$classpath"

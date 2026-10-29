@@ -31,12 +31,14 @@ entry: date, what, why. Remove an entry once it is done.
   `android-translation-layer@nexumia` with `sudo`, and try Chooser with
   several fingers on the real touch screen; headless tests cannot do
   that. The owner runs every root command themselves.
-- 2026-10-29: Decide on the [hardening roadmap](hardening-roadmap.md):
-  confirm its threat model and accept or change the proposed
-  [per-app bubblewrap sandbox](decisions/app-sandbox.md). For phase 0,
-  run as `user` and send the output: `unshare -U true && echo userns ok;
-  cat /sys/kernel/security/lsm; grep Seccomp /proc/self/status`. Later
-  packages: `sudo apk add bubblewrap xdg-dbus-proxy libseccomp-dev`.
+- 2026-10-29: [Hardening roadmap](hardening-roadmap.md), phase 0:
+  confirm the threat model and the proposed
+  [one Flatpak per app](decisions/app-sandbox.md), and send the output
+  of, as `user`: `flatpak --version; flatpak remotes --user;
+  flatpak list --runtime; apk info -v | grep portal`. Done by the agent
+  on the phone (see [dev-environment.md](dev-environment.md#app-flatpaks));
+  still open: the sign-off, `sudo apk add flatpak-builder` for the engine
+  build (phase 1), and the phone on the charger while it builds.
 
 - 2026-10-28: For DB Navigator from Aurora Store on the phone: merge
   nexumia-de/aports pull request #6 (ATL with the Aurora fixes; #5 with

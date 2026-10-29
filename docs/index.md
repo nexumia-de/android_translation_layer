@@ -22,8 +22,8 @@ Change history is in [log.md](log.md).
 
 # Security
 
-* [Hardening roadmap](hardening-roadmap.md) - Threat model, current state and phased plan for permissions and sandboxing of apps: permission store and dialogs, brokers, bubblewrap, D-Bus proxy, portals, seccomp, Landlock, APK signatures.
+* [Hardening roadmap](hardening-roadmap.md) - Threat model, current state and phased plan to run every Android app as its own Flatpak generated at install time: ATL engine for Flatpak, host installer and broker, permission mapping, portals, APK signatures.
 
 # Decisions
 
-* [Sandbox ATL apps with bubblewrap](decisions/app-sandbox.md) - Proposed: one bubblewrap sandbox and one permission store per app, started by ATL itself.
+* [Every Android app as its own Flatpak](decisions/app-sandbox.md) - Proposed: one Flatpak per app, built on the phone from the APK, on an ATL engine for Flatpak, with a small host broker.
