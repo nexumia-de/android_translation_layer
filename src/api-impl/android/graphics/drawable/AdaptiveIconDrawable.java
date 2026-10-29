@@ -347,13 +347,12 @@ public class AdaptiveIconDrawable extends Drawable implements Drawable.Callback 
 				continue;
 			}
 
-			/*int insetWidth = (int)(bounds.width() / (DEFAULT_VIEW_PORT_SCALE * 2));
+			int insetWidth = (int)(bounds.width() / (DEFAULT_VIEW_PORT_SCALE * 2));
 			int insetHeight = (int)(bounds.height() / (DEFAULT_VIEW_PORT_SCALE * 2));
 			final Rect outRect = mTmpOutRect;
 			outRect.set(cX - insetWidth, cY - insetHeight, cX + insetWidth, cY + insetHeight);
 
-			d.setBounds(outRect);*/
-			d.setBounds(bounds);
+			d.setBounds(outRect);
 		}
 	}
 
@@ -398,15 +397,18 @@ public class AdaptiveIconDrawable extends Drawable implements Drawable.Callback 
 			canvas.translate(-bounds.left, -bounds.top);
 		}
 	*/
+		// no shader for the layers bitmap, clip the layers to the mask instead
 		Rect bounds = getBounds();
+		canvas.save();
 		canvas.translate(bounds.left, bounds.top);
+		canvas.clipPath(mMaskScaleOnly);
 		if (mLayerState.mChildren[BACKGROUND_ID].mDrawable != null) {
 			mLayerState.mChildren[BACKGROUND_ID].mDrawable.draw(canvas);
 		}
 		if (mLayerState.mChildren[FOREGROUND_ID].mDrawable != null) {
 			mLayerState.mChildren[FOREGROUND_ID].mDrawable.draw(canvas);
 		}
-		canvas.translate(-bounds.left, -bounds.top);
+		canvas.restore();
 	}
 
 	@Override

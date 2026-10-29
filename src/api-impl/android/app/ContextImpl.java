@@ -388,11 +388,7 @@ public final class ContextImpl extends Context {
 			String packageName = intent.getComponent().getPackageName();
 			if (new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
 				Slog.i(TAG, "startActivity: launching " + packageName + " through its desktop entry");
-				try {
-					new ProcessBuilder("gtk-launch", packageName).inheritIO().start();
-				} catch (IOException e) {
-					Slog.e(TAG, "startActivity: failed to launch " + packageName, e);
-				}
+				nativeLaunchDesktopApp(packageName + ".desktop");
 				return;
 			}
 		}
