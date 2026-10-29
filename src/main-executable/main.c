@@ -817,7 +817,12 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	window = gtk_application_window_new(app);
 	GtkWidget *stack = gtk_stack_new();
 	gtk_stack_set_transition_type(GTK_STACK(stack), GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
-	gtk_window_set_child(GTK_WINDOW(window), stack);
+	/* dialogs are layers over the activities, see android_app_Dialog.c */
+	GtkWidget *overlay = gtk_overlay_new();
+	gtk_overlay_set_child(GTK_OVERLAY(overlay), stack);
+	gtk_window_set_child(GTK_WINDOW(window), overlay);
+	g_object_set_data(G_OBJECT(window), "activity-stack", stack);
+	g_object_set_data(G_OBJECT(window), "dialog-overlay", overlay);
 
 	const char *disable_decoration_env = getenv("ATL_DISABLE_WINDOW_DECORATIONS");
 	gboolean decorated;

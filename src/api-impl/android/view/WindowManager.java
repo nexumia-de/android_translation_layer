@@ -25,6 +25,7 @@ public interface WindowManager {
 		public int windowAnimations;
 		public int flags;
 		public float alpha;
+		public float dimAmount = 1.0f;
 		public int type;
 		public IBinder token;
 		public int format;

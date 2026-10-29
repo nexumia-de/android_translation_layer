@@ -4,115 +4,153 @@
 #include "../defines.h"
 #include "../util.h"
 #include "../generated_headers/android_app_Dialog.h"
+#include "dialog.h"
+
+/*
+ * A dialog is a layer over the activities in the main window (a GtkOverlay, see main.c), not a
+ * window of its own: a separate window got a title bar, and a phone compositor (phoc) maximizes
+ * it without drawing the app below, so transparent dialogs showed its accent colour instead. The
+ * layer is a GtkOverlay too: a black scrim (its opacity is the Android dim amount) under the
+ * content, which is centred unless Window.setGravity() says otherwise.
+ */
 
 /* main app window */
 extern GtkWindow *window;
 
-static gboolean on_close_request(GtkWidget *dialog, jobject jobj)
+static GtkOverlay *dialog_overlay(void)
 {
-	printf("on_close_request\n");
-	JNIEnv *env = get_jni_env();
-	J__DialogInterface__dismiss(env, jobj);
-	return FALSE;
+	return GTK_OVERLAY(g_object_get_data(G_OBJECT(window), "dialog-overlay"));
 }
 
-/* state for Dialog.setCanceledOnTouchOutside() */
-struct touch_outside {
-	GtkWindow *dialog;
-	GtkEventController *controller;
-	jobject jobj;
-};
-
-static gboolean on_touch_outside(GtkEventControllerLegacy *controller, GdkEvent *event, struct touch_outside *outside)
+static void dialog_dismiss(GtkWidget *dialog)
 {
-	GdkEventType event_type = gdk_event_get_event_type(event);
-	if ((event_type == GDK_BUTTON_PRESS || event_type == GDK_TOUCH_BEGIN) && gtk_widget_get_visible(GTK_WIDGET(outside->dialog))) {
-		JNIEnv *env = get_jni_env();
-		jmethodID dismiss = _METHOD(_CLASS(outside->jobj), "dismiss", "()V");
-		(*env)->CallVoidMethod(env, outside->jobj, dismiss);
-		if ((*env)->ExceptionCheck(env))
-			(*env)->ExceptionDescribe(env);
-		return TRUE;
-	} else {
-		return FALSE;
+	jobject jobj = g_object_get_data(G_OBJECT(dialog), "dialog-jobject");
+	JNIEnv *env = get_jni_env();
+	jmethodID dismiss = _METHOD(_CLASS(jobj), "dismiss", "()V");
+	(*env)->CallVoidMethod(env, jobj, dismiss);
+	if ((*env)->ExceptionCheck(env))
+		(*env)->ExceptionDescribe(env);
+}
+
+/* a tap on the scrim, outside the content */
+static void on_scrim_pressed(GtkGestureClick *gesture, int n_press, double x, double y, GtkWidget *dialog)
+{
+	if (g_object_get_data(G_OBJECT(dialog), "cancel-on-touch-outside"))
+		dialog_dismiss(dialog);
+}
+
+void atl_dialog_set_child(GtkWidget *dialog, GtkWidget *child)
+{
+	GtkWidget *old = g_object_get_data(G_OBJECT(dialog), "content");
+	if (old == child)
+		return;
+	if (old)
+		gtk_overlay_remove_overlay(GTK_OVERLAY(dialog), old);
+	int gravity = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "gravity"));
+	gtk_overlay_add_overlay(GTK_OVERLAY(dialog), child);
+	g_object_set_data(G_OBJECT(dialog), "content", child);
+	/* Gravity: CENTER_HORIZONTAL 0x01, LEFT 0x03, RIGHT 0x05, CENTER_VERTICAL 0x10, TOP 0x30, BOTTOM 0x50 */
+	int horizontal = gravity & 0x07, vertical = gravity & 0x70;
+	gtk_widget_set_halign(child, horizontal == 0x03 ? GTK_ALIGN_START : horizontal == 0x05 ? GTK_ALIGN_END : GTK_ALIGN_CENTER);
+	gtk_widget_set_valign(child, vertical == 0x30 ? GTK_ALIGN_START : vertical == 0x50 ? GTK_ALIGN_END : GTK_ALIGN_CENTER);
+}
+
+void atl_dialog_set_gravity(GtkWidget *dialog, int gravity)
+{
+	GtkWidget *child = g_object_get_data(G_OBJECT(dialog), "content");
+	g_object_set_data(G_OBJECT(dialog), "gravity", GINT_TO_POINTER(gravity));
+	if (child) {
+		g_object_set_data(G_OBJECT(dialog), "content", NULL);
+		gtk_overlay_remove_overlay(GTK_OVERLAY(dialog), g_object_ref(child));
+		atl_dialog_set_child(dialog, child);
+		g_object_unref(child);
 	}
 }
 
-static void remove_touch_outside(GtkWindow *dialog)
+void atl_dialog_set_dim(GtkWidget *dialog, float dim_amount)
 {
-	struct touch_outside *outside = g_object_get_data(G_OBJECT(dialog), "touch-outside");
-	if (!outside)
-		return;
+	gtk_widget_set_opacity(GTK_WIDGET(g_object_get_data(G_OBJECT(dialog), "scrim")), dim_amount);
+}
 
-	JNIEnv *env = get_jni_env();
-	gtk_widget_remove_controller(GTK_WIDGET(window), outside->controller);
-	_UNREF(outside->jobj);
-	g_free(outside);
-	g_object_set_data(G_OBJECT(dialog), "touch-outside", NULL);
+gboolean atl_is_dialog(GtkWidget *widget)
+{
+	return widget && g_object_get_data(G_OBJECT(widget), "dialog-jobject") != NULL;
+}
+
+void atl_dialog_set_title_label(GtkWidget *dialog, GtkLabel *label)
+{
+	g_object_set_data_full(G_OBJECT(dialog), "title-label", g_object_ref(label), g_object_unref);
+}
+
+GtkWidget *atl_dialog_get_top(void)
+{
+	GtkWidget *top = NULL;
+	for (GtkWidget *child = gtk_widget_get_first_child(GTK_WIDGET(dialog_overlay())); child; child = gtk_widget_get_next_sibling(child))
+		if (g_object_get_data(G_OBJECT(child), "dialog-jobject") && gtk_widget_get_visible(child))
+			top = child;
+	return top;
 }
 
 JNIEXPORT jlong JNICALL Java_android_app_Dialog_nativeInit(JNIEnv *env, jobject this, jlong decor_view_ptr)
 {
 	GtkWidget *decor_view = GTK_WIDGET(_PTR(decor_view_ptr));
-	GtkWidget *dialog = gtk_window_new();
-	gtk_window_set_transient_for(GTK_WINDOW(dialog), window);
-	gtk_window_set_child(GTK_WINDOW(dialog), gtk_widget_get_parent(decor_view));
-	g_signal_connect(GTK_WINDOW(dialog), "close-request", G_CALLBACK(on_close_request), _REF(this));
-	return _INTPTR(g_object_ref(dialog));
+	GtkWidget *dialog = gtk_overlay_new();
+	gtk_widget_add_css_class(dialog, "ATL-dialog");
+	GtkWidget *scrim = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_widget_add_css_class(scrim, "ATL-dialog-scrim");
+	gtk_widget_set_opacity(scrim, 0);
+	gtk_overlay_set_child(GTK_OVERLAY(dialog), scrim);
+	g_object_set_data(G_OBJECT(dialog), "scrim", scrim);
+	GtkGesture *gesture = gtk_gesture_click_new();
+	g_signal_connect(gesture, "pressed", G_CALLBACK(on_scrim_pressed), dialog);
+	gtk_widget_add_controller(scrim, GTK_EVENT_CONTROLLER(gesture));
+	g_object_set_data(G_OBJECT(dialog), "dialog-jobject", _REF(this));
+	atl_dialog_set_child(dialog, gtk_widget_get_parent(decor_view));
+	return _INTPTR(g_object_ref_sink(dialog));
 }
 
 JNIEXPORT void JNICALL Java_android_app_Dialog_nativeSetTitle(JNIEnv *env, jobject this, jlong ptr, jstring title)
 {
-	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
+	GtkLabel *label = g_object_get_data(G_OBJECT(_PTR(ptr)), "title-label");
+	if (!label)
+		return;
 	const char *nativeTitle = (*env)->GetStringUTFChars(env, title, NULL);
-	gtk_window_set_title(dialog, nativeTitle);
+	gtk_label_set_text(label, nativeTitle);
+	gtk_widget_set_visible(GTK_WIDGET(label), *nativeTitle != '\0');
 	(*env)->ReleaseStringUTFChars(env, title, nativeTitle);
 }
 
 JNIEXPORT void JNICALL Java_android_app_Dialog_nativeSetContentView(JNIEnv *env, jobject this, jlong ptr, jlong widget_ptr)
 {
-	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
 	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
-
-	gtk_window_set_child(dialog, gtk_widget_get_parent(widget));
+	atl_dialog_set_child(GTK_WIDGET(_PTR(ptr)), gtk_widget_get_parent(widget));
 }
+
+void back_button_set_sensitive(bool sensitive);
 
 JNIEXPORT void JNICALL Java_android_app_Dialog_nativeShow(JNIEnv *env, jobject this, jlong ptr)
 {
-	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
-	gtk_window_present(dialog);
+	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
+	if (!gtk_widget_get_parent(dialog))
+		gtk_overlay_add_overlay(dialog_overlay(), dialog);
+	gtk_widget_set_visible(dialog, TRUE);
+	back_button_set_sensitive(true); // back dismisses the dialog
 }
 
 JNIEXPORT void JNICALL Java_android_app_Dialog_nativeClose(JNIEnv *env, jobject this, jlong ptr)
 {
-	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
-	remove_touch_outside(dialog);
-	gtk_window_close(dialog);
+	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
+	if (gtk_widget_get_parent(dialog))
+		gtk_overlay_remove_overlay(dialog_overlay(), dialog);
 }
 
 JNIEXPORT jboolean JNICALL Java_android_app_Dialog_nativeIsShowing(JNIEnv *env, jobject this, jlong ptr)
 {
-	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
-	return gtk_widget_is_visible(GTK_WIDGET(dialog));
+	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
+	return gtk_widget_get_parent(dialog) && gtk_widget_get_visible(dialog);
 }
 
 JNIEXPORT void JNICALL Java_android_app_Dialog_nativeSetCanceledOnTouchOutside(JNIEnv *env, jobject this, jlong ptr, jboolean cancel)
 {
-	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
-	remove_touch_outside(dialog);
-	if (!cancel)
-		return;
-
-	struct touch_outside *outside = g_new0(struct touch_outside, 1);
-	outside->dialog = dialog;
-	outside->jobj = _REF(this);
-
-	GtkEventController *controller = GTK_EVENT_CONTROLLER(gtk_event_controller_legacy_new());
-	/* capture phase on the toplevel runs before the view tree's own touch controllers */
-	gtk_event_controller_set_propagation_phase(controller, GTK_PHASE_CAPTURE);
-	g_signal_connect(controller, "event", G_CALLBACK(on_touch_outside), outside);
-	gtk_widget_add_controller(GTK_WIDGET(window), controller);
-	outside->controller = controller;
-
-	g_object_set_data(G_OBJECT(dialog), "touch-outside", outside);
+	g_object_set_data(G_OBJECT(_PTR(ptr)), "cancel-on-touch-outside", GINT_TO_POINTER(cancel));
 }

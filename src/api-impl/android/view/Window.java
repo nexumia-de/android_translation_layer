@@ -51,9 +51,23 @@ public class Window {
 		set_jobject(native_window, this);
 	}
 
-	public void addFlags(int flags) {}
-	public void setFlags(int flags, int mask) {}
-	public void clearFlags(int flags) {}
+	public void addFlags(int flags) {
+		setFlags(flags, flags);
+	}
+	public void setFlags(int flags, int mask) {
+		params.flags = (params.flags & ~mask) | (flags & mask);
+		if ((mask & WindowManager.LayoutParams.FLAG_DIM_BEHIND) != 0)
+			update_dim();
+	}
+	public void clearFlags(int flags) {
+		setFlags(0, flags);
+	}
+
+	/* only dialogs dim what is behind them */
+	private void update_dim() {
+		boolean dim = (params.flags & WindowManager.LayoutParams.FLAG_DIM_BEHIND) != 0;
+		set_dim_amount(native_window, dim ? params.dimAmount : 0);
+	}
 
 	public final Callback getCallback() {
 		return this.callback;
@@ -112,6 +126,7 @@ public class Window {
 			set_screen_brightness(params.screenBrightness);
 		this.params = params;
 		setLayout(params.width, params.height);
+		update_dim();
 	}
 
 	public void takeSurface(SurfaceHolder.Callback2 callback) {}
@@ -178,7 +193,9 @@ public class Window {
 
 	public void setEnterTransition(Transition transition) {}
 
-	public void setGravity(int gravity) {}
+	public void setGravity(int gravity) {
+		set_gravity(native_window, gravity);
+	}
 
 	public void setDecorFitsSystemWindows(boolean fits) {}
 
@@ -198,12 +215,17 @@ public class Window {
 
 	public void setWindowAnimations(int resId) {}
 
-	public void setDimAmount(float dimAmount) {}
+	public void setDimAmount(float dimAmount) {
+		params.dimAmount = dimAmount;
+		update_dim();
+	}
 
 	private native void set_title(long native_window, String title);
 	public native void take_input_queue(long native_window, InputQueue.Callback callback, InputQueue queue);
 	public native void set_layout(long native_window, int width, int height);
 	private static native void set_jobject(long ptr, Window obj);
 	private native void remove_gtk_background(long native_window);
+	private native void set_dim_amount(long native_window, float dim_amount);
+	private native void set_gravity(long native_window, int gravity);
 	private native void set_screen_brightness(float brightness);
 }

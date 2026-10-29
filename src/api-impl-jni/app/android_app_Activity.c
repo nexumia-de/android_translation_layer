@@ -9,6 +9,7 @@
 #include "../generated_headers/android_app_Activity.h"
 #include "../../main-executable/back_button.h"
 #include "android_app_Activity.h"
+#include "dialog.h"
 
 extern GtkWindow *window;
 
@@ -32,7 +33,7 @@ static void activity_close(JNIEnv *env, jobject activity)
 	}
 
 	GtkWidget *decor_view = get_decor_view(env, activity);
-	GtkStack *stack = GTK_STACK(gtk_window_get_child(window));
+	GtkStack *stack = GTK_STACK(g_object_get_data(G_OBJECT(window), "activity-stack"));
 	gtk_stack_remove(stack, decor_view);
 
 	/* -- run the activity's onDestroy -- */
@@ -70,7 +71,7 @@ static void activity_focus(JNIEnv *env, jobject activity)
 		return;
 
 	GtkWidget *decor_view = get_decor_view(env, activity);
-	GtkStack *stack = GTK_STACK(gtk_window_get_child(window));
+	GtkStack *stack = GTK_STACK(g_object_get_data(G_OBJECT(window), "activity-stack"));
 	gtk_stack_set_visible_child(stack, decor_view);
 
 	J__Activity__onResume(env, activity);
@@ -136,6 +137,17 @@ void current_activity_back_pressed(void)
 {
 	JNIEnv *env = get_jni_env();
 
+	/* a showing dialog gets the back press first, like on Android */
+	GtkWidget *dialog = atl_dialog_get_top();
+	if (dialog) {
+		jobject dialog_jobj = g_object_get_data(G_OBJECT(dialog), "dialog-jobject");
+		jmethodID on_back_pressed = _METHOD(_CLASS(dialog_jobj), "onBackPressed", "()V");
+		(*env)->CallVoidMethod(env, dialog_jobj, on_back_pressed);
+		if ((*env)->ExceptionCheck(env))
+			(*env)->ExceptionDescribe(env);
+		return;
+	}
+
 	jclass current_activity_class = (*env)->GetObjectClass(env, activity_current);
 	jmethodID current_activity_on_back_pressed_method_id = (*env)->GetMethodID(env, current_activity_class, "onBackPressed", "()V");
 	if ((*env)->ExceptionCheck(env))
@@ -196,7 +208,7 @@ void activity_start(JNIEnv *env, jobject activity_object)
 	activity_backlog = g_list_prepend(activity_backlog, _REF(activity_object));
 
 	GtkWidget *decor_view = get_decor_view(env, activity_object);
-	GtkStack *stack = GTK_STACK(gtk_window_get_child(window));
+	GtkStack *stack = GTK_STACK(g_object_get_data(G_OBJECT(window), "activity-stack"));
 	gtk_stack_add_child(stack, decor_view);
 
 	activity_update_current(env);

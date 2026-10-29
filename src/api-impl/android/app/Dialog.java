@@ -41,6 +41,12 @@ public class Dialog implements Window.Callback, DialogInterface {
 		nativePtr = nativeInit(window.getDecorView().widget);
 
 		window.set_native_window(nativePtr);
+		// like Android, dim what is behind the dialog as the theme says
+		TypedArray a = context.obtainStyledAttributes(R.styleable.Window);
+		window.setDimAmount(a.getFloat(R.styleable.Window_backgroundDimAmount, 0.6f));
+		if (a.getBoolean(R.styleable.Window_backgroundDimEnabled, true))
+			window.addFlags(LayoutParams.FLAG_DIM_BEHIND);
+		a.recycle();
 	}
 
 	public Dialog(Context context) {
@@ -78,7 +84,17 @@ public class Dialog implements Window.Callback, DialogInterface {
 
 	public void setOwnerActivity(Activity activity) {}
 
-	public void setCancelable(boolean cancelable) {}
+	private boolean cancelable = true;
+
+	public void setCancelable(boolean cancelable) {
+		this.cancelable = cancelable;
+	}
+
+	/* the back button while the dialog shows; ComponentDialog (Compose) overrides it */
+	public void onBackPressed() {
+		if (cancelable)
+			cancel();
+	}
 
 	public void setOnCancelListener(OnCancelListener onCancelListener) {}
 
