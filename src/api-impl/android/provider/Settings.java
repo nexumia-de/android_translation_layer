@@ -35,6 +35,8 @@ public class Settings {
 					return 1; // obviously, duh
 				case "user_setup_complete":
 					return 1;
+				case "install_non_market_apps":
+					return 1; // apps below SDK 26 check this instead of canRequestPackageInstalls
 				default:
 					Slog.w(TAG, "!!!! getInt: unknown key: >" + key + "<");
 					return null;
