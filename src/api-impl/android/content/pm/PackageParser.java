@@ -2269,6 +2269,18 @@ public class PackageParser {
 				    ANDROID_RESOURCES, "scheme");
 				if (!TextUtils.isEmpty(scheme))
 					outInfo.addDataScheme(scheme);
+				String host = parser.getAttributeValue(ANDROID_RESOURCES, "host");
+				if (!TextUtils.isEmpty(host))
+					outInfo.addDataAuthority(host, parser.getAttributeValue(ANDROID_RESOURCES, "port"));
+				String path = parser.getAttributeValue(ANDROID_RESOURCES, "path");
+				if (path != null)
+					outInfo.addDataPath(path, PatternMatcher.PATTERN_LITERAL);
+				path = parser.getAttributeValue(ANDROID_RESOURCES, "pathPrefix");
+				if (path != null)
+					outInfo.addDataPath(path, PatternMatcher.PATTERN_PREFIX);
+				path = parser.getAttributeValue(ANDROID_RESOURCES, "pathPattern");
+				if (path != null)
+					outInfo.addDataPath(path, PatternMatcher.PATTERN_SIMPLE_GLOB);
 				XmlUtils.skipCurrentTag(parser);
 			} else if (!RIGID_PARSER) {
 				Slog.w(TAG, "Unknown element under <intent-filter>: "
