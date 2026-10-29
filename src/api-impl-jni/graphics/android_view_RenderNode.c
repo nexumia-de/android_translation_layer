@@ -99,6 +99,31 @@ JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeClip(JNIEnv *env, job
 	return _INTPTR(clipped_node);
 }
 
+JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeClipRounded(JNIEnv *env, jobject this, jlong node_ptr, jfloat left, jfloat top, jfloat right, jfloat bottom, jfloat radius)
+{
+	GskRenderNode *node = _PTR(node_ptr);
+	GskRoundedRect rect;
+	gsk_rounded_rect_init_from_rect(&rect, &GRAPHENE_RECT_INIT(left, top, right - left, bottom - top), radius);
+	GskRenderNode *clipped_node = gsk_rounded_clip_node_new(node, &rect);
+	gsk_render_node_unref(node);
+	return _INTPTR(clipped_node);
+}
+
+/* clips to an outline set with Outline.setPath(), e.g. a shape with only the top corners rounded */
+JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeClipPath(JNIEnv *env, jobject this, jlong node_ptr, jlong path_ptr, jint fill_rule)
+{
+	GskRenderNode *node = _PTR(node_ptr);
+	graphene_rect_t bounds;
+	gsk_path_get_bounds(_PTR(path_ptr), &bounds);
+	GskRenderNode *color = gsk_color_node_new(&(GdkRGBA){1, 1, 1, 1}, &bounds);
+	GskRenderNode *mask = gsk_fill_node_new(color, _PTR(path_ptr), fill_rule);
+	GskRenderNode *clipped_node = gsk_mask_node_new(node, mask, GSK_MASK_MODE_ALPHA);
+	gsk_render_node_unref(mask);
+	gsk_render_node_unref(color);
+	gsk_render_node_unref(node);
+	return _INTPTR(clipped_node);
+}
+
 JNIEXPORT void JNICALL Java_android_view_RenderNode_nativeUnref(JNIEnv *env, jobject this, jlong node_ptr)
 {
 	if (node_ptr != 0)

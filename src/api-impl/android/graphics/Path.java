@@ -251,9 +251,10 @@ public class Path {
 
 	public void incReserve(int additionalPoints) {}
 
+	/* not computed; true lets Outline take any path, as since Android 11, which
+	 * RenderNode clips to (Compose's shapes with unequal corners) */
 	public boolean isConvex() {
-		Log.w("Path", "STUB: isConvex");
-		return false;
+		return true;
 	}
 
 	public void set(Path src) {
