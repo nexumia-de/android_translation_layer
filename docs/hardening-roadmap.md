@@ -64,7 +64,7 @@ date), so a new session knows where to continue.
 |---|---|---|---|
 | 0 Facts, sign-off, prototype | prototype works: Chooser runs in its own Flatpak on the fork's engine ([screenshot](screenshots/chooser-flatpak-2026-10-29.png)); tested by the owner on the real screen; open: owner sign-off, a WebView app, start time | this branch | 2026-10-29 |
 | T Escape test | `flatpak/escape-test.sh`: 18 checks, all blocked for a generated app; APK-level checks open | this branch | 2026-10-29 |
-| 1 ATL engine as Flatpak | builds on the phone (`de.nexumia.atl.BaseApp`, 82.6 MB); open: CI build and publishing in the owner's repository | this branch | 2026-10-29 |
+| 1 ATL engine as Flatpak | builds on the phone (`de.nexumia.atl.BaseApp`, 82.6 MB); CI build on `ubuntu-24.04-arm` (`.github/workflows/engine-flatpak.yml`), published through the release `engine` and phosh-apps to `flatpak.nexumia.de`; open: first published build installed on the phone | #27, this branch | 2026-10-29 |
 | 2 Installer and broker on the host | not started | - | - |
 | 3 ATL inside a per-app Flatpak | not started | - | - |
 | 4 Permissions | not started | - | - |
@@ -253,6 +253,19 @@ pin. It is the objective "done" check for phases 3 and 4.
   published in the owner's repository (`flatpak.nexumia.de`).
 - Engine version and runtime branch go into each generated app's
   metadata; a runtime bump regenerates the apps (metadata only).
+
+CI (2026-10-29): `.github/workflows/engine-flatpak.yml` builds the
+engine and its source bundle (`de.nexumia.atl.BaseApp.Sources`) for
+aarch64 on every push and pull request to `phosh` that changes more
+than docs. It does not use phosh-toolkit's reusable workflow, which
+builds x86_64 too, runs 30 minutes at most and checks app metadata the
+engine does not have. A push to `phosh` replaces the bundles of the
+rolling pre-release `engine`; nexumia-de/phosh-apps lists
+`nexumia-de/android_translation_layer engine` in its `apps.txt`, signs
+the bundles with its existing key and publishes them; base apps without
+metainfo stay off its page and out of GNOME Software. The secret
+`PUBLISH_TOKEN` in this repository triggers phosh-apps at once;
+without it phosh-apps publishes on its daily schedule.
 
 Done when: the engine installs from the owner's repository and the
 prototype app from phase 0 runs on it.

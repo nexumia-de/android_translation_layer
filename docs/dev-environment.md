@@ -325,6 +325,18 @@ root):
     --state-dir=$C/state --repo=~/.local/share/android_translation_layer/flatpak-repo \
     $C/build flatpak/de.nexumia.atl.BaseApp.yml
   ```
+- The engine CI publishes it to the owner's repository. To use that
+  build instead of a local one (the local one is in the remote
+  `atl-local` on the same branch `master`):
+
+  ```sh
+  flatpak remote-add --user --if-not-exists nexumia https://flatpak.nexumia.de/nexumia.flatpakrepo
+  flatpak uninstall --user -y de.nexumia.atl.BaseApp
+  flatpak install --user -y nexumia de.nexumia.atl.BaseApp
+  ```
+
+  Generated apps copy the engine, so after an engine update run
+  `make-app.sh` again for each app.
 - `flatpak/make-app.sh -p <package> -n <name> <apk>` generates
   `de.nexumia.atl.<package>` from an APK, exports it into
   `~/.local/share/android_translation_layer/flatpak-repo` (user remote
