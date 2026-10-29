@@ -95,6 +95,10 @@ install_data([
              ],
              install_dir: join_paths(get_option('prefix'), get_option('datadir')) + '/atl/system/etc')
 
+# opening an apk file asks to install it, see --install-ask
+install_data('res/desktop/com.gitlab.android_translation_layer.install.desktop',
+             install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'applications'))
+
 #tools
 subdir('tools/jni_upcall_gen')
 
@@ -257,6 +261,7 @@ resources = gnome.compile_resources('com.gitlab.android_translation_layer.androi
 
 executable('android-translation-layer', [
                                         	'src/main-executable/main.c',
+                                        	'src/main-executable/prompt_page.c',
                                         	'src/main-executable/actions.c',
                                         	'src/main-executable/back_button.c',
                                         	'src/main-executable/bionic_compat.c',
@@ -266,7 +271,7 @@ executable('android-translation-layer', [
                                         include_directories: shared_includes_dir,
                                         install: true,
                                         dependencies: [
-                                        	dependency('gtk4'), dependency('jni'), declare_dependency(link_with: libtranslationlayer_so), libart_dep, dependency('dl'), libdl_bio_dep, libc_bio_dep, dependency('libportal'), dependency('fontconfig'), upcalls_header
+                                        	dependency('gtk4'), dependency('jni'), declare_dependency(link_with: libtranslationlayer_so), libart_dep, dependency('dl'), libdl_bio_dep, libc_bio_dep, dependency('libportal'), dependency('fontconfig'), dependency('libadwaita-1'), upcalls_header
                                         ],
                                         link_args: [
                                         	'-rdynamic'
