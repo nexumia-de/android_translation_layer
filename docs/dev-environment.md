@@ -85,7 +85,7 @@ apk add build-base meson samurai bash zip python3 java-common java-cacerts openj
   valgrind-dev wolfssl-jni-dev xz-dev zlib-dev vixl-dev \
   libsndfile-dev sdl2-compat-dev \
   alsa-lib-dev ffmpeg-dev fontconfig-dev glib-dev gtk4.0-dev gtk4-layer-shell-dev libdrm-dev \
-  libgudev-dev libportal-dev libsecret-dev openxr-dev vulkan-loader-dev wayland-protocols webkit2gtk-6.0-dev \
+  libadwaita-dev libgudev-dev libportal-dev libsecret-dev openxr-dev vulkan-loader-dev wayland-protocols webkit2gtk-6.0-dev \
   cage grim wlr-randr
 ```
 

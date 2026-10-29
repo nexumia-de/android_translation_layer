@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Install Android App
+Comment=Install Android apps with Android Translation Layer
+Icon=system-software-install
+Exec=android-translation-layer --install-ask -w 360 -h 720 %f
+MimeType=application/vnd.android.package-archive;
+NoDisplay=true
+StartupNotify=true
+X-Purism-FormFactor=Workstation;Mobile;

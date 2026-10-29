@@ -3,6 +3,7 @@
 
 #include <cairo-svg.h>
 #include <gdk/wayland/gdkwayland.h>
+#include <gio/gdesktopappinfo.h>
 #include <gtk/gtk.h>
 #include <libportal/portal.h>
 
@@ -14,6 +15,7 @@
 #include "actions.h"
 #include "back_button.h"
 #include "libc_bio_path_overrides.h"
+#include "prompt_page.h"
 
 #include <dlfcn.h>
 #include <glib/gstdio.h>
@@ -317,6 +319,7 @@ struct jni_callback_data {
 	uint32_t window_height;
 	gboolean install;
 	gboolean install_internal;
+	gboolean install_ask;
 	char *prgname;
 	char **extra_jvm_options;
 	char **extra_string_keys;
@@ -396,18 +399,21 @@ static void uninstall_package(GApplication *app)
 	g_free(update_desktop_database);
 }
 
-static void uninstall_dialog_done(GObject *source, GAsyncResult *res, gpointer user_data)
+static void uninstall_cancelled(struct prompt_page *page, gpointer user_data)
 {
-	GApplication *app = user_data;
-	if (gtk_alert_dialog_choose_finish(GTK_ALERT_DIALOG(source), res, NULL) == 1) {
-		uninstall_package(app);
-		fflush(NULL);
-		_exit(0); // the app's runtime may be running, see install_launcher_file
-	}
-	g_application_release(app);
+	gtk_window_destroy(page->window);
+	g_free(page);
+	g_application_release(G_APPLICATION(user_data));
 }
 
-/* asks first, like Android; the label comes from the launcher */
+static void uninstall_confirmed(struct prompt_page *page, gpointer user_data)
+{
+	uninstall_package(G_APPLICATION(user_data));
+	fflush(NULL);
+	_exit(0); // the app's runtime may be running, see install_launcher_file
+}
+
+/* asks first, like Android; the label and icon come from the launcher */
 static void ask_uninstall(GApplication *app)
 {
 	if (!uninstall_allowed) {
@@ -418,21 +424,268 @@ static void ask_uninstall(GApplication *app)
 	char *desktop_file = g_strdup_printf("applications/%s.desktop", app_id);
 	GKeyFile *key_file = g_key_file_new();
 	char *label = NULL;
-	if (g_key_file_load_from_data_dirs(key_file, desktop_file, NULL, G_KEY_FILE_NONE, NULL))
+	char *icon_path = NULL;
+	if (g_key_file_load_from_data_dirs(key_file, desktop_file, NULL, G_KEY_FILE_NONE, NULL)) {
 		label = g_key_file_get_locale_string(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, NULL, NULL);
+		icon_path = g_key_file_get_string(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_ICON, NULL);
+	}
 	g_key_file_free(key_file);
 	g_free(desktop_file);
 
-	GtkAlertDialog *dialog = gtk_alert_dialog_new("Uninstall %s?", label ? label : app_id);
-	g_free(label);
-	gtk_alert_dialog_set_detail(dialog, "The app and its data will be removed.");
-	const char *buttons[] = {"Cancel", "Uninstall", NULL};
-	gtk_alert_dialog_set_buttons(dialog, buttons);
-	gtk_alert_dialog_set_cancel_button(dialog, 0);
-	gtk_alert_dialog_set_default_button(dialog, 0);
 	g_application_hold(app);
-	gtk_alert_dialog_choose(dialog, window ? GTK_WINDOW(window) : NULL, NULL, uninstall_dialog_done, app);
-	g_object_unref(dialog);
+	/* libadwaita's style would also restyle the running app */
+	struct prompt_page *page = prompt_page_new(GTK_APPLICATION(app), "Uninstall App", NULL, label ? label : app_id, app_id, !window);
+	if (icon_path && g_path_is_absolute(icon_path)) {
+		GdkPaintable *icon = prompt_page_icon_from_file(GTK_WIDGET(page->window), icon_path);
+		prompt_page_set_icon(page, icon);
+		g_object_unref(icon);
+	}
+	g_free(icon_path);
+	g_free(label);
+	prompt_page_set_message(page, "Do you want to uninstall this app? Its data will be removed too.");
+	prompt_page_set_buttons(page, "_Cancel", "_Uninstall", TRUE, uninstall_cancelled, uninstall_confirmed, app);
+	gtk_window_present(page->window);
+}
+
+/* --install-ask, for opening an apk file: asks first, like Android's package installer, then
+ * installs it like PackageInstaller does: as <package>.apk, through --install */
+#define INSTALL_ASK_DESKTOP_ID "com.gitlab.android_translation_layer.install"
+
+/* Application.get_install_state */
+enum install_state {
+	INSTALL_NEW,
+	INSTALL_UPDATE,
+	INSTALL_REINSTALL,
+	INSTALL_DOWNGRADE,
+	INSTALL_CONFLICT,
+};
+
+struct install_request {
+	struct prompt_page *page;
+	struct jni_callback_data *d;
+	char *package_name;
+	GFile *apk;
+	char *app_data_dir_base;
+	char *staging_dir;
+	char *staged_apk;
+	gboolean updating;
+	/* the data directory made for the opened file, which is not the installed app's */
+	gboolean remove_data_dir;
+};
+
+static void install_ask_exit(struct install_request *r, int status)
+{
+	if (r->staging_dir)
+		remove_recursively(r->staging_dir);
+	if (r->remove_data_dir)
+		remove_recursively(app_data_dir);
+	fflush(NULL);
+	_exit(status); // the app's runtime is loaded, see install_launcher_file
+}
+
+/* exit status 2 like --install when the user said no */
+static void install_ask_cancelled(struct prompt_page *page, gpointer user_data)
+{
+	install_ask_exit(user_data, 2);
+}
+
+static void install_ask_done(struct prompt_page *page, gpointer user_data)
+{
+	install_ask_exit(user_data, 0);
+}
+
+static void install_ask_failed(struct prompt_page *page, gpointer user_data)
+{
+	install_ask_exit(user_data, 1);
+}
+
+static void install_ask_open(struct prompt_page *page, gpointer user_data)
+{
+	struct install_request *r = user_data;
+	char *desktop_id = g_strdup_printf("%s.desktop", r->package_name);
+	GDesktopAppInfo *app_info = g_desktop_app_info_new(desktop_id);
+	if (!app_info) { // GIO's list of launchers may not know it yet
+		char *path = g_build_filename(g_get_user_data_dir(), "applications", desktop_id, NULL);
+		app_info = g_desktop_app_info_new_from_filename(path);
+		g_free(path);
+	}
+	g_free(desktop_id);
+	if (app_info) {
+		GdkAppLaunchContext *context = gdk_display_get_app_launch_context(gtk_widget_get_display(GTK_WIDGET(page->window)));
+		GError *err = NULL;
+		if (!g_app_info_launch(G_APP_INFO(app_info), NULL, G_APP_LAUNCH_CONTEXT(context), &err)) {
+			fprintf(stderr, "install: could not open %s: %s\n", r->package_name, err->message);
+			g_error_free(err);
+		}
+		g_object_unref(context);
+		g_object_unref(app_info);
+		/* the launcher is D-Bus activatable, send the request before we exit */
+		GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+		if (bus) {
+			g_dbus_connection_flush_sync(bus, NULL, NULL);
+			g_object_unref(bus);
+		}
+	}
+	install_ask_exit(r, 0);
+}
+
+static void install_ask_show_failure(struct install_request *r, const char *reason)
+{
+	fprintf(stderr, "install: %s\n", reason);
+	prompt_page_set_message(r->page, "The app could not be installed.");
+	prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_failed, NULL, r);
+}
+
+static void install_ask_installed(GObject *source, GAsyncResult *res, gpointer user_data)
+{
+	struct install_request *r = user_data;
+	GError *err = NULL;
+	if (!g_subprocess_wait_check_finish(G_SUBPROCESS(source), res, &err)) {
+		install_ask_show_failure(r, err->message);
+		g_error_free(err);
+		return;
+	}
+	prompt_page_set_message(r->page, r->updating ? "App updated." : "App installed.");
+	prompt_page_set_buttons(r->page, "_Done", "_Open", FALSE, install_ask_done, install_ask_open, r);
+}
+
+static void install_ask_copied(GObject *source, GAsyncResult *res, gpointer user_data)
+{
+	struct install_request *r = user_data;
+	GError *err = NULL;
+	if (!g_file_copy_finish(G_FILE(source), res, &err)) {
+		install_ask_show_failure(r, err->message);
+		g_error_free(err);
+		return;
+	}
+	/* the installed app starts with this window size, like one an app store installs */
+	char *width = g_strdup_printf("%d", r->d->window_width);
+	char *height = g_strdup_printf("%d", r->d->window_height);
+	const char *argv[] = {r->d->prgname, "--install", "-w", width, "-h", height, r->staged_apk, NULL, NULL, NULL};
+	if (r->d->sdk_int) {
+		argv[6] = "--sdk-int";
+		argv[7] = r->d->sdk_int;
+		argv[8] = r->staged_apk;
+	}
+	printf("install: running %s --install for %s\n", r->d->prgname, r->staged_apk);
+	GSubprocess *install = g_subprocess_newv(argv, G_SUBPROCESS_FLAGS_NONE, &err);
+	g_free(width);
+	g_free(height);
+	if (!install) {
+		install_ask_show_failure(r, err->message);
+		g_error_free(err);
+		return;
+	}
+	g_subprocess_wait_check_async(install, NULL, install_ask_installed, r);
+	g_object_unref(install);
+}
+
+static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
+{
+	struct install_request *r = user_data;
+	prompt_page_set_busy(page, r->updating ? "Updating…" : "Installing…");
+	char *sessions_dir = g_build_filename(r->app_data_dir_base, "_installer_sessions_", NULL);
+	g_mkdir_with_parents(sessions_dir, 0755);
+	r->staging_dir = g_build_filename(sessions_dir, "ask-XXXXXX", NULL);
+	g_free(sessions_dir);
+	if (!g_mkdtemp(r->staging_dir)) {
+		g_clear_pointer(&r->staging_dir, g_free);
+		install_ask_show_failure(r, "could not create a staging directory");
+		return;
+	}
+	/* other apps find a package as <package>.apk, and its data directory is named after it */
+	char *apk_name = g_strdup_printf("%s.apk", r->package_name);
+	r->staged_apk = g_build_filename(r->staging_dir, apk_name, NULL);
+	g_free(apk_name);
+	GFile *dest = g_file_new_for_path(r->staged_apk);
+	g_file_copy_async(r->apk, dest, G_FILE_COPY_NONE, G_PRIORITY_DEFAULT, NULL, NULL, NULL, install_ask_copied, r);
+	g_object_unref(dest);
+}
+
+static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv *env, jobject application_object, GFile *apk,
+                        const char *package_name, const char *app_icon_path, const char *app_data_dir_base, gboolean data_dir_existed)
+{
+	struct install_request *r = g_new0(struct install_request, 1);
+	r->d = d;
+	r->package_name = g_strdup(package_name);
+	r->apk = g_object_ref(apk);
+	r->app_data_dir_base = g_strdup(app_data_dir_base);
+	char *installed_data_dir = g_strdup_printf("%s/%s.apk_/", app_data_dir_base, package_name);
+	r->remove_data_dir = !data_dir_existed && strcmp(app_data_dir, installed_data_dir);
+	g_free(installed_data_dir);
+
+	jstring label_jstr = J__Application__get_app_label(env, application_object);
+	jstring version_jstr = J__Application__get_version_name(env, application_object);
+	enum install_state state = J__Application__get_install_state(env, application_object);
+	jstring installed_version_jstr = J__Application__get_installed_version_name(env, application_object);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		state = INSTALL_NEW;
+	}
+	const char *label = label_jstr ? _CSTRING(label_jstr) : NULL;
+	const char *version = version_jstr ? _CSTRING(version_jstr) : NULL;
+	const char *installed_version = installed_version_jstr ? _CSTRING(installed_version_jstr) : NULL;
+
+	char *details;
+	if (state == INSTALL_UPDATE && version && installed_version)
+		details = g_strdup_printf("%s\nVersion %s → %s", package_name, installed_version, version);
+	else if (version)
+		details = g_strdup_printf("%s\nVersion %s", package_name, version);
+	else
+		details = g_strdup(package_name);
+	r->page = prompt_page_new(app, "Install App", NULL, label && *label ? label : package_name, details, TRUE);
+	g_free(details);
+
+	GdkPaintable *icon = NULL;
+	if (app_icon_path) {
+		extract_from_apk(app_icon_path, app_icon_path);
+		char *icon_file = g_build_filename(app_data_dir, app_icon_path, NULL);
+		icon = prompt_page_icon_from_file(GTK_WIDGET(r->page->window), icon_file);
+		g_free(icon_file);
+	} else { // a Drawable, as for the launcher
+		_SET_STATIC_BOOL_FIELD(_CACHED_CLASS(VectorDrawable), "direct_draw_override", true);
+		icon = _PTR(J__Application__get_app_icon_paintable(env, application_object));
+		if (icon)
+			g_object_ref(icon);
+	}
+	if (icon) {
+		prompt_page_set_icon(r->page, icon);
+		g_object_unref(icon);
+	}
+
+	r->updating = state == INSTALL_UPDATE || state == INSTALL_REINSTALL;
+	switch (state) {
+		case INSTALL_NEW:
+			prompt_page_set_message(r->page, "Do you want to install this app?");
+			prompt_page_set_buttons(r->page, "_Cancel", "_Install", FALSE, install_ask_cancelled, install_ask_confirmed, r);
+			break;
+		case INSTALL_UPDATE:
+			prompt_page_set_message(r->page, "Do you want to update this app? Its data stays.");
+			prompt_page_set_buttons(r->page, "_Cancel", "_Update", FALSE, install_ask_cancelled, install_ask_confirmed, r);
+			break;
+		case INSTALL_REINSTALL:
+			prompt_page_set_message(r->page, "This version is already installed. Do you want to install it again? Its data stays.");
+			prompt_page_set_buttons(r->page, "_Cancel", "_Reinstall", FALSE, install_ask_cancelled, install_ask_confirmed, r);
+			break;
+		case INSTALL_DOWNGRADE: {
+			char *message = g_strdup_printf("A newer version (%s) is already installed. Uninstall it first to install this one.",
+			                                installed_version ? installed_version : "?");
+			prompt_page_set_message(r->page, message);
+			g_free(message);
+			prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_cancelled, NULL, r);
+			break;
+		}
+		case INSTALL_CONFLICT:
+			prompt_page_set_message(r->page, "An app with this package name is already installed, signed by someone else. "
+			                                 "Uninstall it first to install this one.");
+			prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_cancelled, NULL, r);
+			break;
+	}
+	gtk_window_present(r->page->window);
+	/* Phosh shows the installer's name and icon for the window */
+	GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(r->page->window));
+	if (GDK_IS_WAYLAND_TOPLEVEL(surface))
+		gdk_wayland_toplevel_set_application_id(GDK_WAYLAND_TOPLEVEL(surface), INSTALL_ASK_DESKTOP_ID);
 }
 
 static gboolean uninstall_pending = FALSE;
@@ -733,6 +986,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	// arguably both the app id and the apk name might have an issue with duplicates, but if two apks use the same app id, chances are it's less of an issue than when two apks have the same name
 	// !IMPORTANT! Unity can't comprehend that a directory name could end in .apk, so we have to avoid that here by adding `_`
 	app_data_dir = g_strdup_printf("%s/%s_/", app_data_dir_base, apk_name);
+	gboolean app_data_dir_existed = g_file_test(app_data_dir, G_FILE_TEST_EXISTS);
 
 	uninstall_apk_path = g_file_get_path(files[0]);
 	uninstall_data_dir = g_strdup(app_data_dir);
@@ -851,7 +1105,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	prepare_main_looper(env);
 
 	/* extract native libraries from apk*/
-	if (!getenv("ATL_SKIP_NATIVES_EXTRACTION"))
+	if (!getenv("ATL_SKIP_NATIVES_EXTRACTION") && !d->install_ask) // --install-ask only reads the apk
 		extract_from_apk("lib/" NATIVE_ARCH "/", "lib/");
 
 	// construct Application
@@ -887,7 +1141,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	}
 
 	// construct main Activity
-	if (!d->apk_instrumentation_class && !d->install_internal) {
+	if (!d->apk_instrumentation_class && !d->install_internal && !d->install_ask) {
 		activity_object = J__Activity__createMainActivity(env, _JSTRING(d->apk_main_activity_class),
 		                                                  _INTPTR(window), (uri_option && *uri_option) ? _JSTRING(uri_option) : NULL);
 		if ((*env)->ExceptionCheck(env))
@@ -914,6 +1168,11 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	const char *app_icon_path = app_icon_path_jstr ? _CSTRING(app_icon_path_jstr) : NULL;
 	if ((*env)->ExceptionCheck(env))
 		(*env)->ExceptionDescribe(env);
+
+	if (d->install_ask && !d->apk_instrumentation_class) {
+		ask_install(app, d, env, application_object, files[0], package_name, app_icon_path, app_data_dir_base, app_data_dir_existed);
+		return;
+	}
 
 	if (d->install || d->install_internal) {
 		if (d->apk_instrumentation_class) {
@@ -1137,6 +1396,7 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "window-height",    'h', 0, G_OPTION_ARG_INT,          &d->window_height,             "window height to launch with (some apps react poorly to runtime window size adjustments)",     "HEIGHT"        },
 		{ "install",          'i', 0, G_OPTION_ARG_NONE,         &d->install,                   "install .desktop file for the given apk",                                                      NULL            },
 		{ "install-internal",  0 , 0, G_OPTION_ARG_NONE,         &d->install_internal,          "copy an apk to _installed_apks_ but don't create a desktop entry",                             NULL            },
+		{ "install-ask",       0 , 0, G_OPTION_ARG_NONE,         &d->install_ask,               "ask before installing the given apk, like Android's package installer (for opening apk files)", NULL            },
 		{ "uninstall",         0 , 0, G_OPTION_ARG_NONE,         &d->uninstall,                 "remove an apk installed with --install, its data and its launcher (asks first)",                NULL            },
 		{ "dbus-activated",    0 , G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &d->dbus_activated, "started through the launcher's D-Bus service file",                                          NULL            },
 		{ "extra-jvm-option", 'X', 0, G_OPTION_ARG_STRING_ARRAY, &d->extra_jvm_options,         "pass an additional option directly to art (e.g -X \"-verbose:jni\")",                          "\"OPTION\""    },
@@ -1207,6 +1467,7 @@ int main(int argc, char **argv)
 	callback_data->window_height = 540;
 	callback_data->install = FALSE;
 	callback_data->install_internal = FALSE;
+	callback_data->install_ask = FALSE;
 	callback_data->prgname = argv[0];
 	callback_data->extra_jvm_options = NULL;
 	callback_data->extra_string_keys = NULL;
