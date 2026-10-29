@@ -26,6 +26,17 @@ static void on_pre_draw_callback(GdkFrameClock *clock, jobject view_tree_observe
 
 extern GtkWidget *window;
 
+/* a dialog's layer has no frame clock until it shows; it is drawn with the main window's */
+static GdkFrameClock *observer_frame_clock(GtkWidget *widget)
+{
+	GdkFrameClock *clock = gtk_widget_get_frame_clock(widget);
+	if (!clock && window)
+		clock = gtk_widget_get_frame_clock(window);
+	if (!clock)
+		fprintf(stderr, "ViewTreeObserver: no frame clock yet\n");
+	return clock;
+}
+
 void _gdb_force_java_stack_trace(void);
 
 JNIEXPORT void JNICALL Java_android_view_ViewTreeObserver_native_1set_1have_1global_1layout_1listeners(JNIEnv *env, jobject this, jboolean have_listeners)
@@ -38,7 +49,9 @@ JNIEXPORT void JNICALL Java_android_view_ViewTreeObserver_native_1set_1have_1glo
 	}
 
 	gulong signal_handle = _GET_LONG_FIELD(this, "onGlobalLayout_signal_handle");
-	GdkFrameClock *clock = gtk_widget_get_frame_clock(window);
+	GdkFrameClock *clock = observer_frame_clock(window);
+	if (!clock)
+		return;
 
 	if (have_listeners && !signal_handle) {
 		/* GTKs own handler is always the first, so our handler gets called after all widgets have been measured and allocated */
@@ -47,10 +60,7 @@ JNIEXPORT void JNICALL Java_android_view_ViewTreeObserver_native_1set_1have_1glo
 	} else if (!have_listeners && signal_handle) {
 		g_signal_handler_disconnect(G_OBJECT(clock), signal_handle);
 		_SET_LONG_FIELD(this, "onGlobalLayout_signal_handle", 0);
-	} else {
-		fprintf(stderr, "Java_android_view_ViewTreeObserver_native_1set_1have_1global_1layout_1listeners: invalid state: have_listeners: %d, signal_handle: 0x%016w64x\n", have_listeners, signal_handle);
-		exit(1);
-	}
+	} /* else nothing to change: already connected, or nothing to disconnect */
 }
 
 JNIEXPORT void JNICALL Java_android_view_ViewTreeObserver_native_1set_1have_1predraw_1listeners(JNIEnv *env, jobject this, jboolean have_listeners)
@@ -63,7 +73,9 @@ JNIEXPORT void JNICALL Java_android_view_ViewTreeObserver_native_1set_1have_1pre
 	}
 
 	gulong signal_handle = _GET_LONG_FIELD(this, "onPreDraw_signal_handle");
-	GdkFrameClock *clock = gtk_widget_get_frame_clock(window);
+	GdkFrameClock *clock = observer_frame_clock(window);
+	if (!clock)
+		return;
 
 	if (have_listeners && !signal_handle) {
 		/* Unlike AOSP, our hook gets invoked after all widgets have been drawn. */
@@ -74,8 +86,5 @@ JNIEXPORT void JNICALL Java_android_view_ViewTreeObserver_native_1set_1have_1pre
 	} else if (!have_listeners && signal_handle) {
 		g_signal_handler_disconnect(G_OBJECT(clock), signal_handle);
 		_SET_LONG_FIELD(this, "onPreDraw_signal_handle", 0);
-	} else {
-		fprintf(stderr, "Java_android_view_ViewTreeObserver_native_1set_1have_1predraw_1listeners: invalid state: have_listeners: %d, signal_handle: 0x%016w64x\n", have_listeners, signal_handle);
-		exit(1);
-	}
+	} /* else nothing to change: already connected, or nothing to disconnect */
 }
