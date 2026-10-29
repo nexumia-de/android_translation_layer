@@ -15,8 +15,15 @@ generated: { by: claude-code/2.1.312, at: 2026-10-28T08:15:00Z }
 
 ATL's dependencies `art_standalone`, `bionic_translation` and
 `libopensles-standalone` live in the same GitLab group
-(`https://gitlab.com/android_translation_layer`). They are not forked
-yet; fork one only when a fix needs it.
+(`https://gitlab.com/android_translation_layer`). `art_standalone` and
+`bionic_translation` are forked like this repository
+([nexumia-de/art_standalone](https://github.com/nexumia-de/art_standalone),
+[nexumia-de/bionic_translation](https://github.com/nexumia-de/bionic_translation)):
+same branches, same sync workflow, fixes as commits on `phosh`. A fix
+there reaches the phone through
+[aports](https://github.com/nexumia-de/aports/blob/main/docs/repository.md#from-a-fix-to-the-phone).
+`libopensles-standalone` is not forked; fork it the same way when a fix
+needs it.
 
 # Branches
 
@@ -26,6 +33,12 @@ yet; fork one only when a fix needs it.
   and comes in by pull request.
 
 # Updating from upstream
+
+`.github/workflows/sync-upstream.yml` does this daily (02:17 UTC): it
+mirrors GitLab's `master` into `master` and opens a pull request
+`master` -> `phosh` when `phosh` lacks upstream commits. Merge it with
+**Create a merge commit**; a conflict is resolved on a branch from
+`phosh`. The same file is in the dependency forks. By hand:
 
 ```sh
 git fetch upstream
