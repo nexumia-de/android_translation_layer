@@ -62,7 +62,7 @@ date), so a new session knows where to continue.
 
 | Phase | State | Pull requests | Updated |
 |---|---|---|---|
-| 0 Facts, sign-off, prototype | prototype works: Chooser runs in its own Flatpak on the fork's engine ([screenshot](screenshots/chooser-flatpak-2026-10-29.png)); open: owner sign-off, a WebView app, start time | this branch | 2026-10-29 |
+| 0 Facts, sign-off, prototype | prototype works: Chooser runs in its own Flatpak on the fork's engine ([screenshot](screenshots/chooser-flatpak-2026-10-29.png)); tested by the owner on the real screen; open: owner sign-off, a WebView app, start time | this branch | 2026-10-29 |
 | T Escape test | `flatpak/escape-test.sh`: 18 checks, all blocked for a generated app; APK-level checks open | this branch | 2026-10-29 |
 | 1 ATL engine as Flatpak | builds on the phone (`de.nexumia.atl.BaseApp`, 82.6 MB); open: CI build and publishing in the owner's repository | this branch | 2026-10-29 |
 | 2 Installer and broker on the host | not started | - | - |
@@ -217,6 +217,13 @@ Results (2026-10-29, details in [dev-environment.md](dev-environment.md#app-flat
   [page 2](screenshots/chooser-flatpak-page2-2026-10-29.png)), and the
   escape test blocks all 18 attempts. Installed size 84.1 MB, of which
   the engine is 82.6 MB and stored once for all apps.
+- Owner's test on the real screen (2026-10-29, as `user`, bundle from
+  `flatpak build-bundle`): Chooser runs, choosing with several fingers
+  works, no permission dialog (it requests none that needs one), the
+  escape test passes for the owner's user too. Gaps, all expected: no
+  vibration (phase 3: feedbackd), no sound (no audio socket; playback
+  must be allowed by default, see phase 4), no icon and a test name
+  (the dev script; the installer takes both from the APK, phase 2).
 - Building the engine on the phone needed three fixes to the manifest:
   state and build directories off `/tmp` (a RAM tmpfs), libportal (not in
   the GNOME 50 SDK), and the Java libraries of `tools/jni_upcall_gen`
@@ -289,6 +296,9 @@ Changes in ATL for running sandboxed:
   `startActivity` to other packages go to the broker.
 - `ACTION_VIEW` of URLs and files: OpenURI portal.[^portals]
 - Vibration: feedbackd over D-Bus (`--talk-name=org.sigxcpu.Feedback`).
+  The sandbox hides `/dev/input`, so today's direct write to the vibra
+  device fails (`no feedbackd-recognized vibrator found`, Chooser on the
+  phone).
 - Sensors: iio-sensor-proxy on the system bus, only when granted.
 - Keystore: libsecret uses the Secret portal inside Flatpak (one secret
   per app, no access to other keyring items).[^portal-secret]
@@ -307,7 +317,8 @@ Mapping, applied by the installer and the settings page:
 | `INTERNET` (normal on Android, a switch here) | `--share=network` | next start |
 | Location | location portal | at once (portal) |
 | Camera | Camera portal (PipeWire remote limited to cameras)[^portal-camera] | at once |
-| Microphone | audio socket (`--socket=pulseaudio`, also playback); without the grant playback must work another way, see open questions | next start |
+| Audio playback (no permission on Android) | audio socket (`--socket=pulseaudio`) by default; without it apps are silent (Chooser on the phone, 2026-10-29) | - |
+| Microphone | the same audio socket also allows recording; separating it is an open question | next start |
 | Notifications (API 33+) | notification portal | at once |
 | Storage, "all files" | none; file chooser and documents portals (Storage Access Framework) | - |
 | Sensors | system bus name of iio-sensor-proxy | next start |
