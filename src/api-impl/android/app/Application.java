@@ -19,6 +19,23 @@ import java.util.HashSet;
 public class Application extends ContextWrapper {
 	public long native_window;
 
+	/* for --install-flatpak: reads the app's name, icon and permissions without running its code (its
+	 * Application subclass, content providers and activities), since the installer runs outside the
+	 * sandbox the app gets */
+	@Export
+	static Application create_for_installer() {
+		ATLLoadedApp app = ATLLoadedApp.getPrimaryApplication();
+		Application application = new Application();
+		application.atl_attach_base_context(new ContextImpl(app.createDefaultResources(), app, app.pkg.applicationInfo.theme));
+		return application;
+	}
+
+	/* the <uses-permission> names, separated by ';' */
+	@Export
+	String get_requested_permissions() {
+		return String.join(";", this.get_atl_loaded_app().pkg.requestedPermissions);
+	}
+
 	@Export
 	private String get_app_icon_path() {
 		String icon_path = null;

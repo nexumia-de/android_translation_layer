@@ -320,6 +320,7 @@ struct jni_callback_data {
 	gboolean install;
 	gboolean install_internal;
 	gboolean install_ask;
+	gboolean install_flatpak;
 	char *prgname;
 	char **extra_jvm_options;
 	char **extra_string_keys;
@@ -445,6 +446,154 @@ static void ask_uninstall(GApplication *app)
 	prompt_page_set_message(page, "Do you want to uninstall this app? Its data will be removed too.");
 	prompt_page_set_buttons(page, "_Cancel", "_Uninstall", TRUE, uninstall_cancelled, uninstall_confirmed, app);
 	gtk_window_present(page->window);
+}
+
+/* the launcher icon: the apk's own file, or the adaptive or vector Drawable rendered into an SVG */
+static GBytes *app_icon_bytes(JNIEnv *env, jobject application_object, const char *app_icon_path)
+{
+	if (app_icon_path) {
+		/* we can import the icon as-is */
+		extract_from_apk(app_icon_path, app_icon_path);
+		char *app_icon_path_full = g_strdup_printf("%s/%s", app_data_dir, app_icon_path);
+		GMappedFile *icon_file = g_mapped_file_new(app_icon_path_full, FALSE, NULL);
+		g_free(app_icon_path_full);
+		if (icon_file) {
+			GBytes *icon_bytes = g_mapped_file_get_bytes(icon_file);
+			g_mapped_file_unref(icon_file);
+			return icon_bytes;
+		}
+	}
+	/* the icon is a generalized Drawable, let's render it into an SVG */
+	_SET_STATIC_BOOL_FIELD(_CACHED_CLASS(VectorDrawable), "direct_draw_override", true);
+	GdkPaintable *icon_paintable = _PTR(J__Application__get_app_icon_paintable(env, application_object));
+	GString *svg_string = g_string_new("");
+	cairo_surface_t *svg_surface = cairo_svg_surface_create_for_stream(cairo_write_func_gstring, svg_string, 108, 108);
+	cairo_t *cr = cairo_create(svg_surface);
+	GdkSnapshot *snapshot = gtk_snapshot_new();
+	gdk_paintable_snapshot(icon_paintable, snapshot, 108, 108);
+	GskRenderNode *node = gtk_snapshot_to_node(snapshot);
+	if (node) {
+		gsk_render_node_draw(node, cr);
+		gsk_render_node_unref(node);
+	}
+	g_object_unref(snapshot);
+	cairo_destroy(cr);
+	cairo_surface_destroy(svg_surface);
+	return g_string_free_to_bytes(svg_string);
+}
+
+static const char *icon_extension(GBytes *icon_bytes)
+{
+	gsize size;
+	const char *data = g_bytes_get_data(icon_bytes, &size);
+	if (size >= 4 && !memcmp(data, "RIFF", 4))
+		return "webp";
+	if (size >= 1 && data[0] == '<')
+		return "svg";
+	return "png";
+}
+
+static char *jstring_dup(JNIEnv *env, jstring str)
+{
+	char *copy = str ? g_strdup(_CSTRING(str)) : NULL;
+	if ((*env)->ExceptionCheck(env))
+		(*env)->ExceptionDescribe(env);
+	return copy;
+}
+
+/* --install-flatpak (docs/hardening-roadmap.md, phase 2): the apk becomes its own Flatpak
+ * de.nexumia.atl.<package> on the ATL engine. Name, icon, URL schemes and permissions come from the
+ * apk, read without running any of its code, since this runs outside the sandbox the app gets;
+ * make-app-flatpak builds and installs the Flatpak. Exits with its status. */
+static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject application_object, GFile **files, int nfiles,
+                            gboolean data_dir_existed)
+{
+	char *package_name = jstring_dup(env, J__Context__getPackageName(env, application_object));
+	char *label = jstring_dup(env, J__Application__get_app_label(env, application_object));
+	char *icon_path = jstring_dup(env, J__Application__get_app_icon_path(env, application_object));
+	char *mime_types = jstring_dup(env, J__Application__get_supported_mime_types(env, application_object));
+	char *permissions = jstring_dup(env, J__Application__get_requested_permissions(env, application_object));
+	if (!package_name) {
+		fprintf(stderr, "install-flatpak: the apk has no package name\n");
+		exit(1);
+	}
+
+	GError *err = NULL;
+	char *tmp_dir = g_dir_make_tmp("atl-install-XXXXXX", &err);
+	if (!tmp_dir) {
+		fprintf(stderr, "install-flatpak: %s\n", err->message);
+		exit(1);
+	}
+	GBytes *icon_bytes = app_icon_bytes(env, application_object, icon_path);
+	char *icon_name = g_strdup_printf("icon.%s", icon_extension(icon_bytes));
+	char *icon_file = g_build_filename(tmp_dir, icon_name, NULL);
+	g_free(icon_name);
+	gsize icon_size;
+	const char *icon_data = g_bytes_get_data(icon_bytes, &icon_size);
+	gboolean have_icon = icon_size > 0 && g_file_set_contents(icon_file, icon_data, icon_size, NULL);
+	g_bytes_unref(icon_bytes);
+
+	/* the arguments ATL gets when the app starts, like those --install writes into the launcher */
+	GString *atl_args = g_string_new("");
+	if (d->apk_main_activity_class)
+		g_string_append_printf(atl_args, "-l %s ", d->apk_main_activity_class);
+	if (d->window_width)
+		g_string_append_printf(atl_args, "-w %d ", d->window_width);
+	if (d->window_height)
+		g_string_append_printf(atl_args, "-h %d ", d->window_height);
+	if (d->sdk_int)
+		g_string_append_printf(atl_args, "--sdk-int %s ", d->sdk_int);
+
+	const char *helper = getenv("ATL_MAKE_FLATPAK");
+	if (!helper)
+		helper = INSTALL_LIBEXECDIR "/android-translation-layer/make-app-flatpak";
+	GPtrArray *argv = g_ptr_array_new_with_free_func(g_free);
+	g_ptr_array_add(argv, g_strdup(helper));
+	g_ptr_array_add(argv, g_strdup("-p"));
+	g_ptr_array_add(argv, g_strdup(package_name));
+	g_ptr_array_add(argv, g_strdup("-n"));
+	g_ptr_array_add(argv, g_strdup(label && *label ? label : package_name));
+	if (have_icon) {
+		g_ptr_array_add(argv, g_strdup("-i"));
+		g_ptr_array_add(argv, g_strdup(icon_file));
+	}
+	if (atl_args->len) {
+		g_ptr_array_add(argv, g_strdup("-a"));
+		g_ptr_array_add(argv, g_strdup(atl_args->str));
+	}
+	if (mime_types) {
+		g_ptr_array_add(argv, g_strdup("-m"));
+		g_ptr_array_add(argv, g_strdup(mime_types));
+	}
+	if (permissions && *permissions) {
+		g_ptr_array_add(argv, g_strdup("-P"));
+		g_ptr_array_add(argv, g_strdup(permissions));
+	}
+	for (int i = 0; i < nfiles; i++)
+		g_ptr_array_add(argv, g_file_get_path(files[i]));
+	g_ptr_array_add(argv, NULL);
+	g_string_free(atl_args, TRUE);
+
+	printf("install-flatpak: running %s for %s\n", helper, package_name);
+	int status = 1;
+	int wait_status;
+	if (!g_spawn_sync(NULL, (char **)argv->pdata, NULL, G_SPAWN_CHILD_INHERITS_STDIN, NULL, NULL, NULL, NULL, &wait_status, &err)) {
+		fprintf(stderr, "install-flatpak: %s\n", err->message);
+		g_clear_error(&err);
+	} else if (g_spawn_check_wait_status(wait_status, &err)) {
+		status = 0;
+	} else {
+		fprintf(stderr, "install-flatpak: %s\n", err->message);
+		g_clear_error(&err);
+	}
+	g_ptr_array_free(argv, TRUE);
+
+	remove_recursively(tmp_dir);
+	/* the host data directory ATL made for reading the apk; the app keeps its data in its sandbox */
+	if (!data_dir_existed)
+		remove_recursively(app_data_dir);
+	fflush(NULL);
+	_exit(status); // the runtime is loaded, see install_launcher_file
 }
 
 /* --install-ask, for opening an apk file: asks first, like Android's package installer, then
@@ -1135,8 +1284,15 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	prepare_main_looper(env);
 
 	/* extract native libraries from apk*/
-	if (!getenv("ATL_SKIP_NATIVES_EXTRACTION") && !d->install_ask) // --install-ask only reads the apk
+	if (!getenv("ATL_SKIP_NATIVES_EXTRACTION") && !d->install_ask && !d->install_flatpak) // these only read the apk
 		extract_from_apk("lib/" NATIVE_ARCH "/", "lib/");
+
+	if (d->install_flatpak) {
+		application_object = J__Application__create_for_installer(env);
+		if ((*env)->ExceptionCheck(env))
+			(*env)->ExceptionDescribe(env);
+		install_flatpak(d, env, application_object, files, nfiles, app_data_dir_existed);
+	}
 
 	// construct Application
 	application_object = J__Context__createApplication(env, _INTPTR(window));
@@ -1222,39 +1378,11 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 		GVariant *icon_serialized = NULL;
 		if (!d->install_internal) {
-			if (app_icon_path) {
-				/* we can import the icon as-is */
-				extract_from_apk(app_icon_path, app_icon_path);
-				char *app_icon_path_full = g_strdup_printf("%s/%s", app_data_dir, app_icon_path);
-				GMappedFile *icon_file = g_mapped_file_new(app_icon_path_full, FALSE, NULL);
-				GBytes *icon_bytes = g_mapped_file_get_bytes(icon_file);
-				GIcon *icon = g_bytes_icon_new(icon_bytes);
-				icon_serialized = g_icon_serialize(icon);
-				g_object_unref(icon);
-				g_bytes_unref(icon_bytes);
-				g_mapped_file_unref(icon_file);
-				g_free(app_icon_path_full);
-			} else {
-				/* the icon is a generalized Drawable, let's render it into an SVG */
-				_SET_STATIC_BOOL_FIELD(_CACHED_CLASS(VectorDrawable), "direct_draw_override", true);
-				GdkPaintable *icon_paintable = _PTR(J__Application__get_app_icon_paintable(env, application_object));
-				GString *svg_string = g_string_new("");
-				cairo_surface_t *svg_surface = cairo_svg_surface_create_for_stream(cairo_write_func_gstring, svg_string, 108, 108);
-				cairo_t *cr = cairo_create(svg_surface);
-				GdkSnapshot *snapshot = gtk_snapshot_new();
-				gdk_paintable_snapshot(icon_paintable, snapshot, 108, 108);
-				GskRenderNode *node = gtk_snapshot_to_node(snapshot);
-				gsk_render_node_draw(node, cr);
-				gsk_render_node_unref(node);
-				g_object_unref(snapshot);
-				cairo_destroy(cr);
-				cairo_surface_destroy(svg_surface);
-				GBytes *icon_bytes = g_string_free_to_bytes(svg_string);
-				GIcon *icon = g_bytes_icon_new(icon_bytes);
-				icon_serialized = g_icon_serialize(icon);
-				g_object_unref(icon);
-				g_bytes_unref(icon_bytes);
-			}
+			GBytes *icon_bytes = app_icon_bytes(env, application_object, app_icon_path);
+			GIcon *icon = g_bytes_icon_new(icon_bytes);
+			icon_serialized = g_icon_serialize(icon);
+			g_object_unref(icon);
+			g_bytes_unref(icon_bytes);
 		}
 
 		gchar *dest_name = g_strdup_printf("%s.apk", package_name);
@@ -1427,6 +1555,7 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "install",          'i', 0, G_OPTION_ARG_NONE,         &d->install,                   "install .desktop file for the given apk",                                                      NULL            },
 		{ "install-internal",  0 , 0, G_OPTION_ARG_NONE,         &d->install_internal,          "copy an apk to _installed_apks_ but don't create a desktop entry",                             NULL            },
 		{ "install-ask",       0 , 0, G_OPTION_ARG_NONE,         &d->install_ask,               "ask before installing the given apk, like Android's package installer (for opening apk files)", NULL            },
+		{ "install-flatpak",   0 , 0, G_OPTION_ARG_NONE,         &d->install_flatpak,           "install the given apk as its own Flatpak, without running its code",                           NULL            },
 		{ "uninstall",         0 , 0, G_OPTION_ARG_NONE,         &d->uninstall,                 "remove an apk installed with --install, its data and its launcher (asks first)",                NULL            },
 		{ "dbus-activated",    0 , G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &d->dbus_activated, "started through the launcher's D-Bus service file",                                          NULL            },
 		{ "extra-jvm-option", 'X', 0, G_OPTION_ARG_STRING_ARRAY, &d->extra_jvm_options,         "pass an additional option directly to art (e.g -X \"-verbose:jni\")",                          "\"OPTION\""    },
