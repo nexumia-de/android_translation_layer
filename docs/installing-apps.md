@@ -189,6 +189,43 @@ page → Uninstall removes it
 ([page](screenshots/install-ask-2026-10-29.png), [F-Droid's icon](screenshots/install-ask-fdroid-2026-10-29.png),
 [uninstall](screenshots/uninstall-page-2026-10-29.png)).
 
+# Installing an APK as its own Flatpak
+
+For the [hardening roadmap](hardening-roadmap.md) (phase 2) an APK can
+become its own sandboxed Flatpak `de.nexumia.atl.<package>` instead:
+
+```sh
+android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l ACTIVITY] app.apk [splits...]
+```
+
+- ATL on the host reads the package name, label, launcher icon (the
+  APK's file, or the adaptive or vector icon rendered to SVG), URL
+  schemes and `<uses-permission>` list. It creates a plain
+  `android.app.Application` for that and never loads the app's own
+  `Application` class, content providers or activities, so no app
+  code runs outside the sandbox. A data directory it had to create for
+  reading the APK is removed again.
+- It then runs `libexec/android-translation-layer/make-app-flatpak`
+  (`flatpak/make-app.sh`; `ATL_MAKE_FLATPAK` overrides the path), which
+  copies the installed engine `de.nexumia.atl.BaseApp`, adds the APKs,
+  launcher (with `MimeType` and `--uri %u` for URL schemes) and icon,
+  exports into the local repository and installs or updates the app
+  with `flatpak --user`. No root.
+- Permissions: every app gets Wayland, the GPU, IPC, audio playback and
+  feedbackd; `android.permission.INTERNET` adds `--share=network`.
+  Everything else waits for portals and the broker (phases 3 and 4).
+- The package name is checked against Android's rules and the label is
+  kept to one line, since both come from the APK and end up in the
+  launcher.
+
+Tried headless on 2026-10-29 with Chooser (name "Chooser", SVG icon, no
+network), F-Droid (network, `market`/`fdroidrepos` schemes) and Blokish
+(PNG icon, no network; starts and draws its board in the sandbox). The
+escape test finds no escape; audio playback is now granted, as
+planned. Not yet used by `--install-ask` or by app stores (`--install`
+from `PackageInstaller`); they switch once the apps run fully inside
+the sandbox (phase 3).
+
 # Setting F-Droid up on the phone
 
 ```sh
