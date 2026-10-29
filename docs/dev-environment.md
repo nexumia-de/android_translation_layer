@@ -60,6 +60,8 @@ Recorded by the first session on the phone, 2026-10-28:
 | Kernel | `7.2.0-postmarketos-qcom-milos` |
 | Shell | phosh `99990.58.0-r0` (0.58.0), phoc 0.58.0, wlroots 0.20.2, libadwaita 1.10.0 |
 | apk repositories | postmarketOS main and systemd, Alpine edge main, community and testing, a Fairphone 6 repository (`forgejo.catcrafts.net`) |
+| Sandboxing (2026-10-29) | unprivileged user namespaces work (`unshare -U`, `bwrap` 0.13.1 without setuid); LSMs `capability,bpf` only, no Landlock, AppArmor or SELinux; seccomp available |
+| Flatpak (2026-10-29) | Flatpak 1.18.4, system remote `flathub` with `org.gnome.Platform` 49 and 50; xdg-desktop-portal 1.22.1 with the phosh, gtk and wlr backends; PipeWire 1.6.9, WirePlumber 0.5.18, xdg-dbus-proxy 0.1.9, feedbackd 0.8.10, iio-sensor-proxy 3.9 |
 
 The `claude` user has uid 1000 and only its own group. It is not in
 `video` or `render`, but `/dev/dri/renderD128` is mode `0666`, so the
@@ -299,6 +301,33 @@ window has a title bar of about 46 logical px. For the owner's look set
 `gsettings set org.gnome.desktop.interface accent-color green` and
 `color-scheme prefer-dark` for `claude` (settings reach the app through
 the portal).
+
+# App Flatpaks
+
+For the [hardening roadmap](hardening-roadmap.md) apps run as their own
+Flatpaks in the `claude` user's own installation (`flatpak --user`, no
+root):
+
+- `flathub` is added as a user remote. Installed for `claude`: the GNOME
+  50 SDK and `org.freedesktop.Sdk.Extension.openjdk17//25.08` to build
+  the engine, and upstream's `io.gitlab.android_translation_layer.BaseApp`
+  pinned to commit `86e04253` (2026-09-13, the last one on GNOME 50;
+  newer ones need GNOME 51, a 416 MB download).
+- `flatpak/de.nexumia.atl.BaseApp.yml` builds the engine from this
+  checkout and the dependency forks with `flatpak-builder` (system
+  package `flatpak-builder`).
+- `flatpak/make-app.sh -p <package> -n <name> <apk>` generates
+  `de.nexumia.atl.<package>` from an APK, exports it into
+  `~/.local/share/android_translation_layer/flatpak-repo` (user remote
+  `atl-local`, unsigned) and installs or updates it. `-b` picks another
+  base app, `-f` adds permissions.
+- `dbus-run-session -- flatpak/escape-test.sh <app id>` tries each escape
+  from inside the app's sandbox and fails if one works. Its controls (the
+  portal reachable, the app's own data writable) stop a broken test from
+  looking green. Inside a Flatpak `$HOME` is private, so writes into it
+  are checked from outside.
+- Headless: `tools/headless-shot.sh -- flatpak run --user <app id>`;
+  `flatpak run` starts the portals in the test's own session bus.
 
 # ATL for the owner
 
