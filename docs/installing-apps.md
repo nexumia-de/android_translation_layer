@@ -74,6 +74,20 @@ as `<package>.apk`.
   D-Bus service file and its launcher with its icon (also one made
   through the portal), and broadcasts `ACTION_PACKAGE_REMOVED`.
   `PackageInstaller.uninstall` does the same without a dialog.
+  `startActivity` with the same intent (Aurora Store) runs the
+  launcher's **Uninstall** action (see below) instead of handing the
+  `package:` URI to `xdg-open`, which opened GNOME Software.
+- **Changes from other processes**: once an app looks at other packages
+  (`getPackageInfo`, `getInstalledPackages`), `PackageInstaller` watches
+  `_installed_apks_` (`java.nio.file.WatchService`, inotify). When an
+  APK appears, changes or disappears and the app did not do it itself
+  (the launcher's Uninstall action, an opened APK file, another store),
+  ATL drops its cached package and broadcasts `ACTION_PACKAGE_ADDED` or
+  `ACTION_PACKAGE_REMOVED`. Before, Aurora kept showing an app
+  uninstalled from the app grid as installed until it was restarted.
+  Tested headless on 2026-10-29: Aurora's **Uninstall** on DB Navigator
+  showed the uninstall page, and after confirming Aurora switched to
+  **Install** at once.
 - **Open**: `startActivity` with `ACTION_MAIN` for a component of another
   installed package runs `gtk-launch <package>`, which starts the app
   through its launcher in its own ATL process, as Phosh does.

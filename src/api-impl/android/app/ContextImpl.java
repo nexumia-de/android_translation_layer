@@ -10,6 +10,7 @@ import android.atl.ATLPaths;
 import android.bluetooth.BluetoothManager;
 import android.content.*;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInstaller;
 import android.content.pm.PackageParser;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -354,6 +355,18 @@ public final class ContextImpl extends Context {
 					new Handler(Looper.getMainLooper()).post(runnable);
 				}
 				return;
+			} else if ((Intent.ACTION_DELETE.equals(intent.getAction()) || Intent.ACTION_UNINSTALL_PACKAGE.equals(intent.getAction()))
+			           && intent.getData() != null && "package".equals(intent.getData().getScheme())) {
+				// asks on the same page as the launcher's Uninstall action; the store hears of it from PackageInstaller's watcher
+				String packageName = intent.getData().getSchemeSpecificPart();
+				if (new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
+					Slog.i(TAG, "startActivity: uninstalling " + packageName + " through its desktop entry");
+					PackageInstaller.watchInstalledApks();
+					nativeLaunchDesktopApp(packageName + ".desktop", "uninstall");
+				} else {
+					Slog.w(TAG, "startActivity: can't uninstall " + packageName + ", it is not an installed APK");
+				}
+				return;
 			} else if (intent.getData() != null) {
 				Slog.i(TAG, "starting extern activity with intent: " + intent);
 				if (intent.getData().getScheme().equals("content")) {
@@ -388,7 +401,7 @@ public final class ContextImpl extends Context {
 			String packageName = intent.getComponent().getPackageName();
 			if (new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
 				Slog.i(TAG, "startActivity: launching " + packageName + " through its desktop entry");
-				nativeLaunchDesktopApp(packageName + ".desktop");
+				nativeLaunchDesktopApp(packageName + ".desktop", null);
 				return;
 			}
 		}

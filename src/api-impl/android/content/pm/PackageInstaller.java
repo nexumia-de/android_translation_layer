@@ -22,7 +22,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -164,6 +170,7 @@ public class PackageInstaller {
 			return false;
 		}
 		Slog.i(TAG, "uninstall: " + packageName);
+		beginChange(packageName);
 		apk.delete();
 		deleteRecursively(new File(ATLPaths.installed_apks_dir, packageName + ".apk.splits"));
 		deleteRecursively(new File(ATLPaths.app_data_dir_base, packageName + ".apk_"));
@@ -188,8 +195,112 @@ public class PackageInstaller {
 		                    packageName + ".desktop", "{}");
 		Slog.i(TAG, "uninstall: removing launcher: " + output);
 		ATLLoadedAppManager.forgetPackage(packageName);
+		endChange(packageName);
 		sendPackageBroadcast(Intent.ACTION_PACKAGE_REMOVED, packageName, false);
 		return true;
+	}
+
+	/* _installed_apks_/<package>.apk as last seen: its modification time, absent packages have none */
+	private static final HashMap<String, Long> seenApks = new HashMap<>();
+	/* packages this process is installing or uninstalling itself, and broadcasts itself */
+	private static final HashSet<String> changingApks = new HashSet<>();
+	private static boolean watching = false;
+
+	private static Long apkModified(String packageName) {
+		File apk = new File(ATLPaths.installed_apks_dir, packageName + ".apk");
+		return apk.isFile() ? apk.lastModified() : null;
+	}
+
+	private static void beginChange(String packageName) {
+		synchronized (seenApks) {
+			changingApks.add(packageName);
+		}
+	}
+
+	private static void endChange(String packageName) {
+		synchronized (seenApks) {
+			changingApks.remove(packageName);
+			seenApks.put(packageName, apkModified(packageName));
+		}
+	}
+
+	/**
+	 * Watches _installed_apks_ for apps another ATL process installs or uninstalls (a launcher's
+	 * Uninstall action, an opened APK file, another store), so a running store sees the change
+	 * like on Android: its cached package is dropped and it gets ACTION_PACKAGE_ADDED/REMOVED.
+	 */
+	public static void watchInstalledApks() {
+		synchronized (seenApks) {
+			if (watching)
+				return;
+			watching = true;
+			String[] files = ATLPaths.installed_apks_dir.list();
+			if (files != null) {
+				for (String file : files) {
+					if (file.endsWith(".apk")) {
+						String packageName = file.substring(0, file.length() - ".apk".length());
+						seenApks.put(packageName, apkModified(packageName));
+					}
+				}
+			}
+		}
+		final WatchService watcher;
+		try {
+			watcher = FileSystems.getDefault().newWatchService();
+			ATLPaths.installed_apks_dir.toPath().register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
+			                                              StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
+		} catch (IOException | RuntimeException e) {
+			Slog.w(TAG, "can't watch " + ATLPaths.installed_apks_dir, e);
+			return;
+		}
+		Thread thread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				while (true) {
+					HashSet<String> changed = new HashSet<>();
+					try {
+						WatchKey key = watcher.take();
+						// an APK is written in several steps: wait until it is complete
+						Thread.sleep(500);
+						do {
+							for (WatchEvent<?> event : key.pollEvents()) {
+								Object context = event.context();
+								String file = context instanceof Path ? context.toString() : "";
+								if (file.endsWith(".apk"))
+									changed.add(file.substring(0, file.length() - ".apk".length()));
+							}
+							key.reset();
+						} while ((key = watcher.poll()) != null);
+					} catch (InterruptedException e) {
+						return;
+					}
+					for (String packageName : changed)
+						installedApkChanged(packageName);
+				}
+			}
+		}, "PackageInstaller watcher");
+		thread.setDaemon(true);
+		thread.start();
+	}
+
+	private static void installedApkChanged(String packageName) {
+		Long modified = apkModified(packageName);
+		boolean replacing;
+		synchronized (seenApks) {
+			if (changingApks.contains(packageName))
+				return;
+			Long seen = seenApks.get(packageName);
+			if (modified == null ? seen == null : modified.equals(seen))
+				return;
+			seenApks.put(packageName, modified);
+			replacing = seen != null;
+		}
+		Slog.i(TAG, packageName + (modified == null ? " was uninstalled" : " was installed") + " by another process");
+		ATLLoadedAppManager.forgetPackage(packageName);
+		if (modified == null)
+			sendPackageBroadcast(Intent.ACTION_PACKAGE_REMOVED, packageName, false);
+		else
+			sendPackageBroadcast(Intent.ACTION_PACKAGE_ADDED, packageName, replacing);
 	}
 
 	private static void deleteRecursively(File file) {
@@ -370,6 +481,7 @@ public class PackageInstaller {
 							base.renameTo(apk);
 							File installed = new File(ATLPaths.installed_apks_dir, apk.getName());
 							boolean replacing = installed.isFile();
+							beginChange(packageName);
 							// the installed app starts with the installer's window size instead of the 960x540 default
 							List<String> command = new ArrayList<>(Arrays.asList("/usr/bin/env", "android-translation-layer", "--install",
 							                    "-w", String.valueOf(Display.window_width), "-h", String.valueOf(Display.window_height)));
@@ -401,8 +513,10 @@ public class PackageInstaller {
 							} else {
 								status = STATUS_SUCCESS;
 								ATLLoadedAppManager.forgetPackage(packageName);
-								sendPackageBroadcast(Intent.ACTION_PACKAGE_ADDED, packageName, replacing);
 							}
+							endChange(packageName);
+							if (status == STATUS_SUCCESS)
+								sendPackageBroadcast(Intent.ACTION_PACKAGE_ADDED, packageName, replacing);
 						}
 					}
 				}
@@ -410,6 +524,8 @@ public class PackageInstaller {
 				Slog.e(TAG, "install failed", e);
 				status = STATUS_FAILURE;
 				message = "INSTALL_FAILED_INTERNAL_ERROR: " + e;
+				if (packageName != null)
+					endChange(packageName);
 			}
 			deleteRecursively(dir);
 			for (SessionCallback callback : callbacks)

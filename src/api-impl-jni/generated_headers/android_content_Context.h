@@ -38,10 +38,10 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeOpenFile
 /*
  * Class:     android_content_Context
  * Method:    nativeLaunchDesktopApp
- * Signature: (Ljava/lang/String;)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_android_content_Context_nativeLaunchDesktopApp
-  (JNIEnv *, jclass, jstring);
+  (JNIEnv *, jclass, jstring, jstring);
 
 /*
  * Class:     android_content_Context

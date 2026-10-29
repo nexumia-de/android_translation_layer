@@ -1,6 +1,7 @@
 package android.atl;
 
 import android.annotation.Nullable;
+import android.content.pm.PackageInstaller;
 import android.content.pm.PackageParser;
 import android.util.DisplayMetrics;
 import android.util.Slog;
@@ -42,6 +43,8 @@ public final class ATLLoadedAppManager {
 		if (app != null) {
 			return app.pkg;
 		}
+		// an app that looks at other packages hears when they are installed or uninstalled
+		PackageInstaller.watchInstalledApks();
 		PackageParser.Package pkg = loaded_packages.get(packageName);
 		if (pkg != null) {
 			return pkg;
@@ -151,16 +154,20 @@ public final class ATLLoadedAppManager {
 
 	/**
 	 * Drops a cached package after it was installed, updated or uninstalled, so the next lookup
-	 * reads _installed_apks_ again. Applications already loaded into this process stay.
+	 * reads _installed_apks_ again. Applications already loaded into this process stay while
+	 * their APK is still there.
 	 */
 	public static void forgetPackage(String packageName) {
 		synchronized (load_lock) {
 			loaded_packages.remove(packageName);
+			if (!new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile())
+				loaded_apps.remove(packageName);
 		}
 	}
 
 	/** Package names of the APKs in _installed_apks_ that the primary application may see. */
 	public static List<String> getInstalledPackageNames() {
+		PackageInstaller.watchInstalledApks();
 		List<String> names = new ArrayList<>();
 		String[] files = ATLPaths.installed_apks_dir.list();
 		if (files == null)
