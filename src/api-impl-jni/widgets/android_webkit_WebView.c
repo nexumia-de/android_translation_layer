@@ -203,3 +203,44 @@ JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1updateContentHeight(J
 	if (webview && !webkit_web_view_is_loading(WEBKIT_WEB_VIEW(webview)))
 		update_content_height(WEBKIT_WEB_VIEW(webview), WRAPPER_WIDGET(gtk_widget_get_parent(box)));
 }
+
+/* the WebKitWebView only exists after the first load */
+static WebKitWebView *existing_web_view(jlong widget_ptr)
+{
+	GtkWidget *webview = gtk_widget_get_first_child(GTK_WIDGET(_PTR(widget_ptr)));
+	return webview ? WEBKIT_WEB_VIEW(webview) : NULL;
+}
+
+JNIEXPORT jboolean JNICALL Java_android_webkit_WebView_native_1canGoBackOrForward(JNIEnv *env, jobject this, jlong widget_ptr, jint steps)
+{
+	WebKitWebView *webview = existing_web_view(widget_ptr);
+	if (!webview)
+		return false;
+	WebKitBackForwardList *list = webkit_web_view_get_back_forward_list(webview);
+	return webkit_back_forward_list_get_nth_item(list, steps) != NULL;
+}
+
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1goBackOrForward(JNIEnv *env, jobject this, jlong widget_ptr, jint steps)
+{
+	WebKitWebView *webview = existing_web_view(widget_ptr);
+	if (!webview)
+		return;
+	WebKitBackForwardList *list = webkit_web_view_get_back_forward_list(webview);
+	WebKitBackForwardListItem *item = webkit_back_forward_list_get_nth_item(list, steps);
+	if (item)
+		webkit_web_view_go_to_back_forward_list_item(webview, item);
+}
+
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1reload(JNIEnv *env, jobject this, jlong widget_ptr)
+{
+	WebKitWebView *webview = existing_web_view(widget_ptr);
+	if (webview)
+		webkit_web_view_reload(webview);
+}
+
+JNIEXPORT jstring JNICALL Java_android_webkit_WebView_native_1getUrl(JNIEnv *env, jobject this, jlong widget_ptr)
+{
+	WebKitWebView *webview = existing_web_view(widget_ptr);
+	const char *uri = webview ? webkit_web_view_get_uri(webview) : NULL;
+	return uri ? _JSTRING(uri) : NULL;
+}

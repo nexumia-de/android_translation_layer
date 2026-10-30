@@ -289,6 +289,38 @@ JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1setUserScript
 JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1evaluateJavascript
   (JNIEnv *, jobject, jlong, jstring, jobject, jboolean);
 
+/*
+ * Class:     android_webkit_WebView
+ * Method:    native_canGoBackOrForward
+ * Signature: (JI)Z
+ */
+JNIEXPORT jboolean JNICALL Java_android_webkit_WebView_native_1canGoBackOrForward
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     android_webkit_WebView
+ * Method:    native_goBackOrForward
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1goBackOrForward
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     android_webkit_WebView
+ * Method:    native_reload
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1reload
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     android_webkit_WebView
+ * Method:    native_getUrl
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_android_webkit_WebView_native_1getUrl
+  (JNIEnv *, jobject, jlong);
+
 #ifdef __cplusplus
 }
 #endif

@@ -153,6 +153,38 @@ public class WebView extends ViewGroup {
 
 	public void stopLoading() {}
 
+	public boolean canGoBack() {
+		return native_canGoBackOrForward(widget, -1);
+	}
+
+	public void goBack() {
+		native_goBackOrForward(widget, -1);
+	}
+
+	public boolean canGoForward() {
+		return native_canGoBackOrForward(widget, 1);
+	}
+
+	public void goForward() {
+		native_goBackOrForward(widget, 1);
+	}
+
+	public boolean canGoBackOrForward(int steps) {
+		return native_canGoBackOrForward(widget, steps);
+	}
+
+	public void goBackOrForward(int steps) {
+		native_goBackOrForward(widget, steps);
+	}
+
+	public void reload() {
+		native_reload(widget);
+	}
+
+	public String getUrl() {
+		return native_getUrl(widget);
+	}
+
 	// to be used by native code
 	@Export
 	AssetManager internalGetAssetManager() {
@@ -272,4 +304,8 @@ public class WebView extends ViewGroup {
 	private native void native_updateContentHeight(long widget);
 	private native void native_setUserScript(long widget, String script, boolean javaScriptEnabled);
 	private native void native_evaluateJavascript(long widget, String script, ValueCallback callback, boolean javaScriptEnabled);
+	private native boolean native_canGoBackOrForward(long widget, int steps);
+	private native void native_goBackOrForward(long widget, int steps);
+	private native void native_reload(long widget);
+	private native String native_getUrl(long widget);
 }
