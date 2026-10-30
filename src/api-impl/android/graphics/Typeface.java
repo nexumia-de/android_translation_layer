@@ -108,6 +108,15 @@ public class Typeface {
 		return typeface.style == style ? typeface : new Typeface(typeface.family, style);
 	}
 
+	/* only the bold flag of the weight is kept, like Android's isBold() (weight >= 600) */
+	public static Typeface create(Typeface family, int weight, boolean italic) {
+		return create(family, (weight >= 600 ? BOLD : NORMAL) | (italic ? ITALIC : NORMAL));
+	}
+
+	public int getWeight() {
+		return isBold() ? 700 : 400;
+	}
+
 	public static Typeface createFromFile(String path) {
 		return fromFile(path);
 	}
