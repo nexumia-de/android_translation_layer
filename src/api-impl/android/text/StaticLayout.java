@@ -36,7 +36,10 @@ public class StaticLayout extends Layout {
 
 		public Builder setTextDirection(TextDirectionHeuristic textDir) { return this; }
 
-		public Builder setAlignment(Alignment align) { return this; }
+		public Builder setAlignment(Alignment align) {
+			layout.setAlignment(align);
+			return this;
+		}
 
 		public Builder setMaxLines(int maxLines) { return this; }
 

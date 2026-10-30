@@ -25,6 +25,14 @@ JNIEXPORT void JNICALL Java_android_text_Layout_native_1set_1width
 
 /*
  * Class:     android_text_Layout
+ * Method:    native_set_alignment
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_android_text_Layout_native_1set_1alignment
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     android_text_Layout
  * Method:    native_get_width
  * Signature: (J)I
  */
