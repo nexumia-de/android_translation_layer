@@ -45,10 +45,18 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeLaunchDesktopApp
 
 /*
  * Class:     android_content_Context
- * Method:    nativeShareFile
+ * Method:    nativeShareCopy
  * Signature: (Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_android_content_Context_nativeShareFile
+JNIEXPORT void JNICALL Java_android_content_Context_nativeShareCopy
+  (JNIEnv *, jclass, jstring, jint);
+
+/*
+ * Class:     android_content_Context
+ * Method:    nativeShareEmail
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_android_content_Context_nativeShareEmail
   (JNIEnv *, jclass, jstring, jint);
 
 /*

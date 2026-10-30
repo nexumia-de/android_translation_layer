@@ -2,6 +2,7 @@ package android.app;
 
 import android.annotation.Nullable;
 import android.annotation.UnsupportedAppUsage;
+import android.app.AlertDialog;
 import android.app.SearchManager;
 import android.app.job.JobScheduler;
 import android.atl.ATLLoadedApp;
@@ -313,6 +314,45 @@ public final class ContextImpl extends Context {
 		return targetApp.startOrBindService(intent, serviceConnection) != null;
 	}
 
+	/* a layer in the app window like every dialog: phoc would show a window of its own over the accent colour */
+	private void showShareDialog(String text, ParcelFileDescriptor fd, Uri stream) {
+		final int fd_int = fd != null ? fd.getFd() : -1;
+		AlertDialog dialog = new AlertDialog(this);
+		dialog.setTitle("Share");
+		String detail = fd != null ? stream.getLastPathSegment() : text;
+		if (detail != null)
+			dialog.setMessage(detail);
+		dialog.setButton(DialogInterface.BUTTON_POSITIVE, "Copy", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface d, int which) {
+				nativeShareCopy(text, fd_int);
+			}
+		});
+		dialog.setButton(DialogInterface.BUTTON_NEUTRAL, "Email", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface d, int which) {
+				nativeShareEmail(text, fd_int);
+			}
+		});
+		dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface d, int which) {}
+		});
+		dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+			@Override
+			public void onDismiss(DialogInterface d) {
+				if (fd != null) {
+					try {
+						fd.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		});
+		dialog.show();
+	}
+
 	@Override
 	public void startActivity(Intent intent) {
 		Slog.i(TAG, "startActivity(" + intent + ") called");
@@ -336,17 +376,11 @@ public final class ContextImpl extends Context {
 					}
 				}
 				final ParcelFileDescriptor fd_final = fd;
+				final Uri stream = (Uri)intent.getParcelableExtra(Intent.EXTRA_STREAM);
 				Runnable runnable = new Runnable() {
 					@Override
 					public void run() {
-						nativeShareFile(text, fd_final != null ? fd_final.getFd() : -1);
-						if (fd_final != null) {
-							try {
-								fd_final.close();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
+						showShareDialog(text, fd_final, stream);
 					}
 				};
 				if (Looper.myLooper() == Looper.getMainLooper()) {

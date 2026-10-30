@@ -146,7 +146,8 @@ public abstract class Context {
 	protected static native void native_updateConfig(Configuration config);
 	protected static native void nativeOpenFile(int fd);
 	protected static native void nativeLaunchDesktopApp(String desktopId, String action);
-	protected static native void nativeShareFile(String text, int fd);
+	protected static native void nativeShareCopy(String text, int fd);
+	protected static native void nativeShareEmail(String text, int fd);
 	private static native void nativeExportUnifiedPush(String packageName);
 	private static native void nativeRegisterUnifiedPush(String token, String application);
 	protected static native void nativeStartExternalService(Intent service);
