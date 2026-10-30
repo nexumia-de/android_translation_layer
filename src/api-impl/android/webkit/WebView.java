@@ -36,6 +36,7 @@ public class WebView extends ViewGroup {
 		return settings;
 	}
 
+	private WebChromeClient webChromeClient;
 	private boolean ownLoadPending;
 	private final HashMap<String, Object> javascriptInterfaces = new HashMap<>();
 
@@ -50,10 +51,17 @@ public class WebView extends ViewGroup {
 	// to be used by native code
 	@Export
 	void internalLoadChanged(int loadState, String url) {
-		if (loadState == /*WEBKIT_LOAD_STARTED*/ 0 && webViewClient != null) {
-			webViewClient.onPageStarted(this, url);
-		} else if (loadState == /*WEBKIT_LOAD_FINISHED*/ 3 && webViewClient != null) {
-			webViewClient.onPageFinished(this, url);
+		if (loadState == /*WEBKIT_LOAD_STARTED*/ 0) {
+			if (webViewClient != null)
+				webViewClient.onPageStarted(this, url, null);
+			// Android reports some progress right away, too
+			if (webChromeClient != null)
+				webChromeClient.onProgressChanged(this, 10);
+		} else if (loadState == /*WEBKIT_LOAD_FINISHED*/ 3) {
+			if (webChromeClient != null)
+				webChromeClient.onProgressChanged(this, 100);
+			if (webViewClient != null)
+				webViewClient.onPageFinished(this, url);
 		}
 	}
 
@@ -108,7 +116,9 @@ public class WebView extends ViewGroup {
 		javascriptInterfaces.put(name, object);
 	}
 
-	public void setWebChromeClient(WebChromeClient dummy) {}
+	public void setWebChromeClient(WebChromeClient webChromeClient) {
+		this.webChromeClient = webChromeClient;
+	}
 
 	public void removeAllViews() {}
 
