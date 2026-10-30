@@ -48,3 +48,5 @@
 * **Share dialog as a layer**: the Copy/Email dialog is an `AlertDialog` in the app window instead of a window of its own, which phoc showed over the accent colour.
 * **Restart intents**: `Intent.makeRestartActivityTask` closes DB Navigator's cookie screen.
 * **Text and buttons match Android**: `TextView` sizes are pixels (they were points, 1.33 times too big); gravity, hints, `maxLines`, `singleLine`, compound drawables from XML, `minWidth` and `minHeight` work; `Button`s honour text size and centre their label; `AlertDialog` has one row of buttons; a closed `Spinner` uses `getView` without GTK's arrow and frame. `spinnerStyle` is the default style of `Spinner`.
+* **App fonts**: `Typeface` loads an app's fonts (assets, font resources, buffers) through fontconfig; files are kept in `_fonts_` of the data directory. `Paint` and `TextView` use the family. Variable axes and exact weights are not read: a Typeface has a family and bold/italic.
+* **smallestScreenWidthDp**: set from the monitor, so `layout-sw350dp` and similar resources are chosen.
