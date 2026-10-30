@@ -2,6 +2,8 @@ package android.webkit;
 
 public class WebSettings {
 
+	private boolean javaScriptEnabled = false;
+
 	public static enum LayoutAlgorithm {
 		NORMAL,
 		NARROW_COLUMNS,
@@ -23,7 +25,13 @@ public class WebSettings {
 
 	public void setSupportMultipleWindows(boolean supportMultipleWindows) {}
 
-	public void setJavaScriptEnabled(boolean javaScriptEnabled) {}
+	public void setJavaScriptEnabled(boolean javaScriptEnabled) {
+		this.javaScriptEnabled = javaScriptEnabled;
+	}
+
+	public boolean getJavaScriptEnabled() {
+		return javaScriptEnabled;
+	}
 
 	public void setSavePassword(boolean savePassword) {}
 
