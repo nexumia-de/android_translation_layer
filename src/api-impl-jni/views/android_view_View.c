@@ -618,6 +618,9 @@ JNIEXPORT void JNICALL Java_android_view_View_native_1setVisibility(JNIEnv *env,
 
 	atl_safe_gtk_widget_set_visible(wrapper, visibility != android_view_View_GONE);
 	gtk_widget_set_opacity(wrapper, (visibility != android_view_View_INVISIBLE) * alpha);
+	/* GTK only hands an event to the picked widget and its parents, never to siblings below it,
+	 * so an invisible overlay (e.g. a faded out splash screen) would take all touches */
+	gtk_widget_set_can_target(wrapper, visibility != android_view_View_INVISIBLE && alpha != 0.0f);
 	if (!JAVA_IS_WIDGET(widget))
 		gtk_widget_set_sensitive(wrapper, sensitive && visibility != android_view_View_INVISIBLE && alpha != 0.0f);
 }
