@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 // import android.graphics.Movie;
 import android.graphics.drawable.Drawable;
@@ -1025,6 +1026,74 @@ public class Resources {
 	 *
 	 * @see android.util.AttributeSet
 	 */
+	/**
+	 * Return the Typeface of a font resource: a font file, or a font family XML whose fonts
+	 * all get loaded, so fontconfig can pick the weight and style.
+	 */
+	public Typeface getFont(int id) throws NotFoundException {
+		synchronized (sFontCache) {
+			Typeface typeface = sFontCache.get(id);
+			if (typeface != null)
+				return typeface;
+		}
+		TypedValue value = new TypedValue();
+		getValue(id, value, true);
+		if (value.string == null)
+			throw new NotFoundException("Font resource ID #0x" + Integer.toHexString(id));
+		Typeface typeface = null;
+		String path = value.string.toString();
+		try {
+			if (path.endsWith(".xml"))
+				typeface = loadFontFamily(id);
+			else
+				typeface = Typeface.createFromResourceStream(mAssets.openNonAsset(value.assetCookie, path));
+		} catch (IOException | XmlPullParserException e) {
+			throw new NotFoundException("Font resource ID #0x" + Integer.toHexString(id) + ": " + e);
+		}
+		synchronized (sFontCache) {
+			sFontCache.put(id, typeface);
+		}
+		return typeface;
+	}
+
+	private Typeface loadFontFamily(int id) throws IOException, XmlPullParserException {
+		Typeface regular = null;
+		Typeface first = null;
+		try (XmlResourceParser parser = getXml(id)) {
+			int type;
+			while ((type = parser.next()) != XmlPullParser.END_DOCUMENT) {
+				if (type != XmlPullParser.START_TAG || !"font".equals(parser.getName()))
+					continue;
+				int font = 0;
+				int weight = 400;
+				int style = 0;
+				for (int i = 0; i < parser.getAttributeCount(); i++) {
+					switch (parser.getAttributeName(i)) {
+						case "font":
+							font = parser.getAttributeResourceValue(i, 0);
+							break;
+						case "fontWeight":
+							weight = parser.getAttributeIntValue(i, 400);
+							break;
+						case "fontStyle":
+							style = parser.getAttributeIntValue(i, 0);
+							break;
+					}
+				}
+				if (font == 0)
+					continue;
+				Typeface typeface = getFont(font);
+				if (first == null)
+					first = typeface;
+				if (regular == null && weight == 400 && style == 0)
+					regular = typeface;
+			}
+		}
+		return regular != null ? regular : first != null ? first : Typeface.DEFAULT;
+	}
+
+	private static final android.util.SparseArray<Typeface> sFontCache = new android.util.SparseArray<>();
+
 	public XmlResourceParser getXml(int id) throws NotFoundException {
 		return loadXmlResourceParser(id, "xml");
 	}
