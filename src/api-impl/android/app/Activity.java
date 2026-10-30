@@ -1,5 +1,7 @@
 package android.app;
 
+import java.io.File;
+import android.atl.ATLPaths;
 import android.app.ActionBar;
 import android.atl.ATLLoadedApp;
 import android.atl.annotation.Export;
@@ -354,6 +356,20 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			nativeFileChooser(FILE_CHOOSER_ACTIONS.indexOf(intent.getAction()), intent.getType(), intent.getStringExtra("android.intent.extra.TITLE"), requestCode);
 		} else if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
 			nativeFileChooser(0 /*GTK_FILE_CHOOSER_ACTION_OPEN*/, intent.getType(), intent.getStringExtra(Intent.EXTRA_TITLE), requestCode);
+		} else if ("android.intent.action.INSTALL_PACKAGE".equals(intent.getAction()) && ATLPaths.in_flatpak) {
+			final File apk = new File(intent.getData().getPath());
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					final boolean ok = PackageInstaller.installThroughService(apk);
+					new Handler(Looper.getMainLooper()).post(new Runnable() {
+						@Override
+						public void run() {
+							onActivityResult(requestCode, ok ? -1 /*RESULT_OK*/ : 0 /*RESULT_CANCELED*/, new Intent());
+						}
+					});
+				}
+			}).start();
 		} else if ("android.intent.action.INSTALL_PACKAGE".equals(intent.getAction())) {
 			try {
 				Process p = new ProcessBuilder("/usr/bin/env", "android-translation-layer", "--install", intent.getData().getPath()).start();
@@ -389,6 +405,22 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		return null;
 	}
 	private void confirmUninstall(final String packageName, final int requestCode) {
+		if (ATLPaths.in_flatpak) {
+			// the host asks, not a dialog the app could draw itself
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					final boolean success = PackageInstaller.uninstallThroughService(packageName);
+					new Handler(Looper.getMainLooper()).post(new Runnable() {
+						@Override
+						public void run() {
+							onActivityResult(requestCode, success ? RESULT_OK : RESULT_FIRST_USER, new Intent());
+						}
+					});
+				}
+			}).start();
+			return;
+		}
 		CharSequence label = packageName;
 		try {
 			PackageManager pm = getPackageManager();

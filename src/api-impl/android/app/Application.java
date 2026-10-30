@@ -3,6 +3,7 @@ package android.app;
 import android.R;
 import android.atl.ATLLoadedApp;
 import android.atl.ATLPaths;
+import android.atl.ApkSigners;
 import android.atl.annotation.Export;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -13,8 +14,6 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashSet;
 
 public class Application extends ContextWrapper {
 	public long native_window;
@@ -73,12 +72,14 @@ public class Application extends ContextWrapper {
 		return info.packageName;
 	}
 
-	/* for --install-ask: what installing this apk would do, see enum install_state in main.c */
+	/* for --install-ask and --install-flatpak: what installing this apk would do, see enum
+	 * install_state in main.c */
 	static final int INSTALL_NEW = 0;
 	static final int INSTALL_UPDATE = 1;
 	static final int INSTALL_REINSTALL = 2;
 	static final int INSTALL_DOWNGRADE = 3;
 	static final int INSTALL_CONFLICT = 4;
+	static final int INSTALL_INVALID = 5;
 	private String installed_version_name;
 
 	@Export
@@ -91,21 +92,33 @@ public class Application extends ContextWrapper {
 		return installed_version_name;
 	}
 
-	/* like Android's installer: an update keeps the signer and does not go back to an older version */
 	@Export
 	int get_install_state() {
+		return get_install_state_for(new File(ATLPaths.installed_apks_dir, this.get_atl_loaded_app().pkg.packageName + ".apk").getPath());
+	}
+
+	/* like Android's installer: the apk must be signed and unchanged, an update keeps the signer (or
+	 * one it rotated to) and does not go back to an older version; installed_apk is the installed
+	 * app's apk, in _installed_apks_ or in its Flatpak */
+	@Export
+	int get_install_state_for(String installed_apk) {
 		PackageParser.Package pkg = this.get_atl_loaded_app().pkg;
-		File installed_apk = new File(ATLPaths.installed_apks_dir, pkg.packageName + ".apk");
-		if (!installed_apk.isFile())
+		ApkSigners opened_signers = ApkSigners.verify(pkg.applicationInfo.sourceDir);
+		if (opened_signers == null)
+			return INSTALL_INVALID;
+		File installed_file = new File(installed_apk);
+		if (!installed_file.isFile())
 			return INSTALL_NEW;
-		PackageParser.Package installed = parse(installed_apk);
+		PackageParser.Package installed = parse(installed_file);
 		if (installed == null)
 			return INSTALL_UPDATE; // a broken install, replacing it is what the user wants
 		installed_version_name = installed.mVersionName;
-		PackageParser.Package opened = parse(new File(pkg.applicationInfo.sourceDir));
-		if (opened == null || installed.mSignatures == null || opened.mSignatures == null ||
-		    !new HashSet<>(Arrays.asList(opened.mSignatures)).equals(new HashSet<>(Arrays.asList(installed.mSignatures))))
+		ApkSigners installed_signers = ApkSigners.verify(installed_apk);
+		if (installed_signers == null || !opened_signers.canUpdate(installed_signers))
 			return INSTALL_CONFLICT;
+		PackageParser.Package opened = parse(new File(pkg.applicationInfo.sourceDir));
+		if (opened == null)
+			return INSTALL_INVALID;
 		if (opened.mVersionCode < installed.mVersionCode)
 			return INSTALL_DOWNGRADE;
 		return opened.mVersionCode == installed.mVersionCode ? INSTALL_REINSTALL : INSTALL_UPDATE;
@@ -113,10 +126,7 @@ public class Application extends ContextWrapper {
 
 	private static PackageParser.Package parse(File apk) {
 		PackageParser parser = new PackageParser(apk.getPath());
-		PackageParser.Package pkg = parser.parsePackage(apk, apk.getPath(), new DisplayMetrics(), 0);
-		if (pkg != null)
-			parser.collectCertificates(pkg, 0);
-		return pkg;
+		return parser.parsePackage(apk, apk.getPath(), new DisplayMetrics(), 0);
 	}
 
 	@Export

@@ -99,6 +99,17 @@ install_data([
 install_data('res/desktop/com.gitlab.android_translation_layer.install.desktop',
              install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'applications'))
 
+# the installer service for app stores in their own Flatpak, see docs/installing-apps.md
+executable('atl-installer-service', 'src/installer-service/atl-installer-service.c',
+           dependencies: [dependency('gio-unix-2.0')],
+           install: true,
+           install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
+           c_args: ['-DINSTALL_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"'])
+configure_file(input: 'src/installer-service/de.nexumia.atl.Installer.service.in',
+               output: 'de.nexumia.atl.Installer.service',
+               configuration: {'libexecdir': join_paths(get_option('prefix'), get_option('libexecdir'))},
+               install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'dbus-1', 'services'))
+
 # builds an app's own Flatpak, see --install-flatpak
 install_data('flatpak/make-app.sh', rename: 'make-app-flatpak',
              install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
@@ -177,6 +188,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/content/android_content_ClipboardManager.c',
                                                                   	'src/api-impl-jni/content/android_content_ContentResolver.c',
                                                                   	'src/api-impl-jni/content/android_content_Context.c',
+                                                                  	'src/api-impl-jni/content/android_content_pm_PackageInstaller.c',
                                                                   	'src/api-impl-jni/content/android_content_res_XmlBlock.c',
                                                                   	'src/api-impl-jni/database/android_database_SQLiteCommon.c',
                                                                   	'src/api-impl-jni/database/android_database_SQLiteConnection.c',

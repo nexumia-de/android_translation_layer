@@ -90,6 +90,9 @@ public final class ATLLoadedAppManager {
 			}
 			File installed_apk_location = new File(ATLPaths.installed_apks_dir, packageName + ".apk");
 			if (!installed_apk_location.isFile()) {
+				PackageInstaller.refreshInstalled(false);
+			}
+			if (!installed_apk_location.isFile()) {
 				if (ATLLoadedApp.play_services.contains(packageName)) {
 					return loadGStub(packageName).pkg;
 				}
@@ -167,6 +170,7 @@ public final class ATLLoadedAppManager {
 
 	/** Package names of the APKs in _installed_apks_ that the primary application may see. */
 	public static List<String> getInstalledPackageNames() {
+		PackageInstaller.refreshInstalled(false);
 		PackageInstaller.watchInstalledApks();
 		List<String> names = new ArrayList<>();
 		String[] files = ATLPaths.installed_apks_dir.list();
