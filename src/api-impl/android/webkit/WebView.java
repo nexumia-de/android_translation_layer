@@ -3,9 +3,16 @@ package android.webkit;
 import android.atl.annotation.Export;
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.net.Uri;
 import android.util.AttributeSet;
 import android.util.Base64;
 import android.view.ViewGroup;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class WebView extends ViewGroup {
 
@@ -30,6 +37,7 @@ public class WebView extends ViewGroup {
 	}
 
 	private boolean ownLoadPending;
+	private final HashMap<String, Object> javascriptInterfaces = new HashMap<>();
 
 	public void setDownloadListener(DownloadListener downloadListener) {}
 
@@ -97,6 +105,7 @@ public class WebView extends ViewGroup {
 				e.printStackTrace();
 			}
 		}
+		javascriptInterfaces.put(name, object);
 	}
 
 	public void setWebChromeClient(WebChromeClient dummy) {}
@@ -116,17 +125,19 @@ public class WebView extends ViewGroup {
 		// webkit doesn't allow overwriting the file:// uri scheme. So we replace it with the android-asset:// scheme
 		data = data.replace("file:///android_asset/", "android-asset:///assets/");
 		ownLoadPending = true;
+		updateBridgeScript();
 		native_loadDataWithBaseURL(widget, baseUrl, data, mimeType, encoding, settings.getJavaScriptEnabled());
 	}
 
 	public void loadUrl(String url) {
 		if (url.startsWith("javascript:")) {
-			System.out.println("loadUrl: " + url + " - not implemented yet");
+			evaluateJavascript(url.substring("javascript:".length()), null);
 			return;
 		}
 		// webkit doesn't allow overwriting the file:// uri scheme. So we replace it with the android-asset:// scheme
 		url = url.replace("file:///android_asset/", "android-asset:///assets/");
 		ownLoadPending = true;
+		updateBridgeScript();
 		native_loadUrl(widget, url, settings.getJavaScriptEnabled());
 	}
 
@@ -152,7 +163,9 @@ public class WebView extends ViewGroup {
 		loadDataWithBaseURL("about:blank", data, mimeType, encoding, "about:blank");
 	}
 
-	public void evaluateJavascript(String script, ValueCallback resultCallback) {}
+	public void evaluateJavascript(String script, ValueCallback<String> resultCallback) {
+		native_evaluateJavascript(widget, script, resultCallback, settings.getJavaScriptEnabled());
+	}
 
 	public static void setWebContentsDebuggingEnabled(boolean enabled) {}
 
@@ -171,11 +184,82 @@ public class WebView extends ViewGroup {
 		return new Object();
 	}
 
-	public void removeJavascriptInterface(String name) {}
+	public void removeJavascriptInterface(String name) {
+		javascriptInterfaces.remove(name);
+	}
+
+	/* Android's interfaces answer synchronously, WebKit's script messages only asynchronously,
+	 * so each call is a synchronous request to the atl-bridge scheme, see internalBridgeCall */
+	private void updateBridgeScript() {
+		if (javascriptInterfaces.isEmpty())
+			return;
+		StringBuilder script = new StringBuilder("(function(){function call(n,m,a){var x=new XMLHttpRequest();"
+		    + "x.open('GET','atl-bridge:///'+encodeURIComponent(n)+'/'+encodeURIComponent(m)+'?'+encodeURIComponent(JSON.stringify(Array.prototype.slice.call(a))),false);"
+		    + "x.send();return JSON.parse(x.responseText)}"
+		    + "function add(n,m){var o=window[n]=window[n]||{};o[m]=function(){return call(n,m,arguments)}}");
+		for (Map.Entry<String, Object> entry : javascriptInterfaces.entrySet()) {
+			for (Method method : entry.getValue().getClass().getMethods()) {
+				if (method.getDeclaringClass() != Object.class)
+					script.append("add(").append(JSONObject.quote(entry.getKey())).append(",").append(JSONObject.quote(method.getName())).append(");");
+			}
+		}
+		native_setUserScript(widget, script.append("})()").toString(), settings.getJavaScriptEnabled());
+	}
+
+	private static Object convertBridgeArgument(JSONArray args, int index, Class<?> type) throws JSONException {
+		if (args.isNull(index))
+			return type.isPrimitive() ? (type == boolean.class ? (Object)Boolean.FALSE : (Object)Integer.valueOf(0)) : null;
+		if (type == boolean.class || type == Boolean.class)
+			return args.getBoolean(index);
+		if (type == int.class || type == Integer.class)
+			return args.getInt(index);
+		if (type == long.class || type == Long.class)
+			return args.getLong(index);
+		if (type == float.class || type == Float.class)
+			return (float)args.getDouble(index);
+		if (type == double.class || type == Double.class)
+			return args.getDouble(index);
+		return args.get(index).toString();
+	}
+
+	// to be used by native code
+	@Export
+	String internalBridgeCall(String uri) {
+		try {
+			Uri parsed = Uri.parse(uri);
+			Object object = javascriptInterfaces.get(parsed.getPathSegments().get(0));
+			String methodName = parsed.getPathSegments().get(1);
+			JSONArray args = new JSONArray(parsed.getQuery());
+			if (object == null)
+				return "null";
+			for (Method method : object.getClass().getMethods()) {
+				Class<?>[] types = method.getParameterTypes();
+				if (!method.getName().equals(methodName) || types.length != args.length())
+					continue;
+				Object[] values = new Object[types.length];
+				for (int i = 0; i < types.length; i++)
+					values[i] = convertBridgeArgument(args, i, types[i]);
+				method.setAccessible(true);
+				Object result = method.invoke(object, values);
+				return result == null ? "null" : result instanceof String ? JSONObject.quote((String)result) : result.toString();
+			}
+		} catch (ReflectiveOperationException | JSONException | RuntimeException e) {
+			e.printStackTrace();
+		}
+		return "null";
+	}
+
+	// to be used by native code
+	@Export
+	void internalEvaluateDone(ValueCallback<String> callback, String result) {
+		callback.onReceiveValue(result != null ? result : "null");
+	}
 
 	@Override
 	protected native long native_constructor(Context context, AttributeSet attrs);
 	private native void native_loadDataWithBaseURL(long widget, String baseUrl, String data, String mimeType, String encoding, boolean javaScriptEnabled);
 	private native void native_loadUrl(long widget, String url, boolean javaScriptEnabled);
 	private native void native_updateContentHeight(long widget);
+	private native void native_setUserScript(long widget, String script, boolean javaScriptEnabled);
+	private native void native_evaluateJavascript(long widget, String script, ValueCallback callback, boolean javaScriptEnabled);
 }

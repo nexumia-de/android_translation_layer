@@ -273,6 +273,22 @@ JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadUrl
 JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1updateContentHeight
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     android_webkit_WebView
+ * Method:    native_setUserScript
+ * Signature: (JLjava/lang/String;Z)V
+ */
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1setUserScript
+  (JNIEnv *, jobject, jlong, jstring, jboolean);
+
+/*
+ * Class:     android_webkit_WebView
+ * Method:    native_evaluateJavascript
+ * Signature: (JLjava/lang/String;Landroid/webkit/ValueCallback;Z)V
+ */
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1evaluateJavascript
+  (JNIEnv *, jobject, jlong, jstring, jobject, jboolean);
+
 #ifdef __cplusplus
 }
 #endif

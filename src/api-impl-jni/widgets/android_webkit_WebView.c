@@ -29,6 +29,41 @@ static void asset_uri_scheme_request_cb(WebKitURISchemeRequest *request, gpointe
 	g_object_unref(stream);
 }
 
+static void bridge_uri_scheme_request_cb(WebKitURISchemeRequest *request, gpointer user_data)
+{
+	JNIEnv *env = get_jni_env();
+	WrapperWidget *wrapper = WRAPPER_WIDGET(gtk_widget_get_parent(gtk_widget_get_parent(GTK_WIDGET(webkit_uri_scheme_request_get_web_view(request)))));
+	jstring result = J__WebView__internalBridgeCall(env, wrapper->jobj, _JSTRING(webkit_uri_scheme_request_get_uri(request)));
+	const char *result_chars = (*env)->GetStringUTFChars(env, result, NULL);
+	gsize length = strlen(result_chars);
+	GInputStream *stream = g_memory_input_stream_new_from_data(g_strndup(result_chars, length), length, g_free);
+	(*env)->ReleaseStringUTFChars(env, result, result_chars);
+	WebKitURISchemeResponse *response = webkit_uri_scheme_response_new(stream, length);
+	webkit_uri_scheme_response_set_content_type(response, "application/json");
+	SoupMessageHeaders *headers = soup_message_headers_new(SOUP_MESSAGE_HEADERS_RESPONSE);
+	soup_message_headers_append(headers, "Access-Control-Allow-Origin", "*");
+	webkit_uri_scheme_response_set_http_headers(response, headers);
+	webkit_uri_scheme_request_finish_with_response(request, response);
+	g_object_unref(response);
+	g_object_unref(stream);
+}
+
+static void evaluate_cb(GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	JNIEnv *env = get_jni_env();
+	jobject callback = user_data;
+	JSCValue *value = webkit_web_view_evaluate_javascript_finish(WEBKIT_WEB_VIEW(source), result, NULL);
+	if (callback) {
+		char *json = value ? jsc_value_to_json(value, 0) : NULL;
+		WrapperWidget *wrapper = WRAPPER_WIDGET(gtk_widget_get_parent(gtk_widget_get_parent(GTK_WIDGET(source))));
+		J__WebView__internalEvaluateDone(env, wrapper->jobj, callback, json ? _JSTRING(json) : NULL);
+		g_free(json);
+		(*env)->DeleteGlobalRef(env, callback);
+	}
+	if (value)
+		g_object_unref(value);
+}
+
 #define CONTENT_HEIGHT_SCRIPT "Math.ceil(document.documentElement.getBoundingClientRect().height)"
 
 static void content_height_cb(GObject *source, GAsyncResult *result, gpointer user_data)
@@ -93,6 +128,10 @@ static WebKitWebView *get_web_view(GtkWidget *box, gboolean javascript_enabled)
 		static gboolean uri_scheme_registered = FALSE;
 		if (!uri_scheme_registered) {
 			webkit_web_context_register_uri_scheme(webkit_web_view_get_context(WEBKIT_WEB_VIEW(webview)), "android-asset", asset_uri_scheme_request_cb, NULL, NULL);
+			webkit_web_context_register_uri_scheme(webkit_web_view_get_context(WEBKIT_WEB_VIEW(webview)), "atl-bridge", bridge_uri_scheme_request_cb, NULL, NULL);
+			WebKitSecurityManager *security_manager = webkit_web_context_get_security_manager(webkit_web_view_get_context(WEBKIT_WEB_VIEW(webview)));
+			webkit_security_manager_register_uri_scheme_as_cors_enabled(security_manager, "atl-bridge");
+			webkit_security_manager_register_uri_scheme_as_secure(security_manager, "atl-bridge");
 			uri_scheme_registered = TRUE;
 		}
 		g_signal_connect(webview, "load-changed", G_CALLBACK(web_view_load_changed), wrapper);
@@ -133,6 +172,28 @@ JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadDataWithBaseURL(J
 	char *data = malloc(data_len + 1); // + 1 for NUL
 	(*env)->GetStringUTFRegion(env, data_jstr, 0, data_jlen, data);
 	webkit_web_view_load_bytes(webview, g_bytes_new(data, data_len), mime_type ? _CSTRING(mime_type) : "text/html", encoding ? _CSTRING(encoding) : NULL, base_url ? _CSTRING(base_url) : NULL);
+}
+
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1setUserScript(JNIEnv *env, jobject this, jlong widget_ptr, jstring script, jboolean javascript_enabled)
+{
+	WebKitWebView *webview = get_web_view(_PTR(widget_ptr), javascript_enabled);
+	if (!webview)
+		return;
+
+	WebKitUserContentManager *manager = webkit_web_view_get_user_content_manager(webview);
+	WebKitUserScript *user_script = webkit_user_script_new(_CSTRING(script), WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES, WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
+	webkit_user_content_manager_remove_all_scripts(manager);
+	webkit_user_content_manager_add_script(manager, user_script);
+	webkit_user_script_unref(user_script);
+}
+
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1evaluateJavascript(JNIEnv *env, jobject this, jlong widget_ptr, jstring script, jobject callback, jboolean javascript_enabled)
+{
+	WebKitWebView *webview = get_web_view(_PTR(widget_ptr), javascript_enabled);
+	if (!webview)
+		return;
+
+	webkit_web_view_evaluate_javascript(webview, _CSTRING(script), -1, NULL, NULL, NULL, evaluate_cb, callback ? (*env)->NewGlobalRef(env, callback) : NULL);
 }
 
 JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1updateContentHeight(JNIEnv *env, jobject this, jlong widget_ptr)
