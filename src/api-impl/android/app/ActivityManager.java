@@ -91,6 +91,13 @@ public class ActivityManager {
 		outInfo = new MemoryInfo();
 	}
 
+	public android.os.Debug.MemoryInfo[] getProcessMemoryInfo(int[] pids) {
+		android.os.Debug.MemoryInfo[] infos = new android.os.Debug.MemoryInfo[pids.length];
+		for (int i = 0; i < pids.length; i++)
+			infos[i] = new android.os.Debug.MemoryInfo();
+		return infos;
+	}
+
 	public ConfigurationInfo getDeviceConfigurationInfo() {
 		return new ConfigurationInfo();
 	}
