@@ -41,6 +41,7 @@ public class TextView extends View {
 	private int gravity = Gravity.CENTER;
 	private int maxLines = -1;
 	private CharSequence hint;
+	private Typeface typeface;
 	private ColorStateList hintColors;
 
 	public TextView(Context context, AttributeSet attrs) {
@@ -98,6 +99,8 @@ public class TextView extends View {
 				setSingleLine();
 			else if (a.hasValue(com.android.internal.R.styleable.TextView_maxLines))
 				setMaxLines(a.getInt(com.android.internal.R.styleable.TextView_maxLines, -1));
+			else if (a.hasValue(com.android.internal.R.styleable.TextView_lines))
+				setLines(a.getInt(com.android.internal.R.styleable.TextView_lines, -1));
 
 			if (a.hasValue(com.android.internal.R.styleable.TextView_gravity)) {
 				setGravity(a.getInt(com.android.internal.R.styleable.TextView_gravity, gravity));
@@ -190,6 +193,7 @@ public class TextView extends View {
 			updateTextColor();
 	}
 	public void setTypeface(Typeface tf, int style) {
+		setTypeface(tf);
 		String[] classesToRemove = {"ATL-font-bold", "ATL-font-italic"};
 		native_removeClasses(widget, classesToRemove);
 
@@ -208,7 +212,11 @@ public class TextView extends View {
 				break;
 		}
 	}
-	public void setTypeface(Typeface tf) {}
+	public void setTypeface(Typeface tf) {
+		typeface = tf;
+		native_setFontFamily(widget, tf != null ? tf.getFamily() : null);
+	}
+	private native void native_setFontFamily(long widget, String family);
 	public void setLineSpacing(float add, float mult) {}
 	public final void setLinksClickable(boolean whether) {}
 
@@ -262,7 +270,7 @@ public class TextView extends View {
 	}
 	public void setMaxWidth(int maxWidth) {}
 
-	public Typeface getTypeface() { return null; }
+	public Typeface getTypeface() { return typeface; }
 
 	public float getTextSize() { return 10; }
 
@@ -468,7 +476,9 @@ public class TextView extends View {
 
 	public TextUtils.TruncateAt getEllipsize() { return null; }
 
-	public void setLines(int lines) {}
+	public void setLines(int lines) {
+		setMaxLines(lines);
+	}
 
 	public int getMinLines() {
 		return -1;

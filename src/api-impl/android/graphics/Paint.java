@@ -23,6 +23,7 @@ public class Paint {
 	private Shader shader;
 	private Align align = Align.CENTER;
 	private ColorFilter color_filter;
+	private Typeface typeface;
 
 	public Paint() {
 		paint = native_create();
@@ -35,6 +36,7 @@ public class Paint {
 
 	public Paint(Paint paint) {
 		this.paint = native_clone(paint.paint);
+		typeface = paint.typeface;
 	}
 
 	public void setColor(int color) {
@@ -77,6 +79,9 @@ public class Paint {
 	}
 
 	public Typeface setTypeface(Typeface typeface) {
+		this.typeface = typeface;
+		Typeface font = typeface != null ? typeface : Typeface.DEFAULT;
+		native_set_typeface(paint, font.family, font.isBold(), font.isItalic());
 		return typeface;
 	}
 	public void getTextBounds(String text, int start, int end, Rect bounds) {
@@ -313,7 +318,7 @@ public class Paint {
 	}
 
 	public Typeface getTypeface() {
-		return new Typeface();
+		return typeface != null ? typeface : Typeface.DEFAULT;
 	}
 
 	public void setTextAlign(Align align) {
@@ -360,6 +365,7 @@ public class Paint {
 	public void set(Paint paint) {
 		native_recycle(this.paint);
 		this.paint = native_clone(paint.paint);
+		typeface = paint.typeface;
 	}
 
 	public boolean isFilterBitmap() { return false; }
@@ -409,6 +415,7 @@ public class Paint {
 
 	private static native long native_create();
 	private static native long native_clone(long paint);
+	private static native void native_set_typeface(long paint, String family, boolean bold, boolean italic);
 	private static native void native_recycle(long paint);
 	private static native void native_set_color(long paint, int color);
 	private static native int native_get_color(long paint);

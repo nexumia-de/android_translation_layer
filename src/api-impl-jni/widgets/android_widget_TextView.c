@@ -40,6 +40,29 @@ JNIEXPORT jlong JNICALL Java_android_widget_TextView_native_1constructor(JNIEnv 
 	return _INTPTR(box);
 }
 
+JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setFontFamily(JNIEnv *env, jobject this, jlong widget_ptr, jstring family_jstr)
+{
+	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
+	GtkStyleContext *style_context = gtk_widget_get_style_context(widget);
+
+	GtkCssProvider *old_provider = g_object_get_data(G_OBJECT(widget), "font_style_provider");
+	if (old_provider)
+		gtk_style_context_remove_provider(style_context, GTK_STYLE_PROVIDER(old_provider));
+	g_object_set_data(G_OBJECT(widget), "font_style_provider", NULL);
+	if (!family_jstr)
+		return;
+
+	GtkCssProvider *css_provider = gtk_css_provider_new();
+	const char *family = (*env)->GetStringUTFChars(env, family_jstr, NULL);
+	char *css_string = g_strdup_printf("* { font-family: \"%s\"; }", family);
+	(*env)->ReleaseStringUTFChars(env, family_jstr, family);
+	gtk_css_provider_load_from_string(css_provider, css_string);
+	g_free(css_string);
+
+	gtk_style_context_add_provider(style_context, GTK_STYLE_PROVIDER(css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	g_object_set_data(G_OBJECT(widget), "font_style_provider", css_provider);
+}
+
 JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setGravity(JNIEnv *env, jobject this, jlong widget_ptr, jint gravity)
 {
 	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));

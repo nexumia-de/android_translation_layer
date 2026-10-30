@@ -126,6 +126,20 @@ JNIEXPORT jint JNICALL Java_android_graphics_Paint_native_1get_1stroke_1join(JNI
 	return gsk_stroke_get_line_join(paint->gsk_stroke);
 }
 
+JNIEXPORT void JNICALL Java_android_graphics_Paint_native_1set_1typeface(JNIEnv *env, jclass clazz, jlong paint_ptr, jstring family_jstr, jboolean bold, jboolean italic)
+{
+	struct AndroidPaint *paint = (struct AndroidPaint *)_PTR(paint_ptr);
+	if (family_jstr) {
+		const char *family = (*env)->GetStringUTFChars(env, family_jstr, NULL);
+		pango_font_description_set_family(paint->font, family);
+		(*env)->ReleaseStringUTFChars(env, family_jstr, family);
+	} else {
+		pango_font_description_unset_fields(paint->font, PANGO_FONT_MASK_FAMILY);
+	}
+	pango_font_description_set_weight(paint->font, bold ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL);
+	pango_font_description_set_style(paint->font, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
+}
+
 JNIEXPORT void JNICALL Java_android_graphics_Paint_native_1set_1text_1size(JNIEnv *env, jclass clazz, jlong paint_ptr, jfloat size)
 {
 	struct AndroidPaint *paint = _PTR(paint_ptr);

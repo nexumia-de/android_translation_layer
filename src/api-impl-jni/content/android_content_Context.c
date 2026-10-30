@@ -30,6 +30,7 @@ static void monitor_changed_cb(GdkSurface *surface, GdkMonitor *monitor, jobject
 
 	_SET_INT_FIELD(configuration, "screenWidthDp", geometry.width);
 	_SET_INT_FIELD(configuration, "screenHeightDp", geometry.height);
+	_SET_INT_FIELD(configuration, "smallestScreenWidthDp", MIN(geometry.width, geometry.height));
 	if (geometry.width >= 800 && geometry.height >= 800)
 		_SET_INT_FIELD(configuration, "screenLayout", /*SCREENLAYOUT_SIZE_LARGE*/ 0x03);
 	else
