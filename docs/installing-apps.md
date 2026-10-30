@@ -288,6 +288,37 @@ compared against the installed Flatpak, Cancel answered `cancelled`,
 Reinstall and a new install answered success, Uninstall asked and
 removed the Flatpak with its data, List returned every installed app.
 
+End to end on 2026-10-30, headless, with the engine built in CI from
+this code and F-Droid 2.0.2 as its own Flatpak: F-Droid listed the
+installed app Flatpaks, installed Chooser through the service ("F-Droid
+wants to install this app", then F-Droid showed Open), Open started
+Chooser in its own sandbox, and Uninstall in F-Droid's menu asked on the
+host and removed Chooser, which F-Droid noticed at once. DB Navigator,
+which does not request `REQUEST_INSTALL_PACKAGES`, gets
+`ServiceUnknown`. Open: in the sandbox F-Droid shows "No internet"
+although it fetches its index and downloads: ATL's
+`ConnectivityManager` asks GLib's network monitor, which inside a
+Flatpak learns the state from the portal only after startup and ATL
+does not pass that change on.
+
+## Links into and out of the sandbox
+
+- Out: ATL opens URLs with the OpenURI portal, which every Flatpak may
+  use. Checked headless: Aurora's "Source code" link in its sandbox
+  reached `org.freedesktop.portal.OpenURI.OpenURI` with its URL.
+- In: generated apps are D-Bus activatable like ATL's launchers outside
+  a sandbox (`DBusActivatable=true` and a service file inside the
+  Flatpak, which Flatpak exports), so a link such as DB Navigator's
+  login redirect `dbnav://dbnavigator.bahn.de/login?code=…` reaches the
+  running app instead of starting a second one. Checked headless:
+  `gio open` of that link reached the running sandboxed DB Navigator
+  (`opening uri over DBus`, `LoginOverlayActivity`). A real login needs
+  the owner's account.
+- `make-app-flatpak` decides between install and update with `flatpak
+  list`: Flatpak 1.18.4 aborts in `flatpak info` for apps from the local
+  repository (exit status 134), which made every update look like a new
+  install that Flatpak then skipped.
+
 # Setting F-Droid up on the phone
 
 ```sh

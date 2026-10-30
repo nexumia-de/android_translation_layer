@@ -113,11 +113,21 @@ if [ -n "$icon" ]; then
 	esac
 	icon_line="Icon=$id"
 fi
+# D-Bus activation, as ATL's launchers outside a sandbox: a link or Open reaches the running app
+# instead of starting a second one; Flatpak exports the service file and runs it in the sandbox
+mkdir -p "$build/files/share/dbus-1/services"
+cat > "$build/files/share/dbus-1/services/$id.service" <<EOF
+[D-BUS Service]
+Name=$id
+Exec=/app/bin/atl-app --dbus-activated
+EOF
+
 mkdir -p "$build/files/share/applications"
 cat > "$build/files/share/applications/$id.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=$name
+DBusActivatable=true
 Exec=atl-app$exec_args
 $icon_line
 $mime_line
@@ -138,7 +148,9 @@ flatpak build-finish "$build" --socket=wayland --device=dri --share=ipc \
 flatpak build-export "$repo" "$build" stable >/dev/null
 flatpak remote-add --user --if-not-exists --no-gpg-verify atl-local "$repo"
 flatpak remote-modify --user --url="file://$repo" atl-local
-if flatpak info --user "$id" >/dev/null 2>&1; then
+# not "flatpak info": Flatpak 1.18.4 aborts in it for apps from atl-local (exit status 134), which
+# looked like "not installed", so updates were skipped
+if flatpak list --user --app --columns=application | grep -qxF "$id"; then
 	flatpak update --user -y --noninteractive "$id"
 else
 	flatpak install --user -y --noninteractive atl-local "$id//stable"
