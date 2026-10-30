@@ -7,6 +7,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_graphics_SweepGradient_GRADIENT_NONE
+#define android_graphics_SweepGradient_GRADIENT_NONE 0L
+#undef android_graphics_SweepGradient_GRADIENT_LINEAR
+#define android_graphics_SweepGradient_GRADIENT_LINEAR 1L
+#undef android_graphics_SweepGradient_GRADIENT_RADIAL
+#define android_graphics_SweepGradient_GRADIENT_RADIAL 2L
 #undef android_graphics_SweepGradient_TYPE_COLORS_AND_POSITIONS
 #define android_graphics_SweepGradient_TYPE_COLORS_AND_POSITIONS 1L
 #undef android_graphics_SweepGradient_TYPE_COLOR_START_AND_COLOR_END

@@ -116,7 +116,15 @@ public class GskCanvas extends DisplayListCanvas {
 
 	@Override
 	public void drawPath(Path path, Paint paint) {
-		if (path != null)
+		if (path == null)
+			return;
+		Shader shader = paint != null ? paint.getShader() : null;
+		float[] geometry = new float[4];
+		int gradient = shader != null ? shader.getGradient(geometry) : Shader.GRADIENT_NONE;
+		if (gradient != Shader.GRADIENT_NONE)
+			native_drawPathGradient(snapshot, path.getGskPath(), path.getFillType().fill_rule, paint.paint, gradient, geometry,
+			                        shader.getGradientColors(), shader.getGradientOffsets(), shader.isGradientRepeating());
+		else
 			native_drawPath(snapshot, path.getGskPath(), path.getFillType().fill_rule, paint != null ? paint.paint : default_paint.paint);
 	}
 
@@ -173,6 +181,7 @@ public class GskCanvas extends DisplayListCanvas {
 	protected native void native_drawBitmap(long snapshot, long texture, int x, int y, int width, int height, int src_x, int src_y, int src_width, int src_height, long paint);
 	protected native void native_drawRect(long snapshot, float left, float top, float right, float bottom, long paint);
 	protected native void native_drawPath(long snapshot, long path, int fill_rule, long paint);
+	protected native void native_drawPathGradient(long snapshot, long path, int fill_rule, long paint, int gradient, float[] geometry, int[] colors, float[] offsets, boolean repeating);
 	protected native void native_translate(long snapshot, float dx, float dy);
 	protected native void native_rotate(long snapshot, float degrees);
 	protected native void native_save(long snapshot);

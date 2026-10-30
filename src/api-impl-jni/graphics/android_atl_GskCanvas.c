@@ -68,6 +68,73 @@ JNIEXPORT void JNICALL Java_android_atl_GskCanvas_native_1drawPath(JNIEnv *env, 
 		gtk_snapshot_pop(snapshot);
 }
 
+/* gradient types as in android.graphics.Shader */
+#define GRADIENT_LINEAR 1
+#define GRADIENT_RADIAL 2
+
+JNIEXPORT void JNICALL Java_android_atl_GskCanvas_native_1drawPathGradient(JNIEnv *env, jobject this, jlong snapshot_ptr, jlong path_ptr, jint fill_rule, jlong paint_ptr, jint gradient, jfloatArray geometry_array, jintArray colors_array, jfloatArray offsets_array, jboolean repeating)
+{
+	GtkSnapshot *snapshot = GTK_SNAPSHOT(_PTR(snapshot_ptr));
+	GskPath *path = _PTR(path_ptr);
+	struct AndroidPaint *paint = _PTR(paint_ptr);
+	graphene_rect_t bounds;
+	if (!gsk_path_get_bounds(path, &bounds))
+		return;
+
+	jsize n_stops = (*env)->GetArrayLength(env, colors_array);
+	if (n_stops < 2 || (*env)->GetArrayLength(env, offsets_array) < n_stops)
+		return;
+	jfloat *geometry = (*env)->GetFloatArrayElements(env, geometry_array, NULL);
+	jint *colors = (*env)->GetIntArrayElements(env, colors_array, NULL);
+	jfloat *offsets = (*env)->GetFloatArrayElements(env, offsets_array, NULL);
+	GskColorStop *stops = g_new(GskColorStop, n_stops);
+	for (int i = 0; i < n_stops; i++) {
+		uint32_t color = colors[i];
+		/* GSK wants increasing offsets in [0, 1]; the paint's alpha applies to the shader too */
+		stops[i].offset = CLAMP(offsets[i], i ? stops[i - 1].offset : 0, 1);
+		stops[i].color = (GdkRGBA){
+			((color >> 16) & 0xff) / 255.f,
+			((color >> 8) & 0xff) / 255.f,
+			(color & 0xff) / 255.f,
+			((color >> 24) & 0xff) / 255.f * paint->color.alpha,
+		};
+	}
+
+	if (paint->use_color_filter)
+		gtk_snapshot_push_color_matrix(snapshot, &paint->color_matrix, &paint->color_offset);
+	for (int pass = 0; pass < 2; pass++) {
+		if (pass == 0 && paint->is_fill)
+			gtk_snapshot_push_fill(snapshot, path, fill_rule);
+		else if (pass == 1 && paint->is_stroke && gsk_path_get_stroke_bounds(path, paint->gsk_stroke, &bounds))
+			gtk_snapshot_push_stroke(snapshot, path, paint->gsk_stroke);
+		else
+			continue;
+		if (gradient == GRADIENT_LINEAR) {
+			graphene_point_t start = GRAPHENE_POINT_INIT(geometry[0], geometry[1]);
+			graphene_point_t end = GRAPHENE_POINT_INIT(geometry[2], geometry[3]);
+			if (repeating)
+				gtk_snapshot_append_repeating_linear_gradient(snapshot, &bounds, &start, &end, stops, n_stops);
+			else
+				gtk_snapshot_append_linear_gradient(snapshot, &bounds, &start, &end, stops, n_stops);
+		} else {
+			graphene_point_t center = GRAPHENE_POINT_INIT(geometry[0], geometry[1]);
+			float radius = MAX(geometry[2], 0.001f);
+			if (repeating)
+				gtk_snapshot_append_repeating_radial_gradient(snapshot, &bounds, &center, radius, radius, 0, 1, stops, n_stops);
+			else
+				gtk_snapshot_append_radial_gradient(snapshot, &bounds, &center, radius, radius, 0, 1, stops, n_stops);
+		}
+		gtk_snapshot_pop(snapshot);
+	}
+	if (paint->use_color_filter)
+		gtk_snapshot_pop(snapshot);
+
+	g_free(stops);
+	(*env)->ReleaseFloatArrayElements(env, offsets_array, offsets, JNI_ABORT);
+	(*env)->ReleaseIntArrayElements(env, colors_array, colors, JNI_ABORT);
+	(*env)->ReleaseFloatArrayElements(env, geometry_array, geometry, JNI_ABORT);
+}
+
 JNIEXPORT void JNICALL Java_android_atl_GskCanvas_native_1translate(JNIEnv *env, jclass this_class, jlong snapshot_ptr, jfloat dx, jfloat dy)
 {
 	GtkSnapshot *snapshot = GTK_SNAPSHOT(_PTR(snapshot_ptr));
