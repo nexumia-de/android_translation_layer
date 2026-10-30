@@ -193,6 +193,11 @@ public final class ATLLoadedApp {
 			}
 			application.atl_attach_base_context(new ContextImpl(
 			    this.createDefaultResources(), this, pkg.applicationInfo.theme));
+			/* like Android: temporary files go to the app's own cache directory, not the shared /tmp,
+			 * where a directory created by another user is not writable */
+			File cache_dir = application.getCacheDir();
+			if (cache_dir != null)
+				System.setProperty("java.io.tmpdir", cache_dir.getAbsolutePath());
 			// HACK: Set WhatsApp's custom logging mechanism to verbose for easier debugging.
 			// Should be removed again once WhatsApp is fully supported
 			try {
