@@ -22,6 +22,7 @@ JNIEXPORT jlong JNICALL Java_android_widget_Button_native_1constructor(JNIEnv *e
 	GtkWidget *wrapper = g_object_ref(wrapper_widget_new());
 	GtkWidget *button = gtk_button_new();
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_set_halign(box, GTK_ALIGN_CENTER); // the gravity of Android's button styles
 	gtk_button_set_child(GTK_BUTTON(button), box);
 	gtk_box_append(GTK_BOX(box), gtk_label_new(text));
 	wrapper_widget_set_child(WRAPPER_WIDGET(wrapper), button);
@@ -37,6 +38,24 @@ JNIEXPORT void JNICALL Java_android_widget_Button_native_1setText(JNIEnv *env, j
 	const char *nativeText = ((*env)->GetStringUTFChars(env, text, NULL));
 	atl_safe_gtk_label_set_text(box_get_label(env, gtk_button_get_child(button)), nativeText);
 	((*env)->ReleaseStringUTFChars(env, text, nativeText));
+}
+
+JNIEXPORT void JNICALL Java_android_widget_Button_setTextSize(JNIEnv *env, jobject this, jfloat size)
+{
+	GtkButton *button = GTK_BUTTON(_PTR(_GET_LONG_FIELD(this, "widget")));
+	GtkLabel *label = box_get_label(env, gtk_button_get_child(button));
+	PangoAttrList *attrs = pango_attr_list_new();
+	pango_attr_list_insert(attrs, pango_attr_size_new_absolute(size * PANGO_SCALE));
+	gtk_label_set_attributes(label, attrs);
+	pango_attr_list_unref(attrs);
+}
+
+JNIEXPORT void JNICALL Java_android_widget_Button_setCompoundDrawablePadding(JNIEnv *env, jobject this, jint pad)
+{
+	GtkWidget *widget = GTK_WIDGET(_PTR(_GET_LONG_FIELD(this, "widget")));
+	if (!GTK_IS_BUTTON(widget)) // CompoundButton
+		return;
+	gtk_box_set_spacing(GTK_BOX(gtk_button_get_child(GTK_BUTTON(widget))), pad);
 }
 
 static void clicked_cb(GtkWidget *button, gpointer user_data)
@@ -68,6 +87,8 @@ JNIEXPORT jobject JNICALL Java_android_widget_Button_getText(JNIEnv *env, jobjec
 
 JNIEXPORT void JNICALL Java_android_widget_Button_native_1setCompoundDrawables(JNIEnv *env, jobject this, jlong widget_ptr, jlong paintable_ptr)
 {
+	if (!GTK_IS_BUTTON(_PTR(widget_ptr))) // CompoundButton
+		return;
 	GtkButton *button = GTK_BUTTON(_PTR(widget_ptr));
 	GdkPaintable *paintable = GDK_PAINTABLE(_PTR(paintable_ptr));
 	GtkWidget *box = gtk_button_get_child(button);

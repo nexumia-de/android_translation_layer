@@ -51,7 +51,20 @@ public class Button extends TextView {
 	public native CharSequence getText();
 
 	@Override
-	public void setTextSize(float size) {}
+	public native void setTextSize(float size);
+
+	@Override
+	public void setHint(CharSequence s) {}
+
+	@Override
+	public native void setCompoundDrawablePadding(int pad);
+
+	@Override
+	public void setBackgroundDrawable(Drawable background) {
+		super.setBackgroundDrawable(background);
+		if (background != null)
+			native_addClass(widget, "ATL-no-border");
+	}
 
 	@Override
 	public void setCompoundDrawables(Drawable left, Drawable top, Drawable right, Drawable bottom) {
