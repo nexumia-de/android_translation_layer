@@ -117,12 +117,18 @@ public class Typeface {
 		return isBold() ? 700 : 400;
 	}
 
+	/* fontconfig reads the file later, but AndroidX deletes its temporary font file right after this */
 	public static Typeface createFromFile(String path) {
-		return fromFile(path);
+		try {
+			return fromStream(new FileInputStream(path));
+		} catch (IOException e) {
+			e.printStackTrace();
+			return DEFAULT;
+		}
 	}
 
 	public static Typeface createFromFile(File file) {
-		return fromFile(file.getPath());
+		return createFromFile(file.getPath());
 	}
 
 	public String getFamily() {
