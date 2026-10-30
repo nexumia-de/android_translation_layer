@@ -8,6 +8,8 @@ public final class ATLPaths {
 	public static final File api_impl_jar;
 	public static final File gstub_jar;
 	public static final File ghax_jar;
+	/* inside an app's own Flatpak: installed apps come from the host's installer service */
+	public static final boolean in_flatpak = new File("/.flatpak-info").isFile();
 
 	static {
 		// The main executable set api-impl.jar as the first element of "java.class.path"
@@ -29,6 +31,7 @@ public final class ATLPaths {
 			}
 			app_data_dir_base = new File(user_data_dir + "/android_translation_layer").getAbsoluteFile();
 		}
-		installed_apks_dir = new File(app_data_dir_base, "_installed_apks_");
+		// in a Flatpak links to the apks the installer service handed over, see PackageInstaller.refreshInstalled
+		installed_apks_dir = new File(app_data_dir_base, in_flatpak ? "_installed_apks_view_" : "_installed_apks_");
 	}
 }

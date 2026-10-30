@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=de.nexumia.atl.Installer
+Exec=@libexecdir@/android-translation-layer/atl-installer-service

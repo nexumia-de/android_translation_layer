@@ -321,6 +321,8 @@ struct jni_callback_data {
 	gboolean install_internal;
 	gboolean install_ask;
 	gboolean install_flatpak;
+	char *installer_name;
+	char *uninstall_flatpak;
 	char *prgname;
 	char **extra_jvm_options;
 	char **extra_string_keys;
@@ -448,6 +450,25 @@ static void ask_uninstall(GApplication *app)
 	gtk_window_present(page->window);
 }
 
+#define FLATPAK_APP_PREFIX "de.nexumia.atl."
+
+static char *flatpak_user_dir(void)
+{
+	const char *dir = g_getenv("FLATPAK_USER_DIR");
+	return dir ? g_strdup(dir) : g_build_filename(g_get_user_data_dir(), "flatpak", NULL);
+}
+
+/* the base apk inside the app's Flatpak, as make-app-flatpak puts it */
+static char *flatpak_installed_apk(const char *package_name)
+{
+	char *dir = flatpak_user_dir();
+	char *id = g_strconcat(FLATPAK_APP_PREFIX, package_name, NULL);
+	char *path = g_build_filename(dir, "app", id, "current", "active", "files", "share", "atl", "apk0.apk", NULL);
+	g_free(id);
+	g_free(dir);
+	return path;
+}
+
 /* the launcher icon: the apk's own file, or the adaptive or vector Drawable rendered into an SVG */
 static GBytes *app_icon_bytes(JNIEnv *env, jobject application_object, const char *app_icon_path)
 {
@@ -516,6 +537,20 @@ static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject ap
 	if (!package_name) {
 		fprintf(stderr, "install-flatpak: the apk has no package name\n");
 		exit(1);
+	}
+	/* like Android: only signed, unchanged apks, and an update keeps the signer; exit status 3 */
+	char *installed = flatpak_installed_apk(package_name);
+	int state = J__Application__get_install_state_for(env, application_object, _JSTRING(installed));
+	g_free(installed);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		state = 5;
+	}
+	if (state == 4 || state == 5) { // INSTALL_CONFLICT, INSTALL_INVALID
+		fprintf(stderr, "install-flatpak: %s\n", state == 4 ? "the installed app is signed by someone else"
+		                                                      : "the apk is not signed or was changed after signing");
+		fflush(NULL);
+		_exit(3);
 	}
 
 	GError *err = NULL;
@@ -607,6 +642,7 @@ enum install_state {
 	INSTALL_REINSTALL,
 	INSTALL_DOWNGRADE,
 	INSTALL_CONFLICT,
+	INSTALL_INVALID,
 };
 
 struct install_request {
@@ -614,6 +650,9 @@ struct install_request {
 	struct jni_callback_data *d;
 	char *package_name;
 	GFile *apk;
+	/* --install-flatpak: all apks given, the base first */
+	GFile **files;
+	int nfiles;
 	char *app_data_dir_base;
 	char *staging_dir;
 	char *staged_apk;
@@ -638,6 +677,12 @@ static void install_ask_cancelled(struct prompt_page *page, gpointer user_data)
 	install_ask_exit(user_data, 2);
 }
 
+/* exit status 3: refused (signer, version, not signed), for the installer service */
+static void install_ask_refused(struct prompt_page *page, gpointer user_data)
+{
+	install_ask_exit(user_data, 3);
+}
+
 static void install_ask_done(struct prompt_page *page, gpointer user_data)
 {
 	install_ask_exit(user_data, 0);
@@ -651,10 +696,14 @@ static void install_ask_failed(struct prompt_page *page, gpointer user_data)
 static void install_ask_open(struct prompt_page *page, gpointer user_data)
 {
 	struct install_request *r = user_data;
-	char *desktop_id = g_strdup_printf("%s.desktop", r->package_name);
+	char *desktop_id = r->d->install_flatpak ? g_strdup_printf(FLATPAK_APP_PREFIX "%s.desktop", r->package_name)
+	                                         : g_strdup_printf("%s.desktop", r->package_name);
 	GDesktopAppInfo *app_info = g_desktop_app_info_new(desktop_id);
 	if (!app_info) { // GIO's list of launchers may not know it yet
-		char *path = g_build_filename(g_get_user_data_dir(), "applications", desktop_id, NULL);
+		char *flatpak_dir = flatpak_user_dir();
+		char *path = r->d->install_flatpak ? g_build_filename(flatpak_dir, "exports", "share", "applications", desktop_id, NULL)
+		                                   : g_build_filename(g_get_user_data_dir(), "applications", desktop_id, NULL);
+		g_free(flatpak_dir);
 		app_info = g_desktop_app_info_new_from_filename(path);
 		g_free(path);
 	}
@@ -694,6 +743,9 @@ static void install_ask_installed(GObject *source, GAsyncResult *res, gpointer u
 		g_error_free(err);
 		return;
 	}
+	/* an app store asked through the installer service: it shows its own Open button */
+	if (r->d->installer_name)
+		install_ask_exit(r, 0);
 	prompt_page_set_message(r->page, r->updating ? "App updated." : "App installed.");
 	prompt_page_set_buttons(r->page, "_Done", "_Open", FALSE, install_ask_done, install_ask_open, r);
 }
@@ -757,10 +809,47 @@ static void install_ask_copied(GObject *source, GAsyncResult *res, gpointer user
 	g_object_unref(install);
 }
 
+/* --install-ask --install-flatpak: the apks stay where they are while --install-flatpak copies them */
+static void install_ask_confirmed_flatpak(struct install_request *r)
+{
+	GPtrArray *argv = g_ptr_array_new_with_free_func(g_free);
+	g_ptr_array_add(argv, g_strdup(r->d->prgname));
+	g_ptr_array_add(argv, g_strdup("--install-flatpak"));
+	if (r->d->window_width) {
+		g_ptr_array_add(argv, g_strdup("-w"));
+		g_ptr_array_add(argv, g_strdup_printf("%d", r->d->window_width));
+	}
+	if (r->d->window_height) {
+		g_ptr_array_add(argv, g_strdup("-h"));
+		g_ptr_array_add(argv, g_strdup_printf("%d", r->d->window_height));
+	}
+	if (r->d->sdk_int) {
+		g_ptr_array_add(argv, g_strdup("--sdk-int"));
+		g_ptr_array_add(argv, g_strdup(r->d->sdk_int));
+	}
+	for (int i = 0; i < r->nfiles; i++)
+		g_ptr_array_add(argv, g_file_get_path(r->files[i]));
+	g_ptr_array_add(argv, NULL);
+	GError *err = NULL;
+	GSubprocess *install = g_subprocess_newv((const char *const *)argv->pdata, G_SUBPROCESS_FLAGS_NONE, &err);
+	g_ptr_array_free(argv, TRUE);
+	if (!install) {
+		install_ask_show_failure(r, err->message);
+		g_error_free(err);
+		return;
+	}
+	g_subprocess_wait_check_async(install, NULL, install_ask_installed, r);
+	g_object_unref(install);
+}
+
 static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 {
 	struct install_request *r = user_data;
 	prompt_page_set_busy(page, r->updating ? "Updating…" : "Installing…");
+	if (r->d->install_flatpak) {
+		install_ask_confirmed_flatpak(r);
+		return;
+	}
 	char *sessions_dir = g_build_filename(r->app_data_dir_base, "_installer_sessions_", NULL);
 	g_mkdir_with_parents(sessions_dir, 0755);
 	r->staging_dir = g_build_filename(sessions_dir, "ask-XXXXXX", NULL);
@@ -779,13 +868,19 @@ static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 	g_object_unref(dest);
 }
 
-static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv *env, jobject application_object, GFile *apk,
-                        const char *package_name, const char *app_icon_path, const char *app_data_dir_base, gboolean data_dir_existed)
+static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv *env, jobject application_object, GFile **files,
+                        int nfiles, const char *package_name, const char *app_icon_path, const char *app_data_dir_base,
+                        gboolean data_dir_existed)
 {
 	struct install_request *r = g_new0(struct install_request, 1);
 	r->d = d;
 	r->package_name = g_strdup(package_name);
-	r->apk = g_object_ref(apk);
+	r->apk = g_object_ref(files[0]);
+	/* the array is GApplication's, freed after open() */
+	r->files = g_new(GFile *, nfiles);
+	for (int i = 0; i < nfiles; i++)
+		r->files[i] = g_object_ref(files[i]);
+	r->nfiles = nfiles;
 	r->app_data_dir_base = g_strdup(app_data_dir_base);
 	char *installed_data_dir = g_strdup_printf("%s/%s.apk_/", app_data_dir_base, package_name);
 	r->remove_data_dir = !data_dir_existed && strcmp(app_data_dir, installed_data_dir);
@@ -793,7 +888,14 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 
 	jstring label_jstr = J__Application__get_app_label(env, application_object);
 	jstring version_jstr = J__Application__get_version_name(env, application_object);
-	enum install_state state = J__Application__get_install_state(env, application_object);
+	enum install_state state;
+	if (d->install_flatpak) {
+		char *installed = flatpak_installed_apk(package_name);
+		state = J__Application__get_install_state_for(env, application_object, _JSTRING(installed));
+		g_free(installed);
+	} else {
+		state = J__Application__get_install_state(env, application_object);
+	}
 	jstring installed_version_jstr = J__Application__get_installed_version_name(env, application_object);
 	if ((*env)->ExceptionCheck(env)) {
 		(*env)->ExceptionDescribe(env);
@@ -833,11 +935,23 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 	r->updating = state == INSTALL_UPDATE || state == INSTALL_REINSTALL;
 	switch (state) {
 		case INSTALL_NEW:
-			prompt_page_set_message(r->page, "Do you want to install this app?");
+			if (d->installer_name) {
+				char *message = g_strdup_printf("%s wants to install this app. Do you want to install it?", d->installer_name);
+				prompt_page_set_message(r->page, message);
+				g_free(message);
+			} else {
+				prompt_page_set_message(r->page, "Do you want to install this app?");
+			}
 			prompt_page_set_buttons(r->page, "_Cancel", "_Install", FALSE, install_ask_cancelled, install_ask_confirmed, r);
 			break;
 		case INSTALL_UPDATE:
-			prompt_page_set_message(r->page, "Do you want to update this app? Its data stays.");
+			if (d->installer_name) {
+				char *message = g_strdup_printf("%s wants to update this app. Do you want to update it? Its data stays.", d->installer_name);
+				prompt_page_set_message(r->page, message);
+				g_free(message);
+			} else {
+				prompt_page_set_message(r->page, "Do you want to update this app? Its data stays.");
+			}
 			prompt_page_set_buttons(r->page, "_Cancel", "_Update", FALSE, install_ask_cancelled, install_ask_confirmed, r);
 			break;
 		case INSTALL_REINSTALL:
@@ -849,13 +963,17 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 			                                installed_version ? installed_version : "?");
 			prompt_page_set_message(r->page, message);
 			g_free(message);
-			prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_cancelled, NULL, r);
+			prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_refused, NULL, r);
 			break;
 		}
 		case INSTALL_CONFLICT:
 			prompt_page_set_message(r->page, "An app with this package name is already installed, signed by someone else. "
 			                                 "Uninstall it first to install this one.");
-			prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_cancelled, NULL, r);
+			prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_refused, NULL, r);
+			break;
+		case INSTALL_INVALID:
+			prompt_page_set_message(r->page, "This APK is not signed or was changed after signing, so it cannot be installed.");
+			prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_refused, NULL, r);
 			break;
 	}
 	gtk_window_present(r->page->window);
@@ -1291,21 +1409,22 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		application_object = J__Application__create_for_installer(env);
 		if ((*env)->ExceptionCheck(env))
 			(*env)->ExceptionDescribe(env);
-		install_flatpak(d, env, application_object, files, nfiles, app_data_dir_existed);
+		if (!d->install_ask)
+			install_flatpak(d, env, application_object, files, nfiles, app_data_dir_existed);
+	} else {
+		// construct Application
+		application_object = J__Context__createApplication(env, _INTPTR(window));
+		if ((*env)->ExceptionCheck(env))
+			(*env)->ExceptionDescribe(env);
+
+		J__ContentProvider__createContentProviders(env);
+		if ((*env)->ExceptionCheck(env))
+			(*env)->ExceptionDescribe(env);
+
+		J__Application__onCreate(env, application_object);
+		if ((*env)->ExceptionCheck(env))
+			(*env)->ExceptionDescribe(env);
 	}
-
-	// construct Application
-	application_object = J__Context__createApplication(env, _INTPTR(window));
-	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
-
-	J__ContentProvider__createContentProviders(env);
-	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
-
-	J__Application__onCreate(env, application_object);
-	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
 
 	if (d->apk_instrumentation_class) {
 		if (d->apk_main_activity_class) {
@@ -1356,7 +1475,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		(*env)->ExceptionDescribe(env);
 
 	if (d->install_ask && !d->apk_instrumentation_class) {
-		ask_install(app, d, env, application_object, files[0], package_name, app_icon_path, app_data_dir_base, app_data_dir_existed);
+		ask_install(app, d, env, application_object, files, nfiles, package_name, app_icon_path, app_data_dir_base, app_data_dir_existed);
 		return;
 	}
 
@@ -1523,8 +1642,78 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	}
 }
 
+static void uninstall_flatpak_cancelled(struct prompt_page *page, gpointer user_data)
+{
+	fflush(NULL);
+	_exit(2);
+}
+
+static void uninstall_flatpak_confirmed(struct prompt_page *page, gpointer user_data)
+{
+	char *id = user_data;
+	printf("uninstall-flatpak: removing %s and its data\n", id);
+	const char *argv[] = {"flatpak", "uninstall", "--user", "-y", "--noninteractive", "--delete-data", id, NULL};
+	int wait_status;
+	GError *err = NULL;
+	gboolean ok = g_spawn_sync(NULL, (char **)argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &wait_status, &err) &&
+	              g_spawn_check_wait_status(wait_status, &err);
+	if (!ok) {
+		fprintf(stderr, "uninstall-flatpak: %s\n", err->message);
+		g_error_free(err);
+	}
+	fflush(NULL);
+	_exit(ok ? 0 : 1);
+}
+
+/* --uninstall-flatpak, for the installer service: asks like Android, then removes the app's Flatpak
+ * with its data. Exit status 0 removed, 2 the user said no, 1 failed. */
+static void ask_uninstall_flatpak(GtkApplication *app, struct jni_callback_data *d)
+{
+	const char *package_name = d->uninstall_flatpak;
+	char *apk = flatpak_installed_apk(package_name);
+	gboolean installed = !strchr(package_name, '/') && g_file_test(apk, G_FILE_TEST_IS_REGULAR);
+	g_free(apk);
+	if (!installed) {
+		fprintf(stderr, "uninstall-flatpak: %s is not installed as a Flatpak\n", package_name);
+		exit(1);
+	}
+	char *id = g_strconcat(FLATPAK_APP_PREFIX, package_name, NULL);
+	char *flatpak_dir = flatpak_user_dir();
+	char *desktop_file = g_strdup_printf("%s/exports/share/applications/%s.desktop", flatpak_dir, id);
+	GKeyFile *key_file = g_key_file_new();
+	char *label = NULL;
+	if (g_key_file_load_from_file(key_file, desktop_file, G_KEY_FILE_NONE, NULL))
+		label = g_key_file_get_locale_string(key_file, G_KEY_FILE_DESKTOP_GROUP, G_KEY_FILE_DESKTOP_KEY_NAME, NULL, NULL);
+	g_key_file_free(key_file);
+	g_free(desktop_file);
+
+	g_application_hold(G_APPLICATION(app));
+	struct prompt_page *page = prompt_page_new(app, "Uninstall App", NULL, label ? label : package_name, package_name, TRUE);
+	GtkIconTheme *theme = gtk_icon_theme_get_for_display(gtk_widget_get_display(GTK_WIDGET(page->window)));
+	char *icons = g_build_filename(flatpak_dir, "exports", "share", "icons", NULL);
+	gtk_icon_theme_add_search_path(theme, icons);
+	g_free(icons);
+	if (gtk_icon_theme_has_icon(theme, id)) {
+		GtkIconPaintable *icon = gtk_icon_theme_lookup_icon(theme, id, NULL, 128, 1, GTK_TEXT_DIR_NONE, 0);
+		prompt_page_set_icon(page, GDK_PAINTABLE(icon));
+		g_object_unref(icon);
+	}
+	char *message = d->installer_name ? g_strdup_printf("%s wants to uninstall this app. Its data will be removed too.", d->installer_name)
+	                                  : g_strdup("Do you want to uninstall this app? Its data will be removed too.");
+	prompt_page_set_message(page, message);
+	g_free(message);
+	prompt_page_set_buttons(page, "_Cancel", "_Uninstall", TRUE, uninstall_flatpak_cancelled, uninstall_flatpak_confirmed, id);
+	g_free(label);
+	g_free(flatpak_dir);
+	gtk_window_present(page->window);
+}
+
 static void activate(GtkApplication *app, struct jni_callback_data *d)
 {
+	if (d->uninstall_flatpak) {
+		ask_uninstall_flatpak(app, d);
+		return;
+	}
 	if (app_starting && !window) // D-Bus activation's own request, which started us
 		return;
 	if (window) { // this is not the first launch, but a DBus activate request to the running app
@@ -1556,6 +1745,8 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "install-internal",  0 , 0, G_OPTION_ARG_NONE,         &d->install_internal,          "copy an apk to _installed_apks_ but don't create a desktop entry",                             NULL            },
 		{ "install-ask",       0 , 0, G_OPTION_ARG_NONE,         &d->install_ask,               "ask before installing the given apk, like Android's package installer (for opening apk files)", NULL            },
 		{ "install-flatpak",   0 , 0, G_OPTION_ARG_NONE,         &d->install_flatpak,           "install the given apk as its own Flatpak, without running its code",                           NULL            },
+		{ "installer-name",    0 , 0, G_OPTION_ARG_STRING,       &d->installer_name,            "the app store that asks to install or uninstall (shown on the page)",                          "NAME"          },
+		{ "uninstall-flatpak", 0 , 0, G_OPTION_ARG_STRING,       &d->uninstall_flatpak,         "ask, then remove the Flatpak of an app installed with --install-flatpak and its data",         "PACKAGE"       },
 		{ "uninstall",         0 , 0, G_OPTION_ARG_NONE,         &d->uninstall,                 "remove an apk installed with --install, its data and its launcher (asks first)",                NULL            },
 		{ "dbus-activated",    0 , G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &d->dbus_activated, "started through the launcher's D-Bus service file",                                          NULL            },
 		{ "extra-jvm-option", 'X', 0, G_OPTION_ARG_STRING_ARRAY, &d->extra_jvm_options,         "pass an additional option directly to art (e.g -X \"-verbose:jni\")",                          "\"OPTION\""    },

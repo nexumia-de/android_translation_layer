@@ -64,11 +64,11 @@ date), so a new session knows where to continue.
 |---|---|---|---|
 | 0 Facts, sign-off, prototype | prototype works: Chooser runs in its own Flatpak on the fork's engine ([screenshot](screenshots/chooser-flatpak-2026-10-29.png)); tested by the owner on the real screen; open: owner sign-off, a WebView app, start time | this branch | 2026-10-29 |
 | T Escape test | `flatpak/escape-test.sh`: 18 checks, all blocked for a generated app; APK-level checks open | this branch | 2026-10-29 |
-| 1 ATL engine as Flatpak | builds on the phone (`de.nexumia.atl.BaseApp`, 82.6 MB); CI build on `ubuntu-24.04-arm` (`.github/workflows/engine-flatpak.yml`), published through the release `engine` and phosh-apps to `flatpak.nexumia.de`; open: first published build installed on the phone | #27, this branch | 2026-10-29 |
-| 2 Installer and broker on the host | `--install-flatpak`: name, icon, URL schemes and permissions from the APK without running app code, Flatpak built by `make-app-flatpak` ([installing apps](installing-apps.md#installing-an-apk-as-its-own-flatpak)); open: `--install-ask` and stores on it, uninstall, broker D-Bus API, settings page | this branch | 2026-10-29 |
-| 3 ATL inside a per-app Flatpak | vibration through feedbackd's Haptic D-Bus interface (reached from the sandbox, checked headless); open: data paths, broker calls, OpenURI, sensors, WebView | this branch | 2026-10-30 |
+| 1 ATL engine as Flatpak | done: CI build on `ubuntu-24.04-arm` (`.github/workflows/engine-flatpak.yml`), published through the release `engine` and phosh-apps to `flatpak.nexumia.de`; signed install from there verified on the phone, Chooser runs on it | #27, #29 | 2026-10-30 |
+| 2 Installer and broker on the host | `--install-flatpak` (#30); installer service `de.nexumia.atl.Installer` (install, uninstall, list, launch; only for APKs requesting `REQUEST_INSTALL_PACKAGES`), `--install-ask --install-flatpak` and `--uninstall-flatpak` pages ([installing apps](installing-apps.md#app-stores-in-their-own-flatpak)); open: opening an APK file on the Flatpak path, settings page | this branch | 2026-10-30 |
+| 3 ATL inside a per-app Flatpak | vibration through feedbackd (#31); install, uninstall, installed apps and starting other apps go to the installer service; open: OpenURI and the login round trip, sensors, WebView | this branch | 2026-10-30 |
 | 4 Permissions | not started | - | - |
-| 5 Install integrity | not started | - | - |
+| 5 Install integrity | signers verified over the whole APK (v3 with key rotation, v2, v1 of every entry; AOSP's verifier); unsigned, changed and foreign-signed APKs and downgrades refused; open: installer of record, signer changes on the update page, v4 | this branch | 2026-10-30 |
 | 6 Migration and default | not started | - | - |
 
 # Threat model

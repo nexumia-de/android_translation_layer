@@ -359,7 +359,16 @@ public final class ContextImpl extends Context {
 			           && intent.getData() != null && "package".equals(intent.getData().getScheme())) {
 				// asks on the same page as the launcher's Uninstall action; the store hears of it from PackageInstaller's watcher
 				String packageName = intent.getData().getSchemeSpecificPart();
-				if (new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
+				PackageInstaller.refreshInstalled(false);
+				if (ATLPaths.in_flatpak && new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
+					Slog.i(TAG, "startActivity: uninstalling " + packageName + " through the installer service");
+					new Thread(new Runnable() {
+						@Override
+						public void run() {
+							new PackageInstaller().uninstall(packageName, null);
+						}
+					}).start();
+				} else if (new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
 					Slog.i(TAG, "startActivity: uninstalling " + packageName + " through its desktop entry");
 					PackageInstaller.watchInstalledApks();
 					nativeLaunchDesktopApp(packageName + ".desktop", "uninstall");
@@ -399,7 +408,12 @@ public final class ContextImpl extends Context {
 		    && Intent.ACTION_MAIN.equals(intent.getAction())) {
 			// another installed app runs in its own process: start it through the launcher --install created
 			String packageName = intent.getComponent().getPackageName();
-			if (new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
+			PackageInstaller.refreshInstalled(false);
+			if (ATLPaths.in_flatpak && new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
+				Slog.i(TAG, "startActivity: launching " + packageName + " through the installer service");
+				PackageInstaller.nativeLaunchThroughService(packageName, null);
+				return;
+			} else if (new File(ATLPaths.installed_apks_dir, packageName + ".apk").isFile()) {
 				Slog.i(TAG, "startActivity: launching " + packageName + " through its desktop entry");
 				nativeLaunchDesktopApp(packageName + ".desktop", null);
 				return;

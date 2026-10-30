@@ -62,6 +62,8 @@ id=de.nexumia.atl.$pkg
 for perm in $(printf '%s' "$permissions" | tr ';' ' '); do
 	case $perm in
 	android.permission.INTERNET) finish="$finish --share=network" ;;
+	# app stores: the host's installer service, which asks the user for every install
+	android.permission.REQUEST_INSTALL_PACKAGES) finish="$finish --talk-name=de.nexumia.atl.Installer" ;;
 	esac
 done
 

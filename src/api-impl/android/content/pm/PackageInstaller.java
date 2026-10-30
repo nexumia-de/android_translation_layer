@@ -3,6 +3,7 @@ package android.content.pm;
 import android.atl.ATLLoadedApp;
 import android.atl.ATLLoadedAppManager;
 import android.atl.ATLPaths;
+import android.atl.ApkSigners;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -84,6 +85,53 @@ public class PackageInstaller {
 	private static final ArrayList<SessionCallback> callbacks = new ArrayList<>();
 	private static final Random random = new Random();
 
+	/* null on success, else "cancelled", "conflict: ..." or another error */
+	static native String nativeInstallThroughService(String[] apks, String sdkInt, int width, int height);
+	static native boolean nativeUninstallThroughService(String packageName);
+	public static native void nativeLaunchThroughService(String packageName, String uri);
+	private static native void nativeRefreshInstalledThroughService(String dir);
+
+	private static long lastRefresh = 0;
+
+	/**
+	 * In a Flatpak: fills installed_apks_dir with the installed apps' apks from the installer
+	 * service, at most every two seconds unless forced. Without access to it (apps that may not
+	 * install apps) the list stays empty, like package visibility on Android.
+	 */
+	/* the installer service asks the user and removes the app's Flatpak with its data; blocks */
+	public static boolean uninstallThroughService(String packageName) {
+		boolean success = nativeUninstallThroughService(packageName);
+		refreshInstalled(true);
+		if (success) {
+			ATLLoadedAppManager.forgetPackage(packageName);
+			sendPackageBroadcast(Intent.ACTION_PACKAGE_REMOVED, packageName, false);
+		}
+		return success;
+	}
+
+	/* an apk file an app opens with INSTALL_PACKAGE: the installer service asks and installs; blocks */
+	public static boolean installThroughService(File apk) {
+		String sdkInt = System.getProperty("Build.VERSION.SDK_INT");
+		String error = nativeInstallThroughService(new String[] {apk.getPath()}, sdkInt != null ? sdkInt : "",
+		                                           Display.window_width, Display.window_height);
+		refreshInstalled(true);
+		if (error != null)
+			Slog.w(TAG, "install of " + apk + " through the installer service: " + error);
+		return error == null;
+	}
+
+	public static void refreshInstalled(boolean force) {
+		if (!ATLPaths.in_flatpak)
+			return;
+		synchronized (PackageInstaller.class) {
+			long now = System.currentTimeMillis();
+			if (!force && now - lastRefresh < 2000)
+				return;
+			lastRefresh = now;
+			nativeRefreshInstalledThroughService(ATLPaths.installed_apks_dir.getPath());
+		}
+	}
+
 	public int createSession(SessionParams params) throws IOException {
 		File base = new File(ATLPaths.app_data_dir_base, "_installer_sessions_");
 		base.mkdirs();
@@ -155,7 +203,7 @@ public class PackageInstaller {
 	}
 
 	public void uninstall(String packageName, IntentSender statusReceiver) {
-		boolean success = uninstallPackage(packageName);
+		boolean success = ATLPaths.in_flatpak ? uninstallThroughService(packageName) : uninstallPackage(packageName);
 		sendStatus(statusReceiver, -1, packageName, success ? STATUS_SUCCESS : STATUS_FAILURE, success ? null : "not installed");
 	}
 
@@ -470,11 +518,24 @@ public class PackageInstaller {
 						message = "INSTALL_FAILED_INVALID_APK: package " + pkg.packageName + " does not match " + packageName;
 					} else {
 						packageName = pkg.packageName;
-						parser.collectCertificates(pkg, 0);
-						String conflict = checkSignatures(pkg);
-						if (conflict != null) {
+						ApkSigners signers = ApkSigners.verify(base.getPath());
+						String conflict = signers != null ? checkSignatures(packageName, signers) : null;
+						if (signers == null) {
+							status = STATUS_FAILURE_INVALID;
+							message = "INSTALL_PARSE_FAILED_NO_CERTIFICATES: " + base.getName() + " is not signed or was changed";
+						} else if (conflict != null) {
 							status = STATUS_FAILURE_CONFLICT;
 							message = conflict;
+						} else if (ATLPaths.in_flatpak) {
+							// the host's installer service builds the app's own Flatpak, after asking the user
+							Object[] result = installThroughService(base, files);
+							status = (Integer)result[0];
+							message = (String)result[1];
+							refreshInstalled(true);
+							if (status == STATUS_SUCCESS) {
+								ATLLoadedAppManager.forgetPackage(packageName);
+								sendPackageBroadcast(Intent.ACTION_PACKAGE_ADDED, packageName, false);
+							}
 						} else {
 							// --install names the installed file after the file it gets
 							File apk = new File(dir, packageName + ".apk");
@@ -557,13 +618,34 @@ public class PackageInstaller {
 		}
 
 		/* like Android, refuse an update signed by someone else */
-		private String checkSignatures(PackageParser.Package pkg) {
-			PackageParser.Package installed = ATLLoadedAppManager.getPackageFromPackageName(pkg.packageName);
-			if (installed == null || installed.mSignatures == null || installed.mSignatures.length == 0)
+		private String checkSignatures(String packageName, ApkSigners signers) {
+			File installed = new File(ATLPaths.installed_apks_dir, packageName + ".apk");
+			if (!installed.isFile())
 				return null;
-			if (pkg.mSignatures == null || !new HashSet<>(Arrays.asList(pkg.mSignatures)).equals(new HashSet<>(Arrays.asList(installed.mSignatures))))
-				return "INSTALL_FAILED_UPDATE_INCOMPATIBLE: signatures do not match the installed " + pkg.packageName;
+			ApkSigners installedSigners = ApkSigners.verify(installed.getPath());
+			if (installedSigners == null || !signers.canUpdate(installedSigners))
+				return "INSTALL_FAILED_UPDATE_INCOMPATIBLE: signatures do not match the installed " + packageName;
 			return null;
+		}
+
+		/* status and message from the installer service; exit status 2 means the user said no */
+		private Object[] installThroughService(File base, File[] files) {
+			String[] paths = new String[files.length];
+			paths[0] = base.getPath();
+			int i = 1;
+			for (File file : files) {
+				if (file != base)
+					paths[i++] = file.getPath();
+			}
+			String sdkInt = System.getProperty("Build.VERSION.SDK_INT");
+			String error = nativeInstallThroughService(paths, sdkInt != null ? sdkInt : "", Display.window_width, Display.window_height);
+			if (error == null)
+				return new Object[] {STATUS_SUCCESS, null};
+			if (error.equals("cancelled"))
+				return new Object[] {STATUS_FAILURE_ABORTED, "INSTALL_FAILED_ABORTED: User rejected permissions"};
+			if (error.startsWith("conflict"))
+				return new Object[] {STATUS_FAILURE_CONFLICT, "INSTALL_FAILED_UPDATE_INCOMPATIBLE: " + error};
+			return new Object[] {STATUS_FAILURE, "INSTALL_FAILED_INTERNAL_ERROR: " + error};
 		}
 
 		public void abandon() {

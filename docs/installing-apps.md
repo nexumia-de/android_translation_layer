@@ -226,6 +226,68 @@ planned. Not yet used by `--install-ask` or by app stores (`--install`
 from `PackageInstaller`); they switch once the apps run fully inside
 the sandbox (phase 3).
 
+# App stores in their own Flatpak
+
+A sandboxed app cannot run anything on the host, and Flatpak's way out
+(`flatpak-spawn --host`, the `org.freedesktop.Flatpak` bus name) would
+give it the whole user account back. Like Android's package installer,
+a store therefore hands the APK to a service of the system, and the
+system asks the user:
+
+- **`atl-installer-service`** (`src/installer-service/`, installed to
+  `libexec/android-translation-layer/`, D-Bus activated as
+  `de.nexumia.atl.Installer` on the session bus, exits when idle).
+  Methods: `Install(ah apks, a{sv} options) → s error`,
+  `Uninstall(s package) → b`, `List() → a(sh)` (package and a read-only
+  fd of its APK), `Launch(s package, s uri)`.
+- **Who may call it**: `make-app-flatpak` adds
+  `--talk-name=de.nexumia.atl.Installer` only for APKs that request
+  `android.permission.REQUEST_INSTALL_PACKAGES` (F-Droid, Aurora); for
+  other apps the D-Bus proxy hides the service. The caller's name on the
+  page comes from its sandbox (`/proc/<pid>/root/.flatpak-info` and its
+  launcher), never from a parameter.
+- **Install**: the store passes open files, not paths, so it needs no
+  host file access. The service copies them to
+  `~/.cache/android_translation_layer/installer/` and runs
+  `android-translation-layer --install-ask --install-flatpak
+  --installer-name <store>`: the page says "<store> wants to install
+  this app", every install and update is confirmed (no separate
+  per-store grant, which would add nothing on top), and the store hears
+  "installed" as soon as it is, since it shows its own Open button. Exit
+  status 2 means the user said no, 3 refused.
+- **Uninstall**: `--uninstall-flatpak <package>` asks on the host
+  ("<store> wants to uninstall this app") and runs `flatpak uninstall
+  --delete-data`. Inside the sandbox ATL no longer shows its own
+  uninstall dialog, which an app could fake.
+- **Inside the store** (ATL in a Flatpak, `/.flatpak-info` present):
+  `PackageInstaller` sessions, `INSTALL_PACKAGE` intents, uninstalls,
+  `getInstalledPackages` and starting another installed app go to the
+  service. Installed apps appear in `_installed_apks_view_/` as links to
+  the APK fds the service handed over (`/proc/self/fd/<n>`), refreshed
+  at most every two seconds and after every change, so the rest of ATL
+  reads them as outside a sandbox.
+
+## Signer check
+
+`android.atl.ApkSigners` verifies an APK like Android's package manager
+before an install, with AOSP's verifier (`android.util.apk`, Android
+11): APK Signature Scheme v3 (with key rotation: an update may come from
+a key the app rotated to), else v2, else the v1 JAR signature of every
+entry outside `META-INF/`. `PackageParser.collectCertificates` only
+read the v1 signature of `AndroidManifest.xml`, so a changed
+`classes.dex` passed and APKs signed with v2 or v3 only had no signer at
+all. The install page, `--install-flatpak` itself (exit status 3) and
+`PackageInstaller` refuse unsigned or changed APKs, updates from another
+signer and downgrades.
+
+Tried headless on 2026-10-30 with Blokish (signed v1 to v3) through
+`--install-flatpak`: a file changed after signing, the signature removed
+and a re-signing with another key were refused, the original installed.
+Through the service (test client outside a sandbox): the page
+compared against the installed Flatpak, Cancel answered `cancelled`,
+Reinstall and a new install answered success, Uninstall asked and
+removed the Flatpak with its data, List returned every installed app.
+
 # Setting F-Droid up on the phone
 
 ```sh
