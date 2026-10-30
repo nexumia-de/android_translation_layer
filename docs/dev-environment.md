@@ -295,6 +295,12 @@ env XDG_RUNTIME_DIR=$R WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDE
   dbus-run-session -- phoc -C phoc.ini -E ./steps.sh
 ```
 
+WebKit needs a short `XDG_RUNTIME_DIR` (its bus proxy socket must fit
+into a Unix socket path, or the app aborts): use `mktemp -d -p
+/run/user/1000`, not the scratchpad. With `WLR_RENDERER=pixman` a
+WebView stays dark unless the app runs with
+`WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1`.
+
 `steps.sh` starts the app in the background, then uses `grim FILE` and
 `wl-pointer -s 360x720 tap X Y` like `headless-shot.sh`'s steps. The
 window has a title bar of about 46 logical px. For the owner's look set

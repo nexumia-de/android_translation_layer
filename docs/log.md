@@ -42,3 +42,8 @@
 * **Installer service interface versioned**: the interface is one XML file, the service reports `Version` (1), and ATL in the sandbox checks it before its first call with clear messages, since the host package and the engine are updated separately; it stays in this repository ([installing apps](installing-apps.md#interface-and-versions)).
 * **Apps installed from a file get --sdk-int 26**: F-Droid opened from the owner's Downloads folder installed but did not start, since without `--sdk-int` ATL reported its minSdk 24; the install page and `--install-flatpak` now use 26 (or a higher minSdk), like app stores ([installing apps](installing-apps.md#opening-an-apk-file)).
 * **DB Navigator login after the redirect**: on the owner's phone the login hung after the browser's redirect; ATL now calls `onPause`, `onNewIntent`, `onResume` for an open activity like Android ([app status](apps.md), [fork workflow](fork-workflow.md)).
+
+## 2026-10-30
+* **WebView by default**: ATL starts WebKit when an app loads the first page into a WebView, `ATL_UGLY_DISABLE_WEBVIEW` turns it off; wrap_content takes the height of the page, and `setJavaScriptEnabled` is honoured (Android's default is off). `setBlockNetworkLoads` is still ignored. DB Navigator's tickets and BahnCards need it. [Apps](apps.md)
+* **Share dialog as a layer**: the Copy/Email dialog is an `AlertDialog` in the app window instead of a window of its own, which phoc showed over the accent colour.
+* **Restart intents**: `Intent.makeRestartActivityTask` closes DB Navigator's cookie screen.
