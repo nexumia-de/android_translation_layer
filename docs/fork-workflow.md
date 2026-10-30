@@ -115,6 +115,7 @@ a commit is added, sent or merged.
 | `Install split APKs` | 110 lines | kept |
 | `api-impl: PackageInstaller: pass the installer's --sdk-int on` | 4 lines | kept |
 | `Vibrator: vibrate through feedbackd's haptic interface` | 70 lines | kept |
+| `Activity: pause and resume an open activity around onNewIntent` | 20 lines | kept |
 | `api-impl: add Android 11's APK Signature Scheme v2 and v3 verifier` and `ApkSigners` (verified signers for installs) | 3200 lines (AOSP, unchanged) + 150 | kept |
 
 Commit ids are those on `phosh`; cherry-pick them from there.
