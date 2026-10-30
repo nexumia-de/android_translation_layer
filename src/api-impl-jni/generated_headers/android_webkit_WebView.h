@@ -252,18 +252,26 @@ JNIEXPORT jlong JNICALL Java_android_webkit_WebView_native_1constructor
 /*
  * Class:     android_webkit_WebView
  * Method:    native_loadDataWithBaseURL
- * Signature: (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ * Signature: (JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
  */
 JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadDataWithBaseURL
-  (JNIEnv *, jobject, jlong, jstring, jstring, jstring, jstring);
+  (JNIEnv *, jobject, jlong, jstring, jstring, jstring, jstring, jboolean);
 
 /*
  * Class:     android_webkit_WebView
  * Method:    native_loadUrl
- * Signature: (JLjava/lang/String;)V
+ * Signature: (JLjava/lang/String;Z)V
  */
 JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadUrl
-  (JNIEnv *, jobject, jlong, jstring);
+  (JNIEnv *, jobject, jlong, jstring, jboolean);
+
+/*
+ * Class:     android_webkit_WebView
+ * Method:    native_updateContentHeight
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1updateContentHeight
+  (JNIEnv *, jobject, jlong);
 
 #ifdef __cplusplus
 }

@@ -20,6 +20,7 @@ import org.xmlpull.v1.XmlPullParser;
 public class Intent implements Parcelable {
 	public static final int FLAG_ACTIVITY_CLEAR_TOP = 1 << 26;
 	public static final int FLAG_ACTIVITY_NEW_TASK = 1 << 28;
+	public static final int FLAG_ACTIVITY_CLEAR_TASK = 1 << 15;
 
 	public static final String ACTION_ACTIVITY_RECOGNIZER = "android.intent.action.ACTIVITY_RECOGNIZER";
 	public static final String ACTION_ADVANCED_SETTINGS_CHANGED = "android.intent.action.ADVANCED_SETTINGS";
@@ -519,6 +520,19 @@ public class Intent implements Parcelable {
 	public Intent addFlags(int flags) {
 		this.flags |= flags;
 		return this;
+	}
+
+	public static Intent makeMainActivity(ComponentName mainActivity) {
+		Intent intent = new Intent(ACTION_MAIN);
+		intent.setComponent(mainActivity);
+		intent.addCategory(CATEGORY_LAUNCHER);
+		return intent;
+	}
+
+	public static Intent makeRestartActivityTask(ComponentName mainActivity) {
+		Intent intent = makeMainActivity(mainActivity);
+		intent.addFlags(FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK);
+		return intent;
 	}
 
 	public Intent setFlags(int flags) {

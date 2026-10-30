@@ -27,10 +27,8 @@ The following environment variables are recognized by the main executable:
 
 ---
 
-`ATL_UGLY_ENABLE_WEBVIEW=` - if not set, WebView will be stubbed as a generic View; this will avoid
-                             wasting resources on WebViews which are only used for fingerprinting and ads
-
-                             (set this for apps that use WebView for it's intended purpose)
+`ATL_UGLY_DISABLE_WEBVIEW=` - if set, WebView will be stubbed as a generic View; without it, WebKit
+                              is started when the app loads the first page into a WebView
 
 ---
 
