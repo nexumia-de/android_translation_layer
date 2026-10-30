@@ -40,6 +40,38 @@ JNIEXPORT jlong JNICALL Java_android_widget_TextView_native_1constructor(JNIEnv 
 	return _INTPTR(box);
 }
 
+JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setGravity(JNIEnv *env, jobject this, jlong widget_ptr, jint gravity)
+{
+	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
+	/* Gravity.AXIS_*: 1 center, 3 left or start, 5 right or end */
+	int horizontal = gravity & 0x7;
+	float xalign = horizontal == 1 ? 0.5f : horizontal == 5 ? 1.f : 0.f;
+	/* Gravity: 0x10 center_vertical, 0x30 top, 0x50 bottom */
+	int vertical = gravity & 0x70;
+	float yalign = vertical == 0x10 ? 0.5f : vertical == 0x50 ? 1.f : 0.f;
+
+	if (GTK_IS_BUTTON(widget)) {
+		GtkWidget *box = gtk_button_get_child(GTK_BUTTON(widget));
+		gtk_widget_set_halign(box, horizontal == 3 ? GTK_ALIGN_START : horizontal == 5 ? GTK_ALIGN_END : GTK_ALIGN_CENTER);
+	} else if (GTK_IS_BOX(widget)) {
+		GtkLabel *label = box_get_label(env, widget);
+		gtk_label_set_xalign(label, xalign);
+		gtk_label_set_yalign(label, yalign);
+		gtk_label_set_justify(label, xalign == 0.5f ? GTK_JUSTIFY_CENTER : xalign == 1.f ? GTK_JUSTIFY_RIGHT : GTK_JUSTIFY_LEFT);
+	}
+}
+
+JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setMaxLines(JNIEnv *env, jobject this, jlong widget_ptr, jint max_lines)
+{
+	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
+	if (!GTK_IS_BOX(widget)) // Button and EditText
+		return;
+	GtkLabel *label = box_get_label(env, widget);
+	gtk_label_set_wrap(label, max_lines != 1);
+	gtk_label_set_lines(label, max_lines);
+	gtk_label_set_ellipsize(label, max_lines > 0 ? PANGO_ELLIPSIZE_END : PANGO_ELLIPSIZE_NONE);
+}
+
 JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setText(JNIEnv *env, jobject this, jobject charseq)
 {
 	const char *text = charseq ? (*env)->GetStringUTFChars(env, charseq, NULL) : NULL;
@@ -83,7 +115,7 @@ JNIEXPORT void JNICALL Java_android_widget_TextView_setTextSize(JNIEnv *env, job
 	else
 		attrs = pango_attr_list_new();
 
-	PangoAttribute *size_attr = pango_attr_size_new(size * PANGO_SCALE);
+	PangoAttribute *size_attr = pango_attr_size_new_absolute(size * PANGO_SCALE); // pixels, not points
 	pango_attr_list_change(attrs, size_attr);
 	gtk_label_set_attributes(label, attrs);
 

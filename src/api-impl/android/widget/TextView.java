@@ -39,6 +39,9 @@ public class TextView extends View {
 	private int break_strategy = 0 /*BREAK_STRATEGY_SIMPLE*/;
 	private int hyphenation_frequency = 0 /*HYPHENATION_FREQUENCY_NONE*/;
 	private int gravity = Gravity.CENTER;
+	private int maxLines = -1;
+	private CharSequence hint;
+	private ColorStateList hintColors;
 
 	public TextView(Context context, AttributeSet attrs) {
 		this(context, attrs, 0);
@@ -60,9 +63,6 @@ public class TextView extends View {
 			if (a.hasValue(com.android.internal.R.styleable.TextView_text)) {
 				setText(a.getText(com.android.internal.R.styleable.TextView_text));
 			}
-			if (a.hasValue(com.android.internal.R.styleable.TextView_hint)) {
-				setHint(a.getText(com.android.internal.R.styleable.TextView_hint));
-			}
 
 			int ap = a.getResourceId(com.android.internal.R.styleable.TextView_textAppearance, -1);
 			if (ap != -1) {
@@ -82,9 +82,35 @@ public class TextView extends View {
 				setTextSize(a.getDimensionPixelSize(com.android.internal.R.styleable.TextView_textSize, 10));
 			}
 
+			Drawable left = a.getDrawable(com.android.internal.R.styleable.TextView_drawableLeft);
+			Drawable top = a.getDrawable(com.android.internal.R.styleable.TextView_drawableTop);
+			Drawable right = a.getDrawable(com.android.internal.R.styleable.TextView_drawableRight);
+			Drawable bottom = a.getDrawable(com.android.internal.R.styleable.TextView_drawableBottom);
+			if (a.hasValue(com.android.internal.R.styleable.TextView_drawableStart))
+				left = a.getDrawable(com.android.internal.R.styleable.TextView_drawableStart);
+			if (a.hasValue(com.android.internal.R.styleable.TextView_drawableEnd))
+				right = a.getDrawable(com.android.internal.R.styleable.TextView_drawableEnd);
+			if (left != null || top != null || right != null || bottom != null)
+				setCompoundDrawablesWithIntrinsicBounds(left, top, right, bottom);
+			setCompoundDrawablePadding(a.getDimensionPixelSize(com.android.internal.R.styleable.TextView_drawablePadding, 0));
+
+			if (a.getBoolean(com.android.internal.R.styleable.TextView_singleLine, false))
+				setSingleLine();
+			else if (a.hasValue(com.android.internal.R.styleable.TextView_maxLines))
+				setMaxLines(a.getInt(com.android.internal.R.styleable.TextView_maxLines, -1));
+
+			if (a.hasValue(com.android.internal.R.styleable.TextView_gravity)) {
+				setGravity(a.getInt(com.android.internal.R.styleable.TextView_gravity, gravity));
+			}
+
 			if (a.hasValue(com.android.internal.R.styleable.TextView_textStyle)) {
 				int textStyle = a.getInt(com.android.internal.R.styleable.TextView_textStyle, 0);
 				setTypeface(getTypeface(), textStyle);
+			}
+
+			hintColors = a.getColorStateList(com.android.internal.R.styleable.TextView_textColorHint);
+			if (a.hasValue(com.android.internal.R.styleable.TextView_hint)) {
+				setHint(a.getText(com.android.internal.R.styleable.TextView_hint));
 			}
 
 			if (a.hasValue(com.android.internal.R.styleable.TextView_textAllCaps)) {
@@ -114,6 +140,7 @@ public class TextView extends View {
 	public void setText(CharSequence text, BufferType type) {
 		this.text = text == null ? "" : text;
 		native_setText(text != null ? text.toString() : null);
+		showHintIfEmpty();
 
 		if (text instanceof android.text.Spanned)
 			native_set_markup(1);
@@ -138,9 +165,7 @@ public class TextView extends View {
 	public native final void native_setText(String text);
 
 	public void setTextSize(int unit, float size) {
-		if (unit != TypedValue.COMPLEX_UNIT_SP)
-			System.out.println("setTextSize called with non-SP unit (" + unit + "), we don't currently handle that");
-		setTextSize(size);
+		setTextSize(TypedValue.applyDimension(unit, size, getResources().getDisplayMetrics()));
 	}
 	public native void setTextSize(float size);
 
@@ -151,8 +176,18 @@ public class TextView extends View {
 	public void setTextColor(ColorStateList colors) {
 		if (colors != null) {
 			this.colors = colors;
-			native_setTextColor(colors.getDefaultColor()); // TODO: do this properly
+			updateTextColor();
 		}
+	}
+	private void updateTextColor() {
+		native_setTextColor(colors.getColorForState(getDrawableState(), colors.getDefaultColor()));
+		showHintIfEmpty();
+	}
+	@Override
+	public void setEnabled(boolean enabled) {
+		super.setEnabled(enabled);
+		if (colors != null)
+			updateTextColor();
 	}
 	public void setTypeface(Typeface tf, int style) {
 		String[] classesToRemove = {"ATL-font-bold", "ATL-font-italic"};
@@ -197,11 +232,15 @@ public class TextView extends View {
 		return null;
 	}
 
-	public void setHintTextColor(ColorStateList colorStateList) {}
-	public void setHintTextColor(int i) {}
+	public void setHintTextColor(ColorStateList colorStateList) {
+		hintColors = colorStateList;
+		showHintIfEmpty();
+	}
+	public void setHintTextColor(int i) {
+		setHintTextColor(ColorStateList.valueOf(i));
+	}
 	public void setLinkTextColor(ColorStateList colorStateList) {}
 
-	public void setSingleLine() {}
 	public void setSelection(int i) {}
 	public void setSelection(int i, int j) {}
 
@@ -217,14 +256,41 @@ public class TextView extends View {
 
 	public void setTextAppearance(Context context, int appearance) {}
 
-	public void setMaxLines(int maxLines) {}
 
-	public void setMinWidth(int minWidth) {}
+	public void setMinWidth(int minWidth) {
+		setMinimumWidth(minWidth);
+	}
 	public void setMaxWidth(int maxWidth) {}
 
 	public Typeface getTypeface() { return null; }
 
 	public float getTextSize() { return 10; }
+
+	public void setGravity(int gravity) {
+		this.gravity = gravity;
+		native_setGravity(widget, gravity);
+	}
+
+	private native void native_setGravity(long widget, int gravity);
+
+	public void setMaxLines(int maxLines) {
+		this.maxLines = maxLines;
+		native_setMaxLines(widget, maxLines);
+	}
+
+	public int getMaxLines() {
+		return maxLines;
+	}
+
+	public void setSingleLine() {
+		setSingleLine(true);
+	}
+
+	public void setSingleLine(boolean singleLine) {
+		setMaxLines(singleLine ? 1 : -1);
+	}
+
+	private native void native_setMaxLines(long widget, int maxLines);
 
 	public int getGravity() {
 		return gravity;
@@ -282,7 +348,6 @@ public class TextView extends View {
 
 	public InputFilter[] getFilters() { return new InputFilter[0]; }
 
-	public int getMaxLines() { return -1; }
 
 	public void setCompoundDrawablesRelative(Drawable start, Drawable top, Drawable end, Drawable bottom) {
 		setCompoundDrawables(start, top, end, bottom);
@@ -300,11 +365,13 @@ public class TextView extends View {
 		return new BaseMovementMethod();
 	}
 
-	public CharSequence getHint() { return "HINT"; }
+	public CharSequence getHint() { return hint; }
 
 	public int getMinHeight() { return 0; }
 	public int getMinWidth() { return 0; }
-	public void setMinHeight(int minHeight) {}
+	public void setMinHeight(int minHeight) {
+		setMinimumHeight(minHeight);
+	}
 	public void setMaxHeight(int maxHeight) {}
 
 	public void setHorizontallyScrolling(boolean whether) {}
@@ -331,7 +398,6 @@ public class TextView extends View {
 		return Color.CYAN;
 	}
 
-	public void setSingleLine(boolean singleLine) {}
 
 	public int getCompoundPaddingLeft() { return 0; }
 
@@ -355,7 +421,22 @@ public class TextView extends View {
 
 	public void setCompoundDrawablesWithIntrinsicBounds(Drawable left, Drawable top, Drawable right, Drawable bottom) {}
 
-	public void setHint(CharSequence s) {}
+	public void setHint(CharSequence s) {
+		hint = s;
+		showHintIfEmpty();
+	}
+
+	/* the label shows the hint of an empty TextView; getText() still returns the empty text */
+	private void showHintIfEmpty() {
+		if (hint == null)
+			return;
+		boolean empty = text == null || text.length() == 0;
+		if (empty)
+			native_setText(hint.toString());
+		ColorStateList color = empty && hintColors != null ? hintColors : colors;
+		if (color != null)
+			native_setTextColor(color.getColorForState(getDrawableState(), color.getDefaultColor()));
+	}
 
 	public Drawable[] getCompoundDrawablesRelative() { return new Drawable[4]; }
 

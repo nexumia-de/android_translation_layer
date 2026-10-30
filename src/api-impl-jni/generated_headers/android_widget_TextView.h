@@ -253,6 +253,22 @@ JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setTextColor
 
 /*
  * Class:     android_widget_TextView
+ * Method:    native_setGravity
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setGravity
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     android_widget_TextView
+ * Method:    native_setMaxLines
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setMaxLines
+  (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     android_widget_TextView
  * Method:    native_setCompoundDrawables
  * Signature: (JJJJJ)V
  */
