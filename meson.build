@@ -100,7 +100,10 @@ install_data('res/desktop/com.gitlab.android_translation_layer.install.desktop',
              install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'applications'))
 
 # the installer service for app stores in their own Flatpak, see docs/installing-apps.md
-executable('atl-installer-service', 'src/installer-service/atl-installer-service.c',
+installer_service_resources = gnome.compile_resources('installer-service-resources',
+                                                     'src/installer-service/installer-service.gresource.xml',
+                                                     source_dir: 'src/installer-service')
+executable('atl-installer-service', ['src/installer-service/atl-installer-service.c', installer_service_resources],
            dependencies: [dependency('gio-unix-2.0')],
            install: true,
            install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),

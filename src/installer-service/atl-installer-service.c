@@ -19,32 +19,8 @@
 #define APP_PREFIX   "de.nexumia.atl."
 #define IDLE_TIMEOUT 120
 
-static const char introspection_xml[] =
-    "<node>"
-    "  <interface name='de.nexumia.atl.Installer'>"
-    /* the base APK first, split APKs after it; options: sdk-int (s), width (i), height (i);
-     * error is empty on success, else "cancelled", "refused: ..." or another error */
-    "    <method name='Install'>"
-    "      <arg direction='in' name='apks' type='ah'/>"
-    "      <arg direction='in' name='options' type='a{sv}'/>"
-    "      <arg direction='out' name='error' type='s'/>"
-    "    </method>"
-    /* asks the user, then removes the app's Flatpak and its data */
-    "    <method name='Uninstall'>"
-    "      <arg direction='in' name='package' type='s'/>"
-    "      <arg direction='out' name='removed' type='b'/>"
-    "    </method>"
-    /* the installed apps and their base APKs, read-only */
-    "    <method name='List'>"
-    "      <arg direction='out' name='packages' type='a(sh)'/>"
-    "    </method>"
-    /* starts an installed app, with a URI if not empty */
-    "    <method name='Launch'>"
-    "      <arg direction='in' name='package' type='s'/>"
-    "      <arg direction='in' name='uri' type='s'/>"
-    "    </method>"
-    "  </interface>"
-    "</node>";
+/* the interface, with its rules for changes: de.nexumia.atl.Installer.xml */
+#define INTERFACE_VERSION 1
 
 static GMainLoop *loop;
 static guint idle_source;
@@ -397,13 +373,21 @@ static void method_call(GDBusConnection *connection, const char *sender, const c
 	release();
 }
 
-static const GDBusInterfaceVTable vtable = {method_call, NULL, NULL, {0}};
+static GVariant *get_property(GDBusConnection *connection, const char *sender, const char *object_path,
+                              const char *interface_name, const char *property_name, GError **error, gpointer user_data)
+{
+	return g_variant_new_uint32(INTERFACE_VERSION);
+}
+
+static const GDBusInterfaceVTable vtable = {method_call, get_property, NULL, {0}};
 
 static void bus_acquired(GDBusConnection *connection, const char *name, gpointer user_data)
 {
-	GDBusNodeInfo *node = g_dbus_node_info_new_for_xml(introspection_xml, NULL);
+	GBytes *xml = g_resources_lookup_data("/de/nexumia/atl/Installer/de.nexumia.atl.Installer.xml", 0, NULL);
+	GDBusNodeInfo *node = g_dbus_node_info_new_for_xml(g_bytes_get_data(xml, NULL), NULL);
 	g_dbus_connection_register_object(connection, OBJECT_PATH, node->interfaces[0], &vtable, NULL, NULL, NULL);
 	g_dbus_node_info_unref(node);
+	g_bytes_unref(xml);
 }
 
 static void name_lost(GDBusConnection *connection, const char *name, gpointer user_data)

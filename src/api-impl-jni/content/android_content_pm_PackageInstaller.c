@@ -17,6 +17,49 @@
 #define SERVICE_PATH      "/de/nexumia/atl/Installer"
 #define SERVICE_INTERFACE "de.nexumia.atl.Installer"
 
+/* the interface version this code needs, see src/installer-service/de.nexumia.atl.Installer.xml;
+ * the service comes with the host package and is updated separately from this engine */
+#define SERVICE_MIN_VERSION 1
+
+static gboolean check_service_version(GDBusConnection *bus, GError **error)
+{
+	static guint32 version = 0;
+	G_LOCK_DEFINE_STATIC(version);
+	G_LOCK(version);
+	if (version) {
+		G_UNLOCK(version);
+		return version >= SERVICE_MIN_VERSION ? TRUE : (g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+		                                                        "the installer service on the host is too old (interface %u, "
+		                                                        "need %u): update android-translation-layer",
+		                                                        version, SERVICE_MIN_VERSION), FALSE);
+	}
+	GError *err = NULL;
+	GVariant *reply = g_dbus_connection_call_sync(bus, SERVICE_NAME, SERVICE_PATH, "org.freedesktop.DBus.Properties", "Get",
+	                                              g_variant_new("(ss)", SERVICE_INTERFACE, "Version"), G_VARIANT_TYPE("(v)"),
+	                                              G_DBUS_CALL_FLAGS_NONE, -1, NULL, &err);
+	if (reply) {
+		GVariant *value;
+		g_variant_get(reply, "(v)", &value);
+		version = g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32) ? g_variant_get_uint32(value) : 1;
+		g_variant_unref(value);
+		g_variant_unref(reply);
+	} else if (g_error_matches(err, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN) ||
+	           g_error_matches(err, G_DBUS_ERROR, G_DBUS_ERROR_NAME_HAS_NO_OWNER)) {
+		/* inside a Flatpak the D-Bus proxy answers the same when the app may not talk to it */
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
+		            "the installer service is not reachable: this app does not request REQUEST_INSTALL_PACKAGES, "
+		            "or the host's android-translation-layer is older than this engine");
+		g_error_free(err);
+		G_UNLOCK(version);
+		return FALSE;
+	} else {
+		version = 1; // the first service had no Version property
+		g_error_free(err);
+	}
+	G_UNLOCK(version);
+	return check_service_version(bus, error);
+}
+
 /* waits as long as the user looks at the install page */
 static GVariant *call_service(const char *method, GVariant *args, const char *reply_type, GUnixFDList *fds_in,
                               GUnixFDList **fds_out, GError **error)
@@ -24,6 +67,10 @@ static GVariant *call_service(const char *method, GVariant *args, const char *re
 	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, error);
 	if (!bus)
 		return NULL;
+	if (!check_service_version(bus, error)) {
+		g_object_unref(bus);
+		return NULL;
+	}
 	GVariant *reply = g_dbus_connection_call_with_unix_fd_list_sync(bus, SERVICE_NAME, SERVICE_PATH, SERVICE_INTERFACE, method, args,
 	                                                                G_VARIANT_TYPE(reply_type), G_DBUS_CALL_FLAGS_NONE, G_MAXINT,
 	                                                                fds_in, fds_out, NULL, error);

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/de/nexumia/atl/Installer">
+    <file>de.nexumia.atl.Installer.xml</file>
+  </gresource>
+</gresources>

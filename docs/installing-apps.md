@@ -267,6 +267,39 @@ system asks the user:
   at most every two seconds and after every change, so the rest of ATL
   reads them as outside a sandbox.
 
+## Interface and versions
+
+The interface is defined once, in
+`src/installer-service/de.nexumia.atl.Installer.xml`, which the service
+loads from its resources. The service comes with the host package
+(aports) and ATL inside an app's Flatpak with the engine
+(`flatpak.nexumia.de`); the two are updated separately, so a new engine
+can meet an old service and the other way round. Therefore:
+
+- the interface only grows: new methods, options and error texts raise
+  the `Version` property; existing methods keep their signature and
+  meaning; a change that cannot be made that way gets a new interface
+  name (`de.nexumia.atl.Installer2`) next to the old one;
+- ATL in the sandbox reads `Version` once before its first call
+  (`SERVICE_MIN_VERSION` in
+  `src/api-impl-jni/content/android_content_pm_PackageInstaller.c`) and
+  fails with a message that names the cause: service not reachable (the
+  app does not request `REQUEST_INSTALL_PACKAGES`, or the host package
+  is older than the engine) or too old;
+- version 1 is the interface as first released (#33), which had no
+  `Version` property; a service without it counts as version 1.
+
+Checked with a C harness on a private bus (2026-10-30): with the
+current service, with a service as in #33 (no `Version`) and with none.
+
+It stays in the ATL fork, in its own directory: the service runs the
+host's ATL for the page and the signer check, its other half is ATL's
+`PackageInstaller`, and ATL is its only user (Android likewise keeps
+its package installer service in the framework). A separate repository
+would not help with the version skew above and would need two pull
+requests for every interface change; it is worth it once another
+project uses the service.
+
 ## Signer check
 
 `android.atl.ApkSigners` verifies an APK like Android's package manager

@@ -1,0 +1,50 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!--
+  The installer service on the host for app stores in their own Flatpak
+  (docs/installing-apps.md, "App stores in their own Flatpak").
+
+  The service comes with the host package and ATL inside an app's Flatpak with the
+  engine, and both are updated separately, so this interface only grows: new methods,
+  new options and new error texts raise Version; existing methods keep their
+  signature and meaning. A change that cannot be made that way gets a new interface
+  name (de.nexumia.atl.Installer2) next to this one.
+
+  Version 1: the interface as first released (android_translation_layer #33, which
+  had no Version property; a service without it is version 1).
+-->
+<node>
+  <interface name="de.nexumia.atl.Installer">
+    <property name="Version" type="u" access="read"/>
+
+    <!--
+      Installs or updates the apps in the given APKs, the base APK first, split APKs
+      after it, after asking the user on the host. options: sdk-int (s), width (i),
+      height (i). error is empty on success, else "cancelled" (the user said no),
+      "refused: ..." (not signed, signed by someone else, or a downgrade) or another
+      error.
+    -->
+    <method name="Install">
+      <arg direction="in" name="apks" type="ah"/>
+      <arg direction="in" name="options" type="a{sv}"/>
+      <arg direction="out" name="error" type="s"/>
+    </method>
+
+    <!-- Asks the user, then removes the app's Flatpak and its data. -->
+    <method name="Uninstall">
+      <arg direction="in" name="package" type="s"/>
+      <arg direction="out" name="removed" type="b"/>
+    </method>
+
+    <!-- The installed apps and a read-only file descriptor of each one's base APK. -->
+    <method name="List">
+      <arg direction="out" name="packages" type="a(sh)"/>
+    </method>
+
+    <!-- Starts an installed app, with a URI unless it is empty. -->
+    <method name="Launch">
+      <arg direction="in" name="package" type="s"/>
+      <arg direction="in" name="uri" type="s"/>
+    </method>
+  </interface>
+</node>
