@@ -514,6 +514,22 @@ static const char *icon_extension(GBytes *icon_bytes)
 	return "png";
 }
 
+/* An app installed from a file runs with the SDK level app stores give the apps they install (they
+ * run with --sdk-int 26), or its own minSdkVersion if that is higher. Without one ATL reports the
+ * app's minSdkVersion, and F-Droid (minSdk 24) then aborted at start ("You need to use a
+ * Theme.AppCompat theme"); see docs/installing-apps.md. */
+#define INSTALL_DEFAULT_SDK_INT 26
+
+static char *default_sdk_int(JNIEnv *env, jobject application_object)
+{
+	int min_sdk = J__Application__get_min_sdk_version(env, application_object);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		min_sdk = 0;
+	}
+	return g_strdup_printf("%d", MAX(min_sdk, INSTALL_DEFAULT_SDK_INT));
+}
+
 static char *jstring_dup(JNIEnv *env, jstring str)
 {
 	char *copy = str ? g_strdup(_CSTRING(str)) : NULL;
@@ -576,8 +592,9 @@ static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject ap
 		g_string_append_printf(atl_args, "-w %d ", d->window_width);
 	if (d->window_height)
 		g_string_append_printf(atl_args, "-h %d ", d->window_height);
-	if (d->sdk_int)
-		g_string_append_printf(atl_args, "--sdk-int %s ", d->sdk_int);
+	char *sdk_int = d->sdk_int ? g_strdup(d->sdk_int) : default_sdk_int(env, application_object);
+	g_string_append_printf(atl_args, "--sdk-int %s ", sdk_int);
+	g_free(sdk_int);
 
 	const char *helper = getenv("ATL_MAKE_FLATPAK");
 	if (!helper)
@@ -656,6 +673,8 @@ struct install_request {
 	char *app_data_dir_base;
 	char *staging_dir;
 	char *staged_apk;
+	/* the --sdk-int for an app installed from a file, see default_sdk_int() */
+	char *default_sdk_int;
 	gboolean updating;
 	/* the data directory made for the opened file, which is not the installed app's */
 	gboolean remove_data_dir;
@@ -789,6 +808,8 @@ static void install_ask_copied(GObject *source, GAsyncResult *res, gpointer user
 	char *height = g_strdup_printf("%d", r->d->window_height);
 	/* an update keeps the SDK level the app ran at, e.g. the one its app store gave it */
 	char *sdk_int = r->d->sdk_int ? g_strdup(r->d->sdk_int) : r->updating ? installed_launcher_sdk_int(r->package_name) : NULL;
+	if (!sdk_int)
+		sdk_int = g_strdup(r->default_sdk_int);
 	const char *argv[] = {r->d->prgname, "--install", "-w", width, "-h", height, r->staged_apk, NULL, NULL, NULL};
 	if (sdk_int) {
 		argv[6] = "--sdk-int";
@@ -823,10 +844,8 @@ static void install_ask_confirmed_flatpak(struct install_request *r)
 		g_ptr_array_add(argv, g_strdup("-h"));
 		g_ptr_array_add(argv, g_strdup_printf("%d", r->d->window_height));
 	}
-	if (r->d->sdk_int) {
-		g_ptr_array_add(argv, g_strdup("--sdk-int"));
-		g_ptr_array_add(argv, g_strdup(r->d->sdk_int));
-	}
+	g_ptr_array_add(argv, g_strdup("--sdk-int"));
+	g_ptr_array_add(argv, g_strdup(r->d->sdk_int ? r->d->sdk_int : r->default_sdk_int));
 	for (int i = 0; i < r->nfiles; i++)
 		g_ptr_array_add(argv, g_file_get_path(r->files[i]));
 	g_ptr_array_add(argv, NULL);
@@ -876,6 +895,7 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 	r->d = d;
 	r->package_name = g_strdup(package_name);
 	r->apk = g_object_ref(files[0]);
+	r->default_sdk_int = default_sdk_int(env, application_object);
 	/* the array is GApplication's, freed after open() */
 	r->files = g_new(GFile *, nfiles);
 	for (int i = 0; i < nfiles; i++)

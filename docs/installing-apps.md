@@ -137,6 +137,17 @@ Android's package installer. `res/desktop/com.gitlab.android_translation_layer.i
 `application/vnd.android.package-archive` with
 `android-translation-layer --install-ask -w 360 -h 720 %f`.
 
+An app installed from a file gets `--sdk-int` like the apps a store
+installs: 26, or the app's own `minSdkVersion` if that is higher (an
+update keeps the launcher's value if it has one). Without it ATL reports
+the app's `minSdkVersion`, and F-Droid installed from the owner's
+Downloads folder did not start (2026-10-30: `You need to use a
+Theme.AppCompat theme`, abort). The same default applies to
+`--install-flatpak`. Not the newest Android version: apps then use the
+APIs and behaviour of that version, much of which ATL does not
+implement; 26 is the level F-Droid, Aurora Store and DB Navigator are
+tested with.
+
 `--install-ask` loads the APK like `--install`, without starting it or
 extracting its native libraries, and shows a page in its own window:
 icon, name, package, version and what installing does
