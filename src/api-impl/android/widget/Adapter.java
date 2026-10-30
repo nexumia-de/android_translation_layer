@@ -97,6 +97,7 @@ public interface Adapter {
 	 * @param parent The parent that this view will eventually be attached to
 	 * @return A View corresponding to the data at the specified position.
 	 */
+	@Export
 	View getView(int position, View convertView, ViewGroup parent);
 	/**
 	 * An item view type that causes the {@link AdapterView} to ignore the item

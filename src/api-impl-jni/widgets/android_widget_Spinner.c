@@ -40,7 +40,8 @@ static void range_list_item_class_init(RangeListItemClass *cls) {}
 static void range_list_item_init(RangeListItem *self) {}
 G_DEFINE_TYPE(RangeListItem, range_list_item, G_TYPE_OBJECT)
 
-static void bind_listitem_cb(GtkListItemFactory *factory, GtkListItem *list_item, jobject this)
+/* the closed spinner and its popup differ on Android too: getView, and getDropDownView on the popup's background */
+static void bind_item(GtkListItem *list_item, jobject this, gboolean drop_down)
 {
 	JNIEnv *env = get_jni_env();
 
@@ -52,12 +53,26 @@ static void bind_listitem_cb(GtkListItemFactory *factory, GtkListItem *list_item
 		printf("invalid index: %d >= %d\n", index, n_items);
 		exit(0);
 	}
-	jobject view = _REF(J__SpinnerAdapter__getDropDownView(env, model->adapter, index, wrapper ? wrapper->jobj : NULL, model->jobject));
+	jobject convert_view = wrapper ? wrapper->jobj : NULL;
+	jobject view = _REF(drop_down ? J__SpinnerAdapter__getDropDownView(env, model->adapter, index, convert_view, model->jobject)
+	                              : J__Adapter__getView(env, model->adapter, index, convert_view, model->jobject));
 	GtkWidget *child = gtk_widget_get_parent(GTK_WIDGET(_PTR(_GET_LONG_FIELD(view, "widget"))));
-	jobject background_drawable = _GET_OBJ_FIELD(this, "popupBackground", "Landroid/graphics/drawable/Drawable;");
-	GdkPaintable *background_paintable = background_drawable ? GDK_PAINTABLE(_PTR(_GET_LONG_FIELD(background_drawable, "paintable"))) : NULL;
-	wrapper_widget_set_background(WRAPPER_WIDGET(child), background_paintable);
+	if (drop_down) {
+		jobject background_drawable = _GET_OBJ_FIELD(this, "popupBackground", "Landroid/graphics/drawable/Drawable;");
+		GdkPaintable *background_paintable = background_drawable ? GDK_PAINTABLE(_PTR(_GET_LONG_FIELD(background_drawable, "paintable"))) : NULL;
+		wrapper_widget_set_background(WRAPPER_WIDGET(child), background_paintable);
+	}
 	gtk_list_item_set_child(list_item, child);
+}
+
+static void bind_button_item_cb(GtkListItemFactory *factory, GtkListItem *list_item, jobject this)
+{
+	bind_item(list_item, this, FALSE);
+}
+
+static void bind_popup_item_cb(GtkListItemFactory *factory, GtkListItem *list_item, jobject this)
+{
+	bind_item(list_item, this, TRUE);
 }
 
 JNIEXPORT jlong JNICALL Java_android_widget_Spinner_native_1constructor(JNIEnv *env, jobject this, jobject context, jobject attrs)
@@ -65,14 +80,19 @@ JNIEXPORT jlong JNICALL Java_android_widget_Spinner_native_1constructor(JNIEnv *
 	WrapperWidget *wrapper = g_object_ref(WRAPPER_WIDGET(wrapper_widget_new()));
 	wrapper_widget_set_jobject(wrapper, env, this);
 	GtkListItemFactory *factory = gtk_signal_list_item_factory_new();
-	g_signal_connect(factory, "bind", G_CALLBACK(bind_listitem_cb), wrapper->jobj);
+	g_signal_connect(factory, "bind", G_CALLBACK(bind_button_item_cb), wrapper->jobj);
+	GtkListItemFactory *list_factory = gtk_signal_list_item_factory_new();
+	g_signal_connect(list_factory, "bind", G_CALLBACK(bind_popup_item_cb), wrapper->jobj);
 	RangeListModel *model = g_object_new(range_list_model_get_type(), NULL);
 	GtkWidget *dropdown = gtk_drop_down_new(G_LIST_MODEL(model), NULL);
 	gtk_drop_down_set_factory(GTK_DROP_DOWN(dropdown), factory);
+	gtk_drop_down_set_list_factory(GTK_DROP_DOWN(dropdown), list_factory);
 	model->list_view = dropdown;
 	model->jobject = _WEAK_REF(this);
 	wrapper_widget_set_child(WRAPPER_WIDGET(wrapper), dropdown);
 	gtk_widget_set_name(dropdown, "Spinner");
+	// on Android, the arrow and the padding are part of the background of the view
+	gtk_widget_add_css_class(dropdown, "ATL-spinner");
 	return _INTPTR(dropdown);
 }
 

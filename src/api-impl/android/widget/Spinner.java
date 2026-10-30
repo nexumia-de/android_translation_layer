@@ -12,12 +12,12 @@ public class Spinner extends AbsSpinner {
 	private Drawable popupBackground;
 
 	public Spinner(Context context) {
-		this(context, null, 0);
+		this(context, null, R.attr.spinnerStyle);
 		haveCustomMeasure = false;
 	}
 
 	public Spinner(Context context, AttributeSet attributeSet) {
-		this(context, attributeSet, 0);
+		this(context, attributeSet, R.attr.spinnerStyle);
 		haveCustomMeasure = false;
 	}
 

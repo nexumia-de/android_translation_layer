@@ -1336,8 +1336,13 @@ public class View implements Drawable.Callback {
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 		if (haveCustomMeasure) // calling native_measure here would create infinite loop
 			setMeasuredDimension(getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec), getDefaultSize(getSuggestedMinimumHeight(), heightMeasureSpec));
-		else
+		else {
 			native_measure(widget, widthMeasureSpec, heightMeasureSpec);
+			// the widget doesn't know android:minWidth and android:minHeight
+			if (getMeasuredWidth() < minWidth || getMeasuredHeight() < minHeight)
+				setMeasuredDimension(resolveSize(Math.max(getMeasuredWidth(), minWidth), widthMeasureSpec),
+				                     resolveSize(Math.max(getMeasuredHeight(), minHeight), heightMeasureSpec));
+		}
 	}
 
 	public void setPressed(boolean pressed) {
@@ -1563,6 +1568,8 @@ public class View implements Drawable.Callback {
 	public void setEnabled(boolean enabled) {
 		atl_enabled = enabled;
 		native_setVisibility(widget, visibility, alpha, atl_enabled);
+		if (background != null && background.isStateful())
+			background.setState(getDrawableState());
 	}
 
 	public CharSequence getContentDescription() {
@@ -1881,7 +1888,9 @@ public class View implements Drawable.Callback {
 
 	public final int[] getDrawableState() {
 		int[] state = new int[2];
-		state[0] = R.attr.state_enabled;
+		if (atl_enabled) {
+			state[0] = R.attr.state_enabled;
+		}
 		if (pressed) {
 			state[1] = R.attr.state_pressed;
 		}

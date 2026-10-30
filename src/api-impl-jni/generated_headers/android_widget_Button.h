@@ -251,6 +251,22 @@ JNIEXPORT void JNICALL Java_android_widget_Button_native_1setCompoundDrawables
 JNIEXPORT jobject JNICALL Java_android_widget_Button_getText
   (JNIEnv *, jobject);
 
+/*
+ * Class:     android_widget_Button
+ * Method:    setTextSize
+ * Signature: (F)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_Button_setTextSize
+  (JNIEnv *, jobject, jfloat);
+
+/*
+ * Class:     android_widget_Button
+ * Method:    setCompoundDrawablePadding
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_Button_setCompoundDrawablePadding
+  (JNIEnv *, jobject, jint);
+
 #ifdef __cplusplus
 }
 #endif

@@ -39,6 +39,25 @@
 	background-color: black;
 }
 
+.ATL-spinner > button {
+	background: none;
+	border: unset;
+	box-shadow: none;
+	padding: 0;
+	min-height: 0;
+	min-width: 0;
+}
+
+.ATL-spinner arrow {
+	-gtk-icon-size: 0;
+	min-height: 0;
+	min-width: 0;
+}
+
+.ATL-dialog-buttons {
+	margin-top: 12px;
+}
+
 .ATL-dialog-card {
 	border-radius: 12px;
 	padding: 18px;

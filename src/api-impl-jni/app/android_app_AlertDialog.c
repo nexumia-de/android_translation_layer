@@ -42,7 +42,7 @@ static void activate_cb(GtkListView *list, guint position, gpointer user_data)
 JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeConstruct(JNIEnv *env, jobject this, jlong ptr, jlong button_positive_ptr, jlong button_negative_ptr, jlong button_neutral_ptr)
 {
 	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
-	GtkBox *content_area = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 1));
+	GtkBox *content_area = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, 6));
 	/* the layer has no background of its own, unlike the window a dialog used to be */
 	gtk_widget_add_css_class(GTK_WIDGET(content_area), "background");
 	gtk_widget_add_css_class(GTK_WIDGET(content_area), "ATL-dialog-card");
@@ -58,6 +58,7 @@ JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeConstruct(JNIEnv *env,
 	GtkLabel *label = GTK_LABEL(gtk_label_new(NULL));
 	gtk_label_set_wrap(label, TRUE);
 	gtk_label_set_max_width_chars(label, 50);
+	gtk_label_set_xalign(label, 0);
 	gtk_box_append(content_area, GTK_WIDGET(label));
 	g_object_set_data_full(G_OBJECT(dialog), "label", g_object_ref(label), g_object_unref);
 
@@ -70,9 +71,14 @@ JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeConstruct(JNIEnv *env,
 	gtk_box_append(content_area, GTK_WIDGET(list));
 	g_object_set_data_full(G_OBJECT(dialog), "list", g_object_ref(list), g_object_unref);
 
-	gtk_box_append(content_area, gtk_widget_get_parent(GTK_WIDGET(_PTR(button_positive_ptr))));
-	gtk_box_append(content_area, gtk_widget_get_parent(GTK_WIDGET(_PTR(button_negative_ptr))));
-	gtk_box_append(content_area, gtk_widget_get_parent(GTK_WIDGET(_PTR(button_neutral_ptr))));
+	/* one row in Android's order, the button that goes ahead on the right */
+	GtkBox *buttons = GTK_BOX(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6));
+	gtk_box_set_homogeneous(buttons, TRUE);
+	gtk_widget_add_css_class(GTK_WIDGET(buttons), "ATL-dialog-buttons");
+	gtk_box_append(buttons, gtk_widget_get_parent(GTK_WIDGET(_PTR(button_neutral_ptr))));
+	gtk_box_append(buttons, gtk_widget_get_parent(GTK_WIDGET(_PTR(button_negative_ptr))));
+	gtk_box_append(buttons, gtk_widget_get_parent(GTK_WIDGET(_PTR(button_positive_ptr))));
+	gtk_box_append(content_area, GTK_WIDGET(buttons));
 
 	atl_dialog_set_child(dialog, GTK_WIDGET(content_area));
 }
