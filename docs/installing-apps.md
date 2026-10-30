@@ -65,6 +65,13 @@ as `<package>.apk`.
   APK files given on the command line; `--install` copies the files
   after the first to `_installed_apks_/<package>.apk.splits/` and puts
   them into the launcher's command line. Uninstalling removes them too.
+- **No app code while installing**: `--install`, `--install-ask` and
+  `--install-flatpak` read name, icon, link types and signer from the
+  APK with a plain `Application`; they do not create the app's own
+  `Application`, its content providers or its main activity. Until
+  2026-10-30 `--install` did, so app code ran inside the install; most likely why for
+  Duolingo the install process ended without a launcher and Aurora Store
+  stayed at "Installing".
 - **List**: `getInstalledPackages` and `getInstalledApplications` return
   the calling app plus every `<package>.apk` it may see, which with
   `QUERY_ALL_PACKAGES` (F-Droid declares it) is all of them.
@@ -148,7 +155,7 @@ APIs and behaviour of that version, much of which ATL does not
 implement; 26 is the level F-Droid, Aurora Store and DB Navigator are
 tested with.
 
-`--install-ask` loads the APK like `--install`, without starting it or
+`--install-ask` loads the APK like `--install`, without
 extracting its native libraries, and shows a page in its own window:
 icon, name, package, version and what installing does
 (`Application.get_install_state`):
