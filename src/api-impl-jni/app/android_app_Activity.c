@@ -253,10 +253,30 @@ JNIEXPORT jboolean JNICALL Java_android_app_Activity_nativeResumeActivity(JNIEnv
 				l->prev = NULL;
 			}
 
+			/* like Android, an activity never gets a new intent while resumed: onPause, onNewIntent,
+			 * onResume. Login libraries read the browser's redirect in onResume, so DB Navigator
+			 * waited forever with only onNewIntent. One below others is resumed by
+			 * activity_update_current. */
+			gboolean resumed = (*env)->IsSameObject(env, l->data, activity_current) && !_GET_BOOL_FIELD(l->data, "paused");
+			if (resumed) {
+				J__Activity__onPause(env, l->data);
+				if ((*env)->ExceptionCheck(env))
+					(*env)->ExceptionDescribe(env);
+			}
+
 			/* -- run the activity's onNewIntent -- */
 			J__Activity__onNewIntent(env, l->data, intent);
 			if ((*env)->ExceptionCheck(env))
 				(*env)->ExceptionDescribe(env);
+
+			if (resumed && !_GET_BOOL_FIELD(l->data, "finishing")) {
+				J__Activity__onResume(env, l->data);
+				if ((*env)->ExceptionCheck(env))
+					(*env)->ExceptionDescribe(env);
+				J__Activity__onPostResume(env, l->data);
+				if ((*env)->ExceptionCheck(env))
+					(*env)->ExceptionDescribe(env);
+			}
 			found = JNI_TRUE;
 			break;
 		}
