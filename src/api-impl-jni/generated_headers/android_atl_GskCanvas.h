@@ -43,6 +43,14 @@ JNIEXPORT void JNICALL Java_android_atl_GskCanvas_native_1drawPath
 
 /*
  * Class:     android_atl_GskCanvas
+ * Method:    native_drawPathGradient
+ * Signature: (JJIJI[F[I[FZ)V
+ */
+JNIEXPORT void JNICALL Java_android_atl_GskCanvas_native_1drawPathGradient
+  (JNIEnv *, jobject, jlong, jlong, jint, jlong, jint, jfloatArray, jintArray, jfloatArray, jboolean);
+
+/*
+ * Class:     android_atl_GskCanvas
  * Method:    native_translate
  * Signature: (JFF)V
  */

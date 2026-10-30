@@ -66,15 +66,12 @@ public class TextView extends View {
 			}
 
 			int ap = a.getResourceId(com.android.internal.R.styleable.TextView_textAppearance, -1);
-			if (ap != -1) {
-				TypedArray aa = context.obtainStyledAttributes(ap, com.android.internal.R.styleable.TextAppearance);
-				if (aa.hasValue(com.android.internal.R.styleable.TextAppearance_textColor)) {
-					setTextColor(aa.getColorStateList(com.android.internal.R.styleable.TextAppearance_textColor));
-				}
-				if (aa.hasValue(com.android.internal.R.styleable.TextAppearance_textSize)) {
-					setTextSize(aa.getDimensionPixelSize(com.android.internal.R.styleable.TextAppearance_textSize, 10));
-				}
-				aa.recycle();
+			if (ap != -1)
+				setTextAppearance(ap);
+			if (a.hasValue(com.android.internal.R.styleable.TextView_fontFamily)) {
+				Typeface font = getFontFamily(a, com.android.internal.R.styleable.TextView_fontFamily);
+				if (font != null)
+					setTypeface(font, getTypefaceStyle());
 			}
 			if (a.hasValue(com.android.internal.R.styleable.TextView_textColor)) {
 				setTextColor(a.getColorStateList(com.android.internal.R.styleable.TextView_textColor));
@@ -193,28 +190,23 @@ public class TextView extends View {
 			updateTextColor();
 	}
 	public void setTypeface(Typeface tf, int style) {
-		setTypeface(tf);
-		String[] classesToRemove = {"ATL-font-bold", "ATL-font-italic"};
-		native_removeClasses(widget, classesToRemove);
-
-		switch (style) {
-			case Typeface.BOLD:
-				native_addClass(widget, "ATL-font-bold");
-				break;
-			case Typeface.ITALIC:
-				native_addClass(widget, "ATL-font-italic");
-				break;
-			case Typeface.BOLD_ITALIC:
-				native_addClass(widget, "ATL-font-bold");
-				native_addClass(widget, "ATL-font-italic");
-				break;
-			default:
-				break;
-		}
+		setTypeface(style > 0 ? Typeface.create(tf, style) : tf);
 	}
+
+	/* the family comes from fontconfig, bold and italic from CSS */
 	public void setTypeface(Typeface tf) {
 		typeface = tf;
 		native_setFontFamily(widget, tf != null ? tf.getFamily() : null);
+		String[] classesToRemove = {"ATL-font-bold", "ATL-font-italic"};
+		native_removeClasses(widget, classesToRemove);
+		if (tf != null && tf.isBold())
+			native_addClass(widget, "ATL-font-bold");
+		if (tf != null && tf.isItalic())
+			native_addClass(widget, "ATL-font-italic");
+	}
+
+	private int getTypefaceStyle() {
+		return typeface != null ? typeface.getStyle() : Typeface.NORMAL;
 	}
 	private native void native_setFontFamily(long widget, String family);
 	public void setLineSpacing(float add, float mult) {}
@@ -262,7 +254,9 @@ public class TextView extends View {
 
 	public void setEllipsize(TextUtils.TruncateAt truncateAt) {}
 
-	public void setTextAppearance(Context context, int appearance) {}
+	public void setTextAppearance(Context context, int appearance) {
+		setTextAppearance(appearance);
+	}
 
 
 	public void setMinWidth(int minWidth) {
@@ -450,7 +444,44 @@ public class TextView extends View {
 
 	public Drawable[] getCompoundDrawables() { return new Drawable[4]; }
 
-	public void setTextAppearance(int dummy) {}
+	public void setTextAppearance(int appearance) {
+		TypedArray aa = getContext().obtainStyledAttributes(appearance, com.android.internal.R.styleable.TextAppearance);
+		if (aa.hasValue(com.android.internal.R.styleable.TextAppearance_textColor))
+			setTextColor(aa.getColorStateList(com.android.internal.R.styleable.TextAppearance_textColor));
+		if (aa.hasValue(com.android.internal.R.styleable.TextAppearance_textSize))
+			setTextSize(aa.getDimensionPixelSize(com.android.internal.R.styleable.TextAppearance_textSize, 10));
+		Typeface font = typeface;
+		int style = getTypefaceStyle();
+		if (aa.hasValue(com.android.internal.R.styleable.TextAppearance_fontFamily)) {
+			Typeface family = getFontFamily(aa, com.android.internal.R.styleable.TextAppearance_fontFamily);
+			if (family != null)
+				font = family;
+		}
+		if (aa.hasValue(com.android.internal.R.styleable.TextAppearance_textStyle))
+			style = aa.getInt(com.android.internal.R.styleable.TextAppearance_textStyle, Typeface.NORMAL);
+		if (font != typeface || style != getTypefaceStyle())
+			setTypeface(font, style);
+		if (aa.hasValue(com.android.internal.R.styleable.TextAppearance_textAllCaps))
+			setAllCaps(aa.getBoolean(com.android.internal.R.styleable.TextAppearance_textAllCaps, false));
+		aa.recycle();
+	}
+
+	/* android:fontFamily is a font resource or the name of a family */
+	private static Typeface getFontFamily(TypedArray a, int index) {
+		TypedValue value = a.peekValue(index);
+		if (value == null)
+			return null;
+		if (value.resourceId != 0 && value.string != null && value.string.toString().startsWith("res/")) {
+			try {
+				return a.getFont(index);
+			} catch (RuntimeException e) {
+				e.printStackTrace();
+				return null;
+			}
+		}
+		String name = a.getString(index);
+		return name != null ? Typeface.create(name, Typeface.NORMAL) : null;
+	}
 
 	public int length() {
 		return getText().length();

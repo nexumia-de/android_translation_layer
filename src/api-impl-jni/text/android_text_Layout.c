@@ -88,20 +88,36 @@ JNIEXPORT jint JNICALL Java_android_text_Layout_native_1get_1line_1bottom(JNIEnv
 	return baseline + PANGO_DESCENT(logical_rect) / PANGO_SCALE;
 }
 
+/* the line's extents in layout coordinates, so they include the offset of the alignment */
+static void get_line_extents(PangoLayout *layout, int line, PangoRectangle *logical_rect)
+{
+	PangoLayoutIter *iter = pango_layout_get_iter(layout);
+	for (int i = 0; i < line && pango_layout_iter_next_line(iter); i++)
+		;
+	pango_layout_iter_get_line_extents(iter, NULL, logical_rect);
+	pango_layout_iter_free(iter);
+}
+
 JNIEXPORT jint JNICALL Java_android_text_Layout_native_1get_1line_1left(JNIEnv *env, jobject object, jlong layout, jint line)
 {
-	PangoLayoutLine *pango_line = pango_layout_get_line_readonly(PANGO_LAYOUT(_PTR(layout)), line);
 	PangoRectangle logical_rect;
-	pango_layout_line_get_extents(pango_line, NULL, &logical_rect);
+	get_line_extents(PANGO_LAYOUT(_PTR(layout)), line, &logical_rect);
 	return logical_rect.x / PANGO_SCALE;
 }
 
 JNIEXPORT jint JNICALL Java_android_text_Layout_native_1get_1line_1right(JNIEnv *env, jobject object, jlong layout, jint line)
 {
-	PangoLayoutLine *pango_line = pango_layout_get_line_readonly(PANGO_LAYOUT(_PTR(layout)), line);
 	PangoRectangle logical_rect;
-	pango_layout_line_get_extents(pango_line, NULL, &logical_rect);
+	get_line_extents(PANGO_LAYOUT(_PTR(layout)), line, &logical_rect);
 	return (logical_rect.x + logical_rect.width) / PANGO_SCALE;
+}
+
+/* in the order of android.text.Layout.Alignment */
+JNIEXPORT void JNICALL Java_android_text_Layout_native_1set_1alignment(JNIEnv *env, jobject object, jlong layout, jint align)
+{
+	static const PangoAlignment alignments[] = {PANGO_ALIGN_LEFT, PANGO_ALIGN_RIGHT, PANGO_ALIGN_CENTER, PANGO_ALIGN_LEFT, PANGO_ALIGN_RIGHT};
+	if (align >= 0 && align < G_N_ELEMENTS(alignments))
+		pango_layout_set_alignment(PANGO_LAYOUT(_PTR(layout)), alignments[align]);
 }
 
 JNIEXPORT jint JNICALL Java_android_text_Layout_native_1get_1line_1width(JNIEnv *env, jobject object, jlong layout, jint line)
@@ -185,7 +201,11 @@ JNIEXPORT void JNICALL Java_android_text_Layout_native_1draw_1custom_1canvas(JNI
 		for (const gchar *p = text + pango_line->start_index; p < text + pango_line->start_index + pango_line->length; p = g_utf8_next_char(p))
 			end += g_utf8_get_char(p) > 0xFFFF ? 2 : 1;
 		jfloat y = (float)pango_layout_iter_get_baseline(pango_iter) / PANGO_SCALE;
-		J__Canvas__drawText(env, canvas, text_jstr, (jint)0, end, (jfloat)0, y, paint);
+		/* the line starts where the alignment put it */
+		PangoRectangle logical_rect;
+		pango_layout_iter_get_line_extents(pango_iter, NULL, &logical_rect);
+		jfloat x = (float)logical_rect.x / PANGO_SCALE;
+		J__Canvas__drawText(env, canvas, text_jstr, (jint)0, end, x, y, paint);
 		(*env)->DeleteLocalRef(env, text_jstr);
 	} while (pango_layout_iter_next_line(pango_iter));
 

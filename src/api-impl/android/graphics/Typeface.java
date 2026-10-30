@@ -83,6 +83,11 @@ public class Typeface {
 		return fromFile(file.getPath());
 	}
 
+	/** @hide for Resources.getFont */
+	public static Typeface createFromResourceStream(InputStream stream) throws IOException {
+		return fromStream(stream);
+	}
+
 	private static Typeface fromFile(String path) {
 		String family = nativeAddFontFile(path, Looper.myLooper() == Looper.getMainLooper());
 		return family != null ? new Typeface(family, NORMAL) : DEFAULT;
@@ -117,12 +122,18 @@ public class Typeface {
 		return isBold() ? 700 : 400;
 	}
 
+	/* fontconfig reads the file later, but AndroidX deletes its temporary font file right after this */
 	public static Typeface createFromFile(String path) {
-		return fromFile(path);
+		try {
+			return fromStream(new FileInputStream(path));
+		} catch (IOException e) {
+			e.printStackTrace();
+			return DEFAULT;
+		}
 	}
 
 	public static Typeface createFromFile(File file) {
-		return fromFile(file.getPath());
+		return createFromFile(file.getPath());
 	}
 
 	public String getFamily() {
@@ -155,6 +166,20 @@ public class Typeface {
 
 	public static Typeface createFromFamiliesWithDefault(FontFamily[] families, int dummy1, int dummy2) {
 		return createFromFamiliesWithDefault(families);
+	}
+
+	/* AndroidX's TypefaceCompatApi26Impl needs this signature of API 28, or it copies every font
+	 * to a temporary file; weight and italic are -1 to take them from the font */
+	public static Typeface createFromFamiliesWithDefault(FontFamily[] families, String fallbackName, int weight, int italic) {
+		Typeface typeface = createFromFamiliesWithDefault(families);
+		if (weight == -1 && italic == -1)
+			return typeface;
+		int style = typeface.style;
+		if (weight != -1)
+			style = (style & ~BOLD) | (weight >= 600 ? BOLD : NORMAL);
+		if (italic != -1)
+			style = (style & ~ITALIC) | (italic == 1 ? ITALIC : NORMAL);
+		return create(typeface, style);
 	}
 
 	public static class Builder {

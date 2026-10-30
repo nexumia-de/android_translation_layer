@@ -19,6 +19,7 @@ import android.annotation.Nullable;
 import android.atl.annotation.Export;
 import android.content.res.ColorStateList;
 import android.content.res.ComplexColor;
+import android.content.res.GradientColor;
 import android.content.res.Resources;
 import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
@@ -35,6 +36,7 @@ import android.graphics.PixelFormat;
 import android.graphics.PorterDuff.Mode;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
+import android.graphics.Shader;
 import android.util.ArrayMap;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -1727,7 +1729,7 @@ public class VectorDrawable extends Drawable {
 				}
 				mRenderPath.addPath(path, mFinalPathMatrix);
 
-				if (fullPath.mFillColor != Color.TRANSPARENT) {
+				if (fullPath.mFillColor != Color.TRANSPARENT || fullPath.mFillShader != null) {
 					if (mFillPaint == null) {
 						mFillPaint = new Paint();
 						mFillPaint.setStyle(Paint.Style.FILL);
@@ -1735,12 +1737,20 @@ public class VectorDrawable extends Drawable {
 					}
 
 					final Paint fillPaint = mFillPaint;
-					fillPaint.setColor(applyAlpha(fullPath.mFillColor, fullPath.mFillAlpha));
+					if (fullPath.mFillShader != null) {
+						// like Android, the gradient is in viewport coordinates
+						fullPath.mFillShader.setLocalMatrix(mFinalPathMatrix);
+						fillPaint.setShader(fullPath.mFillShader);
+						fillPaint.setColor(applyAlpha(Color.BLACK, fullPath.mFillAlpha));
+					} else {
+						fillPaint.setShader(null);
+						fillPaint.setColor(applyAlpha(fullPath.mFillColor, fullPath.mFillAlpha));
+					}
 					fillPaint.setColorFilter(filter);
 					canvas.drawPath(mRenderPath, fillPaint);
 				}
 
-				if (fullPath.mStrokeColor != Color.TRANSPARENT) {
+				if (fullPath.mStrokeColor != Color.TRANSPARENT || fullPath.mStrokeShader != null) {
 					if (mStrokePaint == null) {
 						mStrokePaint = new Paint();
 						mStrokePaint.setStyle(Paint.Style.STROKE);
@@ -1757,7 +1767,14 @@ public class VectorDrawable extends Drawable {
 					}
 
 					strokePaint.setStrokeMiter(fullPath.mStrokeMiterlimit);
-					strokePaint.setColor(applyAlpha(fullPath.mStrokeColor, fullPath.mStrokeAlpha));
+					if (fullPath.mStrokeShader != null) {
+						fullPath.mStrokeShader.setLocalMatrix(mFinalPathMatrix);
+						strokePaint.setShader(fullPath.mStrokeShader);
+						strokePaint.setColor(applyAlpha(Color.BLACK, fullPath.mStrokeAlpha));
+					} else {
+						strokePaint.setShader(null);
+						strokePaint.setColor(applyAlpha(fullPath.mStrokeColor, fullPath.mStrokeAlpha));
+					}
 					strokePaint.setColorFilter(filter);
 					final float finalStrokeScale = minScale * matrixScale;
 					strokePaint.setStrokeWidth(fullPath.mStrokeWidth * finalStrokeScale);
@@ -2127,6 +2144,8 @@ public class VectorDrawable extends Drawable {
 		float mStrokeWidth = 0;
 
 		int mFillColor = Color.TRANSPARENT;
+		Shader mFillShader;
+		Shader mStrokeShader;
 		float mStrokeAlpha = 1.0f;
 		int mFillRule;
 		float mFillAlpha = 1.0f;
@@ -2150,6 +2169,8 @@ public class VectorDrawable extends Drawable {
 			mStrokeWidth = copy.mStrokeWidth;
 			mStrokeAlpha = copy.mStrokeAlpha;
 			mFillColor = copy.mFillColor;
+			mFillShader = copy.mFillShader;
+			mStrokeShader = copy.mStrokeShader;
 			mFillRule = copy.mFillRule;
 			mFillAlpha = copy.mFillAlpha;
 			mTrimPathStart = copy.mTrimPathStart;
@@ -2217,8 +2238,10 @@ public class VectorDrawable extends Drawable {
 			}
 
 			ComplexColor fillColor = a.getComplexColor(R.styleable.VectorDrawablePath_fillColor);
-			if (fillColor != null)
+			if (fillColor != null) {
 				mFillColor = fillColor.getDefaultColor();
+				mFillShader = fillColor instanceof GradientColor ? ((GradientColor)fillColor).getShader() : null;
+			}
 			mFillAlpha = a.getFloat(R.styleable.VectorDrawablePath_fillAlpha,
 			                        mFillAlpha);
 			mStrokeLineCap = getStrokeLineCap(a.getInt(
@@ -2230,8 +2253,10 @@ public class VectorDrawable extends Drawable {
 			mStrokeMiterlimit = a.getFloat(
 			    R.styleable.VectorDrawablePath_strokeMiterLimit, mStrokeMiterlimit);
 			ComplexColor strokeColor = a.getComplexColor(R.styleable.VectorDrawablePath_strokeColor);
-			if (strokeColor != null)
+			if (strokeColor != null) {
 				mStrokeColor = strokeColor.getDefaultColor();
+				mStrokeShader = strokeColor instanceof GradientColor ? ((GradientColor)strokeColor).getShader() : null;
+			}
 			mStrokeAlpha = a.getFloat(R.styleable.VectorDrawablePath_strokeAlpha,
 			                          mStrokeAlpha);
 			mStrokeWidth = a.getFloat(R.styleable.VectorDrawablePath_strokeWidth,

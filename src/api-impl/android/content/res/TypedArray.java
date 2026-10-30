@@ -20,6 +20,7 @@ package android.content.res;
 //import android.annotation.ColorInt;
 import android.annotation.Nullable;
 //import android.annotation.StyleableRes;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.StrictMode;
 import android.util.AttributeSet;
@@ -472,6 +473,11 @@ public class TypedArray implements AutoCloseable {
 	 *         not an integer color, color state list or GradientColor.
 	 */
 	@Nullable
+	public Typeface getFont(int index) {
+		int id = getResourceId(index, 0);
+		return id != 0 ? mResources.getFont(id) : null;
+	}
+
 	public ComplexColor getComplexColor(/*@StyleableRes*/ int index) {
 		if (mRecycled) {
 			throw new RuntimeException("Cannot make calls to a recycled instance!");
