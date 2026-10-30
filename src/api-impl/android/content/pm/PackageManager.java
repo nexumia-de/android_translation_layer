@@ -2340,6 +2340,7 @@ public class PackageManager {
 			ri.activityInfo.exported = true;
 			ri.activityInfo.name = "atl.browser";
 			ri.activityInfo.packageName = "atl";
+			ri.activityInfo.processName = "atl";
 			ri.filter.addAction("android.intent.action.VIEW");
 			ri.filter.addCategory("android.intent.category.BROWSABLE");
 			ri.filter.addDataScheme("http");
