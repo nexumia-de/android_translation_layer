@@ -253,6 +253,14 @@ JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setTextColor
 
 /*
  * Class:     android_widget_TextView
+ * Method:    native_setFontFamily
+ * Signature: (JLjava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setFontFamily
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     android_widget_TextView
  * Method:    native_setGravity
  * Signature: (JI)V
  */

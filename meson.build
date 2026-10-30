@@ -204,6 +204,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/graphics/android_graphics_BitmapFactory.c',
                                                                   	'src/api-impl-jni/graphics/android_graphics_Matrix.c',
                                                                   	'src/api-impl-jni/graphics/android_graphics_Paint.c',
+                                                                  	'src/api-impl-jni/graphics/android_graphics_Typeface.c',
                                                                   	'src/api-impl-jni/graphics/android_graphics_Path.c',
                                                                   	'src/api-impl-jni/graphics/android_graphics_Region.c',
                                                                   	'src/api-impl-jni/graphics/android_view_RenderNode.c',
@@ -265,7 +266,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                         extra_deps,
                                                                   	dependency('gtk4', version: '>=4.14'), dependency('gl'), dependency('egl'), dependency('wayland-client'), dependency('jni'),
                                                                   	dependency('libportal'), dependency('sqlite3'), dependency('libavcodec', version: '>=59'), dependency('libdrm'),
-                                                                  	dependency('gudev-1.0'), dependency('libswscale'), dependency('webkitgtk-6.0'), dependency('libsecret-1'),
+                                                                  	dependency('gudev-1.0'), dependency('libswscale'), dependency('webkitgtk-6.0'), dependency('fontconfig'), dependency('pangoft2'), dependency('libsecret-1'),
                                                                         libart_dep, wayland_protos_dep, upcalls_header
                                                                   ],
                                                                   link_with: [ libandroid_so ],

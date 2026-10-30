@@ -51,6 +51,14 @@ JNIEXPORT jlong JNICALL Java_android_graphics_Paint_native_1clone
 
 /*
  * Class:     android_graphics_Paint
+ * Method:    native_set_typeface
+ * Signature: (JLjava/lang/String;ZZ)V
+ */
+JNIEXPORT void JNICALL Java_android_graphics_Paint_native_1set_1typeface
+  (JNIEnv *, jclass, jlong, jstring, jboolean, jboolean);
+
+/*
+ * Class:     android_graphics_Paint
  * Method:    native_recycle
  * Signature: (J)V
  */
