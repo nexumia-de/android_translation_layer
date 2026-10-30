@@ -1425,11 +1425,14 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	if (!getenv("ATL_SKIP_NATIVES_EXTRACTION") && !d->install_ask && !d->install_flatpak) // these only read the apk
 		extract_from_apk("lib/" NATIVE_ARCH "/", "lib/");
 
-	if (d->install_flatpak) {
+	/* installing only reads the apk: the app's own Application, content providers and main activity
+	 * would run its code, which may crash or never return, and then no launcher is written */
+	gboolean installing = d->install || d->install_internal || d->install_ask || d->install_flatpak;
+	if (installing) {
 		application_object = J__Application__create_for_installer(env);
 		if ((*env)->ExceptionCheck(env))
 			(*env)->ExceptionDescribe(env);
-		if (!d->install_ask)
+		if (d->install_flatpak && !d->install_ask)
 			install_flatpak(d, env, application_object, files, nfiles, app_data_dir_existed);
 	} else {
 		// construct Application
@@ -1466,7 +1469,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	}
 
 	// construct main Activity
-	if (!d->apk_instrumentation_class && !d->install_internal && !d->install_ask) {
+	if (!d->apk_instrumentation_class && !installing) {
 		activity_object = J__Activity__createMainActivity(env, _JSTRING(d->apk_main_activity_class),
 		                                                  _INTPTR(window), (uri_option && *uri_option) ? _JSTRING(uri_option) : NULL);
 		if ((*env)->ExceptionCheck(env))
