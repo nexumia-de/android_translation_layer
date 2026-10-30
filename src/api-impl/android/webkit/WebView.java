@@ -29,6 +29,8 @@ public class WebView extends ViewGroup {
 		return settings;
 	}
 
+	private boolean ownLoadPending;
+
 	public void setDownloadListener(DownloadListener downloadListener) {}
 
 	public void setScrollBarStyle(int scrollBarStyle) {}
@@ -49,6 +51,11 @@ public class WebView extends ViewGroup {
 
 	@Export
 	boolean internalShouldOverrideUrlLoading(String url) {
+		// on Android the app's own loadUrl/loadData does not reach the client
+		if (ownLoadPending || url.startsWith("about:")) {
+			ownLoadPending = false;
+			return false;
+		}
 		if (webViewClient != null)
 			return webViewClient.shouldOverrideUrlLoading(this, url);
 		else
@@ -108,6 +115,7 @@ public class WebView extends ViewGroup {
 		}
 		// webkit doesn't allow overwriting the file:// uri scheme. So we replace it with the android-asset:// scheme
 		data = data.replace("file:///android_asset/", "android-asset:///assets/");
+		ownLoadPending = true;
 		native_loadDataWithBaseURL(widget, baseUrl, data, mimeType, encoding, settings.getJavaScriptEnabled());
 	}
 
@@ -118,6 +126,7 @@ public class WebView extends ViewGroup {
 		}
 		// webkit doesn't allow overwriting the file:// uri scheme. So we replace it with the android-asset:// scheme
 		url = url.replace("file:///android_asset/", "android-asset:///assets/");
+		ownLoadPending = true;
 		native_loadUrl(widget, url, settings.getJavaScriptEnabled());
 	}
 
