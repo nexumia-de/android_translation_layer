@@ -28,7 +28,9 @@ needs it.
 # Branches
 
 - `master`: identical to upstream `master`, never committed to.
-- `phosh` (default): upstream plus `AGENTS.md`, `CLAUDE.md`, `docs/` and
+- `phosh` (default): upstream plus `AGENTS.md`, `CLAUDE.md`, `docs/`, the
+  audit tools `tools/atl-gaps.py`, `tools/atl-stublog-rewrite.py` and
+  `tools/atl-stub-hits.py`, and
   fixes not yet merged upstream. Work happens on branches from `phosh`
   and comes in by pull request.
 

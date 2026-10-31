@@ -54,6 +54,11 @@ the separate user `claude` without sudo or doas.
 - Status of every app tried, with the cause of each failure and the fix:
   [docs/apps.md](docs/apps.md). Check upstream's issue tracker for known
   reports before debugging an app.
+- Work on an app in the order of
+  [docs/app-bring-up.md](docs/app-bring-up.md): static gap and stub list
+  first, then the stub log, then fixes, then a comparison with real
+  Android. Do not trace or fix crash by crash before these ran.
+- Keep each app's feature states in [docs/app-audit.md](docs/app-audit.md).
 
 ## Upstream contributions
 

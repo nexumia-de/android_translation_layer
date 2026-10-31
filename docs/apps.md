@@ -9,7 +9,9 @@ generated: { by: claude-code/2.1.308, at: 2026-10-28T09:20:00Z }
 # Apps
 
 States: `works`, `partly` (starts, some features fail), `crashes`,
-`out of scope` (needs Google Play Services or similar).
+`out of scope` (needs Google Play Services or similar). What each app's
+features do, and the evidence, is in the [app audit](app-audit.md). New apps
+follow [bringing up an app](app-bring-up.md).
 
 | App | Version | ATL commit | State | Cause / notes | Fix |
 |---|---|---|---|---|---|
@@ -25,6 +27,9 @@ States: `works`, `partly` (starts, some features fail), `crashes`,
 
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
+
+- 2026-10-31: Do not type a real password into Duolingo yet: its password
+  field shows the text (first problem in the [app audit](app-audit.md)).
 
 - 2026-10-28: Finish the apk repository in
   [nexumia-de/aports](https://github.com/nexumia-de/aports) (signing
