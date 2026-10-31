@@ -7,6 +7,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_os_Vibrator_VIBRATION_EFFECT_SUPPORT_UNKNOWN
+#define android_os_Vibrator_VIBRATION_EFFECT_SUPPORT_UNKNOWN 0L
+#undef android_os_Vibrator_VIBRATION_EFFECT_SUPPORT_YES
+#define android_os_Vibrator_VIBRATION_EFFECT_SUPPORT_YES 1L
+#undef android_os_Vibrator_VIBRATION_EFFECT_SUPPORT_NO
+#define android_os_Vibrator_VIBRATION_EFFECT_SUPPORT_NO 2L
 /*
  * Class:     android_os_Vibrator
  * Method:    native_vibrate
