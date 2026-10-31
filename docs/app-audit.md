@@ -13,7 +13,9 @@ Done with the method in [bringing up an app](app-bring-up.md). States are
 defined there. Fix history stays in [app status](apps.md).
 
 Audit of 2026-10-31 on ATL `phosh` plus branch `claude/duolingo-signin`, as
-that is what was installed. It is not complete:
+that is what was installed; the fixes marked below followed the same day, and
+`*.gaps.tsv` include them while `*.hits.tsv` are from before them. It is not
+complete:
 
 - **Headless walks reached little.** One or two short walks per app under
   phoc, without an account, typing or real location. A feature not reached
@@ -28,13 +30,13 @@ Every element is in the snapshots, one pair per app:
 
 | App | Package | Missing or stub, own code | Missing or stub, in total | Stubs hit |
 |---|---|---|---|---|
-| Chooser | `com.uravgcode.chooser` | 0 + 1 | 314 + 171 | 65 |
-| Blokish | `org.scoutant.blokish` | 3 + 15 | 1305 + 476 | 73 |
-| F-Droid | `org.fdroid.fdroid` | 47 + 19 | 788 + 383 | 87 |
-| Aurora Store | `com.aurora.store` | 1 + 2 | 944 + 441 | 72 |
-| DB Navigator | `de.hafas.android.db` | 0 + 0 | 1206 + 577 | 204 |
-| Post & DHL | `de.dhl.paket` | 6 + 13 | 1281 + 529 | 149 |
-| Duolingo | `com.duolingo` | 77 + 152 | 1655 + 650 | 79 |
+| Chooser | `com.uravgcode.chooser` | 0 + 1 | 313 + 171 | 65 |
+| Blokish | `org.scoutant.blokish` | 3 + 15 | 1304 + 472 | 73 |
+| F-Droid | `org.fdroid.fdroid` | 47 + 19 | 787 + 374 | 87 |
+| Aurora Store | `com.aurora.store` | 1 + 2 | 943 + 437 | 72 |
+| DB Navigator | `de.hafas.android.db` | 0 + 0 | 1205 + 573 | 204 |
+| Post & DHL | `de.dhl.paket` | 6 + 13 | 1280 + 524 | 149 |
+| Duolingo | `com.duolingo` | 72 + 146 | 1630 + 643 | 79 |
 
 Most "in total" entries come from libraries and hardware paths never reached.
 DB Navigator's own code is entirely obfuscated, so its first column says

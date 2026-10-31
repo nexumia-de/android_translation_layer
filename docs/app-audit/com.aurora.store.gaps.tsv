@@ -72,7 +72,6 @@ stub	Views and widgets	android.view.View.setWillNotDraw:(Z)V	0	5	androidx.appcom
 stub	Graphics	android.graphics.drawable.Drawable.getLayoutDirection:()I	0	5	com.google 7
 stub	Views and widgets	android.view.FocusFinder.findNextFocus:(Landroid/view/ViewGroup;Landroid/view/View;I)Landroid/view/View;	0	5	androidx.recyclerview 4, androidx.core 3
 method	Views and widgets	android.widget.EdgeEffect.draw:(Landroid/graphics/Canvas;)Z	0	5	androidx.recyclerview 4, androidx.core 2
-stub	Views and widgets	android.widget.TextView.getTransformationMethod:()Landroid/text/method/TransformationMethod;	0	5	com.google 4
 stub	Graphics	android.graphics.drawable.Drawable.setHotspotBounds:(IIII)V	0	5	com.google 2, androidx.appcompat 1
 stub	Views and widgets	android.view.View.isInTouchMode:()Z	0	5	com.google 2
 stub	Views and widgets	android.view.View.setLongClickable:(Z)V	0	5	com.google 2
@@ -94,7 +93,6 @@ class	Text input	android.view.inputmethod.SelectRangeGesture	0	5
 class	Text input	android.view.textclassifier.TextClassification$Request$Builder	0	5	
 class	Views and widgets	android.view.translation.ViewTranslationRequest$Builder	0	5	
 stub	Views and widgets	android.view.VelocityTracker.recycle:()V	0	4	androidx.core 5, com.google 4
-stub	Views and widgets	android.widget.TextView.getInputType:()I	0	4	com.google 9
 stub	Views and widgets	android.view.View.clearFocus:()V	0	4	com.google 6, androidx.appcompat 1
 stub	Views and widgets	android.view.View.setPivotY:(F)V	0	4	com.google 4, androidx.constraintlayout 2
 stub	Views and widgets	android.view.View.setPivotX:(F)V	0	4	com.google 3, androidx.constraintlayout 2
@@ -239,7 +237,6 @@ stub	Views and widgets	android.view.VelocityTracker.clear:()V	0	2	androidx.core 
 method	Views and widgets	android.view.AbsSavedState.getSuperState:()Landroid/os/Parcelable;	0	2	com.google 3, androidx.core 1
 stub	Views and widgets	android.widget.TextView.getCompoundPaddingLeft:()I	0	2	com.google 4
 stub	Views and widgets	android.widget.TextView.getCompoundPaddingRight:()I	0	2	com.google 4
-stub	Views and widgets	android.widget.TextView.setTransformationMethod:(Landroid/text/method/TransformationMethod;)V	0	2	com.google 4
 class	App framework	android.util.CloseGuard	0	2	okhttp3.internal 3
 method	Views and widgets	android.view.View$BaseSavedState.<init>:(Landroid/os/Parcelable;)V	0	2	com.google 2, androidx.core 1
 method	Views and widgets	android.view.View$BaseSavedState.writeToParcel:(Landroid/os/Parcel;I)V	0	2	com.google 2, androidx.core 1
@@ -481,7 +478,6 @@ method	Views and widgets	android.app.Activity.onKeyDown:(ILandroid/view/KeyEvent
 method	Views and widgets	android.app.Activity.onMultiWindowModeChanged:(ZLandroid/content/res/Configuration;)V	0	1	
 method	Views and widgets	android.app.Activity.onPictureInPictureModeChanged:(ZLandroid/content/res/Configuration;)V	0	1	
 method	Views and widgets	android.app.Activity.onPictureInPictureUiStateChanged:(Landroid/app/PictureInPictureUiState;)V	0	1	
-method	Views and widgets	android.app.Activity.onRequestPermissionsResult:(I[Ljava/lang/String;[I)V	0	1	
 method	Views and widgets	android.app.Activity.onTitleChanged:(Ljava/lang/CharSequence;I)V	0	1	
 method	Views and widgets	android.app.Activity.onTrimMemory:(I)V	0	1	
 method	Views and widgets	android.app.Activity.onUserInteraction:()V	0	1	
@@ -1185,7 +1181,6 @@ method	Views and widgets	android.widget.FrameLayout.onInitializeAccessibilityNod
 method	Views and widgets	android.widget.LinearLayout.drawableStateChanged:()V	0	0	com.google 3
 method	Views and widgets	android.widget.LinearLayout.onInitializeAccessibilityNodeInfo:(Landroid/view/accessibility/AccessibilityNodeInfo;)V	0	0	com.google 2, androidx.appcompat 1
 stub	Views and widgets	android.widget.TextView.getSelectionStart:()I	0	0	com.google 3
-stub	Views and widgets	android.widget.TextView.setInputType:(I)V	0	0	com.google 3
 stub	Views and widgets	android.widget.TextView.setSelection:(I)V	0	0	com.google 3
 method	Views and widgets	android.app.Dialog.getLayoutInflater:()Landroid/view/LayoutInflater;	0	0	com.google 2
 method	Views and widgets	android.app.Dialog.onAttachedToWindow:()V	0	0	com.google 2

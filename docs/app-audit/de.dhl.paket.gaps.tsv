@@ -229,7 +229,6 @@ stub	Clipboard	android.content.ClipboardManager.getPrimaryClip:()Landroid/conten
 method	Views and widgets	android.widget.EdgeEffect.draw:(Landroid/graphics/Canvas;)Z	0	3	androidx.recyclerview 4, androidx.core 2
 class	Camera	android.hardware.camera2.params.SessionConfiguration	0	3	androidx.camera 5
 stub	Views and widgets	android.view.View.setPivotY:(F)V	0	3	com.google 4, androidx.camera 1
-stub	Views and widgets	android.widget.TextView.getInputType:()I	0	3	com.google 5
 stub	Views and widgets	android.app.Dialog.setOnCancelListener:(Landroid/content/DialogInterface$OnCancelListener;)V	0	3	com.google 2, androidx.fragment 1, org.qtproject 1
 stub	App framework	android.content.BroadcastReceiver$PendingResult.finish:()V	0	3	androidx.work 2, com.google 2
 stub	Graphics	android.graphics.Canvas.drawPoint:(FFLandroid/graphics/Paint;)V	0	3	com.google 3, io.sentry 1
@@ -241,7 +240,6 @@ stub	Network	android.net.ConnectivityManager.unregisterNetworkCallback:(Landroid
 method	Views and widgets	android.view.View$AccessibilityDelegate.onInitializeAccessibilityNodeInfo:(Landroid/view/View;Landroid/view/accessibility/AccessibilityNodeInfo;)V	0	3	com.google 3
 stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setChecked:(Z)V	0	3	com.google 3
 stub	Text input	android.view.inputmethod.InputMethodManager.restartInput:(Landroid/view/View;)V	0	3	org.qtproject 3
-stub	Views and widgets	android.widget.TextView.getTransformationMethod:()Landroid/text/method/TransformationMethod;	0	3	com.google 3
 stub	Clipboard	android.content.ClipboardManager.getPrimaryClipDescription:()Landroid/content/ClipDescription;	0	3	org.qtproject 2
 stub	Audio and video	android.media.MediaCodec.stop:()V	0	3	androidx.camera 1, io.sentry 1
 class	Views and widgets	android.view.RoundedCorner	0	3	com.google 2
@@ -342,7 +340,6 @@ stub	Views and widgets	android.view.FocusFinder.findNextFocus:(Landroid/view/Vie
 stub	Views and widgets	android.view.VelocityTracker.recycle:()V	0	2	androidx.core 5, com.google 3, io.sentry 1
 stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setClassName:(Ljava/lang/CharSequence;)V	0	2	com.google 5, androidx.appcompat 2, org.qtproject 1
 stub	Views and widgets	android.view.View.setAccessibilityDelegate:(Landroid/view/View$AccessibilityDelegate;)V	0	2	com.google 4, de.its_berlin 1, org.qtproject 1
-stub	Views and widgets	android.widget.TextView.setTransformationMethod:(Landroid/text/method/TransformationMethod;)V	0	2	com.google 5, com.dhl 1
 class	Views and widgets	android.view.PixelCopy	0	2	io.sentry 4, androidx.camera 1
 stub	Views and widgets	android.view.View.announceForAccessibility:(Ljava/lang/CharSequence;)V	0	2	com.google 5
 stub	Views and widgets	android.view.View.setClipToOutline:(Z)V	0	2	com.google 4, androidx.cardview 1
@@ -1312,7 +1309,6 @@ stub	Views and widgets	android.widget.TextView.getCompoundPaddingTop:()I	0	0	com
 stub	Views and widgets	android.widget.TextView.setCursorVisible:(Z)V	0	0	com.cardinalcommerce 2, com.google 1
 stub	Views and widgets	android.widget.TextView.setHorizontallyScrolling:(Z)V	0	0	com.google 3
 stub	Views and widgets	android.widget.TextView.setImeOptions:(I)V	0	0	com.google 2, com.cardinalcommerce 1
-stub	Views and widgets	android.widget.TextView.setInputType:(I)V	0	0	com.google 3
 stub	Views and widgets	android.widget.TextView.setMaxWidth:(I)V	0	0	com.google 2, io.scanbot 1
 method	Java library	org.apache.commons.codec.binary.Base64.<init>:(I[B)V	0	0	org.apache 3
 method	Java library	org.apache.commons.codec.binary.Base64.<init>:(I[BZ)V	0	0	org.apache 3
@@ -1434,7 +1430,6 @@ method	Views and widgets	android.app.Activity.onCreateView:(Ljava/lang/String;La
 method	Views and widgets	android.app.Activity.onMultiWindowModeChanged:(ZLandroid/content/res/Configuration;)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onPictureInPictureModeChanged:(ZLandroid/content/res/Configuration;)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onPictureInPictureUiStateChanged:(Landroid/app/PictureInPictureUiState;)V	0	0	androidx.activity 1
-method	Views and widgets	android.app.Activity.onRequestPermissionsResult:(I[Ljava/lang/String;[I)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onRetainNonConfigurationInstance:()Ljava/lang/Object;	0	0	org.qtproject 1
 method	Views and widgets	android.app.Activity.onTrimMemory:(I)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onUserLeaveHint:()V	0	0	androidx.activity 1
@@ -1579,7 +1574,6 @@ method	Audio and video	android.media.MediaMetadataRetriever.getScaledFrameAtTime
 method	Audio and video	android.media.MediaMetadataRetriever.setDataSource:(Ljava/io/FileDescriptor;)V	0	0	com.bumptech 1
 method	Audio and video	android.media.MediaMetadataRetriever.setDataSource:(Ljava/io/FileDescriptor;JJ)V	0	0	com.bumptech 1
 method	Audio and video	android.media.MediaPlayer.create:(Landroid/content/Context;Landroid/net/Uri;)Landroid/media/MediaPlayer;	0	0	io.scanbot 1
-stub	Audio and video	android.media.MediaPlayer.release:()V	0	0	io.scanbot 1
 method	Network	android.net.ConnectivityManager$NetworkCallback.onUnavailable:()V	0	0	io.sentry 1
 stub	Network	android.net.ConnectivityManager.getDefaultProxy:()Landroid/net/ProxyInfo;	0	0	org.qtproject 1
 stub	Network	android.net.NetworkCapabilities.getLinkDownstreamBandwidthKbps:()I	0	0	io.sentry 1

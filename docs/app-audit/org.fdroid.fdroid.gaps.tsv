@@ -123,7 +123,6 @@ stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setClassName
 class	Text input	android.view.textclassifier.TextClassificationManager	0	0	androidx.appcompat 3, androidx.compose 3
 class	Text input	android.view.textclassifier.TextSelection$Request$Builder	0	0	androidx.compose 6
 method	Views and widgets	android.widget.TextView.getCustomSelectionActionModeCallback:()Landroid/view/ActionMode$Callback;	0	0	androidx.appcompat 6
-stub	Views and widgets	android.widget.TextView.getTransformationMethod:()Landroid/text/method/TransformationMethod;	0	0	androidx.appcompat 2, com.google 2, androidx.core 1, androidx.emoji2 1
 stub	Views and widgets	android.widget.TextView.setCustomSelectionActionModeCallback:(Landroid/view/ActionMode$Callback;)V	0	0	androidx.appcompat 6
 stub	Views and widgets	android.widget.TextView.setKeyListener:(Landroid/text/method/KeyListener;)V	0	0	androidx.appcompat 6
 class	Views and widgets	android.app.RemoteAction	0	0	androidx.compose 5
@@ -161,7 +160,6 @@ class	Text input	android.view.textclassifier.TextClassification$Request$Builder	
 class	Text input	android.view.textclassifier.TextClassifier	0	0	androidx.compose 4, androidx.appcompat 1
 class	Views and widgets	android.view.translation.ViewTranslationRequest$Builder	0	0	androidx.compose 5
 method	Views and widgets	android.widget.EdgeEffect.draw:(Landroid/graphics/Canvas;)Z	0	0	androidx.compose 3, androidx.core 2
-stub	Views and widgets	android.widget.TextView.getInputType:()I	0	0	androidx.appcompat 4, androidx.core 1
 class	Other	android.window.BackEvent	0	0	androidx.navigationevent 5
 class	Java library	javax.naming.directory.SearchControls	0	0	org.bouncycastle 5
 class	Views and widgets	android.app.LocaleManager	0	0	androidx.appcompat 4
@@ -221,8 +219,6 @@ stub	Graphics	android.graphics.drawable.Drawable.getLevel:()I	0	0	com.google 2, 
 method	Graphics	android.graphics.drawable.Drawable.getTransparentRegion:()Landroid/graphics/Region;	0	0	androidx.vectordrawable 2, androidx.appcompat 1
 stub	Graphics	android.graphics.drawable.Icon.createWithBitmap:(Landroid/graphics/Bitmap;)Landroid/graphics/drawable/Icon;	0	0	androidx.core 3
 stub	Graphics	android.graphics.drawable.RippleDrawable.getRadius:()I	0	0	com.google 2, androidx.compose 1
-stub	Audio and video	android.media.MediaPlayer.release:()V	0	0	com.google 3
-stub	Audio and video	android.media.MediaPlayer.reset:()V	0	0	com.google 3
 stub	Network	android.net.ConnectivityManager.unregisterNetworkCallback:(Landroid/net/ConnectivityManager$NetworkCallback;)V	0	0	androidx.work 3
 method	App framework	android.os.BaseBundle.putBooleanArray:(Ljava/lang/String;[Z)V	0	0	androidx.core 1, androidx.savedstate 1, org.acra 1
 method	App framework	android.os.BaseBundle.putDouble:(Ljava/lang/String;D)V	0	0	androidx.core 1, androidx.savedstate 1, org.acra 1
@@ -300,7 +296,6 @@ stub	Views and widgets	android.widget.TextView.getAutoSizeStepGranularity:()I	0	
 stub	Views and widgets	android.widget.TextView.setAutoSizeTextTypeUniformWithConfiguration:(IIII)V	0	0	androidx.appcompat 3
 stub	Views and widgets	android.widget.TextView.setAutoSizeTextTypeUniformWithPresetSizes:([II)V	0	0	androidx.appcompat 3
 stub	Views and widgets	android.widget.TextView.setCompoundDrawablesRelativeWithIntrinsicBounds:(Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;)V	0	0	androidx.appcompat 3
-stub	Views and widgets	android.widget.TextView.setInputType:(I)V	0	0	androidx.appcompat 2, org.acra 1
 stub	Views and widgets	android.widget.TextView.setSelection:(I)V	0	0	androidx.appcompat 3
 class	Java library	javax.naming.directory.DirContext	0	0	org.bouncycastle 3
 method	Views and widgets	android.app.Activity.getOnBackInvokedDispatcher:()Landroid/window/OnBackInvokedDispatcher;	0	0	androidx.activity 1, androidx.appcompat 1
@@ -346,7 +341,6 @@ method	Camera	android.hardware.Camera.setParameters:(Landroid/hardware/Camera$Pa
 stub	Sensors	android.hardware.input.InputManager.registerInputDeviceListener:(Landroid/hardware/input/InputManager$InputDeviceListener;Landroid/os/Handler;)V	0	0	androidx.compose 2
 method	Sensors	android.hardware.input.InputManager.unregisterInputDeviceListener:(Landroid/hardware/input/InputManager$InputDeviceListener;)V	0	0	androidx.compose 2
 class	Audio and video	android.media.MediaDrm	0	0	androidx.activity 2
-stub	Audio and video	android.media.MediaPlayer.stop:()V	0	0	com.google 2
 method	Network	android.net.NetworkRequest$Builder.addTransportType:(I)Landroid/net/NetworkRequest$Builder;	0	0	androidx.work 2
 method	App framework	android.os.Binder.onTransact:(ILandroid/os/Parcel;Landroid/os/Parcel;I)Z	0	0	androidx.room 2
 method	App framework	android.os.Bundle.putSize:(Ljava/lang/String;Landroid/util/Size;)V	0	0	androidx.core 1, androidx.savedstate 1
@@ -440,7 +434,6 @@ method	Views and widgets	android.app.Activity.onCreateView:(Ljava/lang/String;La
 method	Views and widgets	android.app.Activity.onMultiWindowModeChanged:(ZLandroid/content/res/Configuration;)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onPictureInPictureModeChanged:(ZLandroid/content/res/Configuration;)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onPictureInPictureUiStateChanged:(Landroid/app/PictureInPictureUiState;)V	0	0	androidx.activity 1
-method	Views and widgets	android.app.Activity.onRequestPermissionsResult:(I[Ljava/lang/String;[I)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onTitleChanged:(Ljava/lang/CharSequence;I)V	0	0	androidx.appcompat 1
 method	Views and widgets	android.app.Activity.onTrimMemory:(I)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onUserInteraction:()V	0	0	androidx.core 1
@@ -698,9 +691,7 @@ stub	Audio and video	android.media.MediaCodecInfo.isEncoder:()Z	0	0	org.acra 1
 class	Audio and video	android.media.MediaDataSource	0	0	androidx.exifinterface 1
 method	Audio and video	android.media.MediaMetadataRetriever.setDataSource:(Landroid/media/MediaDataSource;)V	0	0	androidx.exifinterface 1
 stub	Audio and video	android.media.MediaPlayer.setAudioAttributes:(Landroid/media/AudioAttributes;)V	0	0	com.google 1
-stub	Audio and video	android.media.MediaPlayer.setDataSource:(Ljava/io/FileDescriptor;JJ)V	0	0	com.google 1
 stub	Audio and video	android.media.MediaPlayer.setOnErrorListener:(Landroid/media/MediaPlayer$OnErrorListener;)V	0	0	com.google 1
-stub	Audio and video	android.media.MediaPlayer.setVolume:(FF)V	0	0	com.google 1
 stub	Network	android.net.NetworkInfo.isRoaming:()Z	0	0	androidx.work 1
 method	Network	android.net.NetworkRequest.canBeSatisfiedBy:(Landroid/net/NetworkCapabilities;)Z	0	0	androidx.work 1
 method	Network	android.net.NetworkRequest.getCapabilities:()[I	0	0	androidx.work 1
@@ -1153,7 +1144,6 @@ stub	Views and widgets	android.widget.TextView.setLineSpacing:(FF)V	0	0	androidx
 method	Views and widgets	android.widget.TextView.setPrivateImeOptions:(Ljava/lang/String;)V	0	0	androidx.appcompat 1
 method	Views and widgets	android.widget.TextView.setTextClassifier:(Landroid/view/textclassifier/TextClassifier;)V	0	0	androidx.appcompat 1
 method	Views and widgets	android.widget.TextView.setTextLocales:(Landroid/os/LocaleList;)V	0	0	androidx.appcompat 1
-stub	Views and widgets	android.widget.TextView.setTransformationMethod:(Landroid/text/method/TransformationMethod;)V	0	0	androidx.emoji2 1
 stub	Views and widgets	android.widget.TextView.setWidth:(I)V	0	0	com.google 1
 method	Views and widgets	android.widget.ThemedSpinnerAdapter.getDropDownViewTheme:()Landroid/content/res/Resources$Theme;	0	0	androidx.appcompat 1
 method	Views and widgets	android.widget.ThemedSpinnerAdapter.setDropDownViewTheme:(Landroid/content/res/Resources$Theme;)V	0	0	androidx.appcompat 1
