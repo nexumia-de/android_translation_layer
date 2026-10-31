@@ -116,4 +116,13 @@ public final class NetworkCapabilities {
 		if (!isValidTransport(transportType))
 			throw new IllegalArgumentException("Invalid TransportType " + transportType);
 	}
+
+	/* unknown, like Android when the network does not report it */
+	public int getLinkDownstreamBandwidthKbps() {
+		return 0;
+	}
+
+	public int getLinkUpstreamBandwidthKbps() {
+		return 0;
+	}
 }

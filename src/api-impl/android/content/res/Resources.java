@@ -1332,6 +1332,7 @@ public class Resources {
 			}
 
 			mAssets.applyThemeStyle(theme, resid, force);
+			mKey.append(resid, force);
 		}
 
 		/**
@@ -1345,6 +1346,14 @@ public class Resources {
 		 */
 		public void setTo(Theme other) {
 			getAssets().copyTheme(this.theme, other.theme);
+			if (other.mAssets != mAssets) {
+				/* between two AssetManagers (a context with another configuration has its own) the
+				 * native copy keeps only the framework's entries, so apply the other theme's styles
+				 * again, like Android's rebase() */
+				for (int i = 0; i < other.mKey.mCount; i++)
+					mAssets.applyThemeStyle(theme, other.mKey.mResId[i], other.mKey.mForce[i]);
+			}
+			mKey.setTo(other.mKey);
 		}
 
 		/**

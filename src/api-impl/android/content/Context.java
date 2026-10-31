@@ -44,6 +44,7 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
@@ -76,6 +77,7 @@ import java.security.Security;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 public abstract class Context {
 	private final static String TAG = "Context";
@@ -426,6 +428,20 @@ public abstract class Context {
 	public void unregisterComponentCallbacks(ComponentCallbacks callbacks) {}
 
 	public abstract boolean bindService(final Intent intent, final ServiceConnection serviceConnection, int flags);
+
+	public boolean bindService(Intent intent, int flags, final Executor executor, final ServiceConnection serviceConnection) {
+		return bindService(intent, new ServiceConnection() {
+			@Override
+			public void onServiceConnected(final ComponentName name, final IBinder service) {
+				executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						serviceConnection.onServiceConnected(name, service);
+					}
+				});
+			}
+		}, flags);
+	}
 
 	/* For use from native code */
 	@Export

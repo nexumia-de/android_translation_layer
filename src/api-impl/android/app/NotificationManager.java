@@ -107,4 +107,9 @@ public class NotificationManager {
 	public NotificationChannel getNotificationChannel(String channel) {
 		return null;
 	}
+
+	/* no other app posts notifications for this one */
+	public String getNotificationDelegate() {
+		return null;
+	}
 }

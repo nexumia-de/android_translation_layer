@@ -88,6 +88,10 @@ public class LayoutInflater {
 	}
 
 	public final View createView(String name, String prefix, AttributeSet attrs) throws Exception {
+		return createView(this.context, name, prefix, attrs);
+	}
+
+	public final View createView(Context viewContext, String name, String prefix, AttributeSet attrs) throws Exception {
 		if (Log.isLoggable(TAG, Log.VERBOSE))
 			Slog.v(TAG, tabs(indent) + "createView(" + name + ", " + prefix + ", " + attrs + ");");
 
@@ -103,7 +107,7 @@ public class LayoutInflater {
 			constructorCache.put(name, constructor);
 		}
 
-		Context context = this.context;
+		Context context = viewContext != null ? viewContext : this.context;
 		final TypedArray ta = context.obtainStyledAttributes(attrs, new int[] {com.android.internal.R.attr.theme});
 		final int themeResId = ta.getResourceId(0, 0);
 		if (themeResId != 0) {
@@ -138,6 +142,10 @@ public class LayoutInflater {
 		return onCreateView(name, attrs);
 	}
 
+	public View onCreateView(Context viewContext, View parent, String name, AttributeSet attrs) throws Exception {
+		return onCreateView(parent, name, attrs);
+	}
+
 	View createViewFromTag(View parent, String name, AttributeSet attrs) throws Exception {
 		if (name.equals("view")) {
 			name = attrs.getAttributeValue(null, "class");
@@ -157,7 +165,7 @@ public class LayoutInflater {
 			view = ((Factory2)context).onCreateView(parent, name, context, attrs);
 		}
 		if (view == null && -1 == name.indexOf('.')) {
-			view = onCreateView(parent, name, attrs);
+			view = onCreateView(context, parent, name, attrs);
 		} else if (view == null) {
 			view = createView(name, null, attrs);
 		}
