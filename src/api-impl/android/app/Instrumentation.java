@@ -154,7 +154,7 @@ public class Instrumentation {
 		//prePerformCreate(activity);
 		runOnMainSync(new Runnable() {
 			public void run() {
-				activity.onCreate(savedState);
+				activity.performCreate(savedState);
 			}
 		});
 		//postPerformCreate(activity);
