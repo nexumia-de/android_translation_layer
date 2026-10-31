@@ -198,6 +198,15 @@ public abstract class Context {
 		return Looper.getMainLooper();
 	}
 
+	public Executor getMainExecutor() {
+		final Handler handler = new Handler(Looper.getMainLooper());
+		return new Executor() {
+			public void execute(Runnable command) {
+				handler.post(command);
+			}
+		};
+	}
+
 	@Export
 	public String getPackageName() {
 		return getApplicationInfo().packageName;

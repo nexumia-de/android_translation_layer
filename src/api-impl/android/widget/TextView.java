@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.LocaleList;
 import android.text.BoringLayout;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -30,6 +31,7 @@ import android.view.ActionMode;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import java.util.Locale;
 
 public class TextView extends View {
 	private ColorStateList colors = new ColorStateList(new int[][] {new int[0]}, new int[1]);
@@ -569,9 +571,35 @@ public class TextView extends View {
 		return new Bundle();
 	}
 
+	private CharSequence error;
+
 	public void setError(CharSequence error) {
 		System.out.println("ERROR: " + error);
+		this.error = error;
 	}
+
+	public CharSequence getError() {
+		return error;
+	}
+
+	private Locale textLocale;
+
+	public void setTextLocale(Locale locale) {
+		textLocale = locale;
+	}
+
+	public Locale getTextLocale() {
+		return textLocale != null ? textLocale : Locale.getDefault();
+	}
+
+	public void setImeHintLocales(LocaleList hintLocales) {}
+
+	// text is not auto-sized, like setAutoSizeTextTypeUniformWithPresetSizes
+	public void setAutoSizeTextTypeWithDefaults(int autoSizeTextType) {}
+
+	public void setAutoSizeTextTypeUniformWithConfiguration(int autoSizeMinTextSize, int autoSizeMaxTextSize, int autoSizeStepGranularity, int unit) {}
+
+	public void setLineBreakWordStyle(int lineBreakWordStyle) {}
 
 	public int getTotalPaddingLeft() { return 0; }
 

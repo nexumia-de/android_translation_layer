@@ -15,6 +15,10 @@ public class ViewConfiguration {
 		return 8;
 	}
 
+	public int getScaledEdgeSlop() {
+		return 12; // Android's EDGE_SLOP in dp at density 1
+	}
+
 	public int getScaledMaximumFlingVelocity() {
 		return 8000;
 	}
