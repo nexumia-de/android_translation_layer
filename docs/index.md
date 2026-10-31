@@ -17,7 +17,9 @@ Change history is in [log.md](log.md).
 
 # Apps
 
+* [Bringing up and auditing an app](app-bring-up.md) - The order of work for every app: manifest, static gap and stub list, run-time stub log, comparison with real Android, per-feature audit.
 * [App status](apps.md) - Every Android app tried with ATL, its state, the cause of failures and the fixes.
+* [App audit](app-audit.md) - Per app and feature: what works, what is stubbed or missing, what is wrong or untested, with the evidence.
 * [Installing apps with F-Droid and Aurora Store](installing-apps.md) - How ATL installs, lists and uninstalls APKs, also split APKs from Google Play, how to set up F-Droid and Aurora Store, and the gaps.
 
 # Security

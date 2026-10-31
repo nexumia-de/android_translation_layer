@@ -312,8 +312,9 @@ the portal).
 
 ## Which app methods ran
 
-When an app hangs with all threads idle, ART's method tracing shows how far
-it got. With streaming output every method's name is written into the
+When an app hangs with all threads idle and neither the static list nor the
+stub log of [bringing up an app](app-bring-up.md) explains it, ART's method
+tracing shows how far it got. With streaming output every method's name is written into the
 trace the first time it runs, so `strings` is enough to read it:
 
 ```sh
