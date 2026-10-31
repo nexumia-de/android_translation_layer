@@ -28,6 +28,18 @@ public class AudioAttributes {
 			return this;
 		}
 
+		public Builder setHapticChannelsMuted(boolean muted) {
+			return this;
+		}
+
+		public Builder setAllowedCapturePolicy(int capturePolicy) {
+			return this;
+		}
+
+		public Builder setSpatializationBehavior(int behavior) {
+			return this;
+		}
+
 		public AudioAttributes build() {
 			return new AudioAttributes();
 		}

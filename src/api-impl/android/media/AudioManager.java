@@ -85,6 +85,30 @@ public class AudioManager {
 		return AUDIOFOCUS_REQUEST_GRANTED;
 	}
 
+	public static boolean isHapticPlaybackSupported() {
+		return false;
+	}
+
+	public static boolean isOffloadedPlaybackSupported(AudioFormat format, AudioAttributes attributes) {
+		return false;
+	}
+
+	public static int getPlaybackOffloadSupport(AudioFormat format, AudioAttributes attributes) {
+		return 0; // PLAYBACK_OFFLOAD_NOT_SUPPORTED
+	}
+
+	public static int getDirectPlaybackSupport(AudioFormat format, AudioAttributes attributes) {
+		return 0; // DIRECT_PLAYBACK_NOT_SUPPORTED
+	}
+
+	public int getStreamMinVolume(int streamType) {
+		return 0;
+	}
+
+	public String getParameters(String keys) {
+		return "";
+	}
+
 	public boolean isWiredHeadsetOn() {
 		return false;
 	}

@@ -4,6 +4,8 @@ import android.atl.ATLLoadedApp;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Environment;
 import java.io.IOException;
 
@@ -22,32 +24,50 @@ public class SoundPool {
 		public void onLoadComplete(SoundPool soundPool, int sampleId, int status);
 	}
 
+	private OnLoadCompleteListener loadCompleteListener;
+
 	public SoundPool(int maxStreams, int streamType, int srcQuality) {
 		nativePool = native_constructor();
+	}
+
+	private void notifyLoaded(final int sampleId) {
+		new Handler(Looper.getMainLooper()).post(new Runnable() {
+			@Override
+			public void run() {
+				if (loadCompleteListener != null)
+					loadCompleteListener.onLoadComplete(SoundPool.this, sampleId, 0);
+			}
+		});
 	}
 
 	public int load(AssetFileDescriptor afd, int priority) throws IOException {
 		String packageCodePath = ATLLoadedApp.getPrimaryApplication().pkg.applicationInfo.sourceDir;
 		AssetManager.extractFromAPK(packageCodePath, afd.fileName, afd.fileName);
-		return nativeLoad(nativePool, Environment.getExternalStorageDirectory().getPath() + "/" + afd.fileName);
+		int sampleId = nativeLoad(nativePool, Environment.getExternalStorageDirectory().getPath() + "/" + afd.fileName);
+		notifyLoaded(sampleId);
+		return sampleId;
 	}
 
 	public int load(Context context, int resId, int priority) throws IOException {
 		String fileName = context.getResources().getString(resId);
 		AssetManager.extractFromAPK(context.getPackageCodePath(), fileName, fileName);
-		return nativeLoad(nativePool, Environment.getExternalStorageDirectory().getPath() + "/" + fileName);
+		int sampleId = nativeLoad(nativePool, Environment.getExternalStorageDirectory().getPath() + "/" + fileName);
+		notifyLoaded(sampleId);
+		return sampleId;
 	}
 
 	/**
 	 * Sets the callback hook for the OnLoadCompleteListener.
 	 */
 	public void setOnLoadCompleteListener(OnLoadCompleteListener listener) {
-		System.out.println("WARNING: SoundPool.setOnLoadCompleteListener not implemented yet");
+		loadCompleteListener = listener;
 	}
 
 	public final int play(int soundID, float leftVolume, float rightVolume, int priority, int loop, float rate) {
 		return nativePlay(nativePool, soundID);
 	}
+
+	public final void stop(int streamID) {} // sounds play to their end
 
 	public void autoResume() {
 		System.out.println("WARNING: SoundPool.autoResume not implemented yet");

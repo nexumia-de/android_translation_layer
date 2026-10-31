@@ -6,6 +6,11 @@ public class AudioFormat {
 	int channelMask;
 	int encoding;
 
+	public int getSampleRate() { return sampleRate; }
+	public int getChannelMask() { return channelMask; }
+	public int getEncoding() { return encoding; }
+	public int getChannelCount() { return Integer.bitCount(channelMask); }
+
 	public static class Builder {
 
 		private AudioFormat audioFormat = new AudioFormat();

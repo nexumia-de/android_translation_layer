@@ -34,9 +34,57 @@ JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1setOnCompletionLis
 /*
  * Class:     android_media_MediaPlayer
  * Method:    native_start
- * Signature: (J)V
+ * Signature: (JF)V
  */
 JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1start
+  (JNIEnv *, jclass, jlong, jfloat);
+
+/*
+ * Class:     android_media_MediaPlayer
+ * Method:    native_pause
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1pause
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     android_media_MediaPlayer
+ * Method:    native_seekTo
+ * Signature: (JI)V
+ */
+JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1seekTo
+  (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     android_media_MediaPlayer
+ * Method:    native_setLooping
+ * Signature: (JZ)V
+ */
+JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1setLooping
+  (JNIEnv *, jclass, jlong, jboolean);
+
+/*
+ * Class:     android_media_MediaPlayer
+ * Method:    native_setVolume
+ * Signature: (JF)V
+ */
+JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1setVolume
+  (JNIEnv *, jclass, jlong, jfloat);
+
+/*
+ * Class:     android_media_MediaPlayer
+ * Method:    native_isPlaying
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_android_media_MediaPlayer_native_1isPlaying
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     android_media_MediaPlayer
+ * Method:    native_release
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1release
   (JNIEnv *, jclass, jlong);
 
 /*
