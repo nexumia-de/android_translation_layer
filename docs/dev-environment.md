@@ -310,6 +310,26 @@ window has a title bar of about 46 logical px. For the owner's look set
 `color-scheme prefer-dark` for `claude` (settings reach the app through
 the portal).
 
+## Which app methods ran
+
+When an app hangs with all threads idle, ART's method tracing shows how far
+it got. With streaming output every method's name is written into the
+trace the first time it runs, so `strings` is enough to read it:
+
+```sh
+android-translation-layer -X -Xmethod-trace -X -Xmethod-trace-stream \
+  -X -Xmethod-trace-file:$PWD/trace.bin app.apk
+strings -n 6 trace.bin | grep -P '\tSomeClass\t'
+```
+
+The app runs much slower and the file grows by about 10 MB a second.
+Obfuscated class names come from disassembling the APK's `classes*.dex`
+with art_standalone's `dexdump2` (`make dexdump2` in art_standalone; it
+needs `#include <algorithm>` in `art/dexdump/dexdump.cc` and
+`LD_LIBRARY_PATH=out/host/linux-x86/lib64`). `Thread.getAllStackTraces()`
+from a temporary hook shows where threads wait; SIGQUIT gives no dump and
+there is no JDWP agent.
+
 # App Flatpaks
 
 For the [hardening roadmap](hardening-roadmap.md) apps run as their own

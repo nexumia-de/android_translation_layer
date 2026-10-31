@@ -161,6 +161,21 @@ public class Application extends ContextWrapper {
 		void onActivityStopped(Activity activity);
 		void onActivitySaveInstanceState(Activity activity, Bundle outState);
 		void onActivityDestroyed(Activity activity);
+		/* API 29 */
+		default void onActivityPreCreated(Activity activity, Bundle savedInstanceState) {}
+		default void onActivityPostCreated(Activity activity, Bundle savedInstanceState) {}
+		default void onActivityPreStarted(Activity activity) {}
+		default void onActivityPostStarted(Activity activity) {}
+		default void onActivityPreResumed(Activity activity) {}
+		default void onActivityPostResumed(Activity activity) {}
+		default void onActivityPrePaused(Activity activity) {}
+		default void onActivityPostPaused(Activity activity) {}
+		default void onActivityPreStopped(Activity activity) {}
+		default void onActivityPostStopped(Activity activity) {}
+		default void onActivityPreSaveInstanceState(Activity activity, Bundle outState) {}
+		default void onActivityPostSaveInstanceState(Activity activity, Bundle outState) {}
+		default void onActivityPreDestroyed(Activity activity) {}
+		default void onActivityPostDestroyed(Activity activity) {}
 	}
 	/**
 	 * Callback interface for use with {@link Application#registerOnProvideAssistDataListener}
@@ -231,33 +246,100 @@ public class Application extends ContextWrapper {
 		}
 	}
 
-	/* package */ void dispatchActivityCreated(Activity activity, Bundle savedInstanceState) {
-		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
-			callback.onActivityCreated(activity, savedInstanceState);
+	/* events Activity dispatches to ActivityLifecycleCallbacks */
+	static final int ACTIVITY_PRE_CREATED = 0;
+	static final int ACTIVITY_CREATED = 1;
+	static final int ACTIVITY_POST_CREATED = 2;
+	static final int ACTIVITY_PRE_STARTED = 3;
+	static final int ACTIVITY_STARTED = 4;
+	static final int ACTIVITY_POST_STARTED = 5;
+	static final int ACTIVITY_PRE_RESUMED = 6;
+	static final int ACTIVITY_RESUMED = 7;
+	static final int ACTIVITY_POST_RESUMED = 8;
+	static final int ACTIVITY_PRE_PAUSED = 9;
+	static final int ACTIVITY_PAUSED = 10;
+	static final int ACTIVITY_POST_PAUSED = 11;
+	static final int ACTIVITY_PRE_STOPPED = 12;
+	static final int ACTIVITY_STOPPED = 13;
+	static final int ACTIVITY_POST_STOPPED = 14;
+	static final int ACTIVITY_PRE_SAVE_INSTANCE_STATE = 15;
+	static final int ACTIVITY_SAVE_INSTANCE_STATE = 16;
+	static final int ACTIVITY_POST_SAVE_INSTANCE_STATE = 17;
+	static final int ACTIVITY_PRE_DESTROYED = 18;
+	static final int ACTIVITY_DESTROYED = 19;
+	static final int ACTIVITY_POST_DESTROYED = 20;
+
+	static void callActivityLifecycleCallback(ActivityLifecycleCallbacks callback, int event, Activity activity, Bundle bundle) {
+		switch (event) {
+			case ACTIVITY_PRE_CREATED:
+				callback.onActivityPreCreated(activity, bundle);
+				break;
+			case ACTIVITY_CREATED:
+				callback.onActivityCreated(activity, bundle);
+				break;
+			case ACTIVITY_POST_CREATED:
+				callback.onActivityPostCreated(activity, bundle);
+				break;
+			case ACTIVITY_PRE_STARTED:
+				callback.onActivityPreStarted(activity);
+				break;
+			case ACTIVITY_STARTED:
+				callback.onActivityStarted(activity);
+				break;
+			case ACTIVITY_POST_STARTED:
+				callback.onActivityPostStarted(activity);
+				break;
+			case ACTIVITY_PRE_RESUMED:
+				callback.onActivityPreResumed(activity);
+				break;
+			case ACTIVITY_RESUMED:
+				callback.onActivityResumed(activity);
+				break;
+			case ACTIVITY_POST_RESUMED:
+				callback.onActivityPostResumed(activity);
+				break;
+			case ACTIVITY_PRE_PAUSED:
+				callback.onActivityPrePaused(activity);
+				break;
+			case ACTIVITY_PAUSED:
+				callback.onActivityPaused(activity);
+				break;
+			case ACTIVITY_POST_PAUSED:
+				callback.onActivityPostPaused(activity);
+				break;
+			case ACTIVITY_PRE_STOPPED:
+				callback.onActivityPreStopped(activity);
+				break;
+			case ACTIVITY_STOPPED:
+				callback.onActivityStopped(activity);
+				break;
+			case ACTIVITY_POST_STOPPED:
+				callback.onActivityPostStopped(activity);
+				break;
+			case ACTIVITY_PRE_SAVE_INSTANCE_STATE:
+				callback.onActivityPreSaveInstanceState(activity, bundle);
+				break;
+			case ACTIVITY_SAVE_INSTANCE_STATE:
+				callback.onActivitySaveInstanceState(activity, bundle);
+				break;
+			case ACTIVITY_POST_SAVE_INSTANCE_STATE:
+				callback.onActivityPostSaveInstanceState(activity, bundle);
+				break;
+			case ACTIVITY_PRE_DESTROYED:
+				callback.onActivityPreDestroyed(activity);
+				break;
+			case ACTIVITY_DESTROYED:
+				callback.onActivityDestroyed(activity);
+				break;
+			case ACTIVITY_POST_DESTROYED:
+				callback.onActivityPostDestroyed(activity);
+				break;
+		}
 	}
-	/* package */ void dispatchActivityStarted(Activity activity) {
+
+	/* package */ void dispatchActivityLifecycleEvent(Activity activity, int event, Bundle bundle) {
 		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
-			callback.onActivityStarted(activity);
-	}
-	/* package */ void dispatchActivityResumed(Activity activity) {
-		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
-			callback.onActivityResumed(activity);
-	}
-	/* package */ void dispatchActivityPaused(Activity activity) {
-		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
-			callback.onActivityPaused(activity);
-	}
-	/* package */ void dispatchActivityStopped(Activity activity) {
-		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
-			callback.onActivityStopped(activity);
-	}
-	/* package */ void dispatchActivitySaveInstanceState(Activity activity, Bundle outState) {
-		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
-			callback.onActivitySaveInstanceState(activity, outState);
-	}
-	/* package */ void dispatchActivityDestroyed(Activity activity) {
-		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
-			callback.onActivityDestroyed(activity);
+			callActivityLifecycleCallback(callback, event, activity, bundle);
 	}
 	public void registerOnProvideAssistDataListener(OnProvideAssistDataListener callback) {
 	}

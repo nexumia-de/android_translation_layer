@@ -182,6 +182,43 @@ public class Typeface {
 		return create(typeface, style);
 	}
 
+	/* API 29: the family's font closest to the style; fallbacks are left to fontconfig */
+	public static final class CustomFallbackBuilder {
+		private final android.graphics.fonts.FontFamily family;
+		private android.graphics.fonts.FontStyle style = new android.graphics.fonts.FontStyle();
+
+		public CustomFallbackBuilder(android.graphics.fonts.FontFamily family) {
+			this.family = family;
+		}
+
+		public CustomFallbackBuilder setStyle(android.graphics.fonts.FontStyle style) {
+			this.style = style;
+			return this;
+		}
+
+		public CustomFallbackBuilder setSystemFallback(String familyName) {
+			return this;
+		}
+
+		public CustomFallbackBuilder addCustomFallback(android.graphics.fonts.FontFamily family) {
+			return this;
+		}
+
+		public Typeface build() {
+			android.graphics.fonts.Font best = null;
+			int bestDistance = Integer.MAX_VALUE;
+			for (int i = 0; i < family.getSize(); i++) {
+				android.graphics.fonts.FontStyle fontStyle = family.getFont(i).getStyle();
+				int distance = Math.abs(fontStyle.getWeight() - style.getWeight()) / 100 + (fontStyle.getSlant() != style.getSlant() ? 10 : 0);
+				if (distance < bestDistance) {
+					best = family.getFont(i);
+					bestDistance = distance;
+				}
+			}
+			return create(best.getTypeface(), style.getWeight(), style.getSlant() == android.graphics.fonts.FontStyle.FONT_SLANT_ITALIC);
+		}
+	}
+
 	public static class Builder {
 		private final Typeface typeface;
 

@@ -62,6 +62,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	List<Fragment> fragments = new ArrayList<>();
 	boolean destroyed = false;
 	private boolean finishing = false;
+	private final ArrayList<Application.ActivityLifecycleCallbacks> activityLifecycleCallbacks = new ArrayList<>();
 
 	public static Activity internalCreateActivity(String className, long native_window, Intent intent) throws ReflectiveOperationException {
 		Activity activity = ATLLoadedApp.getPrimaryApplication().createActivity(className, intent);
@@ -171,7 +172,6 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 
 	public final void setVolumeControlStream(int streamType) {}
 
-	@Export
 	protected void onCreate(Bundle savedInstanceState) {
 		Slog.i(TAG, "- onCreate - yay!");
 
@@ -179,9 +179,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onCreate(savedInstanceState);
 		}
 
-		Application application = getApplication();
-		if (application != null)
-			application.dispatchActivityCreated(this, savedInstanceState);
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_CREATED, savedInstanceState);
 
 		return;
 	}
@@ -192,7 +190,6 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		return;
 	}
 
-	@Export
 	protected void onStart() {
 		Slog.i(TAG, "- onStart - yay!");
 		window.setTitle(title);
@@ -201,9 +198,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onStart();
 		}
 
-		Application application = getApplication();
-		if (application != null)
-			application.dispatchActivityStarted(this);
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_STARTED, null);
 
 		return;
 	}
@@ -214,7 +209,6 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		return;
 	}
 
-	@Export
 	protected void onResume() {
 		Slog.i(TAG, "- onResume - yay!");
 
@@ -222,21 +216,17 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onResume();
 		}
 
-		Application application = getApplication();
-		if (application != null)
-			application.dispatchActivityResumed(this);
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_RESUMED, null);
 
 		paused = false;
 		return;
 	}
 
-	@Export
 	protected void onPostResume() {
 		Slog.i(TAG, "- onPostResume - yay!");
 		return;
 	}
 
-	@Export
 	protected void onPause() {
 		Slog.i(TAG, "- onPause - yay!");
 
@@ -244,15 +234,12 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onPause();
 		}
 
-		Application application = getApplication();
-		if (application != null)
-			application.dispatchActivityPaused(this);
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_PAUSED, null);
 
 		paused = true;
 		return;
 	}
 
-	@Export
 	protected void onStop() {
 		Slog.i(TAG, "- onStop - yay!");
 
@@ -260,14 +247,11 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onStop();
 		}
 
-		Application application = getApplication();
-		if (application != null)
-			application.dispatchActivityStopped(this);
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_STOPPED, null);
 
 		return;
 	}
 
-	@Export
 	protected void onDestroy() {
 		Slog.i(TAG, "- onDestroy - yay!");
 
@@ -275,9 +259,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onDestroy();
 		}
 
-		Application application = getApplication();
-		if (application != null)
-			application.dispatchActivityDestroyed(this);
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_DESTROYED, null);
 
 		destroyed = true;
 		return;
@@ -291,9 +273,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	}
 
 	protected void onSaveInstanceState(Bundle outState) {
-		Application application = getApplication();
-		if (application != null)
-			application.dispatchActivitySaveInstanceState(this, outState);
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_SAVE_INSTANCE_STATE, outState);
 	}
 
 	public void onConfigurationChanged(Configuration newConfig) {
@@ -727,7 +707,79 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	// we never put an activity into picture-in-picture, so this is always false
 	public boolean isInPictureInPictureMode() { return false; }
 
-	public void registerActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks callback) {}
+	public void registerActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks callback) {
+		synchronized (activityLifecycleCallbacks) {
+			activityLifecycleCallbacks.add(callback);
+		}
+	}
+
+	public void unregisterActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks callback) {
+		synchronized (activityLifecycleCallbacks) {
+			activityLifecycleCallbacks.remove(callback);
+		}
+	}
+
+	/* like Android: the application's callbacks, then the activity's own (androidx drives an
+	 * activity's Lifecycle through them from API 29) */
+	private void dispatchActivityLifecycleEvent(int event, Bundle bundle) {
+		Application application = getApplication();
+		if (application != null)
+			application.dispatchActivityLifecycleEvent(this, event, bundle);
+		Application.ActivityLifecycleCallbacks[] callbacks;
+		synchronized (activityLifecycleCallbacks) {
+			callbacks = activityLifecycleCallbacks.toArray(new Application.ActivityLifecycleCallbacks[0]);
+		}
+		for (Application.ActivityLifecycleCallbacks callback : callbacks)
+			Application.callActivityLifecycleCallback(callback, event, this, bundle);
+	}
+
+	/* the lifecycle as ATL runs it, with the pre and post callbacks around the app's methods */
+	@Export
+	final void performCreate(Bundle savedInstanceState) {
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_CREATED, savedInstanceState);
+		onCreate(savedInstanceState);
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_CREATED, savedInstanceState);
+	}
+
+	@Export
+	final void performStart() {
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_STARTED, null);
+		onStart();
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_STARTED, null);
+	}
+
+	@Export
+	final void performResume() {
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_RESUMED, null);
+		onResume();
+	}
+
+	@Export
+	final void performPostResume() {
+		onPostResume();
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_RESUMED, null);
+	}
+
+	@Export
+	final void performPause() {
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_PAUSED, null);
+		onPause();
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_PAUSED, null);
+	}
+
+	@Export
+	final void performStop() {
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_STOPPED, null);
+		onStop();
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_STOPPED, null);
+	}
+
+	@Export
+	final void performDestroy() {
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_DESTROYED, null);
+		onDestroy();
+		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_DESTROYED, null);
+	}
 
 	public void setDisablePreviewScreenshots(boolean disable) {}
 	public final View requireViewById(int id) {

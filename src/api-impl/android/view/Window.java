@@ -4,6 +4,7 @@ import android.R;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
+import android.os.Handler;
 import android.transition.Transition;
 import android.widget.FrameLayout;
 import android.widget.Toolbar;
@@ -32,6 +33,11 @@ public class Window {
 	}
 
 	public static interface OnFrameMetricsAvailableListener {}
+
+	// frames are drawn by GTK and not measured, so there are no metrics to report
+	public void addOnFrameMetricsAvailableListener(OnFrameMetricsAvailableListener listener, Handler handler) {}
+
+	public void removeOnFrameMetricsAvailableListener(OnFrameMetricsAvailableListener listener) {}
 
 	public long native_window;
 	private ViewGroup decorView;
