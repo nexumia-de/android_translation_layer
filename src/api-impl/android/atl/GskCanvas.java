@@ -2,7 +2,6 @@ package android.atl;
 
 import android.atl.annotation.Export;
 import android.graphics.*;
-import android.view.DisplayListCanvas;
 import android.view.RenderNode;
 import java.util.Arrays;
 import java.util.Stack;
@@ -11,7 +10,7 @@ import java.util.Stack;
  * GskCanvas:
  *   - implements Canvas for onscreen rendering inside GTKs snapshot function
  */
-public class GskCanvas extends DisplayListCanvas {
+public class GskCanvas extends RecordingCanvas {
 	public long snapshot;
 	private int[] push_history = null;
 	private Stack<Matrix> state_stack = new Stack<>();
@@ -175,6 +174,11 @@ public class GskCanvas extends DisplayListCanvas {
 	@Override
 	public void drawRenderNode(RenderNode node) {
 		native_drawRenderNode(snapshot, node.getGskNode());
+	}
+
+	@Override
+	public void drawRenderNode(android.graphics.RenderNode node) {
+		drawRenderNode((RenderNode)node);
 	}
 
 	protected native void native_drawBitmap(long snapshot, long texture, int x, int y, int width, int height, long paint);

@@ -7,6 +7,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_atl_GskCanvas_CLIP_OUT_LIMIT
+#define android_atl_GskCanvas_CLIP_OUT_LIMIT 32768.0f
 #undef android_atl_GskCanvas_HAS_ALPHA_LAYER_SAVE_FLAG
 #define android_atl_GskCanvas_HAS_ALPHA_LAYER_SAVE_FLAG 4L
 /*

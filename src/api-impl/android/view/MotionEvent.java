@@ -165,6 +165,8 @@ import android.util.SparseArray;
  * </p>
  */
 public final class MotionEvent extends InputEvent {
+	public static final int CLASSIFICATION_NONE = 0;
+
 	private static final long NS_PER_MS = 1000000;
 
 	/**
@@ -1755,6 +1757,10 @@ public final class MotionEvent extends InputEvent {
 	public final void setSource(int source) {
 		// nativeSetSource(mNativePtr, source);
 		this.source = source;
+	}
+
+	public int getClassification() {
+		return CLASSIFICATION_NONE;
 	}
 
 	/**

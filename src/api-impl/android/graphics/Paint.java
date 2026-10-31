@@ -43,6 +43,14 @@ public class Paint {
 		native_set_color(paint, color);
 	}
 
+	public void setColor(long color) {
+		setColor(Color.toArgb(color));
+	}
+
+	public long getColorLong() {
+		return Color.pack(getColor());
+	}
+
 	public void setARGB(int a, int r, int g, int b) {
 		setColor(Color.argb(a, r, g, b));
 	}

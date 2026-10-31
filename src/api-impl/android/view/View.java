@@ -41,6 +41,7 @@ import android.view.WindowInsets;
 import android.view.animation.Animation;
 import android.view.autofill.AutofillValue;
 import android.view.autofill.AutofillId;
+import android.view.contentcapture.ContentCaptureSession;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.translation.ViewTranslationCallback;
@@ -50,16 +51,22 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Collections;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 class WindowId {}
 
 public class View implements Drawable.Callback {
+	private static final AtomicLong nextDrawingId = new AtomicLong(1);
+	private final long uniqueDrawingId = nextDrawingId.getAndIncrement();
+
 
 	// --- constants from android source
 
@@ -2454,6 +2461,33 @@ public class View implements Drawable.Callback {
 	}
 
 	public void setClipBounds(Rect clipBounds) {}
+
+	public Rect getClipBounds() {
+		return null;
+	}
+
+	public long getUniqueDrawingId() {
+		return uniqueDrawingId;
+	}
+
+	/* as on a device without a content capture service */
+	public ContentCaptureSession getContentCaptureSession() {
+		return null;
+	}
+
+	public boolean hasOverlappingRendering() {
+		return true;
+	}
+
+	public void setRequestedFrameRate(float frameRate) {}
+
+	public void setFrameContentVelocity(float pixelsPerSecond) {}
+
+	public void setSystemGestureExclusionRects(List<Rect> rects) {}
+
+	public List<Rect> getSystemGestureExclusionRects() {
+		return Collections.emptyList();
+	}
 
 	public boolean getClipToOutline() { return false; }
 
