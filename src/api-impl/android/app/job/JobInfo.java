@@ -107,6 +107,22 @@ public class JobInfo {
 			return this;
 		}
 
+		public Builder setPeriodic(long intervalMillis, long flexMillis) {
+			return setPeriodic(intervalMillis);
+		}
+
+		public Builder setImportantWhileForeground(boolean importantWhileForeground) {
+			return this;
+		}
+
+		public Builder setPrefetch(boolean prefetch) {
+			return this;
+		}
+
+		public Builder setExpedited(boolean expedited) {
+			return this;
+		}
+
 		public JobInfo build() {
 			return jobInfo;
 		}
