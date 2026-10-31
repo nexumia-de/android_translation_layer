@@ -139,6 +139,23 @@ public class BaseBundle {
 	 * @param defaultValue Value to return if key does not exist
 	 * @return a long value
 	 */
+	public double getDouble(String key) {
+		return getDouble(key, 0.0);
+	}
+
+	public double getDouble(String key, double defaultValue) {
+		Object o = mMap.get(key);
+		if (o == null) {
+			return defaultValue;
+		}
+		try {
+			return (Double)o;
+		} catch (ClassCastException e) {
+			typeWarning(key, o, "Double", defaultValue, e);
+			return defaultValue;
+		}
+	}
+
 	public long getLong(String key, long defaultValue) {
 		Object o = mMap.get(key);
 		if (o == null) {

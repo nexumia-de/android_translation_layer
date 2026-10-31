@@ -39,6 +39,7 @@ import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.WindowInsets;
 import android.view.animation.Animation;
+import android.view.autofill.AutofillValue;
 import android.view.autofill.AutofillId;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
@@ -2238,6 +2239,10 @@ public class View implements Drawable.Callback {
 		return elevation;
 	}
 
+	public void setZ(float z) {
+		setTranslationZ(z - getElevation());
+	}
+
 	protected void onSizeChanged(int w, int h, int oldw, int oldh) {}
 
 	public void setBackgroundTintList(ColorStateList tint) {}
@@ -2416,6 +2421,23 @@ public class View implements Drawable.Callback {
 	public int getImportantForAutofill() { return 0; }
 
 	public void setImportantForAutofill(int flag) {}
+
+	// there is no autofill service; the hints are kept for apps that read them back
+	private String[] autofillHints;
+
+	public void setAutofillHints(String... autofillHints) {
+		this.autofillHints = (autofillHints == null || autofillHints.length == 0) ? null : autofillHints;
+	}
+
+	public String[] getAutofillHints() {
+		return autofillHints;
+	}
+
+	public void autofill(AutofillValue value) {}
+
+	public boolean isHapticFeedbackEnabled() {
+		return true;
+	}
 
 	public void setDefaultFocusHighlightEnabled(boolean enabled) {}
 
