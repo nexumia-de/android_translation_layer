@@ -180,7 +180,9 @@ cause.
 | Welcome screen | `wrong` | Buttons flat, text clipped, wrong colours. Auto-size text and problems 4 and 5 are the candidates |
 | GET STARTED | `headless` | Opens the coach screen ([screenshot](screenshots/duolingo-coach-2026-10-31.png)). Its speech bubble is too narrow and CONTINUE was not followed further |
 | Sign-in screen | `headless` | Opens, 2026-10-31 |
-| Sign-in | `untested` | Password is masked now. A real sign-in, and whether Play Integrity is required, is an owner test |
+| Sign-in | `headless` | With random data the server answers "Wrong username or password" ([screenshot](screenshots/duolingo-wrong-password-2026-10-31.png)), so the request goes out although Play Integrity fails. A correct login is an owner test; Duolingo may still ask for Play Integrity then |
+| Sign-in with Google | `missing` | No abort any more; the app says "Unable to sign in with Google", there are no Google Play services |
+| Sign-in with Facebook | `wrong` | No abort any more, but a black screen follows. Cause not looked at |
 | Lessons | `untested` | Depends on sign-in or GET STARTED |
 | Sounds | `untested` | No crash after the `MediaPlayer` work, unheard headless |
 | Speaking exercises | `missing` | `SpeechRecognizer` absent (18 own calls), `RECORD_AUDIO` off |

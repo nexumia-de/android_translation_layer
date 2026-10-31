@@ -6,6 +6,8 @@ import android.content.res.Resources;
 import android.util.Log;
 
 public class Canvas {
+	private static final float CLIP_OUT_LIMIT = 32768.0f;
+
 
 	public static enum EdgeType {
 		BW;
@@ -565,6 +567,16 @@ public class Canvas {
 		return save();
 	}
 
+	public int saveLayer(float left, float top, float right, float bottom, Paint paint, int flags) {
+		return save();
+	}
+
+	public void enableZ() {}
+
+	public void disableZ() {}
+
+	public void drawRenderNode(RenderNode node) {}
+
 	public void drawOval(RectF oval, Paint paint) {
 		drawRoundRect(oval, oval.width() / 2, oval.height() / 2, paint);
 	}
@@ -601,6 +613,32 @@ public class Canvas {
 
 	public boolean clipPath(Path path, Region.Op op) {
 		return clipPath(path);
+	}
+
+	/* the area outside: a rectangle around everything with the path as a hole */
+	public boolean clipOutPath(Path path) {
+		Path outside = new Path(path);
+		outside.addRect(-CLIP_OUT_LIMIT, -CLIP_OUT_LIMIT, CLIP_OUT_LIMIT, CLIP_OUT_LIMIT, Path.Direction.CW);
+		outside.setFillType(Path.FillType.EVEN_ODD);
+		return clipPath(outside);
+	}
+
+	public boolean clipOutRect(float left, float top, float right, float bottom) {
+		Path path = new Path();
+		path.addRect(left, top, right, bottom, Path.Direction.CW);
+		return clipOutPath(path);
+	}
+
+	public boolean clipOutRect(int left, int top, int right, int bottom) {
+		return clipOutRect((float)left, top, right, bottom);
+	}
+
+	public boolean clipOutRect(Rect rect) {
+		return clipOutRect((float)rect.left, rect.top, rect.right, rect.bottom);
+	}
+
+	public boolean clipOutRect(RectF rect) {
+		return clipOutRect(rect.left, rect.top, rect.right, rect.bottom);
 	}
 
 	public boolean isHardwareAccelerated() {

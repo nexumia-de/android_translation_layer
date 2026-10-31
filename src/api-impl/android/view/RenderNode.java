@@ -219,6 +219,30 @@ public class RenderNode {
 		return changed;
 	}
 
+	public int getLeft() {
+		return left;
+	}
+
+	public int getTop() {
+		return top;
+	}
+
+	public int getRight() {
+		return left + (int)width;
+	}
+
+	public int getBottom() {
+		return top + (int)height;
+	}
+
+	public int getWidth() {
+		return (int)width;
+	}
+
+	public int getHeight() {
+		return (int)height;
+	}
+
 	public boolean isValid() {
 		return render_node != 0;
 	}

@@ -47,6 +47,28 @@ public class Color {
 		return color;
 	}
 
+	public static long pack(int color) {
+		return (color & 0xffffffffL) << 32;
+	}
+
+	/* one component of a wide colour, a 16 bit float, as 0 to 255 */
+	private static int halfToByte(short half) {
+		int exponent = half >> 10 & 0x1f;
+		float value = (half & 0x3ff) / 1024.0f;
+		value = exponent == 0 ? value * (float)Math.pow(2, -14) : (1.0f + value) * (float)Math.pow(2, exponent - 15);
+		return half < 0 ? 0 : (int)(Math.min(value, 1.0f) * 255.0f + 0.5f);
+	}
+
+	/* ignores the colour space of a wide colour, everything is drawn as sRGB */
+	public static int toArgb(long color) {
+		if ((color & 0x3f) == 0)
+			return (int)(color >> 32);
+		return argb((int)((color >> 6 & 0x3ff) * 255.0f / 1023.0f + 0.5f),
+		            halfToByte((short)(color >> 48)),
+		            halfToByte((short)(color >> 32)),
+		            halfToByte((short)(color >> 16)));
+	}
+
 	public static int argb(int alpha, int red, int green, int blue) {
 		return (alpha << 24) | (red << 16) | (green << 8) | (blue << 0);
 	}
