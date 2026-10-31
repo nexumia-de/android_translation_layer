@@ -7,13 +7,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_net_ConnectivityManager_RESTRICT_BACKGROUND_STATUS_DISABLED
+#define android_net_ConnectivityManager_RESTRICT_BACKGROUND_STATUS_DISABLED 1L
 /*
  * Class:     android_net_ConnectivityManager
- * Method:    registerNetworkCallback
- * Signature: (Landroid/net/NetworkRequest;Landroid/net/ConnectivityManager/NetworkCallback;)V
+ * Method:    nativeRegisterNetworkCallback
+ * Signature: (Landroid/net/ConnectivityManager/NetworkCallback;)V
  */
-JNIEXPORT void JNICALL Java_android_net_ConnectivityManager_registerNetworkCallback
-  (JNIEnv *, jobject, jobject, jobject);
+JNIEXPORT void JNICALL Java_android_net_ConnectivityManager_nativeRegisterNetworkCallback
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     android_net_ConnectivityManager

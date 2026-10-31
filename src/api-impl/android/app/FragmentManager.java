@@ -8,7 +8,14 @@ public class FragmentManager {
 		this.activity = activity;
 	}
 
+	// androidx's ProcessLifecycleOwner finds its ReportFragment this way below API 29
 	public Fragment findFragmentByTag(String tag) {
+		if (tag == null)
+			return null;
+		for (Fragment fragment : activity.fragments) {
+			if (tag.equals(fragment.tag))
+				return fragment;
+		}
 		return null;
 	}
 

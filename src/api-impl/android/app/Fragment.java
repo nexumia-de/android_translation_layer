@@ -5,6 +5,7 @@ import android.os.Bundle;
 public class Fragment {
 
 	Activity activity;
+	String tag;
 
 	public void onCreate(Bundle savedInstanceState) {
 	}
@@ -26,5 +27,9 @@ public class Fragment {
 
 	public Activity getActivity() {
 		return activity;
+	}
+
+	public final String getTag() {
+		return tag;
 	}
 }

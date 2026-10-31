@@ -16,6 +16,10 @@ public class ShortcutManager {
 		return Collections.emptyList();
 	}
 
+	public List<ShortcutInfo> getPinnedShortcuts() {
+		return Collections.emptyList();
+	}
+
 	public void removeLongLivedShortcuts(List<String> shortcutIds) {
 	}
 

@@ -179,6 +179,10 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onCreate(savedInstanceState);
 		}
 
+		Application application = getApplication();
+		if (application != null)
+			application.dispatchActivityCreated(this, savedInstanceState);
+
 		return;
 	}
 
@@ -197,6 +201,10 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onStart();
 		}
 
+		Application application = getApplication();
+		if (application != null)
+			application.dispatchActivityStarted(this);
+
 		return;
 	}
 
@@ -213,6 +221,10 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		for (Fragment fragment : fragments) {
 			fragment.onResume();
 		}
+
+		Application application = getApplication();
+		if (application != null)
+			application.dispatchActivityResumed(this);
 
 		paused = false;
 		return;
@@ -232,6 +244,10 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onPause();
 		}
 
+		Application application = getApplication();
+		if (application != null)
+			application.dispatchActivityPaused(this);
+
 		paused = true;
 		return;
 	}
@@ -244,6 +260,10 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 			fragment.onStop();
 		}
 
+		Application application = getApplication();
+		if (application != null)
+			application.dispatchActivityStopped(this);
+
 		return;
 	}
 
@@ -254,6 +274,10 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		for (Fragment fragment : fragments) {
 			fragment.onDestroy();
 		}
+
+		Application application = getApplication();
+		if (application != null)
+			application.dispatchActivityDestroyed(this);
 
 		destroyed = true;
 		return;
@@ -267,6 +291,9 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	}
 
 	protected void onSaveInstanceState(Bundle outState) {
+		Application application = getApplication();
+		if (application != null)
+			application.dispatchActivitySaveInstanceState(this, outState);
 	}
 
 	public void onConfigurationChanged(Configuration newConfig) {
