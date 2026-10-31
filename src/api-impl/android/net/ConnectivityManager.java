@@ -99,6 +99,12 @@ public class ConnectivityManager {
 		capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
 		// WorkManager's network constraint on API 26+ also needs VALIDATED, else it stops running work
 		capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+		// every ordinary network has these; apps treat a network without NOT_SUSPENDED as offline
+		capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_SUSPENDED);
+		capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING);
+		capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_CONGESTED);
+		capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_FOREGROUND);
+		capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VCN_MANAGED);
 
 		if (!isActiveNetworkMetered())
 			capabilities.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
