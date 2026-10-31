@@ -18,16 +18,12 @@ JNIEXPORT jboolean JNICALL Java_android_net_ConnectivityManager_nativeGetNetwork
 static void on_network_changed(GNetworkMonitor *self, gboolean network_available, jobject callback)
 {
 	JNIEnv *env = get_jni_env();
-	if (network_available) {
-		J__ConnectivityManager__NetworkCallback__onAvailable(env, callback, NULL);
-	} else {
-		J__ConnectivityManager__NetworkCallback__onLost(env, callback, NULL);
-	}
+	J__ConnectivityManager__onNetworkChanged(env, callback, network_available);
 	if ((*env)->ExceptionCheck(env))
 		(*env)->ExceptionDescribe(env);
 }
 
-JNIEXPORT void JNICALL Java_android_net_ConnectivityManager_registerNetworkCallback(JNIEnv *env, jobject this, jobject request, jobject callback)
+JNIEXPORT void JNICALL Java_android_net_ConnectivityManager_nativeRegisterNetworkCallback(JNIEnv *env, jobject this, jobject callback)
 {
 	g_signal_connect(g_network_monitor_get_default(), "network-changed", G_CALLBACK(on_network_changed), _REF(callback));
 }
