@@ -257,7 +257,9 @@ store keys through the Secret Service. In the test display's own
 session bus gnome-keyring then asks for a password for a new "Default
 keyring", and that prompt did not take typed text. Create an
 unencrypted default keyring in the test's `XDG_DATA_HOME` first, then no
-prompt appears:
+prompt appears. D-Bus starts gnome-keyring with the session's environment,
+so set `XDG_DATA_HOME` for the whole session (`env XDG_DATA_HOME=...
+dbus-run-session -- phoc ...`), not only for the app:
 
 ```sh
 mkdir -p "$XDG_DATA_HOME/keyrings" && cd "$XDG_DATA_HOME/keyrings"
