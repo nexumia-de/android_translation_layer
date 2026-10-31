@@ -42,17 +42,17 @@ nothing; use its `obfuscated` column.
 
 # Problems across apps
 
-Ordered by how much they break. All were found in this audit.
+Ordered by how much they broke. All were found in this audit; fixed rows say so.
 
 | # | Problem | Evidence | Affects | Size |
 |---|---|---|---|---|
-| 1 | **Password fields show the password.** `EditText` is a plain `GtkText`; `setInputType` and `setTransformationMethod` are empty, so masking, number keyboards, multi-line and `setFilters` limits do nothing. Compose and WebView fields are not affected. | Code; Duolingo's dex uses `PasswordTransformationMethod`, and its `StarterInputUnderlinedView` calls `setInputType` | Duolingo sign-in, any classic form | small to medium |
-| 2 | **A permission request is never answered.** `Activity.requestPermissions` only logs, so `onRequestPermissionsResult` never comes. `checkPermission` denies everything unlisted; location and microphone need `ATL_UGLY_ENABLE_LOCATION` and `ATL_UGLY_ENABLE_MICROPHONE`. | Code. No walk reached a request | Location, microphone, camera and notification prompts in all apps | medium, belongs to the [hardening roadmap](hardening-roadmap.md) |
+| 1 | **Fixed.** `EditText` honours `inputType` and `setTransformationMethod`: masking and the input purpose for the on-screen keyboard. Still empty: multi-line and `setFilters` limits. Compose and WebView fields never had the problem. | Duolingo password field shows dots (test text set by a debug build, typing does not reach fields headless) | | |
+| 2 | **Partly fixed.** `requestPermissions` now answers, with the current state and no dialog, so apps no longer wait. Normal permissions and `POST_NOTIFICATIONS` count as granted. Location, microphone and camera stay denied unless `ATL_UGLY_ENABLE_LOCATION` or `ATL_UGLY_ENABLE_MICROPHONE` is set; a real dialog is open. | Code. No walk reached a request, so the answer is unseen in an app | Location, microphone and camera prompts in all apps | medium, belongs to the [hardening roadmap](hardening-roadmap.md) |
 | 3 | **Missing methods above `--sdk-int` crash.** Apps with minSdk 32 call API 27 to 32 without a version check, and `--sdk-int 26` does not protect them. | `Vibrator.hasAmplitudeControl` crashed a run and was on Duolingo's static list, called from obfuscated code | Duolingo, Post & DHL, DB Navigator | small per method |
 | 4 | **Drawable states are ignored.** `View.onCreateDrawableState`, `setSelected`/`isSelected` and `isPressed` are empty, so `selected`, `checked` and `pressed` variants never show. | Stub log; code | Post & DHL tabs, Duolingo buttons, ripple and press feedback | small to medium |
 | 5 | **View transforms do nothing.** `setScaleX/Y`, `setRotation`, `setPivotX/Y` are empty, as are `setClipToOutline` and `setForeground`. | Stub log: `setForeground` in 5 apps, `setScaleX` in DHL; Duolingo's own code calls them often | Animations, rounded corners, overlays | medium |
 | 6 | **Restarting an app closes it.** ATL runs everything in one process, so ProcessPhoenix's helper activity kills the app and nothing starts it again. | Aurora headless, log `the app called killProcess on itself` | Aurora ends after onboarding and must be reopened | small |
-| 7 | **`MediaPlayer` is mostly stubs.** The prepared, error and buffering listeners are never stored, and `setLooping`, `setVolume`, `stop` and `release` do nothing, and `isPlaying` is always false. An app waiting for `onPrepared` would hang. | Code; Duolingo's own code calls them | Audio in apps using `MediaPlayer`; SoundPool has gaps too | medium |
+| 7 | **Mostly fixed.** `MediaPlayer` has pause, stop, seek, loop, volume, release, `isPlaying`, the prepared callback and descriptors as sources; `SoundPool` reports loads. Error, buffering and info listeners stay empty, `PlaybackParams` and video surfaces are missing. | Duolingo runs through this code; **sound itself is unheard headless, owner test** | Audio in apps using `MediaPlayer` | small |
 | 8 | **No camera.** `CameraManager.getCameraIdList` is empty, the `camera2` classes are absent and `Camera` is a stub. | Lists, code | QR and barcode scanning | large: weeks, needs a libcamera or portal backend |
 | 9 | **`TextView.setEllipsize` is empty**, so long text is cut instead of ending in "...". | Stub log: DB Navigator, Post & DHL | Toolbars, lists | small |
 | 10 | **WebView has gaps.** `loadUrl` with headers is absent, `CookieManager.setCookie` is a stub, and all `WebSettings` setters but JavaScript do nothing, as do `stopLoading`, `clearHistory`, `clearCache` and `destroy`. | Lists; `WebSettings` and clear calls in DB Navigator's stub log | Hybrid pages in Post & DHL and DB Navigator; a login that sets cookies may fail | medium |
@@ -176,11 +176,11 @@ cause.
 | Feature | State | Evidence |
 |---|---|---|
 | Welcome screen | `wrong` | Buttons flat, text clipped, wrong colours. Auto-size text and problems 4 and 5 are the candidates |
-| GET STARTED | `missing` | **Crashes** in both walks: `NoSuchMethodError: Vibrator.hasAmplitudeControl` aborts through JNI (problem 3) |
+| GET STARTED | `headless` | Opens the coach screen ([screenshot](screenshots/duolingo-coach-2026-10-31.png)). Its speech bubble is too narrow and CONTINUE was not followed further |
 | Sign-in screen | `headless` | Opens, 2026-10-31 |
-| Sign-in | `wrong` | **Password visible** (problem 1). Whether Play Integrity is required is still open |
+| Sign-in | `untested` | Password is masked now. A real sign-in, and whether Play Integrity is required, is an owner test |
 | Lessons | `untested` | Depends on sign-in or GET STARTED |
-| Sounds | `stub` | Problem 7 |
+| Sounds | `untested` | No crash after the `MediaPlayer` work, unheard headless |
 | Speaking exercises | `missing` | `SpeechRecognizer` absent (18 own calls), `RECORD_AUDIO` off |
 | Video | `missing` | `VideoView` absent (13 own calls) |
 | Picture in picture | `missing` | `PictureInPictureParams$Builder` |
@@ -189,4 +189,4 @@ cause.
 | Screens with a number picker | `missing` | `NumberPicker` (12 own calls) |
 | Purchases | `out of scope` | Google Play billing |
 
-Result: not usable yet. GET STARTED is a one-line fix; it may not be the last.
+Result: not usable yet, but sign-in and the first steps are open to testing. The look of buttons and text is the next visible problem.
