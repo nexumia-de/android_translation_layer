@@ -15,7 +15,8 @@ public final class DisplayManager {
 
 	public void unregisterDisplayListener(DisplayListener listener) {}
 
+	/* there is always the default display, apps read getDisplays()[0] */
 	public Display[] getDisplays() {
-		return new Display[0];
+		return new Display[] {getDisplay(0)};
 	}
 }
