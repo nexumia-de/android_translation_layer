@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import java.io.File;
+import java.util.ArrayList;
 
 public class Application extends ContextWrapper {
 	public long native_window;
@@ -176,6 +177,8 @@ public class Application extends ContextWrapper {
 		public void onProvideAssistData(Activity activity, Bundle data);
 	}
 
+	private final ArrayList<ActivityLifecycleCallbacks> activityLifecycleCallbacks = new ArrayList<>();
+
 	public Application() {
 		super(null);
 	}
@@ -211,8 +214,50 @@ public class Application extends ContextWrapper {
 	public void unregisterComponentCallbacks(ComponentCallbacks callback) {
 	}*/
 	public void registerActivityLifecycleCallbacks(ActivityLifecycleCallbacks callback) {
+		synchronized (activityLifecycleCallbacks) {
+			activityLifecycleCallbacks.add(callback);
+		}
 	}
 	public void unregisterActivityLifecycleCallbacks(ActivityLifecycleCallbacks callback) {
+		synchronized (activityLifecycleCallbacks) {
+			activityLifecycleCallbacks.remove(callback);
+		}
+	}
+
+	/* a copy, so callbacks can register and unregister while they are called */
+	private ActivityLifecycleCallbacks[] collectActivityLifecycleCallbacks() {
+		synchronized (activityLifecycleCallbacks) {
+			return activityLifecycleCallbacks.toArray(new ActivityLifecycleCallbacks[0]);
+		}
+	}
+
+	/* package */ void dispatchActivityCreated(Activity activity, Bundle savedInstanceState) {
+		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
+			callback.onActivityCreated(activity, savedInstanceState);
+	}
+	/* package */ void dispatchActivityStarted(Activity activity) {
+		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
+			callback.onActivityStarted(activity);
+	}
+	/* package */ void dispatchActivityResumed(Activity activity) {
+		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
+			callback.onActivityResumed(activity);
+	}
+	/* package */ void dispatchActivityPaused(Activity activity) {
+		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
+			callback.onActivityPaused(activity);
+	}
+	/* package */ void dispatchActivityStopped(Activity activity) {
+		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
+			callback.onActivityStopped(activity);
+	}
+	/* package */ void dispatchActivitySaveInstanceState(Activity activity, Bundle outState) {
+		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
+			callback.onActivitySaveInstanceState(activity, outState);
+	}
+	/* package */ void dispatchActivityDestroyed(Activity activity) {
+		for (ActivityLifecycleCallbacks callback : collectActivityLifecycleCallbacks())
+			callback.onActivityDestroyed(activity);
 	}
 	public void registerOnProvideAssistDataListener(OnProvideAssistDataListener callback) {
 	}
