@@ -13,7 +13,6 @@ class	Accessibility	android.view.accessibility.AccessibilityRecord	0	57	androidx
 stub	Views and widgets	android.view.View.setLayoutDirection:(I)V	21	35	com.bytedance 2, androidx.viewpager2 1
 stub	Views and widgets	android.view.View.setSelected:(Z)V	13	40	com.bytedance 6, zendesk.belvedere 1, com.google 1
 stub	Views and widgets	android.view.View.isSelected:()Z	28	24	zendesk.belvedere 2, com.bytedance 2
-class	Graphics	android.graphics.RenderNode	0	50	androidx.compose 11, com.bytedance 7
 class	Autofill	android.view.ViewStructure	0	48	com.google 4, androidx.compose 1
 stub	Views and widgets	android.view.View.getLayoutDirection:()I	9	38	androidx.appcompat 19, com.google 6, androidx.coordinatorlayout 5, androidx.recyclerview 3, androidx.constraintlayout 1, com.bytedance 1
 class	Audio and video	android.widget.VideoView	13	30	com.unity3d 19, org.prebid 8, com.ironsource 4
@@ -90,10 +89,9 @@ class	Audio and video	android.media.MediaCodecInfo$VideoCapabilities$Performance
 class	Audio and video	android.media.metrics.PlaybackSession	0	12	com.google 6
 class	Audio and video	android.media.metrics.PlaybackErrorEvent$Builder	0	12	com.google 5
 method	Audio and video	android.media.AudioTrack.isOffloadedPlayback:()Z	0	12	com.google 1
-method	Views and widgets	android.view.MotionEvent.getClassification:()I	0	12	com.google 1
+stub	Views and widgets	android.view.MotionEvent.getClassification:()I	0	12	com.google 1
 stub	Animation	android.view.animation.Animation.cancel:()V	9	3	com.bytedance 1
 method	Views and widgets	android.view.View.setTransitionVisibility:(I)V	0	12	
-class	Views and widgets	android.view.contentcapture.ContentCaptureSession	0	12	
 stub	Views and widgets	android.view.View.setWillNotDraw:(Z)V	3	8	androidx.appcompat 7, com.google 7, com.bytedance 6, androidx.recyclerview 3, com.unity3d 2, androidx.compose 1, androidx.coordinatorlayout 1, androidx.core 1, androidx.swiperefreshlayout 1
 stub	App framework	android.content.Context.unbindService:(Landroid/content/ServiceConnection;)V	0	11	com.facebook 8, com.google 5, com.unity3d 5, com.android 3, androidx.javascriptengine 3, com.adjust 2
 stub	App framework	android.os.Process.myUid:()I	0	11	com.facebook 4, com.google 4, io.sentry 1, com.bytedance 1
@@ -211,7 +209,6 @@ stub	Views and widgets	android.app.PendingIntent.cancel:()V	1	5
 method	Clipboard	android.content.ClipData$Item.getText:()Ljava/lang/CharSequence;	0	6	
 class	Other	android.credentials.CreateCredentialRequest$Builder	0	6	
 class	Other	android.credentials.CredentialOption$Builder	0	6	
-method	Graphics	android.graphics.Canvas.drawRenderNode:(Landroid/graphics/RenderNode;)V	0	6	
 stub	Graphics	android.graphics.Paint.clearShadowLayer:()V	0	6	
 method	Graphics	android.graphics.Paint.getTextRunCursor:(Ljava/lang/CharSequence;IIZII)I	0	6	
 method	App framework	android.os.Trace.setCounter:(Ljava/lang/String;J)V	0	6	
@@ -350,8 +347,9 @@ class	Views and widgets	android.text.PrecomputedText$Params	0	4
 method	Views and widgets	android.text.style.AbsoluteSizeSpan.getSize:()I	0	4	
 class	Views and widgets	android.text.style.LocaleSpan	0	4	
 class	Views and widgets	android.text.style.ScaleXSpan	0	4	
+stub	Views and widgets	android.view.RenderNode.setHasOverlappingRendering:(Z)Z	0	4	
 stub	Views and widgets	android.view.View.setHapticFeedbackEnabled:(Z)V	3	1	
-method	Views and widgets	android.view.View.setSystemGestureExclusionRects:(Ljava/util/List;)V	0	4	
+stub	Views and widgets	android.view.View.setSystemGestureExclusionRects:(Ljava/util/List;)V	0	4	
 method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setAccessibilityFocused:(Z)V	0	4	
 method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setTraversalAfter:(Landroid/view/View;)V	0	4	
 stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setVisibleToUser:(Z)V	0	4	
@@ -407,8 +405,8 @@ method	Notifications	android.app.NotificationChannel.getImportance:()I	0	3	com.g
 stub	App framework	android.content.BroadcastReceiver$PendingResult.setResultCode:(I)V	0	3	com.google 1
 stub	Clipboard	android.content.ClipboardManager.getPrimaryClip:()Landroid/content/ClipData;	0	3	com.unity3d 1
 stub	App framework	android.content.Context.unregisterComponentCallbacks:(Landroid/content/ComponentCallbacks;)V	0	3	io.sentry 1
-method	Graphics	android.graphics.Canvas.disableZ:()V	0	3	io.sentry 1
-method	Graphics	android.graphics.Canvas.enableZ:()V	0	3	io.sentry 1
+stub	Graphics	android.graphics.Canvas.disableZ:()V	0	3	io.sentry 1
+stub	Graphics	android.graphics.Canvas.enableZ:()V	0	3	io.sentry 1
 method	Graphics	android.graphics.Canvas.setDrawFilter:(Landroid/graphics/DrawFilter;)V	2	1	io.sentry 1
 method	Audio and video	android.media.AudioTrack.setPreferredDevice:(Landroid/media/AudioDeviceInfo;)Z	0	3	com.google 1
 method	Audio and video	android.media.MediaCodecInfo$VideoCapabilities.getBitrateRange:()Landroid/util/Range;	0	3	com.google 1
@@ -435,6 +433,7 @@ method	App framework	android.content.Intent.getParcelableExtra:(Ljava/lang/Strin
 method	App framework	android.content.pm.ShortcutInfo.getRank:()I	0	3	
 class	Other	android.credentials.ClearCredentialStateRequest	0	3	
 stub	Graphics	android.graphics.Paint.getStrokeMiter:()F	0	3	
+stub	Graphics	android.graphics.RenderNode.setUseCompositingLayer:(ZLandroid/graphics/Paint;)Z	0	3	
 method	Graphics	android.graphics.drawable.Drawable$ConstantState.canApplyTheme:()Z	0	3	
 method	Graphics	android.graphics.drawable.Drawable.getTransparentRegion:()Landroid/graphics/Region;	0	3	
 method	Graphics	android.graphics.drawable.Drawable.isAutoMirrored:()Z	0	3	
@@ -544,7 +543,6 @@ stub	WebView	android.webkit.WebView.setWebContentsDebuggingEnabled:(Z)V	1	1	com.
 stub	Views and widgets	android.app.ActivityManager.isLowRamDevice:()Z	0	2	androidx.room 1, com.google 1
 method	Views and widgets	android.app.Dialog.getOnBackInvokedDispatcher:()Landroid/window/OnBackInvokedDispatcher;	0	2	com.bytedance 2
 method	App framework	android.content.Context.getDeviceId:()I	0	2	com.google 2
-method	Graphics	android.graphics.Canvas.saveLayer:(FFFFLandroid/graphics/Paint;I)I	0	2	com.bytedance 1, io.sentry 1
 method	Sensors	android.hardware.SensorManager.getOrientation:([F[F)[F	0	2	com.bytedance 1, com.pgl 1
 stub	Location	android.location.LocationManager.getLastKnownLocation:(Ljava/lang/String;)Landroid/location/Location;	0	2	org.prebid 2
 method	Audio and video	android.media.AudioDeviceInfo.getAudioDescriptors:()Ljava/util/List;	0	2	com.google 2
@@ -576,10 +574,7 @@ stub	App framework	android.content.res.Configuration.setLocales:(Landroid/os/Loc
 method	Graphics	android.graphics.Bitmap.copyPixelsFromBuffer:(Ljava/nio/Buffer;)V	0	2	com.google 1
 method	Graphics	android.graphics.Bitmap.sameAs:(Landroid/graphics/Bitmap;)Z	0	2	com.google 1
 stub	Graphics	android.graphics.Bitmap.setDensity:(I)V	0	2	com.bytedance 1
-method	Graphics	android.graphics.Canvas.clipOutPath:(Landroid/graphics/Path;)Z	0	2	io.sentry 1
-method	Graphics	android.graphics.Canvas.clipOutRect:(Landroid/graphics/RectF;)Z	0	2	io.sentry 1
 method	Graphics	android.graphics.Canvas.getDrawFilter:()Landroid/graphics/DrawFilter;	1	1	io.sentry 1
-class	Graphics	android.graphics.RenderEffect	0	2	com.bytedance 1
 method	Graphics	android.graphics.SurfaceTexture.getTimestamp:()J	0	2	com.google 1
 stub	Graphics	android.graphics.drawable.LayerDrawable.setLayerGravity:(II)V	0	2	com.google 1
 method	Sensors	android.hardware.SensorManager.getRotationMatrixFromVector:([F[F)V	0	2	com.google 1
@@ -734,7 +729,7 @@ method	Views and widgets	android.view.View.drawableHotspotChanged:(FF)V	0	2
 stub	Views and widgets	android.view.View.getBackgroundTintList:()Landroid/content/res/ColorStateList;	0	2	
 method	Views and widgets	android.view.View.onVisibilityAggregated:(Z)V	1	1	
 method	Views and widgets	android.view.View.setAnimationMatrix:(Landroid/graphics/Matrix;)V	0	2	
-method	Views and widgets	android.view.View.setFrameContentVelocity:(F)V	0	2	
+stub	Views and widgets	android.view.View.setFrameContentVelocity:(F)V	0	2	
 stub	Views and widgets	android.view.View.setPointerIcon:(Landroid/view/PointerIcon;)V	0	2	
 stub	Views and widgets	android.view.View.startActionMode:(Landroid/view/ActionMode$Callback;I)Landroid/view/ActionMode;	0	2	
 method	Views and widgets	android.view.View.transformMatrixToLocal:(Landroid/graphics/Matrix;)V	0	2	
@@ -919,9 +914,6 @@ method	App framework	android.content.Context.isUiContext:()Z	0	1	com.google 1
 method	App framework	android.content.Context.registerDeviceIdChangeListener:(Ljava/util/concurrent/Executor;Ljava/util/function/IntConsumer;)V	0	1	com.google 1
 method	App framework	android.content.Context.unregisterDeviceIdChangeListener:(Ljava/util/function/IntConsumer;)V	0	1	com.google 1
 stub	App framework	android.content.pm.PackageManager.getReceiverInfo:(Landroid/content/ComponentName;I)Landroid/content/pm/ActivityInfo;	0	1	com.google 1
-method	Graphics	android.graphics.Canvas.clipOutRect:(FFFF)Z	0	1	io.sentry 1
-method	Graphics	android.graphics.Canvas.clipOutRect:(IIII)Z	0	1	io.sentry 1
-method	Graphics	android.graphics.Canvas.clipOutRect:(Landroid/graphics/Rect;)Z	0	1	io.sentry 1
 method	Graphics	android.graphics.Canvas.drawColor:(ILandroid/graphics/BlendMode;)V	0	1	io.sentry 1
 method	Graphics	android.graphics.Canvas.drawColor:(J)V	0	1	io.sentry 1
 method	Graphics	android.graphics.Canvas.drawColor:(JLandroid/graphics/BlendMode;)V	0	1	io.sentry 1
@@ -947,6 +939,7 @@ method	Graphics	android.graphics.Canvas.saveLayerAlpha:(Landroid/graphics/RectF;
 method	Graphics	android.graphics.Canvas.setDensity:(I)V	0	1	io.sentry 1
 method	Graphics	android.graphics.Canvas.skew:(FF)V	0	1	io.sentry 1
 stub	Graphics	android.graphics.PathMeasure.nextContour:()Z	0	1	com.bytedance 1
+stub	Graphics	android.graphics.RenderNode.setRenderEffect:(Landroid/graphics/RenderEffect;)Z	0	1	com.bytedance 1
 method	Graphics	android.graphics.drawable.Drawable.createFromStream:(Ljava/io/InputStream;Ljava/lang/String;)Landroid/graphics/drawable/Drawable;	0	1	com.ironsource 1
 method	Graphics	android.graphics.drawable.GradientDrawable.setColors:([I[F)V	0	1	com.bytedance 1
 method	Audio and video	android.media.AudioAttributes$Builder.setIsContentSpatialized:(Z)Landroid/media/AudioAttributes$Builder;	0	1	com.google 1
@@ -984,9 +977,8 @@ stub	Views and widgets	android.view.View.cancelPendingInputEvents:()V	0	1	androi
 stub	Views and widgets	android.view.View.dispatchHoverEvent:(Landroid/view/MotionEvent;)Z	1	0	app.rive 1
 stub	Views and widgets	android.view.View.getForeground:()Landroid/graphics/drawable/Drawable;	1	0	org.prebid 1
 stub	Views and widgets	android.view.View.getLayerType:()I	0	1	com.bytedance 1
-method	Views and widgets	android.view.View.hasOverlappingRendering:()Z	0	1	androidx.appcompat 1
 method	Views and widgets	android.view.View.sendAccessibilityEventUnchecked:(Landroid/view/accessibility/AccessibilityEvent;)V	0	1	androidx.recyclerview 1
-method	Views and widgets	android.view.View.setRequestedFrameRate:(F)V	0	1	app.rive 1
+stub	Views and widgets	android.view.View.setRequestedFrameRate:(F)V	0	1	app.rive 1
 stub	Views and widgets	android.view.View.setTouchDelegate:(Landroid/view/TouchDelegate;)V	0	1	androidx.appcompat 1
 method	Views and widgets	android.view.ViewGroup$LayoutParams.<init>:(Landroid/view/ViewGroup$LayoutParams;)V	1	0	com.bytedance 1
 stub	Views and widgets	android.view.ViewGroup.isTransitionGroup:()Z	0	1	androidx.fragment 1
@@ -1169,29 +1161,9 @@ method	Graphics	android.graphics.Canvas.drawTextRun:(Landroid/graphics/text/Meas
 method	Graphics	android.graphics.Canvas.drawTextRun:([CIIIIFFZLandroid/graphics/Paint;)V	0	1	
 method	Graphics	android.graphics.Canvas.drawVertices:(Landroid/graphics/Canvas$VertexMode;I[FI[FI[II[SIILandroid/graphics/Paint;)V	0	1	
 method	Graphics	android.graphics.ColorMatrixColorFilter.getColorMatrix:(Landroid/graphics/ColorMatrix;)V	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.ACES	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.ACESCG	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.ADOBE_RGB	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.BT2020	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.BT2020_HLG	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.BT2020_PQ	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.BT709	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.CIE_LAB	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.CIE_XYZ	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.DCI_P3	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.DISPLAY_P3	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.EXTENDED_SRGB	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.LINEAR_EXTENDED_SRGB	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.LINEAR_SRGB	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.NTSC_1953	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.OK_LAB	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.PRO_PHOTO_RGB	0	1	
-field	Graphics	android.graphics.ColorSpace$Named.SMPTE_C	0	1	
 class	Graphics	android.graphics.ImageDecoder$ImageInfo	0	1	
-method	Graphics	android.graphics.Paint.getColorLong:()J	0	1	
 method	Graphics	android.graphics.Paint.getTextPath:(Ljava/lang/String;IIFFLandroid/graphics/Path;)V	0	1	
 stub	Graphics	android.graphics.Paint.hasGlyph:(Ljava/lang/String;)Z	0	1	
-method	Graphics	android.graphics.Paint.setColor:(J)V	0	1	
 stub	Graphics	android.graphics.Paint.setLinearText:(Z)V	0	1	
 method	Graphics	android.graphics.Paint.setTextLocales:(Landroid/os/LocaleList;)V	0	1	
 stub	Graphics	android.graphics.Paint.setTextScaleX:(F)V	0	1	
@@ -1384,9 +1356,9 @@ stub	Views and widgets	android.view.View.getAccessibilityLiveRegion:()I	0	1
 method	Views and widgets	android.view.View.getAccessibilityPaneTitle:()Ljava/lang/CharSequence;	0	1	
 stub	Views and widgets	android.view.View.getApplicationWindowToken:()Landroid/os/IBinder;	0	1	
 stub	Views and widgets	android.view.View.getBackgroundTintMode:()Landroid/graphics/PorterDuff$Mode;	0	1	
-method	Views and widgets	android.view.View.getClipBounds:()Landroid/graphics/Rect;	0	1	
+stub	Views and widgets	android.view.View.getClipBounds:()Landroid/graphics/Rect;	0	1	
 stub	Views and widgets	android.view.View.getClipToOutline:()Z	0	1	
-method	Views and widgets	android.view.View.getContentCaptureSession:()Landroid/view/contentcapture/ContentCaptureSession;	0	1	
+stub	Views and widgets	android.view.View.getContentCaptureSession:()Landroid/view/contentcapture/ContentCaptureSession;	0	1	
 stub	Views and widgets	android.view.View.getImportantForAutofill:()I	0	1	
 stub	Views and widgets	android.view.View.getOnFocusChangeListener:()Landroid/view/View$OnFocusChangeListener;	0	1	
 method	Views and widgets	android.view.View.getParentForAccessibility:()Landroid/view/ViewParent;	0	1	
@@ -1394,8 +1366,6 @@ stub	Views and widgets	android.view.View.getPointerIcon:()Landroid/view/PointerI
 method	Views and widgets	android.view.View.getReceiveContentMimeTypes:()[Ljava/lang/String;	0	1	
 method	Views and widgets	android.view.View.getStateDescription:()Ljava/lang/CharSequence;	0	1	
 stub	Views and widgets	android.view.View.getStateListAnimator:()Landroid/animation/StateListAnimator;	0	1	
-method	Views and widgets	android.view.View.getSystemGestureExclusionRects:()Ljava/util/List;	0	1	
-method	Views and widgets	android.view.View.getUniqueDrawingId:()J	0	1	
 method	Views and widgets	android.view.View.isAccessibilityHeading:()Z	0	1	
 stub	Views and widgets	android.view.View.isActivated:()Z	0	1	
 stub	Views and widgets	android.view.View.isInLayout:()Z	0	1	
@@ -1517,6 +1487,12 @@ method	Autofill	android.view.autofill.AutofillManager.requestAutofill:(Landroid/
 method	Autofill	android.view.autofill.AutofillValue.getToggleValue:()Z	0	1	
 method	Autofill	android.view.autofill.AutofillValue.isDate:()Z	0	1	
 method	Autofill	android.view.autofill.AutofillValue.isList:()Z	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.newAutofillId:(Landroid/view/autofill/AutofillId;J)Landroid/view/autofill/AutofillId;	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.newVirtualViewStructure:(Landroid/view/autofill/AutofillId;J)Landroid/view/ViewStructure;	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.notifyViewAppeared:(Landroid/view/ViewStructure;)V	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.notifyViewDisappeared:(Landroid/view/autofill/AutofillId;)V	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.notifyViewTextChanged:(Landroid/view/autofill/AutofillId;Ljava/lang/CharSequence;)V	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.notifyViewsDisappeared:(Landroid/view/autofill/AutofillId;[J)V	0	1	
 method	Text input	android.view.inputmethod.CompletionInfo.getText:()Ljava/lang/CharSequence;	0	1	
 field	Text input	android.view.inputmethod.EditorInfo.contentMimeTypes	0	1	
 method	Text input	android.view.inputmethod.EditorInfo.setInitialSurroundingSubText:(Ljava/lang/CharSequence;I)V	0	1	
@@ -2021,7 +1997,8 @@ method	Graphics	android.graphics.HardwareRenderer.createRenderRequest:()Landroid
 method	Graphics	android.graphics.HardwareRenderer.destroy:()V	0	0	com.bytedance 1
 method	Graphics	android.graphics.HardwareRenderer.setContentRoot:(Landroid/graphics/RenderNode;)V	0	0	com.bytedance 1
 method	Graphics	android.graphics.HardwareRenderer.setSurface:(Landroid/view/Surface;)V	0	0	com.bytedance 1
-class	Graphics	android.graphics.RecordingCanvas	0	0	com.bytedance 1
+stub	Graphics	android.graphics.RenderNode.setAmbientShadowColor:(I)Z	0	0	androidx.compose 1
+stub	Graphics	android.graphics.RenderNode.setSpotShadowColor:(I)Z	0	0	androidx.compose 1
 method	Graphics	android.graphics.SurfaceTexture.<init>:(Z)V	0	0	io.sentry 1
 method	Graphics	android.graphics.SurfaceTexture.setOnFrameAvailableListener:(Landroid/graphics/SurfaceTexture$OnFrameAvailableListener;Landroid/os/Handler;)V	0	0	com.unity3d 1
 method	Graphics	android.graphics.drawable.BitmapDrawable.setTargetDensity:(I)V	0	0	com.google 1
@@ -2220,7 +2197,6 @@ method	Views and widgets	android.widget.CompoundButton.drawableHotspotChanged:(F
 method	Views and widgets	android.widget.CompoundButton.drawableStateChanged:()V	0	0	androidx.appcompat 1
 stub	Views and widgets	android.widget.CompoundButton.getButtonTintMode:()Landroid/graphics/PorterDuff$Mode;	0	0	com.google 1
 method	Views and widgets	android.widget.CompoundButton.verifyDrawable:(Landroid/graphics/drawable/Drawable;)Z	0	0	androidx.appcompat 1
-method	Views and widgets	android.widget.ImageView.hasOverlappingRendering:()Z	0	0	androidx.appcompat 1
 method	Views and widgets	android.widget.MediaController.onTouchEvent:(Landroid/view/MotionEvent;)Z	0	0	com.unity3d 1
 method	Views and widgets	android.widget.MediaController.setAnchorView:(Landroid/view/View;)V	0	0	com.unity3d 1
 method	Views and widgets	android.widget.MediaController.setEnabled:(Z)V	0	0	com.unity3d 1

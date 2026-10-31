@@ -13,6 +13,8 @@ extern "C" {
 #define android_view_MotionEvent_PARCEL_TOKEN_KEY_EVENT 2L
 #undef android_view_MotionEvent_TRACK_RECYCLED_LOCATION
 #define android_view_MotionEvent_TRACK_RECYCLED_LOCATION 0L
+#undef android_view_MotionEvent_CLASSIFICATION_NONE
+#define android_view_MotionEvent_CLASSIFICATION_NONE 0L
 #undef android_view_MotionEvent_NS_PER_MS
 #define android_view_MotionEvent_NS_PER_MS 1000000LL
 #undef android_view_MotionEvent_INVALID_POINTER_ID
