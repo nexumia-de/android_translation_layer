@@ -1890,7 +1890,16 @@ public class PackageManager {
 			case "android.permission.READ_EXTERNAL_STORAGE":
 			case "com.google.android.c2dm.permission.SEND":
 				return PERMISSION_GRANTED;
+			// normal permissions, Android grants them at install
 			case "android.permission.ACCESS_NETWORK_STATE":
+			case "android.permission.ACCESS_WIFI_STATE":
+			case "android.permission.FOREGROUND_SERVICE":
+			case "android.permission.INTERNET":
+			case "android.permission.VIBRATE":
+			case "android.permission.WAKE_LOCK":
+				return PERMISSION_GRANTED;
+			// notifications are shown; there is no runtime question to ask
+			case "android.permission.POST_NOTIFICATIONS":
 				return PERMISSION_GRANTED;
 			case "android.permission.REQUEST_INSTALL_PACKAGES":
 				return canRequestPackageInstalls() ? PERMISSION_GRANTED : PERMISSION_DENIED;
