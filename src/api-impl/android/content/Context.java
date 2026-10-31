@@ -592,12 +592,20 @@ public abstract class Context {
 		return registerReceiver(receiver, filter);
 	}
 
+	public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter, String broadcastPermission, Handler scheduler, int flags) {
+		return registerReceiver(receiver, filter);
+	}
+
 	public String[] fileList() {
 		return new String[0];
 	}
 
 	public void revokeUriPermission(Uri uri, int mode) {
 		System.out.println("revokeUriPermission(" + uri + ", " + mode + ") called");
+	}
+
+	public String getOpPackageName() {
+		return getPackageName();
 	}
 
 	public String getAttributionTag() {

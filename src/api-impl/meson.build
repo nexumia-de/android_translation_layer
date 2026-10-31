@@ -83,6 +83,8 @@ srcs = [
 	'android/app/job/JobScheduler.java',
 	'android/app/job/JobService.java',
 	'android/app/job/JobWorkItem.java',
+	'android/app/usage/StorageStats.java',
+	'android/app/usage/StorageStatsManager.java',
 	'android/app/usage/UsageStatsManager.java',
 	'android/appwidget/AppWidgetManager.java',
 	'android/appwidget/AppWidgetProvider.java',

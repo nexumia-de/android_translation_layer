@@ -4,6 +4,8 @@ import android.os.Environment;
 import android.os.StatFs;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 public class StorageManager {
@@ -12,6 +14,10 @@ public class StorageManager {
 	public StorageVolume[] getVolumeList() {
 		StorageVolume[] sVolumes = {new StorageVolume()};
 		return sVolumes;
+	}
+
+	public List<StorageVolume> getStorageVolumes() {
+		return Arrays.asList(getVolumeList());
 	}
 
 	public StorageVolume getStorageVolume(File file) { return null; }

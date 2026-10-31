@@ -9,4 +9,8 @@ public class AppOpsManager {
 	public int noteProxyOpNoThrow(String op, String pkg) {
 		return 0;
 	}
+
+	public int checkOpNoThrow(String op, int uid, String packageName) {
+		return 0; // MODE_ALLOWED
+	}
 }
