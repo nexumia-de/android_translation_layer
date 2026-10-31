@@ -250,6 +250,14 @@ field did not arrive; keyboard input into ATL apps is unverified
 headless. The first tap after a new window often only focuses it; tap
 twice when a tap seems lost.
 
+To test a form anyway, preload `tools/atl-fill-text.c`: it fills every
+`EditText` shortly after it is created, through GTK's own setter, so the
+app's text listeners run as with typing. It found the Duolingo sign-in
+abort that an empty form hides, because SIGN IN stays disabled.
+
+ATL logs contain NUL bytes, so `grep` can take them for binary and print
+nothing. Search `tr -d '\000' < r.log` instead.
+
 ## Keyring
 
 Apps using the Android keystore (Tink, androidx.security) make ATL
