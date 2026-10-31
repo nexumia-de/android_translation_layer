@@ -2013,6 +2013,10 @@ public class PackageParser {
 			}
 			ai.processName = buildProcessName(ai.packageName, null, pname,
 			                                  flags, mSeparateProcesses, outError);
+			// Android's PackageManagerService sets this later (fixProcessName); apps like
+			// WorkManager compare it with Application.getProcessName() to find their main process
+			if (ai.processName == null)
+				ai.processName = ai.packageName;
 
 			ai.enabled = sa.getBoolean(
 			    com.android.internal.R.styleable.AndroidManifestApplication_enabled, true);
