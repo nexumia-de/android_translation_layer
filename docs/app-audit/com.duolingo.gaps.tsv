@@ -24,7 +24,6 @@ stub	Views and widgets	android.view.View.setClipToOutline:(Z)V	24	9	com.bytedanc
 method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getExtras:()Landroid/os/Bundle;	0	32	app.rive 5, androidx.compose 2, androidx.recyclerview 2
 class	Speech	android.speech.SpeechRecognizer	18	13	
 stub	Views and widgets	android.widget.RemoteViews.setViewVisibility:(II)V	0	31	
-stub	Views and widgets	android.widget.TextView.setInputType:(I)V	23	6	androidx.appcompat 2, zendesk.messaging 1, com.unity3d 1
 class	Audio and video	android.media.metrics.PlaybackMetrics$Builder	0	28	com.google 13
 stub	Views and widgets	android.view.View.setPivotX:(F)V	12	15	com.bytedance 9
 stub	Views and widgets	android.widget.ImageView.setColorFilter:(I)V	11	16	com.bytedance 4, zendesk.support 1
@@ -32,14 +31,10 @@ stub	Views and widgets	android.view.View.setLayerType:(ILandroid/graphics/Paint;
 stub	Views and widgets	android.view.View.setPivotY:(F)V	12	14	com.bytedance 9
 class	Picture in picture	android.app.PictureInPictureParams$Builder	20	6	
 class	Accessibility	android.view.accessibility.AccessibilityEvent	0	25	androidx.recyclerview 4, app.rive 3, com.unity3d 3, com.bytedance 1
-stub	Audio and video	android.media.MediaPlayer.setVolume:(FF)V	2	23	com.unity3d 1, com.google 1
 stub	Views and widgets	android.view.View.setTranslationZ:(F)V	7	18	com.google 2
 stub	Views and widgets	android.view.View.hasFocus:()Z	11	13	androidx.recyclerview 4, zendesk.support 4, androidx.appcompat 4, androidx.compose 2, com.google 2, zendesk.messaging 1, com.bytedance 1, com.facebook 1
 stub	Views and widgets	android.view.ViewGroup.setClipToPadding:(Z)V	9	14	com.bytedance 11, androidx.recyclerview 1
-stub	Audio and video	android.media.MediaPlayer.release:()V	4	19	com.google 2, com.unity3d 1
-stub	Audio and video	android.media.MediaPlayer.isPlaying:()Z	1	22	com.unity3d 1, com.google 1
 stub	App framework	android.os.StrictMode.setThreadPolicy:(Landroid/os/StrictMode$ThreadPolicy;)V	0	22	com.google 50, com.facebook 7, androidx.tracing 2
-class	App framework	android.os.VibrationEffect$Composition	2	20	
 class	Notifications	android.app.Notification$BubbleMetadata	0	21	
 class	Views and widgets	android.widget.NumberPicker	12	9	
 stub	Views and widgets	android.view.View.canScrollVertically:(I)Z	4	16	androidx.recyclerview 10, com.google 5, androidx.constraintlayout 1, androidx.viewpager2 1, zendesk.messaging 1, androidx.swiperefreshlayout 1
@@ -57,12 +52,10 @@ stub	Views and widgets	android.view.View.clearAnimation:()V	9	8	androidx.swipere
 stub	Audio and video	android.view.Surface.release:()V	2	15	com.google 5, com.moloco 4, app.rive 2, io.sentry 1, androidx.media3 1
 class	Audio and video	android.media.MediaMuxer	0	17	io.sentry 4, com.moloco 3
 stub	Graphics	android.graphics.Paint.setShadowLayer:(FFFI)V	0	17	com.google 3, com.bytedance 2, com.robinhood 1
-stub	Audio and video	android.media.MediaPlayer.stop:()V	5	12	com.google 1
 stub	Views and widgets	android.view.View.isPressed:()Z	7	10	
 class	Text input	android.view.inputmethod.DeleteRangeGesture	0	17	
 class	Text input	android.view.inputmethod.SelectRangeGesture	0	17	
 class	Views and widgets	android.widget.Magnifier	0	17	
-stub	Views and widgets	android.widget.TextView.getInputType:()I	3	13	com.facebook 6, com.unity3d 2, androidx.appcompat 1, com.google 1
 stub	Views and widgets	android.widget.EdgeEffect.finish:()V	0	16	androidx.core 2, androidx.recyclerview 2, com.bytedance 2
 stub	Graphics	android.graphics.PathMeasure.setPath:(Landroid/graphics/Path;Z)V	2	14	com.bytedance 4
 method	Views and widgets	android.widget.RemoteViews.setInt:(ILjava/lang/String;I)V	0	16	
@@ -96,7 +89,6 @@ stub	Accessibility	android.view.accessibility.AccessibilityManager.isEnabled:()Z
 class	Audio and video	android.media.MediaCodecInfo$VideoCapabilities$PerformancePoint	0	12	com.google 6
 class	Audio and video	android.media.metrics.PlaybackSession	0	12	com.google 6
 class	Audio and video	android.media.metrics.PlaybackErrorEvent$Builder	0	12	com.google 5
-stub	Audio and video	android.media.MediaPlayer.setOnPreparedListener:(Landroid/media/MediaPlayer$OnPreparedListener;)V	0	12	com.unity3d 1, com.google 1
 method	Audio and video	android.media.AudioTrack.isOffloadedPlayback:()Z	0	12	com.google 1
 method	Views and widgets	android.view.MotionEvent.getClassification:()I	0	12	com.google 1
 stub	Animation	android.view.animation.Animation.cancel:()V	9	3	com.bytedance 1
@@ -117,9 +109,7 @@ stub	Views and widgets	android.widget.TextView.setImeHintLocales:(Landroid/os/Lo
 stub	Views and widgets	android.widget.EdgeEffect.setSize:(II)V	0	10	androidx.recyclerview 8, androidx.core 2, com.bytedance 2
 class	Audio and video	android.media.LoudnessCodecController	0	10	com.google 6
 stub	Views and widgets	android.widget.TextView.setFilters:([Landroid/text/InputFilter;)V	4	6	com.unity3d 3, com.bytedance 2, androidx.appcompat 1
-stub	Audio and video	android.media.MediaPlayer.seekTo:(I)V	0	10	com.unity3d 3, com.google 1
 class	Audio and video	android.media.metrics.LogSessionId	0	10	com.google 4
-stub	Audio and video	android.media.MediaPlayer.pause:()V	0	10	com.google 2, com.unity3d 1
 stub	Audio and video	android.media.MediaPlayer.setOnErrorListener:(Landroid/media/MediaPlayer$OnErrorListener;)V	0	10	com.google 1
 stub	Graphics	android.graphics.Paint.getFlags:()I	1	9	
 class	Audio and video	android.media.midi.MidiDeviceInfo	0	10	
@@ -127,15 +117,12 @@ class	Views and widgets	android.view.ContentInfo$Builder	0	10
 class	Views and widgets	android.view.WindowMetrics	0	9	com.google 8, com.unity3d 3, com.moloco 2, org.prebid 2, com.ironsource 1
 class	Audio and video	android.media.AudioProfile	0	9	com.google 7
 stub	App framework	android.os.Process.setThreadPriority:(I)V	0	9	com.google 6
-stub	Views and widgets	android.widget.TextView.getTransformationMethod:()Landroid/text/method/TransformationMethod;	3	6	com.google 4, com.facebook 1
 stub	Graphics	android.graphics.PathMeasure.getPosTan:(F[F[F)Z	0	9	com.bytedance 2
 stub	Views and widgets	android.view.View.playSoundEffect:(I)V	0	9	androidx.appcompat 1, com.bytedance 1
 stub	Views and widgets	android.view.View.setRotationX:(F)V	0	9	com.bytedance 2
 stub	Views and widgets	android.view.View.setRotationY:(F)V	0	9	com.bytedance 2
 field	Audio and video	android.media.AudioTimestamp.nanoTime	0	9	com.google 1
 class	Notifications	android.app.Notification$CallStyle	0	9	
-method	Audio and video	android.media.AudioFormat.getEncoding:()I	0	9	
-stub	Audio and video	android.media.MediaPlayer.setLooping:(Z)V	1	8	
 class	Audio and video	android.media.midi.MidiManager	0	9	
 method	Notifications	android.service.notification.StatusBarNotification.getNotification:()Landroid/app/Notification;	0	9	
 method	Notifications	android.service.notification.StatusBarNotification.getTag:()Ljava/lang/String;	1	8	
@@ -153,15 +140,13 @@ class	Audio and video	android.media.metrics.NetworkEvent$Builder	0	8	com.google 
 class	Audio and video	android.media.metrics.PlaybackStateEvent$Builder	0	8	com.google 3
 stub	Views and widgets	android.view.View.setForeground:(Landroid/graphics/drawable/Drawable;)V	3	5	com.bytedance 2, com.moloco 1
 stub	Clipboard	android.content.ClipData.getItemAt:(I)Landroid/content/ClipData$Item;	0	8	zendesk.belvedere 1, com.unity3d 1
-stub	Audio and video	android.media.MediaPlayer.prepareAsync:()V	0	8	com.unity3d 1, com.google 1
 stub	Views and widgets	android.view.View.setOnKeyListener:(Landroid/view/View$OnKeyListener;)V	5	3	androidx.appcompat 1, com.google 1
 stub	Graphics	android.graphics.Paint.getTextScaleX:()F	0	8	
 stub	Graphics	android.graphics.drawable.DrawableContainer.setEnterFadeDuration:(I)V	2	6	
 stub	Graphics	android.graphics.drawable.DrawableContainer.setExitFadeDuration:(I)V	2	6	
 stub	Audio and video	android.media.SoundPool.release:()V	3	5	
-method	Audio and video	android.media.SoundPool.stop:(I)V	2	6	
+stub	Audio and video	android.media.SoundPool.stop:(I)V	2	6	
 method	App framework	android.os.Parcel.writeTypedObject:(Landroid/os/Parcelable;I)V	0	8	
-method	App framework	android.os.VibrationEffect.startComposition:()Landroid/os/VibrationEffect$Composition;	1	7	
 class	Views and widgets	android.view.ContentInfo	0	8	
 method	Views and widgets	android.view.View.setLeftTopRightBottom:(IIII)V	0	8	
 stub	Views and widgets	android.view.Window.setWindowAnimations:(I)V	7	1	
@@ -178,12 +163,10 @@ stub	Views and widgets	android.app.Activity.isInPictureInPictureMode:()Z	4	3	com
 class	Audio and video	android.media.MediaCodec$CryptoException	0	7	com.google 3
 stub	Graphics	android.graphics.Paint.setStrokeMiter:(F)V	0	7	com.bytedance 1, com.caverock 1
 stub	Graphics	android.graphics.Paint.setUnderlineText:(Z)V	1	6	com.caverock 2
-stub	Audio and video	android.media.MediaPlayer.reset:()V	0	7	com.unity3d 1, com.google 1
 stub	Clipboard	android.content.ClipData.getItemCount:()I	0	7	zendesk.belvedere 1
 method	Audio and video	android.media.MediaPlayer.setSurface:(Landroid/view/Surface;)V	0	7	com.google 1
 method	Views and widgets	android.text.style.ForegroundColorSpan.getForegroundColor:()I	0	7	io.sentry 1
 method	Views and widgets	android.view.View.onInitializeAccessibilityEvent:(Landroid/view/accessibility/AccessibilityEvent;)V	0	7	androidx.appcompat 1
-stub	Views and widgets	android.widget.TextView.setTransformationMethod:(Landroid/text/method/TransformationMethod;)V	0	7	com.google 1
 method	Animation	android.animation.Keyframe.setInterpolator:(Landroid/animation/TimeInterpolator;)V	0	7	
 class	Notifications	android.app.Notification$MessagingStyle	0	7	
 class	Other	android.credentials.CreateCredentialException	0	7	
@@ -231,7 +214,6 @@ class	Other	android.credentials.CredentialOption$Builder	0	6
 method	Graphics	android.graphics.Canvas.drawRenderNode:(Landroid/graphics/RenderNode;)V	0	6	
 stub	Graphics	android.graphics.Paint.clearShadowLayer:()V	0	6	
 method	Graphics	android.graphics.Paint.getTextRunCursor:(Ljava/lang/CharSequence;IIZII)I	0	6	
-method	Audio and video	android.media.MediaPlayer.seekTo:(JI)V	0	6	
 method	App framework	android.os.Trace.setCounter:(Ljava/lang/String;J)V	0	6	
 method	Views and widgets	android.text.style.TypefaceSpan.getFamily:()Ljava/lang/String;	0	6	
 stub	Views and widgets	android.view.View.setHasTransientState:(Z)V	1	5	
@@ -286,7 +268,6 @@ stub	Graphics	android.graphics.Paint.setHinting:(I)V	0	5
 class	Graphics	android.graphics.text.LineBreakConfig$Builder	0	5	
 method	Audio and video	android.media.AudioTrack.setOffloadDelayPadding:(II)V	0	5	
 method	Audio and video	android.media.MediaCrypto.release:()V	0	5	
-stub	Audio and video	android.media.SoundPool.setOnLoadCompleteListener:(Landroid/media/SoundPool$OnLoadCompleteListener;)V	0	5	
 class	Contacts, calendar, media store	android.provider.CalendarContract$Reminders	4	1	
 method	Contacts, calendar, media store	android.provider.Telephony$Sms.getDefaultSmsPackage:(Landroid/content/Context;)Ljava/lang/String;	4	1	
 method	Notifications	android.service.notification.StatusBarNotification.getPostTime:()J	0	5	
@@ -429,7 +410,6 @@ stub	App framework	android.content.Context.unregisterComponentCallbacks:(Landroi
 method	Graphics	android.graphics.Canvas.disableZ:()V	0	3	io.sentry 1
 method	Graphics	android.graphics.Canvas.enableZ:()V	0	3	io.sentry 1
 method	Graphics	android.graphics.Canvas.setDrawFilter:(Landroid/graphics/DrawFilter;)V	2	1	io.sentry 1
-method	Audio and video	android.media.AudioAttributes$Builder.setHapticChannelsMuted:(Z)Landroid/media/AudioAttributes$Builder;	0	3	com.google 1
 method	Audio and video	android.media.AudioTrack.setPreferredDevice:(Landroid/media/AudioDeviceInfo;)Z	0	3	com.google 1
 method	Audio and video	android.media.MediaCodecInfo$VideoCapabilities.getBitrateRange:()Landroid/util/Range;	0	3	com.google 1
 method	Audio and video	android.media.MediaCodecInfo.isAlias:()Z	0	3	com.google 1
@@ -461,14 +441,12 @@ method	Graphics	android.graphics.drawable.Drawable.isAutoMirrored:()Z	0	3
 method	Graphics	android.graphics.drawable.LayerDrawable.setLayerInsetStart:(II)V	0	3	
 class	Camera	android.hardware.camera2.params.OutputConfiguration	0	3	
 class	Other	android.icu.number.UnlocalizedNumberFormatter	0	3	
-method	Audio and video	android.media.AudioFormat.getSampleRate:()I	0	3	
 method	Audio and video	android.media.AudioRecord.getFormat:()Landroid/media/AudioFormat;	0	3	
 method	Audio and video	android.media.MediaPlayer.getPlaybackParams:()Landroid/media/PlaybackParams;	0	3	
-method	Audio and video	android.media.MediaPlayer.setDataSource:(Landroid/content/res/AssetFileDescriptor;)V	0	3	
 class	Audio and video	android.media.midi.MidiDeviceInfo$PortInfo	0	3	
 method	App framework	android.os.BaseBundle.getBooleanArray:(Ljava/lang/String;)[Z	0	3	
 method	App framework	android.os.Bundle.putSize:(Ljava/lang/String;Landroid/util/Size;)V	0	3	
-method	App framework	android.os.Vibrator.hasAmplitudeControl:()Z	0	3	
+stub	App framework	android.os.Vibrator.hasAmplitudeControl:()Z	0	3	
 method	Contacts, calendar, media store	android.provider.ContactsContract$Contacts.openContactPhotoInputStream:(Landroid/content/ContentResolver;Landroid/net/Uri;Z)Ljava/io/InputStream;	0	3	
 class	Views and widgets	android.text.GraphemeClusterSegmentFinder	0	3	
 method	Views and widgets	android.text.Layout.getLineMax:(I)F	1	2	
@@ -573,7 +551,7 @@ method	Audio and video	android.media.AudioDeviceInfo.getAudioDescriptors:()Ljava
 method	Audio and video	android.media.MediaCodec.detachOutputSurface:()V	0	2	com.google 2
 method	Audio and video	android.media.MediaCodec.subscribeToVendorParameters:(Ljava/util/List;)V	0	2	com.google 2
 stub	Audio and video	android.media.MediaPlayer.setOnVideoSizeChangedListener:(Landroid/media/MediaPlayer$OnVideoSizeChangedListener;)V	0	2	com.unity3d 1, com.google 1
-method	Audio and video	android.media.MediaPlayer.setScreenOnWhilePlaying:(Z)V	0	2	com.unity3d 1, com.google 1
+stub	Audio and video	android.media.MediaPlayer.setScreenOnWhilePlaying:(Z)V	0	2	com.unity3d 1, com.google 1
 class	Views and widgets	android.text.InputFilter$AllCaps	2	0	com.bytedance 2
 class	Views and widgets	android.view.Choreographer$FrameData	0	2	com.google 2
 class	Views and widgets	android.view.Choreographer$FrameTimeline	0	2	com.google 2
@@ -605,12 +583,10 @@ class	Graphics	android.graphics.RenderEffect	0	2	com.bytedance 1
 method	Graphics	android.graphics.SurfaceTexture.getTimestamp:()J	0	2	com.google 1
 stub	Graphics	android.graphics.drawable.LayerDrawable.setLayerGravity:(II)V	0	2	com.google 1
 method	Sensors	android.hardware.SensorManager.getRotationMatrixFromVector:([F[F)V	0	2	com.google 1
-method	Audio and video	android.media.AudioAttributes$Builder.setAllowedCapturePolicy:(I)Landroid/media/AudioAttributes$Builder;	0	2	com.google 1
-method	Audio and video	android.media.AudioAttributes$Builder.setSpatializationBehavior:(I)Landroid/media/AudioAttributes$Builder;	0	2	com.google 1
 stub	Audio and video	android.media.AudioManager.generateAudioSessionId:()I	0	2	com.google 1
-method	Audio and video	android.media.AudioManager.getPlaybackOffloadSupport:(Landroid/media/AudioFormat;Landroid/media/AudioAttributes;)I	0	2	com.google 1
+stub	Audio and video	android.media.AudioManager.getPlaybackOffloadSupport:(Landroid/media/AudioFormat;Landroid/media/AudioAttributes;)I	0	2	com.google 1
 method	Audio and video	android.media.AudioManager.getSpatializer:()Landroid/media/Spatializer;	0	2	com.google 1
-method	Audio and video	android.media.AudioManager.isOffloadedPlaybackSupported:(Landroid/media/AudioFormat;Landroid/media/AudioAttributes;)Z	0	2	com.google 1
+stub	Audio and video	android.media.AudioManager.isOffloadedPlaybackSupported:(Landroid/media/AudioFormat;Landroid/media/AudioAttributes;)Z	0	2	com.google 1
 stub	Audio and video	android.media.AudioManager.registerAudioDeviceCallback:(Landroid/media/AudioDeviceCallback;Landroid/os/Handler;)V	0	2	com.google 1
 stub	Audio and video	android.media.AudioManager.unregisterAudioDeviceCallback:(Landroid/media/AudioDeviceCallback;)V	0	2	com.google 1
 class	Audio and video	android.media.AudioRouting	0	2	com.google 1
@@ -711,7 +687,6 @@ method	Graphics	android.graphics.drawable.Icon.getType:()I	0	2
 class	Graphics	android.graphics.text.PositionedGlyphs	0	2	
 class	Camera	android.hardware.camera2.params.SessionConfiguration	0	2	
 class	Other	android.icu.number.Notation	0	2	
-method	Audio and video	android.media.AudioFormat.getChannelCount:()I	0	2	
 stub	Audio and video	android.media.AudioManager.isStreamMute:(I)Z	0	2	
 method	Audio and video	android.media.AudioRecord.read:([BII)I	0	2	
 method	Audio and video	android.media.AudioTrack.setOffloadEndOfStream:()V	0	2	
@@ -721,7 +696,6 @@ method	Audio and video	android.media.MediaCodec.unsubscribeFromVendorParameters:
 class	Audio and video	android.media.MediaDataSource	0	2	
 method	Audio and video	android.media.MediaFormat.createVideoFormat:(Ljava/lang/String;II)Landroid/media/MediaFormat;	0	2	
 method	Audio and video	android.media.MediaFormat.setFeatureEnabled:(Ljava/lang/String;Z)V	0	2	
-method	Audio and video	android.media.MediaPlayer.create:(Landroid/content/Context;ILandroid/media/AudioAttributes;I)Landroid/media/MediaPlayer;	0	2	
 method	Audio and video	android.media.MediaPlayer.setPlaybackParams:(Landroid/media/PlaybackParams;)V	0	2	
 class	Audio and video	android.media.MediaTimestamp	0	2	
 stub	Audio and video	android.media.SoundPool.autoPause:()V	1	1	
@@ -734,8 +708,7 @@ method	App framework	android.os.BaseBundle.getDoubleArray:(Ljava/lang/String;)[D
 method	App framework	android.os.Bundle.putSizeF:(Ljava/lang/String;Landroid/util/SizeF;)V	0	2	
 class	App framework	android.os.NetworkOnMainThreadException	0	2	
 stub	App framework	android.os.RemoteCallbackList.finishBroadcast:()V	0	2	
-method	App framework	android.os.Vibrator.areAllEffectsSupported:([I)I	1	1	
-method	App framework	android.os.Vibrator.areAllPrimitivesSupported:([I)Z	1	1	
+stub	App framework	android.os.Vibrator.areAllEffectsSupported:([I)I	1	1	
 method	Contacts, calendar, media store	android.provider.ContactsContract$Contacts.lookupContact:(Landroid/content/ContentResolver;Landroid/net/Uri;)Landroid/net/Uri;	0	2	
 field	Views and widgets	android.text.TextDirectionHeuristics.ANYRTL_LTR	0	2	
 field	Views and widgets	android.text.TextDirectionHeuristics.LOCALE	0	2	
@@ -980,10 +953,9 @@ method	Audio and video	android.media.AudioAttributes$Builder.setIsContentSpatial
 method	Audio and video	android.media.AudioDeviceInfo.getAudioProfiles:()Ljava/util/List;	0	1	com.google 1
 method	Audio and video	android.media.AudioDeviceInfo.getSpeakerLayoutChannelMask:()I	0	1	com.google 1
 method	Audio and video	android.media.AudioManager.getAudioDevicesForAttributes:(Landroid/media/AudioAttributes;)Ljava/util/List;	0	1	com.google 1
-method	Audio and video	android.media.AudioManager.getDirectPlaybackSupport:(Landroid/media/AudioFormat;Landroid/media/AudioAttributes;)I	0	1	com.google 1
+stub	Audio and video	android.media.AudioManager.getDirectPlaybackSupport:(Landroid/media/AudioFormat;Landroid/media/AudioAttributes;)I	0	1	com.google 1
 method	Audio and video	android.media.AudioManager.getDirectProfilesForAttributes:(Landroid/media/AudioAttributes;)Ljava/util/List;	0	1	com.google 1
-method	Audio and video	android.media.AudioManager.getParameters:(Ljava/lang/String;)Ljava/lang/String;	0	1	com.google 1
-method	Audio and video	android.media.AudioManager.getStreamMinVolume:(I)I	0	1	com.google 1
+stub	Audio and video	android.media.AudioManager.getStreamMinVolume:(I)I	0	1	com.google 1
 method	Audio and video	android.media.AudioTrack$Builder.setContext:(Landroid/content/Context;)Landroid/media/AudioTrack$Builder;	0	1	com.google 1
 method	Audio and video	android.media.AudioTrack.addOnRoutingChangedListener:(Landroid/media/AudioRouting$OnRoutingChangedListener;Landroid/os/Handler;)V	0	1	com.google 1
 method	Audio and video	android.media.AudioTrack.getUnderrunCount:()I	0	1	com.google 1
@@ -992,7 +964,6 @@ method	Audio and video	android.media.MediaCodecInfo$VideoCapabilities.getAchieva
 method	Audio and video	android.media.MediaFormat.getValueTypeForKey:(Ljava/lang/String;)I	0	1	com.google 1
 method	Audio and video	android.media.MediaFormat.setLong:(Ljava/lang/String;J)V	0	1	com.google 1
 stub	Audio and video	android.media.MediaPlayer.setAudioStreamType:(I)V	0	1	com.google 1
-method	Audio and video	android.media.MediaPlayer.setDataSource:(Ljava/io/FileDescriptor;)V	0	1	com.unity3d 1
 stub	Audio and video	android.media.MediaPlayer.setOnInfoListener:(Landroid/media/MediaPlayer$OnInfoListener;)V	0	1	com.google 1
 method	Network	android.net.LinkProperties.getDnsServers:()Ljava/util/List;	0	1	com.pgl 1
 method	Network	android.net.LinkProperties.getLinkAddresses:()Ljava/util/List;	0	1	com.pgl 1
@@ -1267,7 +1238,7 @@ class	Other	android.icu.number.FormattedNumber	0	1
 class	Other	android.icu.number.LocalizedNumberFormatter	0	1	
 class	Other	android.icu.number.NumberFormatter	0	1	
 method	Audio and video	android.media.AudioFormat.getFrameSizeInBytes:()I	0	1	
-method	Audio and video	android.media.AudioManager.isHapticPlaybackSupported:()Z	0	1	
+stub	Audio and video	android.media.AudioManager.isHapticPlaybackSupported:()Z	0	1	
 stub	Audio and video	android.media.AudioManager.playSoundEffect:(I)V	0	1	
 method	Audio and video	android.media.AudioRecord.getAudioFormat:()I	0	1	
 method	Audio and video	android.media.AudioRecord.getAudioSessionId:()I	0	1	
@@ -1866,7 +1837,6 @@ stub	Audio and video	android.media.AudioManager.isSpeakerphoneOn:()Z	0	0	com.goo
 stub	Audio and video	android.media.AudioManager.isWiredHeadsetOn:()Z	0	0	com.unity3d 2
 method	Audio and video	android.media.AudioManager.startBluetoothSco:()V	0	0	com.unity3d 1, org.fmod 1
 stub	Audio and video	android.media.AudioManager.stopBluetoothSco:()V	0	0	com.unity3d 1, org.fmod 1
-stub	Audio and video	android.media.MediaPlayer.setDataSource:(Ljava/io/FileDescriptor;JJ)V	0	0	com.unity3d 2
 method	Network	android.net.ConnectivityManager.getBackgroundDataSetting:()Z	0	0	com.unity3d 2
 method	Network	android.net.NetworkCapabilities.getSignalStrength:()I	0	0	io.sentry 2
 stub	Network	android.net.NetworkInfo.getDetailedState:()Landroid/net/NetworkInfo$DetailedState;	0	0	com.google 2
@@ -1961,7 +1931,6 @@ method	Views and widgets	android.app.Activity.onGenericMotionEvent:(Landroid/vie
 method	Views and widgets	android.app.Activity.onMultiWindowModeChanged:(ZLandroid/content/res/Configuration;)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onPictureInPictureModeChanged:(ZLandroid/content/res/Configuration;)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onPictureInPictureUiStateChanged:(Landroid/app/PictureInPictureUiState;)V	0	0	androidx.activity 1
-method	Views and widgets	android.app.Activity.onRequestPermissionsResult:(I[Ljava/lang/String;[I)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onTitleChanged:(Ljava/lang/CharSequence;I)V	0	0	androidx.appcompat 1
 method	Views and widgets	android.app.Activity.onTrimMemory:(I)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.openOptionsMenu:()V	0	0	androidx.appcompat 1
@@ -2077,7 +2046,6 @@ method	Audio and video	android.media.MediaCodecInfo$VideoCapabilities.getSupport
 method	Audio and video	android.media.MediaCodecInfo$VideoCapabilities.getSupportedWidths:()Landroid/util/Range;	0	0	com.google 1
 method	Audio and video	android.media.MediaDescription.writeToParcel:(Landroid/os/Parcel;I)V	0	0	android.support 1
 method	Audio and video	android.media.MediaPlayer$OnInfoListener.onInfo:(Landroid/media/MediaPlayer;II)Z	0	0	com.ironsource 1
-method	Audio and video	android.media.MediaPlayer$OnPreparedListener.onPrepared:(Landroid/media/MediaPlayer;)V	0	0	com.ironsource 1
 method	Audio and video	android.media.MediaPlayer$OnSeekCompleteListener.onSeekComplete:(Landroid/media/MediaPlayer;)V	0	0	com.ironsource 1
 stub	Audio and video	android.media.MediaPlayer.getAudioSessionId:()I	0	0	com.unity3d 1
 method	Audio and video	android.media.MediaPlayer.getMetrics:()Landroid/os/PersistableBundle;	0	0	com.google 1

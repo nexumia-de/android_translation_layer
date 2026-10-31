@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.LocaleList;
 import android.text.BoringLayout;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -22,6 +23,7 @@ import android.text.TextWatcher;
 import android.text.method.BaseMovementMethod;
 import android.text.method.KeyListener;
 import android.text.method.MovementMethod;
+import android.text.method.PasswordTransformationMethod;
 import android.text.method.TransformationMethod;
 import android.text.style.URLSpan;
 import android.util.AttributeSet;
@@ -30,8 +32,12 @@ import android.view.ActionMode;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import java.util.Locale;
 
 public class TextView extends View {
+	private int inputType;
+	private TransformationMethod transformationMethod;
+
 	private ColorStateList colors = new ColorStateList(new int[][] {new int[0]}, new int[1]);
 	private CharSequence text = "";
 	private TextPaint paint = new TextPaint();
@@ -117,6 +123,11 @@ public class TextView extends View {
 				boolean allCaps = a.getBoolean(com.android.internal.R.styleable.TextView_textAllCaps, false);
 				setAllCaps(allCaps);
 			}
+
+			if (a.hasValue(com.android.internal.R.styleable.TextView_inputType))
+				setInputType(a.getInt(com.android.internal.R.styleable.TextView_inputType, 0));
+			else if (a.getBoolean(com.android.internal.R.styleable.TextView_password, false))
+				setTransformationMethod(PasswordTransformationMethod.getInstance());
 		} catch (java.lang.Exception e) {
 			System.out.println("exception while inflating TextView:");
 			e.printStackTrace();
@@ -212,7 +223,18 @@ public class TextView extends View {
 	public void setLineSpacing(float add, float mult) {}
 	public final void setLinksClickable(boolean whether) {}
 
-	public void setInputType(int type) {}
+	public void setInputType(int type) {
+		inputType = type;
+		int klass = type & 0xf; // InputType.TYPE_MASK_CLASS
+		int variation = type & 0xff0; // InputType.TYPE_MASK_VARIATION
+		boolean password = (klass == 1 && (variation == 0x80 || variation == 0xe0)) // text: password, web password
+		                   || (klass == 2 && variation == 0x10); // number: password
+		if (password)
+			setTransformationMethod(PasswordTransformationMethod.getInstance());
+		else if (transformationMethod instanceof PasswordTransformationMethod)
+			setTransformationMethod(null);
+	}
+
 	public void setFilters(InputFilter[] filters) {}
 	public void setCursorVisible(boolean visible) {}
 	public void setImeOptions(int imeOptions) {}
@@ -229,7 +251,7 @@ public class TextView extends View {
 	public void setOnEditorActionListener(TextView.OnEditorActionListener l) {}
 
 	public TransformationMethod getTransformationMethod() {
-		return null;
+		return transformationMethod;
 	}
 
 	public void setHintTextColor(ColorStateList colorStateList) {
@@ -344,9 +366,15 @@ public class TextView extends View {
 
 	public KeyListener getKeyListener() { return null; }
 
-	public int getInputType() { return 0; }
+	public int getInputType() { return inputType; }
 
-	public final void setTransformationMethod(TransformationMethod method) {}
+	public final void setTransformationMethod(TransformationMethod method) {
+		transformationMethod = method;
+		onTransformationMethodChanged();
+	}
+
+	/* for EditText, whose text is held by a GTK widget */
+	void onTransformationMethodChanged() {}
 
 	public InputFilter[] getFilters() { return new InputFilter[0]; }
 
@@ -569,9 +597,35 @@ public class TextView extends View {
 		return new Bundle();
 	}
 
+	private CharSequence error;
+
 	public void setError(CharSequence error) {
 		System.out.println("ERROR: " + error);
+		this.error = error;
 	}
+
+	public CharSequence getError() {
+		return error;
+	}
+
+	private Locale textLocale;
+
+	public void setTextLocale(Locale locale) {
+		textLocale = locale;
+	}
+
+	public Locale getTextLocale() {
+		return textLocale != null ? textLocale : Locale.getDefault();
+	}
+
+	public void setImeHintLocales(LocaleList hintLocales) {}
+
+	// text is not auto-sized, like setAutoSizeTextTypeUniformWithPresetSizes
+	public void setAutoSizeTextTypeWithDefaults(int autoSizeTextType) {}
+
+	public void setAutoSizeTextTypeUniformWithConfiguration(int autoSizeMinTextSize, int autoSizeMaxTextSize, int autoSizeStepGranularity, int unit) {}
+
+	public void setLineBreakWordStyle(int lineBreakWordStyle) {}
 
 	public int getTotalPaddingLeft() { return 0; }
 

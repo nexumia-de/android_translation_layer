@@ -141,7 +141,6 @@ stub	Views and widgets	android.app.Activity.isChangingConfigurations:()Z	0	1
 method	Views and widgets	android.app.Activity.onMultiWindowModeChanged:(ZLandroid/content/res/Configuration;)V	0	1	
 method	Views and widgets	android.app.Activity.onPictureInPictureModeChanged:(ZLandroid/content/res/Configuration;)V	0	1	
 method	Views and widgets	android.app.Activity.onPictureInPictureUiStateChanged:(Landroid/app/PictureInPictureUiState;)V	0	1	
-method	Views and widgets	android.app.Activity.onRequestPermissionsResult:(I[Ljava/lang/String;[I)V	0	1	
 method	Views and widgets	android.app.Activity.onTrimMemory:(I)V	0	1	
 method	Views and widgets	android.app.Activity.onUserInteraction:()V	0	1	
 method	Views and widgets	android.app.Activity.onUserLeaveHint:()V	0	1	

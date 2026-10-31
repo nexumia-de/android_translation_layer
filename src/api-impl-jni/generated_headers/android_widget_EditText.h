@@ -221,6 +221,14 @@ JNIEXPORT jlong JNICALL Java_android_widget_EditText_native_1constructor
 
 /*
  * Class:     android_widget_EditText
+ * Method:    native_setInputKind
+ * Signature: (JZI)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_EditText_native_1setInputKind
+  (JNIEnv *, jobject, jlong, jboolean, jint);
+
+/*
+ * Class:     android_widget_EditText
  * Method:    native_getText
  * Signature: (J)Ljava/lang/String;
  */

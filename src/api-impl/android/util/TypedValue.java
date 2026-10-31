@@ -596,4 +596,8 @@ public class TypedValue {
 		sb.append("}");
 		return sb.toString();
 	}
-};
+
+	public boolean isColorType() {
+		return type >= TYPE_FIRST_COLOR_INT && type <= TYPE_LAST_COLOR_INT;
+	}
+}

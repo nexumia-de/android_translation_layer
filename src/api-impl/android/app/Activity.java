@@ -835,9 +835,21 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		return false;
 	}
 
-	public void requestPermissions(String[] permissions, int requestCode) {
-		Slog.w(TAG, "requestPermissions(" + Arrays.toString(permissions) + "): not handled");
+	/* no dialog yet: answer with the current state, like a user who denies what is not granted */
+	public void requestPermissions(final String[] permissions, final int requestCode) {
+		Slog.w(TAG, "requestPermissions(" + Arrays.toString(permissions) + "): answering without asking");
+		final int[] grantResults = new int[permissions.length];
+		for (int i = 0; i < permissions.length; i++)
+			grantResults[i] = checkSelfPermission(permissions[i]);
+		new Handler(Looper.getMainLooper()).post(new Runnable() {
+			@Override
+			public void run() {
+				onRequestPermissionsResult(requestCode, permissions, grantResults);
+			}
+		});
 	}
+
+	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {}
 
 	public boolean shouldShowRequestPermissionRationale(String permission) {
 		return true;

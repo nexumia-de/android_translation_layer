@@ -5,6 +5,7 @@ import android.graphics.drawable.Drawable;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
+import android.text.method.PasswordTransformationMethod;
 import android.util.AttributeSet;
 
 public class EditText extends TextView {
@@ -22,6 +23,22 @@ public class EditText extends TextView {
 
 	@Override
 	protected native long native_constructor(Context context, AttributeSet attrs);
+	private native void native_setInputKind(long widget, boolean visible, int inputType);
+
+	@Override
+	public void setInputType(int type) {
+		super.setInputType(type);
+		updateInputKind();
+	}
+
+	@Override
+	void onTransformationMethodChanged() {
+		updateInputKind();
+	}
+
+	private void updateInputKind() {
+		native_setInputKind(widget, !(getTransformationMethod() instanceof PasswordTransformationMethod), getInputType());
+	}
 	protected native String native_getText(long widget);
 	protected native void native_addTextChangedListener(long widget, TextWatcher watcher);
 	protected native void native_removeTextChangedListener(long widget, TextWatcher watcher);

@@ -28,7 +28,6 @@ class	Text input	android.view.textclassifier.TextClassification	0	20
 class	Audio and video	android.media.EncoderProfiles$VideoProfile	0	19	
 stub	Views and widgets	android.widget.RemoteViews.setViewVisibility:(II)V	0	17	db.vendo 10
 stub	Views and widgets	android.view.View.isPressed:()Z	0	17	com.google 1
-stub	Views and widgets	android.widget.TextView.getInputType:()I	0	16	com.google 9, com.facebook 2, androidx.appcompat 1
 stub	Views and widgets	android.widget.EdgeEffect.finish:()V	0	16	androidx.core 2, androidx.recyclerview 2
 stub	Views and widgets	android.view.ViewGroup.setClipChildren:(Z)V	0	15	com.google 10, com.swmansion 2
 class	Views and widgets	android.app.RemoteAction	0	15	
@@ -151,7 +150,6 @@ stub	Views and widgets	android.view.FocusFinder.findNextFocus:(Landroid/view/Vie
 stub	Views and widgets	android.view.View.setRotation:(F)V	0	5	com.facebook 3, com.horcrux 2
 stub	Graphics	android.graphics.Paint.setFontFeatureSettings:(Ljava/lang/String;)V	0	5	com.horcrux 4
 method	Views and widgets	android.view.View.onFocusChanged:(ZILandroid/graphics/Rect;)V	0	5	com.google 2, androidx.appcompat 1, com.facebook 1
-stub	Views and widgets	android.widget.TextView.getTransformationMethod:()Landroid/text/method/TransformationMethod;	0	5	com.google 4
 stub	Graphics	android.graphics.Paint.setTextSkewX:(F)V	0	5	androidx.appcompat 2, com.google 1
 stub	Views and widgets	android.view.ViewGroup.setChildrenDrawingOrderEnabled:(Z)V	0	5	androidx.recyclerview 1, androidx.swiperefreshlayout 1, com.google 1
 method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getText:()Ljava/lang/CharSequence;	0	5	androidx.appcompat 1, com.google 1
@@ -371,7 +369,6 @@ method	WebView	android.webkit.WebViewClient.onReceivedHttpError:(Landroid/webkit
 method	Views and widgets	android.widget.RemoteViews.setTextColor:(II)V	0	3	
 class	Java library	java.lang.ClassValue	0	3	
 stub	Views and widgets	android.view.View.refreshDrawableState:()V	0	2	com.google 18, androidx.appcompat 1
-stub	Views and widgets	android.widget.TextView.setTransformationMethod:(Landroid/text/method/TransformationMethod;)V	0	2	com.google 5, com.qualtrics 2
 class	NFC	android.nfc.Tag	0	2	community.revteltech 6
 stub	Views and widgets	android.view.View.getOverScrollMode:()I	0	2	androidx.core 3, androidx.recyclerview 3
 stub	Views and widgets	android.view.View.setClipToOutline:(Z)V	0	2	com.google 2, com.swmansion 2, androidx.cardview 1, com.qualtrics 1
@@ -381,7 +378,6 @@ stub	Graphics	android.graphics.PathMeasure.getPosTan:(F[F[F)Z	0	2	com.google 4, 
 stub	Graphics	android.graphics.drawable.RippleDrawable.setColor:(Landroid/content/res/ColorStateList;)V	0	2	com.google 5
 method	Views and widgets	android.view.View.verifyDrawable:(Landroid/graphics/drawable/Drawable;)Z	0	2	com.google 3, androidx.appcompat 1, androidx.coordinatorlayout 1
 method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setCollectionInfo:(Landroid/view/accessibility/AccessibilityNodeInfo$CollectionInfo;)V	0	2	com.google 4, androidx.viewpager2 1
-stub	Views and widgets	android.widget.TextView.setInputType:(I)V	0	2	com.google 3, androidx.appcompat 2
 stub	App framework	android.os.StrictMode.setVmPolicy:(Landroid/os/StrictMode$VmPolicy;)V	0	2	com.google 4
 stub	Views and widgets	android.view.View.awakenScrollBars:()Z	0	2	androidx.recyclerview 4
 stub	Views and widgets	android.widget.TextView.setPaintFlags:(I)V	0	2	com.facebook 4
@@ -809,7 +805,6 @@ method	Views and widgets	android.app.Activity.onKeyDown:(ILandroid/view/KeyEvent
 method	Views and widgets	android.app.Activity.onKeyUp:(ILandroid/view/KeyEvent;)Z	0	1	
 method	Views and widgets	android.app.Activity.onMultiWindowModeChanged:(ZLandroid/content/res/Configuration;)V	0	1	
 method	Views and widgets	android.app.Activity.onPictureInPictureModeChanged:(ZLandroid/content/res/Configuration;)V	0	1	
-method	Views and widgets	android.app.Activity.onRequestPermissionsResult:(I[Ljava/lang/String;[I)V	0	1	
 method	Views and widgets	android.app.Activity.onTitleChanged:(Ljava/lang/CharSequence;I)V	0	1	
 method	Views and widgets	android.app.Activity.onTrimMemory:(I)V	0	1	
 method	Views and widgets	android.app.Activity.onUserInteraction:()V	0	1	

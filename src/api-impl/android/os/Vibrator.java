@@ -10,8 +10,32 @@ public class Vibrator {
 		fd = native_constructor();
 	}
 
+	public static final int VIBRATION_EFFECT_SUPPORT_UNKNOWN = 0;
+	public static final int VIBRATION_EFFECT_SUPPORT_YES = 1;
+	public static final int VIBRATION_EFFECT_SUPPORT_NO = 2;
+
 	public boolean hasVibrator() {
 		return true;
+	}
+
+	public boolean hasAmplitudeControl() {
+		return false;
+	}
+
+	public int[] areEffectsSupported(int... effectIds) {
+		return new int[effectIds.length]; // VIBRATION_EFFECT_SUPPORT_UNKNOWN
+	}
+
+	public int areAllEffectsSupported(int... effectIds) {
+		return VIBRATION_EFFECT_SUPPORT_UNKNOWN;
+	}
+
+	public boolean[] arePrimitivesSupported(int... primitiveIds) {
+		return new boolean[primitiveIds.length];
+	}
+
+	public boolean areAllPrimitivesSupported(int... primitiveIds) {
+		return primitiveIds.length == 0;
 	}
 
 	public void vibrate(long millis) {

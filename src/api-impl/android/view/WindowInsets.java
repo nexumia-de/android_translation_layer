@@ -3,6 +3,7 @@ package android.view;
 import android.graphics.Insets;
 import android.graphics.Rect;
 import android.view.DisplayCutout;
+import java.util.Collections;
 import java.util.List;
 
 public class WindowInsets {
@@ -59,6 +60,52 @@ public class WindowInsets {
 
 	public Insets getInsets(int typeMask) {
 		return Insets.NONE;
+	}
+
+	/* ATL's windows have no system bars or gesture areas inside them, so all insets are empty and
+	 * insetting them keeps them empty */
+	public Insets getInsetsIgnoringVisibility(int typeMask) {
+		return Insets.NONE;
+	}
+
+	public Insets getSystemWindowInsets() {
+		return Insets.NONE;
+	}
+
+	public Insets getStableInsets() {
+		return Insets.NONE;
+	}
+
+	public Insets getSystemGestureInsets() {
+		return Insets.NONE;
+	}
+
+	public Insets getMandatorySystemGestureInsets() {
+		return Insets.NONE;
+	}
+
+	public Insets getTappableElementInsets() {
+		return Insets.NONE;
+	}
+
+	public WindowInsets inset(int left, int top, int right, int bottom) {
+		return this;
+	}
+
+	public WindowInsets inset(Insets insets) {
+		return this;
+	}
+
+	public List<Rect> getBoundingRects(int typeMask) {
+		return Collections.emptyList();
+	}
+
+	public List<Rect> getBoundingRectsIgnoringVisibility(int typeMask) {
+		return Collections.emptyList();
+	}
+
+	public Rect getPrivacyIndicatorBounds() {
+		return null;
 	}
 
 	public DisplayCutout getDisplayCutout() {

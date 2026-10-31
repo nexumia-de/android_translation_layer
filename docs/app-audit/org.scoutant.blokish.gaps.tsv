@@ -94,7 +94,6 @@ class	Other	android.icu.text.DateFormat$HourCycle	0	0	androidx.core 10
 stub	Views and widgets	android.view.View.getWindowVisibility:()I	0	0	androidx.core 3, androidx.recyclerview 3, com.google 2, androidx.appcompat 1, androidx.customview 1
 class	Views and widgets	android.view.WindowInsetsAnimationController	0	0	androidx.core 10
 stub	Accessibility	android.view.accessibility.AccessibilityManager.isTouchExplorationEnabled:()Z	0	0	com.google 6, androidx.customview 2, androidx.appcompat 1, androidx.core 1
-stub	Views and widgets	android.widget.TextView.getInputType:()I	0	0	com.google 5, androidx.appcompat 4, androidx.core 1
 class	Notifications	android.app.Notification$CallStyle	0	0	androidx.core 9
 class	Location	android.location.LocationRequest$Builder	0	0	androidx.core 9
 class	App framework	android.util.Range	0	0	androidx.core 9
@@ -142,7 +141,6 @@ stub	Views and widgets	android.view.View.setForeground:(Landroid/graphics/drawab
 stub	Views and widgets	android.view.ViewGroup.endViewTransition:(Landroid/view/View;)V	0	0	androidx.fragment 5, androidx.transition 2
 stub	Views and widgets	android.view.ViewGroup.getFocusedChild:()Landroid/view/View;	0	0	androidx.recyclerview 6, com.google 1
 method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getText:()Ljava/lang/CharSequence;	0	0	androidx.core 5, androidx.appcompat 1, com.google 1
-stub	Views and widgets	android.widget.TextView.getTransformationMethod:()Landroid/text/method/TransformationMethod;	0	0	com.google 3, androidx.appcompat 2, androidx.core 1, androidx.emoji2 1
 stub	Views and widgets	android.widget.TextView.setCustomSelectionActionModeCallback:(Landroid/view/ActionMode$Callback;)V	0	0	androidx.appcompat 6, androidx.core 1
 stub	Graphics	android.graphics.Paint.setLetterSpacing:(F)V	0	0	com.google 6
 stub	Graphics	android.graphics.drawable.Drawable.clearColorFilter:()V	0	0	androidx.core 2, androidx.vectordrawable 2, androidx.appcompat 1, com.google 1
@@ -169,7 +167,6 @@ stub	Animation	android.view.animation.AnimationUtils.loadInterpolator:(Landroid/
 stub	Views and widgets	android.widget.TextView.getCurrentTextColor:()I	0	0	com.google 6
 stub	Views and widgets	android.widget.TextView.setImeOptions:(I)V	0	0	androidx.appcompat 4, com.google 2
 stub	Views and widgets	android.widget.TextView.setKeyListener:(Landroid/text/method/KeyListener;)V	0	0	androidx.appcompat 6
-stub	Views and widgets	android.widget.TextView.setTransformationMethod:(Landroid/text/method/TransformationMethod;)V	0	0	com.google 4, androidx.emoji2 1, androidx.viewpager 1
 class	Other	android.window.BackEvent	0	0	androidx.activity 6
 class	Other	android.window.OnBackInvokedCallback	0	0	androidx.activity 3, androidx.appcompat 3
 class	Accessibility	android.accessibilityservice.AccessibilityServiceInfo	0	0	com.google 3, androidx.core 2
@@ -200,7 +197,6 @@ class	Views and widgets	android.widget.ShareActionProvider	0	0	androidx.core 5
 stub	Views and widgets	android.widget.TextView.getCompoundPaddingLeft:()I	0	0	com.google 3, androidx.appcompat 2
 stub	Views and widgets	android.widget.TextView.getCompoundPaddingRight:()I	0	0	com.google 3, androidx.appcompat 2
 stub	Views and widgets	android.widget.TextView.setCompoundDrawablesRelativeWithIntrinsicBounds:(Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;)V	0	0	androidx.appcompat 3, androidx.core 1, com.google 1
-stub	Views and widgets	android.widget.TextView.setInputType:(I)V	0	0	com.google 3, androidx.appcompat 2
 stub	Views and widgets	android.widget.TextView.setSelection:(I)V	0	0	androidx.appcompat 3, com.google 2
 method	Views and widgets	android.app.ActionBar.setHomeActionContentDescription:(I)V	0	0	androidx.appcompat 2, androidx.legacy 2
 stub	Views and widgets	android.app.Activity.isChangingConfigurations:()Z	0	0	androidx.fragment 2, androidx.activity 1, androidx.appcompat 1
@@ -632,7 +628,6 @@ method	Views and widgets	android.app.Activity.navigateUpTo:(Landroid/content/Int
 method	Views and widgets	android.app.Activity.onCreateView:(Ljava/lang/String;Landroid/content/Context;Landroid/util/AttributeSet;)Landroid/view/View;	0	0	androidx.fragment 1
 method	Views and widgets	android.app.Activity.onMultiWindowModeChanged:(ZLandroid/content/res/Configuration;)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onPictureInPictureModeChanged:(ZLandroid/content/res/Configuration;)V	0	0	androidx.activity 1
-method	Views and widgets	android.app.Activity.onRequestPermissionsResult:(I[Ljava/lang/String;[I)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onTrimMemory:(I)V	0	0	androidx.activity 1
 method	Views and widgets	android.app.Activity.onUserInteraction:()V	0	0	androidx.core 1
 stub	Views and widgets	android.app.Activity.overridePendingTransition:(II)V	0	0	com.google 1

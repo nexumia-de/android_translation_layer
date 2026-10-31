@@ -121,3 +121,29 @@ JNIEXPORT jstring JNICALL Java_android_widget_EditText_native_1getHint(JNIEnv *e
 	const char *text = gtk_text_get_placeholder_text(gtk_text);
 	return _JSTRING(text);
 }
+
+JNIEXPORT void JNICALL Java_android_widget_EditText_native_1setInputKind(JNIEnv *env, jobject this, jlong widget_ptr, jboolean visible, jint input_type)
+{
+	GtkText *gtk_text = GTK_TEXT(_PTR(widget_ptr));
+	GtkInputPurpose purpose = GTK_INPUT_PURPOSE_FREE_FORM;
+	int variation = input_type & 0xff0; // InputType.TYPE_MASK_VARIATION
+
+	gtk_text_set_visibility(gtk_text, visible);
+	switch (input_type & 0xf) { // InputType.TYPE_MASK_CLASS
+		case 1: // text
+			if (variation == 0x10)
+				purpose = GTK_INPUT_PURPOSE_URL;
+			else if (variation == 0x20 || variation == 0xd0)
+				purpose = GTK_INPUT_PURPOSE_EMAIL;
+			break;
+		case 2: // number
+			purpose = visible ? GTK_INPUT_PURPOSE_NUMBER : GTK_INPUT_PURPOSE_PIN;
+			break;
+		case 3: // phone
+			purpose = GTK_INPUT_PURPOSE_PHONE;
+			break;
+	}
+	if (!visible && purpose != GTK_INPUT_PURPOSE_PIN)
+		purpose = GTK_INPUT_PURPOSE_PASSWORD;
+	gtk_text_set_input_purpose(gtk_text, purpose);
+}

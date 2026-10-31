@@ -68,6 +68,10 @@ public class AlertDialog extends Dialog implements DialogInterface {
 			dialog = new AlertDialog(context, themeResId);
 		}
 
+		public Context getContext() {
+			return dialog.getContext();
+		}
+
 		public AlertDialog.Builder setPositiveButton(int textId, DialogInterface.OnClickListener listener) {
 			return setPositiveButton(dialog.getContext().getText(textId), listener);
 		}
