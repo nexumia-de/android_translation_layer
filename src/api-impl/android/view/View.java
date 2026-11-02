@@ -2604,6 +2604,13 @@ public class View implements Drawable.Callback {
 			return false;
 	}
 
+	/* one window per process, so one state like ViewRootImpl's AttachInfo */
+	private static final KeyEvent.DispatcherState keyDispatcherState = new KeyEvent.DispatcherState();
+
+	public KeyEvent.DispatcherState getKeyDispatcherState() {
+		return keyDispatcherState;
+	}
+
 	public WindowInsets getRootWindowInsets() { return new WindowInsets(); }
 
 	public PointerIcon getPointerIcon() { return null; }

@@ -202,6 +202,7 @@ void remove_pointer_fast(GPtrArray *pointer_indices, struct pointer *pointer)
 }
 
 static bool action_up_already_handled = false;
+static GdkEvent *navigation_cancel_event = NULL;
 
 // TODO: find a way to reconcile this with libandroid/input.c?
 static gboolean on_pointer_event(GtkEventControllerLegacy *event_controller, GdkEvent *event, gpointer user_data)
@@ -281,7 +282,7 @@ static gboolean on_pointer_event(GtkEventControllerLegacy *event_controller, Gdk
 	pointers[id].raw_x = raw_x;
 	pointers[id].raw_y = raw_y;
 
-	if (event == canceled_event && cancel_triggerer != wrapper) {
+	if ((event == canceled_event && cancel_triggerer != wrapper) || event == navigation_cancel_event) {
 		action = ACTION_CANCEL;
 	}
 
@@ -310,6 +311,29 @@ static gboolean on_event(GtkEventControllerLegacy *event_controller, GdkEvent *e
 		default: // not a touch or mouse event, nothing to do here
 			return false;
 	}
+}
+
+/* The edge back gesture (main-executable/navigation.c) takes over a touch
+ * sequence the views have already seen: send them ACTION_CANCEL with this
+ * event, inner views first like the bubble phase, and forget the pointer,
+ * since the rest of the sequence no longer reaches them. */
+void view_cancel_touch_sequence(GtkWidget *target, GdkEvent *event)
+{
+	if (!pointer_indices)
+		return;
+	navigation_cancel_event = event;
+	for (GtkWidget *widget = target; widget; widget = gtk_widget_get_parent(widget)) {
+		GtkEventController *controller = g_object_get_data(G_OBJECT(widget), "on_touch_listener");
+		if (controller && WRAPPER_IS_WIDGET(widget))
+			on_pointer_event(GTK_EVENT_CONTROLLER_LEGACY(controller), event, NULL);
+	}
+	navigation_cancel_event = NULL;
+
+	uintptr_t id = (uintptr_t)gdk_event_get_event_sequence(event);
+	if (id == 0)
+		id = 1;
+	if (id < MAX_POINTERS && pointers[id].id)
+		remove_pointer_fast(pointer_indices, &pointers[id]);
 }
 
 static void on_click(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data)
