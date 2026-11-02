@@ -93,7 +93,7 @@ public final class ATLLoadedAppManager {
 				PackageInstaller.refreshInstalled(false);
 			}
 			if (!installed_apk_location.isFile()) {
-				if (ATLToggles.ATL_GMS_STUB && ATLLoadedApp.play_services.contains(packageName)) {
+				if (ATLLoadedApp.play_services.contains(packageName) && ATLToggles.gmsStub()) {
 					return loadGStub(packageName).pkg;
 				}
 				return null;
@@ -103,7 +103,7 @@ public final class ATLLoadedAppManager {
 			                                 installed_apk_location.getPath(), new DisplayMetrics(), 0);
 			if (pkg != null) {
 				packageParser.collectCertificates(pkg, 0);
-				if (ATLToggles.ATL_GMS_STUB && ATLLoadedApp.play_services.contains(packageName)) {
+				if (ATLLoadedApp.play_services.contains(packageName) && ATLToggles.gmsStub()) {
 					ATLSigHelper.addGMSSignatures(pkg);
 				}
 				loaded_packages.put(packageName, pkg);
@@ -129,7 +129,7 @@ public final class ATLLoadedAppManager {
 			File installed_apk_location = new File(ATLPaths.installed_apks_dir, packageName + ".apk");
 			File installed_lib_location = new File(ATLPaths.app_data_dir_base, packageName + "_/lib");
 			if (!installed_apk_location.isFile()) {
-				if (ATLToggles.ATL_GMS_STUB && ATLLoadedApp.play_services.contains(packageName)) {
+				if (ATLLoadedApp.play_services.contains(packageName) && ATLToggles.gmsStub()) {
 					return loadGStub(packageName);
 				}
 				return null;
