@@ -208,8 +208,8 @@ No stub log yet.
 | Start, welcome pages | `headless` | All five pages, 2026-11-02; the changelog dialog on first start is empty |
 | Permissions page | `wrong` | Lists calendar, contacts, location, do-not-disturb, notification access and more as not granted; requesting them does nothing useful |
 | Device discovery | `headless` | BLE scan and classic discovery through BlueZ found the owner's Amazfit Balance as supported and bonded ([screenshot](screenshots/gadgetbridge-discovery-2026-11-02.png)); BlueZ's discovery stops afterwards |
-| Pairing, connecting (BLE GATT) | `headless` | With a dummy auth key: connect, service discovery, notifications and writes up to Zepp OS authentication, which then fails on the key (2026-11-02). With the real key an owner test ([app status](apps.md#needs-owner)) |
-| Sync | `untested` | Needs the real auth key |
+| Pairing, connecting (BLE GATT) | `headless` | With the real auth key and the real watch (2026-11-02): pairing through ATL's pairing agent and code dialog, Zepp OS authentication, one GATT connection, automatic reconnect after `bluetoothctl disconnect`. Suspend and out of range are an owner test ([app status](apps.md#needs-owner)) |
+| Sync | `headless` | Sync button: activity, sleep and temperature fetched in 11 rounds as on Android (2026-11-02) |
 | Devices needing a GATT server on the phone | `missing` | `BluetoothManager.openGattServer` returns null |
 | Classic Bluetooth devices (RFCOMM) | `missing` | `BluetoothSocket.connect` throws |
 | Forwarding phone notifications | `headless` | With `ATL_ENABLE_NOTIFICATION_LISTENER=1`, a desktop notification sent on the test session bus reached Gadgetbridge's listener; forwarding to the watch is an owner test. By default Gadgetbridge forwards only while the screen is off, which ATL now reads from Phosh |
