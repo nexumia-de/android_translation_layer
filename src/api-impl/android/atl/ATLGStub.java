@@ -33,6 +33,10 @@ final class ATLGStub {
 		PackageParser.Package pkg = makePackageBase("com.google.android.gms");
 		pkg.mVersionName = GMS_VERSION;
 		pkg.mVersionCode = GMS_VERSION_CODE;
+		// fused location on top of LocationManager, see docs/gms-compat.md
+		pkg.services.add(new PackageParser.Service(pkg,
+		    "com.google.android.gms.location.internal.GoogleLocationManagerService",
+		    "com.google.android.location.internal.GoogleLocationManagerService.START"));
 		return new ATLLoadedApp(Resources.getSystem(), pathClassLoader, pkg);
 	}
 
