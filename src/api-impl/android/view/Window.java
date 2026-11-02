@@ -66,6 +66,8 @@ public class Window {
 		params.flags = (params.flags & ~mask) | (flags & mask);
 		if ((mask & WindowManager.LayoutParams.FLAG_DIM_BEHIND) != 0)
 			update_dim();
+		if ((mask & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0)
+			decorView.setKeepScreenOn((params.flags & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0);
 	}
 	public void clearFlags(int flags) {
 		setFlags(0, flags);
