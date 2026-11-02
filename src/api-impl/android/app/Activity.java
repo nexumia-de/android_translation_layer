@@ -641,6 +641,17 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		return null;
 	}
 
+	/* ATL runs every activity of an app in one task, so the parent is never in another task */
+	public boolean shouldUpRecreateTask(Intent targetIntent) {
+		return false;
+	}
+
+	/* TODO: finish every activity above the parent, not only this one */
+	public boolean navigateUpTo(Intent upIntent) {
+		finish();
+		return true;
+	}
+
 	@Override
 	public boolean onMenuOpened(int featureId, Menu menu) {
 		Slog.i(TAG, "onMenuOpened(" + featureId + ", " + menu + ") called");
