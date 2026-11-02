@@ -7,6 +7,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_app_NotificationManager_INTERRUPTION_FILTER_UNKNOWN
+#define android_app_NotificationManager_INTERRUPTION_FILTER_UNKNOWN 0L
+#undef android_app_NotificationManager_INTERRUPTION_FILTER_ALL
+#define android_app_NotificationManager_INTERRUPTION_FILTER_ALL 1L
+#undef android_app_NotificationManager_INTERRUPTION_FILTER_PRIORITY
+#define android_app_NotificationManager_INTERRUPTION_FILTER_PRIORITY 2L
+#undef android_app_NotificationManager_INTERRUPTION_FILTER_NONE
+#define android_app_NotificationManager_INTERRUPTION_FILTER_NONE 3L
+#undef android_app_NotificationManager_INTERRUPTION_FILTER_ALARMS
+#define android_app_NotificationManager_INTERRUPTION_FILTER_ALARMS 4L
 /*
  * Class:     android_app_NotificationManager
  * Method:    nativeInitBuilder

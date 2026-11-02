@@ -112,4 +112,57 @@ public class NotificationManager {
 	public String getNotificationDelegate() {
 		return null;
 	}
+
+	public static final int INTERRUPTION_FILTER_UNKNOWN = 0;
+	public static final int INTERRUPTION_FILTER_ALL = 1;
+	public static final int INTERRUPTION_FILTER_PRIORITY = 2;
+	public static final int INTERRUPTION_FILTER_NONE = 3;
+	public static final int INTERRUPTION_FILTER_ALARMS = 4;
+
+	/* do-not-disturb belongs to the desktop, which apps cannot change from here */
+	public boolean isNotificationPolicyAccessGranted() {
+		return false;
+	}
+
+	public int getCurrentInterruptionFilter() {
+		return INTERRUPTION_FILTER_ALL;
+	}
+
+	public void setInterruptionFilter(int interruptionFilter) {}
+
+	public Policy getNotificationPolicy() {
+		return new Policy(0, 0, 0);
+	}
+
+	public void setNotificationPolicy(Policy policy) {}
+
+	public static class Policy {
+		public static final int PRIORITY_CATEGORY_REMINDERS = 1;
+		public static final int PRIORITY_CATEGORY_EVENTS = 2;
+		public static final int PRIORITY_CATEGORY_MESSAGES = 4;
+		public static final int PRIORITY_CATEGORY_CALLS = 8;
+		public static final int PRIORITY_CATEGORY_REPEAT_CALLERS = 16;
+		public static final int PRIORITY_CATEGORY_ALARMS = 32;
+		public static final int PRIORITY_CATEGORY_MEDIA = 64;
+		public static final int PRIORITY_CATEGORY_SYSTEM = 128;
+		public static final int PRIORITY_SENDERS_ANY = 0;
+		public static final int PRIORITY_SENDERS_CONTACTS = 1;
+		public static final int PRIORITY_SENDERS_STARRED = 2;
+
+		public final int priorityCategories;
+		public final int priorityCallSenders;
+		public final int priorityMessageSenders;
+		public final int suppressedVisualEffects;
+
+		public Policy(int priorityCategories, int priorityCallSenders, int priorityMessageSenders) {
+			this(priorityCategories, priorityCallSenders, priorityMessageSenders, 0);
+		}
+
+		public Policy(int priorityCategories, int priorityCallSenders, int priorityMessageSenders, int suppressedVisualEffects) {
+			this.priorityCategories = priorityCategories;
+			this.priorityCallSenders = priorityCallSenders;
+			this.priorityMessageSenders = priorityMessageSenders;
+			this.suppressedVisualEffects = suppressedVisualEffects;
+		}
+	}
 }

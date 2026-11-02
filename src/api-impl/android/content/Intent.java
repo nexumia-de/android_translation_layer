@@ -768,6 +768,10 @@ public class Intent implements Parcelable {
 		return extras.getInt(name, def);
 	}
 
+	public short getShortExtra(String name, short def) {
+		return extras.getShort(name, def);
+	}
+
 	public Bundle getExtras() {
 		return extras;
 	}
