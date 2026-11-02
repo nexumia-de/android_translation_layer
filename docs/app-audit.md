@@ -212,7 +212,7 @@ No stub log yet.
 | Sync | `untested` | Needs the real auth key |
 | Devices needing a GATT server on the phone | `missing` | `BluetoothManager.openGattServer` returns null |
 | Classic Bluetooth devices (RFCOMM) | `missing` | `BluetoothSocket.connect` throws |
-| Forwarding phone notifications | `headless` | With `ATL_ENABLE_NOTIFICATION_LISTENER=1`, a desktop notification sent on the test session bus reached Gadgetbridge's listener; forwarding to the watch is an owner test. By default Gadgetbridge forwards only while the screen is off, which ATL now reads from Phosh |
+| Forwarding phone notifications | `headless` | With `ATL_ENABLE_NOTIFICATION_LISTENER=1` and the watch connected (2026-11-03): a Chatty notification reached Gadgetbridge's listener under its desktop entry id with the app name as label, was not filtered (no "Not forwarding" or "Ignoring" line) and was closed again; whether the watch shows it is the owner's test. Gadgetbridge's own status notifications now carry its package name and are no longer forwarded. By default Gadgetbridge forwards only while the screen is off, which ATL reads from Phosh |
 | Calls on the watch | `missing` | No telephony state on the phone side |
 | Music control | `missing` | `MediaController$TransportControls`, `AudioManager.dispatchMediaKeyEvent` |
 | Do not disturb | `missing` | Reported as not granted, the desktop owns it |
