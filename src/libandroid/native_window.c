@@ -242,6 +242,9 @@ void wl_registry_global_remove_handler(void *data, struct wl_registry *registry,
 
 static void on_resize(GtkWidget *self, gint width, gint height, ANativeWindow *native_window)
 {
+	/* the offscreen EGL path reallocates its buffers at this size */
+	native_window->width = width;
+	native_window->height = height;
 	if (native_window->wayland_display) {
 		wl_egl_window_resize((struct wl_egl_window *)native_window->egl_window, width, height, 0, 0);
 	} else if (native_window->x11_display) {
@@ -385,7 +388,7 @@ ANativeWindow *ANativeWindow_fromSurface(JNIEnv *env, jobject surface)
 #pragma GCC diagnostic pop
 	}
 
-	if (getenv("ATL_DIRECT_EGL") && native_window->resize_handler == 0)
+	if (native_window->resize_handler == 0)
 		native_window->resize_handler = g_signal_connect(surface_view_widget, "resize", G_CALLBACK(on_resize), native_window);
 
 	return native_window;
