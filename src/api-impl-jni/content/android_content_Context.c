@@ -255,7 +255,8 @@ static gboolean on_message(Connector1 *connector, GDBusMethodInvocation *invocat
 	g_variant_get_child(parameters, 0, "s", &token);
 	gsize size;
 	const int8_t *message = g_variant_get_fixed_array(g_variant_get_child_value(parameters, 1), &size, 1);
-	connector1_complete_message(connector, invocation);
+	const char *message_id;
+	g_variant_get_child(parameters, 2, "&s", &message_id);
 
 	JNIEnv *env = get_jni_env();
 	jobject intent = J_new__Intent(env);
@@ -264,6 +265,28 @@ static gboolean on_message(Connector1 *connector, GDBusMethodInvocation *invocat
 	jbyteArray bytesMessage = (*env)->NewByteArray(env, size);
 	(*env)->SetByteArrayRegion(env, bytesMessage, 0, size, message);
 	J__Intent__putExtraByteArray(env, intent, _JSTRING("bytesMessage"), bytesMessage);
+	if (*message_id)
+		J__Intent__putExtraCharSequence(env, intent, _JSTRING("id"), _JSTRING(message_id));
+
+	jobject context = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "this_application", "Landroid/app/Application;");
+	J__Context__sendBroadcast(env, context, intent);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+	}
+	connector1_complete_message(connector, invocation);
+	return TRUE;
+}
+
+static gboolean on_unregistered(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
+{
+	const char *token;
+	g_variant_get_child(g_dbus_method_invocation_get_parameters(invocation), 0, "&s", &token);
+
+	JNIEnv *env = get_jni_env();
+	jobject intent = J_new__Intent(env);
+	_SET_OBJ_FIELD(intent, "action", "Ljava/lang/String;", _JSTRING("org.unifiedpush.android.connector.UNREGISTERED"));
+	J__Intent__putExtraCharSequence(env, intent, _JSTRING("token"), _JSTRING(token));
+	connector1_complete_unregistered(connector, invocation);
 
 	jobject context = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "this_application", "Landroid/app/Application;");
 	J__Context__sendBroadcast(env, context, intent);
@@ -280,29 +303,120 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeExportUnifiedPush(JNIE
 	Connector1 *connector1 = connector1_skeleton_new();
 	g_signal_connect(connector1, "handle-new-endpoint", G_CALLBACK(on_new_endpoint), NULL);
 	g_signal_connect(connector1, "handle-message", G_CALLBACK(on_message), NULL);
+	g_signal_connect(connector1, "handle-unregistered", G_CALLBACK(on_unregistered), NULL);
 	g_bus_own_name(G_BUS_TYPE_SESSION, application, G_BUS_NAME_OWNER_FLAGS_NONE,
 	               on_bus_acquired, NULL, NULL, connector1, NULL);
 	(*env)->ReleaseStringUTFChars(env, application_jstr, application);
 }
 
-JNIEXPORT void JNICALL Java_android_content_Context_nativeRegisterUnifiedPush(JNIEnv *env, jclass this, jstring token_jstr, jstring application_jstr)
+#define UNIFIEDPUSH_DISTRIBUTOR_PREFIX "org.unifiedpush.Distributor."
+
+/* The UnifiedPush D-Bus spec: distributors own a name below org.unifiedpush.Distributor.
+ * Prefer one that runs, then one that D-Bus can start. ATL_UNIFIEDPUSH_DISTRIBUTOR picks one. */
+static char *unifiedpush_find_distributor(GDBusConnection *connection)
 {
+	const char *chosen = getenv("ATL_UNIFIEDPUSH_DISTRIBUTOR");
+	if (chosen && *chosen)
+		return g_strdup(chosen);
+	const char *methods[] = {"ListNames", "ListActivatableNames"};
+	for (int i = 0; i < 2; i++) {
+		GVariant *names = g_dbus_connection_call_sync(connection, "org.freedesktop.DBus", "/org/freedesktop/DBus",
+		                                              "org.freedesktop.DBus", methods[i], NULL, G_VARIANT_TYPE("(as)"),
+		                                              G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL);
+		if (!names)
+			continue;
+		GVariantIter *iter;
+		const char *name;
+		char *found = NULL;
+		g_variant_get(names, "(as)", &iter);
+		while (!found && g_variant_iter_next(iter, "&s", &name)) {
+			if (g_str_has_prefix(name, UNIFIEDPUSH_DISTRIBUTOR_PREFIX))
+				found = g_strdup(name);
+		}
+		g_variant_iter_free(iter);
+		g_variant_unref(names);
+		if (found)
+			return found;
+	}
+	return NULL;
+}
+
+JNIEXPORT jstring JNICALL Java_android_content_Context_nativeUnifiedPushDistributor(JNIEnv *env, jclass this)
+{
+	GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!connection)
+		return NULL;
+	char *name = unifiedpush_find_distributor(connection);
+	g_object_unref(connection);
+	jstring ret = name ? _JSTRING(name) : NULL;
+	g_free(name);
+	return ret;
+}
+
+/* Returns NULL on success, else the reason for REGISTRATION_FAILED. */
+JNIEXPORT jstring JNICALL Java_android_content_Context_nativeRegisterUnifiedPush(JNIEnv *env, jclass this, jstring token_jstr, jstring application_jstr, jstring description_jstr)
+{
+	if (!token_jstr || !application_jstr)
+		return _JSTRING("INTERNAL_ERROR");
+	GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	char *name = connection ? unifiedpush_find_distributor(connection) : NULL;
+	if (!name) {
+		if (connection)
+			g_object_unref(connection);
+		printf("nativeRegisterUnifiedPush: no UnifiedPush distributor on the session bus\n");
+		return _JSTRING("INTERNAL_ERROR");
+	}
 	const char *token = (*env)->GetStringUTFChars(env, token_jstr, NULL);
 	const char *application = (*env)->GetStringUTFChars(env, application_jstr, NULL);
+	const char *description = description_jstr ? (*env)->GetStringUTFChars(env, description_jstr, NULL) : "";
 
-	GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
-	Distributor1 *distributor1 = distributor1_proxy_new_sync(connection, 0, "org.unifiedpush.Distributor.kde", "/org/unifiedpush/Distributor", NULL, NULL);
+	jstring ret = NULL;
 	GError *error = NULL;
-	distributor1_call_register(distributor1, application, token, "", NULL, NULL, &error);
+	char *result = NULL;
+	char *reason = NULL;
+	Distributor1 *distributor1 = distributor1_proxy_new_sync(connection, 0, name, "/org/unifiedpush/Distributor", NULL, &error);
+	if (distributor1)
+		distributor1_call_register_sync(distributor1, application, token, description, &result, &reason, NULL, &error);
 	if (error) {
-		printf("nativeRegisterUnifiedPush: error=%s\n", error->message);
+		printf("nativeRegisterUnifiedPush: %s: error=%s\n", name, error->message);
+		ret = _JSTRING("NETWORK");
 		g_error_free(error);
+	} else if (g_strcmp0(result, "REGISTRATION_SUCCEEDED")) {
+		printf("nativeRegisterUnifiedPush: %s: %s %s\n", name, result, reason ? reason : "");
+		ret = _JSTRING("INTERNAL_ERROR");
 	}
-	g_object_unref(distributor1);
+	g_free(result);
+	g_free(reason);
+	g_free(name);
+	if (distributor1)
+		g_object_unref(distributor1);
 	g_object_unref(connection);
 
 	(*env)->ReleaseStringUTFChars(env, token_jstr, token);
 	(*env)->ReleaseStringUTFChars(env, application_jstr, application);
+	if (description_jstr)
+		(*env)->ReleaseStringUTFChars(env, description_jstr, description);
+	return ret;
+}
+
+JNIEXPORT void JNICALL Java_android_content_Context_nativeUnregisterUnifiedPush(JNIEnv *env, jclass this, jstring token_jstr)
+{
+	if (!token_jstr)
+		return;
+	GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	char *name = connection ? unifiedpush_find_distributor(connection) : NULL;
+	if (name) {
+		const char *token = (*env)->GetStringUTFChars(env, token_jstr, NULL);
+		Distributor1 *distributor1 = distributor1_proxy_new_sync(connection, 0, name, "/org/unifiedpush/Distributor", NULL, NULL);
+		if (distributor1) {
+			distributor1_call_unregister(distributor1, token, NULL, NULL, NULL);
+			g_object_unref(distributor1);
+		}
+		(*env)->ReleaseStringUTFChars(env, token_jstr, token);
+	}
+	g_free(name);
+	if (connection)
+		g_object_unref(connection);
 }
 
 JNIEXPORT void JNICALL Java_android_content_Context_nativeStartExternalService(JNIEnv *env, jclass this, jobject intent)

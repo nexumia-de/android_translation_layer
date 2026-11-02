@@ -69,11 +69,27 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeExportUnifiedPush
 
 /*
  * Class:     android_content_Context
- * Method:    nativeRegisterUnifiedPush
- * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ * Method:    nativeUnifiedPushDistributor
+ * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT void JNICALL Java_android_content_Context_nativeRegisterUnifiedPush
-  (JNIEnv *, jclass, jstring, jstring);
+JNIEXPORT jstring JNICALL Java_android_content_Context_nativeUnifiedPushDistributor
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     android_content_Context
+ * Method:    nativeRegisterUnifiedPush
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_android_content_Context_nativeRegisterUnifiedPush
+  (JNIEnv *, jclass, jstring, jstring, jstring);
+
+/*
+ * Class:     android_content_Context
+ * Method:    nativeUnregisterUnifiedPush
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_android_content_Context_nativeUnregisterUnifiedPush
+  (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     android_content_Context

@@ -2466,9 +2466,16 @@ public class PackageManager {
 	 */
 	public List<ResolveInfo> queryBroadcastReceivers(Intent intent,
 	                                                 int flags) {
-		if ("org.unifiedpush.android.distributor.REGISTER".equals(intent.getAction())) {
+		// The host's D-Bus UnifiedPush distributor, as one distributor package (see Context)
+		if ("org.unifiedpush.android.distributor.REGISTER".equals(intent.getAction())
+		    && (intent.getPackage() == null || Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR.equals(intent.getPackage()))
+		    && Context.hasUnifiedPushDistributor()) {
 			ResolveInfo ri = new ResolveInfo();
 			ri.activityInfo.exported = true;
+			ri.activityInfo.packageName = Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR;
+			ri.activityInfo.name = Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR + ".Receiver";
+			ri.activityInfo.applicationInfo = new ApplicationInfo();
+			ri.activityInfo.applicationInfo.packageName = Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR;
 			return Arrays.asList(ri);
 		}
 		return new ArrayList<ResolveInfo>();
