@@ -46,9 +46,6 @@ the separate user `claude` without sudo or doas.
 - Builds are heavy: say before a long build so the owner can plug the
   phone in.
 - Setup and test steps: [docs/dev-environment.md](docs/dev-environment.md).
-- A session can end at any time: write findings and dead ends down after
-  every step, as described in
-  [docs/dev-environment.md](docs/dev-environment.md#parallel-agents-and-handoff).
 
 ## Apps
 

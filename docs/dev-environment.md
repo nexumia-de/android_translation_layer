@@ -467,20 +467,3 @@ Tested from the cloud dev container on 2026-10-28:
 | `mirror.postmarketos.org` | postmarketOS packages | connection failed |
 
 The phone itself has unrestricted network access.
-
-# Parallel agents and handoff
-
-Work may be split across subagents, and a session can end at any time
-(token budget, interrupt). A stopped agent cannot be resumed, so its
-knowledge must not live only in its context.
-
-- After every step, append findings, dead ends (what failed and why)
-  and the next step to `~/work/handoff/<task>.md`, and keep the app's
-  section in [apps.md](apps.md) current.
-- Commit and push at least once per task; unfinished work as a commit
-  marked `WIP`.
-- Each agent builds and installs into its own prefix (`~/.atl-<task>`),
-  never the shared `~/.local`, runs ATL with `RUN_FROM_BUILDDIR=1`, and
-  wraps every build and app run in `flock /tmp/atl-heavy.lock`.
-- Secrets the owner hands over (keys, passwords) never go into handoff
-  files, docs, logs read by the agent or screenshots.
