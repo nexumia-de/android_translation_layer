@@ -23,6 +23,8 @@ public class WebSettings {
 
 	public void setUserAgentString(String userAgentString) {}
 
+	public void setDefaultTextEncodingName(String encoding) {}
+
 	public void setSupportMultipleWindows(boolean supportMultipleWindows) {}
 
 	public void setJavaScriptEnabled(boolean javaScriptEnabled) {
