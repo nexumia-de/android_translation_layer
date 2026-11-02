@@ -2,10 +2,15 @@ package android.text.format;
 
 import android.content.Context;
 import java.util.Date;
+import java.util.Locale;
 
 public class DateUtils {
 
 	public static CharSequence getRelativeTimeSpanString(Context context, long millis, boolean withPreposition) {
+		return new Date(millis).toString();
+	}
+
+	public static CharSequence getRelativeDateTimeString(Context context, long millis, long minResolution, long transitionResolution, int flags) {
 		return new Date(millis).toString();
 	}
 

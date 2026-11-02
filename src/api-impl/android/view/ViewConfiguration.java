@@ -86,4 +86,8 @@ public class ViewConfiguration {
 	public static int getKeyRepeatDelay() {
 		return 100;
 	}
+
+	public int getScaledEdgeSlop() {
+		return 8;
+	}
 }
