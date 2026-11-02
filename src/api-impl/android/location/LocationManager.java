@@ -78,6 +78,6 @@ public class LocationManager {
 	}
 
 	public boolean isProviderEnabled(String provider) {
-		return System.getenv("ATL_UGLY_ENABLE_LOCATION") != null;
+		return android.atl.RuntimePermissions.isGranted(android.atl.RuntimePermissions.LOCATION);
 	}
 }

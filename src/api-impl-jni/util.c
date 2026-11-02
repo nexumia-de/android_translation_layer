@@ -366,3 +366,33 @@ const char *intent_actionname_from_type(int type)
 			return NULL;
 	}
 }
+
+/* ATL runtime permission of a group ("location", "microphone"): the environment
+ * override or the user's stored decision (android.atl.RuntimePermissions). A grant
+ * is remembered, since it is not taken back while the app runs. */
+gboolean atl_permission_granted(JNIEnv *env, const char *group)
+{
+	static GHashTable *granted = NULL;
+	if (!granted)
+		granted = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+	if (g_hash_table_contains(granted, group))
+		return TRUE;
+	jclass class = (*env)->FindClass(env, "android/atl/RuntimePermissions");
+	if (!class) {
+		(*env)->ExceptionClear(env);
+		return FALSE;
+	}
+	jmethodID method = (*env)->GetStaticMethodID(env, class, "isGranted", "(Ljava/lang/String;)Z");
+	jstring jgroup = (*env)->NewStringUTF(env, group);
+	jboolean result = (*env)->CallStaticBooleanMethod(env, class, method, jgroup);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+		result = JNI_FALSE;
+	}
+	(*env)->DeleteLocalRef(env, jgroup);
+	(*env)->DeleteLocalRef(env, class);
+	if (result)
+		g_hash_table_add(granted, g_strdup(group));
+	return result;
+}

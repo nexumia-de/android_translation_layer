@@ -25,11 +25,9 @@ static void location_updated(
 
 JNIEXPORT void JNICALL Java_android_location_LocationManager_nativeGetLocation(JNIEnv *env, jobject)
 {
-	if (!getenv("ATL_UGLY_ENABLE_LOCATION")) {
-		// Location access is prohibited by default until sanboxing is implemented.
-		// Set ATL_UGLY_ENABLE_LOCATION environment variable to enable it.
+	/* only after the user allowed it (or ATL_UGLY_ENABLE_LOCATION is set) */
+	if (!atl_permission_granted(env, "location"))
 		return;
-	}
 
 	static XdpPortal *portal = NULL;
 	if (!portal) {

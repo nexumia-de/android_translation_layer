@@ -1909,19 +1909,12 @@ public class PackageManager {
 				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			case "android.permission.REQUEST_INSTALL_PACKAGES":
 				return canRequestPackageInstalls() ? PERMISSION_GRANTED : PERMISSION_DENIED;
-			// only tell the app that it can access location if it *actually* can
-			// (until we find apps that refuse to launch without being lied to anyway)
+			// runtime permissions the user decides (android.atl.RuntimePermissions)
 			case "android.permission.ACCESS_FINE_LOCATION":
 			case "android.permission.ACCESS_COARSE_LOCATION":
-				if (System.getenv("ATL_UGLY_ENABLE_LOCATION") != null)
-					return PERMISSION_GRANTED;
-				else
-					return PERMISSION_DENIED;
+			case "android.permission.ACCESS_BACKGROUND_LOCATION":
 			case "android.permission.RECORD_AUDIO":
-				if (System.getenv("ATL_UGLY_ENABLE_MICROPHONE") != null)
-					return PERMISSION_GRANTED;
-				else
-					return PERMISSION_DENIED;
+				return android.atl.RuntimePermissions.check(android.atl.RuntimePermissions.groupOf(permName));
 			default:
 				System.out.println("PackageManager.checkPermission: >" + permName + "< not handled\n");
 				return PERMISSION_DENIED;

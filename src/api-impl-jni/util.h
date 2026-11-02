@@ -62,4 +62,6 @@ GVariant *intent_serialize(JNIEnv *env, jobject intent);
 jobject intent_deserialize(JNIEnv *env, GVariant *variant);
 const char *intent_actionname_from_type(int type);
 
+gboolean atl_permission_granted(JNIEnv *env, const char *group);
+
 #endif

@@ -874,16 +874,21 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		return false;
 	}
 
-	/* no dialog yet: answer with the current state, like a user who denies what is not granted */
+	/* asks the user for the permissions ATL can serve (android.atl.RuntimePermissions), answers the others with their current state */
 	public void requestPermissions(final String[] permissions, final int requestCode) {
-		Slog.w(TAG, "requestPermissions(" + Arrays.toString(permissions) + "): answering without asking");
-		final int[] grantResults = new int[permissions.length];
-		for (int i = 0; i < permissions.length; i++)
-			grantResults[i] = checkSelfPermission(permissions[i]);
+		Slog.i(TAG, "requestPermissions(" + Arrays.toString(permissions) + ")");
 		new Handler(Looper.getMainLooper()).post(new Runnable() {
 			@Override
 			public void run() {
-				onRequestPermissionsResult(requestCode, permissions, grantResults);
+				android.atl.RuntimePermissions.request(Activity.this, permissions, new Runnable() {
+					@Override
+					public void run() {
+						int[] grantResults = new int[permissions.length];
+						for (int i = 0; i < permissions.length; i++)
+							grantResults[i] = checkSelfPermission(permissions[i]);
+						onRequestPermissionsResult(requestCode, permissions, grantResults);
+					}
+				});
 			}
 		});
 	}

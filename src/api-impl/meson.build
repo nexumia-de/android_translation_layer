@@ -90,6 +90,7 @@ srcs = [
 	'android/appwidget/AppWidgetProvider.java',
 	'android/atl/ATLGStub.java',
 	'android/atl/ApkSigners.java',
+	'android/atl/RuntimePermissions.java',
 	'android/atl/ATLKeyboardDialog.java',
 	'android/atl/ATLKeyboardViewer.java',
 	'android/atl/ATLLoadedApp.java',
