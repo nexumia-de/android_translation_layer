@@ -2828,7 +2828,6 @@ public class View implements Drawable.Callback {
 
 	public TouchDelegate getTouchDelegate() { return null; }
 
-	public void setZ(float z) {}
 
 	public void drawableStateChanged() {
 		if (background != null && background.isStateful() && background.setState(getDrawableState()))

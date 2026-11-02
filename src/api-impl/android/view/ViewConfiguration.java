@@ -87,7 +87,4 @@ public class ViewConfiguration {
 		return 100;
 	}
 
-	public int getScaledEdgeSlop() {
-		return 8;
-	}
 }
