@@ -356,6 +356,19 @@ public abstract class Context {
 		return prefs_dir;
 	}
 
+	public File getCodeCacheDir() {
+		File dir = new File(getDataDirFile(), "code_cache");
+		if (!dir.exists() && !dir.mkdirs() && !dir.exists()) {
+			Slog.w(TAG, "Unable to create code cache directory >" + dir.getPath() + "<");
+			return null;
+		}
+		return dir;
+	}
+
+	public boolean deleteFile(String name) {
+		return new File(getFilesDir(), name).delete();
+	}
+
 	public File[] getExternalMediaDirs() {
 		return getExternalFilesDirs("media");
 	}
