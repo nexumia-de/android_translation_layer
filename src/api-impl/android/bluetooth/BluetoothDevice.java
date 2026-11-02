@@ -59,7 +59,11 @@ public final class BluetoothDevice implements Parcelable {
 	public static final int PHY_OPTION_S2 = 1;
 	public static final int PHY_OPTION_S8 = 2;
 	public static final int PAIRING_VARIANT_PIN = 0;
+	public static final int PAIRING_VARIANT_PASSKEY = 1;
 	public static final int PAIRING_VARIANT_PASSKEY_CONFIRMATION = 2;
+	public static final int PAIRING_VARIANT_CONSENT = 3;
+	public static final int PAIRING_VARIANT_DISPLAY_PASSKEY = 4;
+	public static final int PAIRING_VARIANT_DISPLAY_PIN = 5;
 	public static final int ADDRESS_TYPE_PUBLIC = 0;
 	public static final int ADDRESS_TYPE_RANDOM = 1;
 	public static final int ADDRESS_TYPE_UNKNOWN = 0xFFFF;
@@ -198,20 +202,33 @@ public final class BluetoothDevice implements Parcelable {
 			int result = BOND_NONE;
 			try {
 				ensureKnown(TRANSPORT_AUTO);
-				BlueZ.call(120000, path, BlueZ.DEVICE, "Pair", "");
+				/* own agent for the pairing dialog; no discovery while BlueZ connects for Pair */
+				BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+				PairingAgent.acquire();
+				Discovery.pause(adapter);
+				try {
+					BlueZ.call(120000, path, BlueZ.DEVICE, "Pair", "");
+				} finally {
+					Discovery.resume(adapter);
+					PairingAgent.release();
+				}
 				result = BOND_BONDED;
 			} catch (IOException e) {
 				Slog.w(TAG, "createBond " + address + ": " + e.getMessage());
 				if (e.getMessage() != null && e.getMessage().contains("AlreadyExists"))
 					result = BOND_BONDED;
 			}
+			/* as on Android, the bonding thread reports the end of its own bond in any case; the "Paired"
+			 * signal is not broadcast for a device in bonding, so BONDED is sent exactly once */
+			sendBondState(result, BOND_BONDING);
 			bonding.remove(address);
-			/* a successful Pair also changes "Paired", whose broadcast says BONDED; this one covers failures */
-			if (result != BOND_BONDED)
-				sendBondState(result, BOND_BONDING);
 		}
 		}, "BluetoothDevice.createBond").start();
 		return true;
+	}
+
+	static boolean isBonding(String address) {
+		return bonding.contains(address);
 	}
 
 	private void sendBondState(int state, int previous) {
@@ -245,12 +262,25 @@ public final class BluetoothDevice implements Parcelable {
 		}
 	}
 
+	/* answers a pending pairing request of this device (ACTION_PAIRING_REQUEST) */
 	public boolean setPairingConfirmation(boolean confirm) {
-		return false;
+		return PairingAgent.answer(address, confirm, null);
 	}
 
 	public boolean setPin(byte[] pin) {
-		return false;
+		return pin != null && PairingAgent.answer(address, true, new String(pin, java.nio.charset.StandardCharsets.UTF_8));
+	}
+
+	public boolean setPin(String pin) {
+		return pin != null && PairingAgent.answer(address, true, pin);
+	}
+
+	public boolean setPasskey(int passkey) {
+		return PairingAgent.answer(address, true, Integer.toString(passkey));
+	}
+
+	public boolean cancelPairing() {
+		return PairingAgent.answer(address, false, null);
 	}
 
 	/*

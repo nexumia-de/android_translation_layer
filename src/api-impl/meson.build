@@ -121,6 +121,7 @@ srcs = [
 	'android/bluetooth/BluetoothSocket.java',
 	'android/bluetooth/BluetoothStatusCodes.java',
 	'android/bluetooth/Discovery.java',
+	'android/bluetooth/PairingAgent.java',
 	'android/bluetooth/le/BluetoothLeScanner.java',
 	'android/bluetooth/le/ScanCallback.java',
 	'android/bluetooth/le/ScanFilter.java',
