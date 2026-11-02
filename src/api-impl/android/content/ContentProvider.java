@@ -7,10 +7,15 @@ import android.atl.annotation.Export;
 import android.content.pm.PackageParser;
 import android.content.pm.ProviderInfo;
 import android.content.res.AssetFileDescriptor;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -67,7 +72,112 @@ public abstract class ContentProvider {
 
 	public abstract String getType(Uri uri);
 
-	public abstract ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException;
+	public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
+		throw new FileNotFoundException("No files supported by provider at " + uri);
+	}
+
+	public ParcelFileDescriptor openFile(Uri uri, String mode, CancellationSignal signal) throws FileNotFoundException {
+		return openFile(uri, mode);
+	}
+
+	public AssetFileDescriptor openAssetFile(Uri uri, String mode, CancellationSignal signal) throws FileNotFoundException {
+		return openAssetFile(uri, mode);
+	}
+
+	public String[] getStreamTypes(Uri uri, String mimeTypeFilter) {
+		return null;
+	}
+
+	public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts) throws FileNotFoundException {
+		if ("*/*".equals(mimeTypeFilter)) {
+			return openAssetFile(uri, "r");
+		}
+		String baseType = getType(uri);
+		if (baseType != null && ClipDescription.compareMimeTypes(baseType, mimeTypeFilter)) {
+			return openAssetFile(uri, "r");
+		}
+		throw new FileNotFoundException("Can't open " + uri + " as type " + mimeTypeFilter);
+	}
+
+	public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts, CancellationSignal signal) throws FileNotFoundException {
+		return openTypedAssetFile(uri, mimeTypeFilter, opts);
+	}
+
+	public interface PipeDataWriter<T> {
+		public void writeDataToPipe(ParcelFileDescriptor output, Uri uri, String mimeType, Bundle opts, T args);
+	}
+
+	/* as on Android: the writer runs on a background thread and fills the
+	 * write end of a pipe, the caller gets the read end */
+	public <T> ParcelFileDescriptor openPipeHelper(final Uri uri, final String mimeType, final Bundle opts, final T args, final PipeDataWriter<T> func) throws FileNotFoundException {
+		try {
+			final ParcelFileDescriptor[] fds = ParcelFileDescriptor.createPipe();
+			new Thread("ContentProvider pipe") {
+				@Override
+				public void run() {
+					func.writeDataToPipe(fds[1], uri, mimeType, opts, args);
+					try {
+						fds[1].close();
+					} catch (IOException e) {
+					}
+				}
+			}.start();
+			return fds[0];
+		} catch (IOException e) {
+			throw new FileNotFoundException("failure making pipe");
+		}
+	}
+
+	public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder, CancellationSignal cancellationSignal) {
+		return query(uri, projection, selection, selectionArgs, sortOrder);
+	}
+
+	public Cursor query(Uri uri, String[] projection, Bundle queryArgs, CancellationSignal cancellationSignal) {
+		if (queryArgs == null)
+			queryArgs = Bundle.EMPTY;
+		String sortOrder = queryArgs.getString(ContentResolver.QUERY_ARG_SQL_SORT_ORDER);
+		return query(uri, projection, queryArgs.getString(ContentResolver.QUERY_ARG_SQL_SELECTION),
+		             queryArgs.getStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS), sortOrder, cancellationSignal);
+	}
+
+	public int bulkInsert(Uri uri, ContentValues[] values) {
+		for (ContentValues v : values) {
+			insert(uri, v);
+		}
+		return values.length;
+	}
+
+	public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
+		ContentProviderResult[] results = new ContentProviderResult[operations.size()];
+		for (int i = 0; i < operations.size(); i++) {
+			results[i] = operations.get(i).apply(this, results, i);
+		}
+		return results;
+	}
+
+	public ContentProviderResult[] applyBatch(String authority, ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
+		return applyBatch(operations);
+	}
+
+	public Bundle call(String method, String arg, Bundle extras) {
+		return null;
+	}
+
+	public Bundle call(String authority, String method, String arg, Bundle extras) {
+		return call(method, arg, extras);
+	}
+
+	public boolean isTemporary() {
+		return false;
+	}
+
+	public void onConfigurationChanged(Configuration newConfig) {}
+
+	public void onLowMemory() {}
+
+	public void onTrimMemory(int level) {}
+
+	public void shutdown() {}
 
 	public AssetFileDescriptor openAssetFile(Uri uri, String mode) throws FileNotFoundException {
 		ParcelFileDescriptor fd = openFile(uri, mode);

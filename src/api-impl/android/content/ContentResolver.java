@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -20,6 +21,9 @@ public class ContentResolver {
 	public static final String SCHEME_CONTENT = "content";
 
 	public static final String SYNC_EXTRAS_IGNORE_SETTINGS = "ignore_settings";
+	public static final String QUERY_ARG_SQL_SELECTION = "android:query-arg-sql-selection";
+	public static final String QUERY_ARG_SQL_SELECTION_ARGS = "android:query-arg-sql-selection-args";
+	public static final String QUERY_ARG_SQL_SORT_ORDER = "android:query-arg-sql-sort-order";
 
 	public final void registerContentObserver(Uri uri, boolean notifyForDescendants, ContentObserver observer) {
 	}
@@ -85,7 +89,10 @@ public class ContentResolver {
 	}
 
 	public Cursor query(Uri uri, String[] projection, Bundle queryArgs, CancellationSignal cancellationSignal) {
-		if ("file".equals(uri.getScheme())) {
+		ContentProvider provider = ContentProvider.atl_get_content_provider(uri.getAuthority());
+		if (provider != null) {
+			return provider.query(uri, projection, queryArgs, cancellationSignal);
+		} else if ("file".equals(uri.getScheme())) {
 			MatrixCursor cursor = new MatrixCursor(projection);
 			Object[] row = new Object[projection.length];
 			native_query_file_info(uri.getPath(), projection, row);
@@ -182,6 +189,47 @@ public class ContentResolver {
 	public static boolean isSyncActive(Account account, String authority) {
 		return false;
 	}
+
+	public final int bulkInsert(Uri uri, ContentValues[] values) {
+		ContentProvider provider = ContentProvider.atl_get_content_provider(uri.getAuthority());
+		return provider != null ? provider.bulkInsert(uri, values) : 0;
+	}
+
+	/* Android throws when no provider has the authority, e.g. the contacts
+	 * provider, which ATL does not have */
+	public ContentProviderResult[] applyBatch(String authority, ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
+		ContentProvider provider = ContentProvider.atl_get_content_provider(authority);
+		if (provider == null)
+			throw new IllegalArgumentException("Unknown authority " + authority);
+		return provider.applyBatch(authority, operations);
+	}
+
+	public final Bundle call(Uri uri, String method, String arg, Bundle extras) {
+		return call(uri.getAuthority(), method, arg, extras);
+	}
+
+	public final Bundle call(String authority, String method, String arg, Bundle extras) {
+		ContentProvider provider = ContentProvider.atl_get_content_provider(authority);
+		if (provider == null)
+			throw new IllegalArgumentException("Unknown authority " + authority);
+		return provider.call(authority, method, arg, extras);
+	}
+
+	public static void addPeriodicSync(Account account, String authority, Bundle extras, long pollFrequency) {}
+
+	public static void removePeriodicSync(Account account, String authority, Bundle extras) {}
+
+	public static boolean getSyncAutomatically(Account account, String authority) {
+		return false;
+	}
+
+	public static void setSyncAutomatically(Account account, String authority, boolean sync) {}
+
+	public static int getIsSyncable(Account account, String authority) {
+		return 0;
+	}
+
+	public static void setIsSyncable(Account account, String authority, int syncable) {}
 
 	private static native void native_query_file_info(String path, String[] attributes, Object[] result);
 }
