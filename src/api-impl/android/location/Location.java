@@ -1,6 +1,9 @@
 package android.location;
 
-public class Location {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class Location implements Parcelable {
 
 	private double latitude;
 	private double longitude;
@@ -88,4 +91,33 @@ public class Location {
 	public String getProvider() {
 		return "fused";
 	}
+
+	@Override
+	public int describeContents() {
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags) {
+		dest.writeDouble(latitude);
+		dest.writeDouble(longitude);
+		dest.writeDouble(altitude);
+		dest.writeDouble(accuracy);
+		dest.writeDouble(speed);
+		dest.writeDouble(bearing);
+		dest.writeLong(timestamp);
+	}
+
+	public static final Parcelable.Creator<Location> CREATOR = new Parcelable.Creator<Location>() {
+		@Override
+		public Location createFromParcel(Parcel in) {
+			return new Location(in.readDouble(), in.readDouble(), in.readDouble(), in.readDouble(),
+			                    in.readDouble(), in.readDouble(), in.readLong());
+		}
+
+		@Override
+		public Location[] newArray(int size) {
+			return new Location[size];
+		}
+	};
 }
