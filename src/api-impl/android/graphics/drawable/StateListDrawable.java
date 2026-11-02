@@ -278,6 +278,16 @@ public class StateListDrawable extends DrawableContainer {
 			System.arraycopy(mStateSets, 0, newStateSets, 0, oldSize);
 			mStateSets = newStateSets;
 		}
+
+		@Override
+		public Drawable newDrawable() {
+			return new StateListDrawable(this, null);
+		}
+
+		@Override
+		public Drawable newDrawable(Resources res) {
+			return new StateListDrawable(this, res);
+		}
 	}
 
 	protected void setConstantState(DrawableContainerState state) {
