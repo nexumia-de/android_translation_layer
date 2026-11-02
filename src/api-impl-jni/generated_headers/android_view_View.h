@@ -341,6 +341,22 @@ JNIEXPORT void JNICALL Java_android_view_View_native_1drawContent
 
 /*
  * Class:     android_view_View
+ * Method:    native_gtkEventPropagation
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_android_view_View_native_1gtkEventPropagation
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     android_view_View
+ * Method:    native_registerTouchEventPropagation
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_android_view_View_native_1registerTouchEventPropagation
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     android_view_View
  * Method:    nativeRequestFocus
  * Signature: (JI)V
  */

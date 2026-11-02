@@ -6,6 +6,7 @@ import android.content.res.AssetManager;
 import android.net.Uri;
 import android.util.AttributeSet;
 import android.util.Base64;
+import android.view.MotionEvent;
 import android.view.ViewGroup;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -30,6 +31,11 @@ public class WebView extends ViewGroup {
 
 	public WebView(Context context, AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
+	}
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		return native_gtkEventPropagation();
 	}
 
 	public WebSettings getSettings() {

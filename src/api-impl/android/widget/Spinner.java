@@ -6,6 +6,7 @@ import android.content.res.TypedArray;
 import android.database.DataSetObserver;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 
 public class Spinner extends AbsSpinner {
 	private Observer observer;
@@ -37,6 +38,11 @@ public class Spinner extends AbsSpinner {
 	protected native void native_setBackgroundDrawable(long widget, long paintable);
 	@Override
 	protected native void native_setBackgroundColor(long widget, int color);
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		return native_gtkEventPropagation();
+	}
 
 	public void setAdapter(SpinnerAdapter adapter) {
 		if (observer == null)

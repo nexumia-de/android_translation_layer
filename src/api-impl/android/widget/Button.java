@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 
 public class Button extends TextView {
 
@@ -41,6 +42,11 @@ public class Button extends TextView {
 	@Override
 	protected native void nativeSetOnClickListener(long widget);
 	protected native void native_setCompoundDrawables(long widget, long paintable);
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+		return native_gtkEventPropagation();
+	}
 
 	@Override
 	public void setText(CharSequence text) {
