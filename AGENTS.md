@@ -46,6 +46,9 @@ the separate user `claude` without sudo or doas.
 - Builds are heavy: say before a long build so the owner can plug the
   phone in.
 - Setup and test steps: [docs/dev-environment.md](docs/dev-environment.md).
+- A session can end at any time: write findings and dead ends down after
+  every step, as described in
+  [docs/dev-environment.md](docs/dev-environment.md#parallel-agents-and-handoff).
 
 ## Apps
 
@@ -64,23 +67,6 @@ the separate user `claude` without sudo or doas.
   first, then the stub log, then fixes, then a comparison with real
   Android. Do not trace or fix crash by crash before these ran.
 - Keep each app's feature states in [docs/app-audit.md](docs/app-audit.md).
-
-## Parallel agents and handoff
-
-Work may be split across subagents, and a session can end at any time
-(token budget, interrupt). A stopped agent cannot be resumed, so its
-knowledge must not live only in its context.
-
-- After every step, append findings, dead ends (what failed and why)
-  and the next step to `~/work/handoff/<task>.md`, and keep the app's
-  section in [docs/apps.md](docs/apps.md) current.
-- Commit and push at least once per task; unfinished work as a commit
-  marked `WIP`.
-- Each agent builds and installs into its own prefix (`~/.atl-<task>`),
-  never the shared `~/.local`, runs ATL with `RUN_FROM_BUILDDIR=1`, and
-  wraps every build and app run in `flock /tmp/atl-heavy.lock`.
-- Secrets the owner hands over (keys, passwords) never go into handoff
-  files, docs, logs read by the agent or screenshots.
 
 ## Upstream contributions
 
