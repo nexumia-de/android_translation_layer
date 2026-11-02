@@ -99,6 +99,10 @@ public class Drawable {
 		}
 
 		public abstract int getChangingConfigurations();
+
+		public boolean canApplyTheme() {
+			return false;
+		}
 	}
 
 	@Export
@@ -429,6 +433,82 @@ public class Drawable {
 
 	public Rect copyBounds() {
 		return new Rect(mBounds);
+	}
+
+	public int getAlpha() {
+		return 0xFF;
+	}
+
+	public int getOpacity() {
+		return android.graphics.PixelFormat.TRANSLUCENT;
+	}
+
+	public static int resolveOpacity(int op1, int op2) {
+		if (op1 == op2)
+			return op1;
+		if (op1 == android.graphics.PixelFormat.UNKNOWN || op2 == android.graphics.PixelFormat.UNKNOWN)
+			return android.graphics.PixelFormat.UNKNOWN;
+		if (op1 == android.graphics.PixelFormat.TRANSLUCENT || op2 == android.graphics.PixelFormat.TRANSLUCENT)
+			return android.graphics.PixelFormat.TRANSLUCENT;
+		if (op1 == android.graphics.PixelFormat.TRANSPARENT || op2 == android.graphics.PixelFormat.TRANSPARENT)
+			return android.graphics.PixelFormat.TRANSPARENT;
+		return android.graphics.PixelFormat.OPAQUE;
+	}
+
+	public boolean isAutoMirrored() {
+		return false;
+	}
+
+	public boolean isFilterBitmap() {
+		return false;
+	}
+
+	public void getOutline(android.graphics.Outline outline) {
+		outline.setRect(getBounds());
+		outline.setAlpha(0);
+	}
+
+	public android.graphics.Region getTransparentRegion() {
+		return null;
+	}
+
+	public Rect getDirtyBounds() {
+		return getBounds();
+	}
+
+	public void getHotspotBounds(Rect outRect) {
+		outRect.set(getBounds());
+	}
+
+	public android.graphics.Insets getOpticalInsets() {
+		return android.graphics.Insets.NONE;
+	}
+
+	public boolean onLayoutDirectionChanged(int layoutDirection) {
+		return false;
+	}
+
+	public boolean hasFocusStateSpecified() {
+		return false;
+	}
+
+	public void setTintBlendMode(BlendMode blendMode) {}
+
+	public boolean canApplyTheme() {
+		return false;
+	}
+
+	public void applyTheme(Theme theme) {}
+
+	public void inflate(Resources r, XmlPullParser parser, AttributeSet attrs, Theme theme) throws XmlPullParserException, IOException {}
+
+	public void inflate(Resources r, XmlPullParser parser, AttributeSet attrs) throws XmlPullParserException, IOException {
+		inflate(r, parser, attrs, null);
+	}
+
+	public static Drawable createFromStream(InputStream is, String srcName) {
+		Bitmap bitmap = BitmapFactory.decodeStream(is);
+		return bitmap == null ? null : new BitmapDrawable(null, bitmap);
 	}
 
 	@SuppressWarnings("removal")
