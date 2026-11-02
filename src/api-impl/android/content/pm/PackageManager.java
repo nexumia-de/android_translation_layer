@@ -2223,6 +2223,9 @@ public class PackageManager {
 				return System.getenv("ATL_IS_TELEVISION") != null;
 			case FEATURE_WATCH:
 				return System.getenv("ATL_IS_WATCH") != null;
+			case FEATURE_BLUETOOTH:
+			case FEATURE_BLUETOOTH_LE:
+				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null;
 			default:
 				Slog.e(TAG, "!!!!!!! hasSystemFeature: case >" + name + "< is not implemented yet");
 				return false;
