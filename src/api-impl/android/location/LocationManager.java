@@ -280,6 +280,18 @@ public class LocationManager {
 		return registerGnssStatusCallback(callback, null);
 	}
 
+	public boolean registerGnssStatusCallback(Executor executor, GnssStatus.Callback callback) {
+		return registerGnssStatusCallback(callback, null);
+	}
+
 	public void unregisterGnssStatusCallback(GnssStatus.Callback callback) {
+	}
+
+	/* GeoClue does not report satellites, so there are no GPS status events */
+	public boolean addGpsStatusListener(GpsStatus.Listener listener) {
+		return true;
+	}
+
+	public void removeGpsStatusListener(GpsStatus.Listener listener) {
 	}
 }

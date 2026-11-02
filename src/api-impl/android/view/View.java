@@ -2092,6 +2092,12 @@ public class View implements Drawable.Callback {
 
 	public void setDuplicateParentStateEnabled(boolean enabled) {}
 
+	protected void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {}
+
+	public boolean performContextClick() {
+		return false;
+	}
+
 	@Export
 	public boolean performClick() {
 		return callOnClick();
