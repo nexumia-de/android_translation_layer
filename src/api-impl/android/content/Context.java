@@ -188,10 +188,13 @@ public abstract class Context {
 	public abstract Object getSystemService(Class<?> serviceClass) throws InstantiationException, IllegalAccessException, InvocationTargetException;
 
 	public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
+		/* ACTION_BATTERY_CHANGED is sticky: apps read the battery state from the
+		 * returned intent, often with a null receiver */
+		Intent sticky = (filter != null && filter.hasAction(Intent.ACTION_BATTERY_CHANGED)) ? android.os.BatteryManager.getBatteryChangedIntent() : null;
 		if (receiver == null)
-			return null;
+			return sticky;
 		receiverMap.put(filter, receiver);
-		return new Intent();
+		return sticky != null ? sticky : new Intent();
 	}
 
 	public Looper getMainLooper() {
