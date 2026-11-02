@@ -64,6 +64,7 @@ final class BlueZ {
 				return false;
 			loadObjects();
 			available = true;
+			Slog.i(TAG, "connected to BlueZ, adapter " + adapterPath());
 		} catch (IOException e) {
 			Slog.w(TAG, "BlueZ is not available: " + e.getMessage());
 		} catch (UnsatisfiedLinkError e) {

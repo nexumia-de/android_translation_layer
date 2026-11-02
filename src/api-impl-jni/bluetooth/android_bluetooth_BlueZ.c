@@ -86,6 +86,7 @@ static jobject variant_to_java(JNIEnv *env, GVariant *value)
 			(*env)->DeleteLocalRef(env, string);
 			g_variant_unref(child);
 		}
+		(*env)->DeleteLocalRef(env, string_class);
 		return array;
 	}
 	if (g_variant_type_is_array(type) && g_variant_type_is_dict_entry(g_variant_type_element(type))) {
@@ -109,6 +110,7 @@ static jobject variant_to_java(JNIEnv *env, GVariant *value)
 			g_variant_unref(val);
 			g_variant_unref(entry);
 		}
+		(*env)->DeleteLocalRef(env, map_class);
 		return map;
 	}
 	if (g_variant_type_is_array(type) || g_variant_type_is_tuple(type)) {
@@ -123,6 +125,7 @@ static jobject variant_to_java(JNIEnv *env, GVariant *value)
 				(*env)->DeleteLocalRef(env, jchild);
 			g_variant_unref(child);
 		}
+		(*env)->DeleteLocalRef(env, object_class);
 		return array;
 	}
 	return NULL;
@@ -138,11 +141,16 @@ static gboolean is_instance(JNIEnv *env, jobject object, const char *class_name)
 
 static jlong number_value(JNIEnv *env, jobject object)
 {
+	jclass class = _CLASS(object);
+	jlong result;
 	if (is_instance(env, object, "java/lang/Character"))
-		return (*env)->CallCharMethod(env, object, _METHOD(_CLASS(object), "charValue", "()C"));
-	if (is_instance(env, object, "java/lang/Boolean"))
-		return (*env)->CallBooleanMethod(env, object, _METHOD(_CLASS(object), "booleanValue", "()Z"));
-	return (*env)->CallLongMethod(env, object, _METHOD(_CLASS(object), "longValue", "()J"));
+		result = (*env)->CallCharMethod(env, object, _METHOD(class, "charValue", "()C"));
+	else if (is_instance(env, object, "java/lang/Boolean"))
+		result = (*env)->CallBooleanMethod(env, object, _METHOD(class, "booleanValue", "()Z"));
+	else
+		result = (*env)->CallLongMethod(env, object, _METHOD(class, "longValue", "()J"));
+	(*env)->DeleteLocalRef(env, class);
+	return result;
 }
 
 static GVariant *java_to_variant(JNIEnv *env, jobject object, const GVariantType *type);
@@ -174,6 +182,8 @@ static GVariant *java_to_guessed_variant(JNIEnv *env, jobject object)
 
 static GVariant *java_to_variant(JNIEnv *env, jobject object, const GVariantType *type)
 {
+	if (!object)
+		return NULL;
 	if (g_variant_type_is_variant(type)) {
 		GVariant *inner = java_to_guessed_variant(env, object);
 		return inner ? g_variant_new_variant(inner) : NULL;
@@ -286,9 +296,10 @@ static void on_signal(GDBusConnection *connection, const char *sender, const cha
 
 static gpointer signal_thread(gpointer data)
 {
+	JavaVM *vm = data;
 	JNIEnv *env;
 	JavaVMAttachArgs args = {.version = JNI_VERSION_1_6, .name = "BlueZ signals", .group = NULL};
-	(*jvm)->AttachCurrentThreadAsDaemon(jvm, (void **)&env, &args);
+	(*vm)->AttachCurrentThreadAsDaemon(vm, (void **)&env, &args);
 
 	g_main_context_push_thread_default(signal_context);
 	/* sender "org.bluez" also matches by name owner, so a restarted bluetoothd is still heard */
@@ -314,7 +325,9 @@ JNIEXPORT jboolean JNICALL Java_android_bluetooth_BlueZ_nativeInit(JNIEnv *env, 
 	}
 	system_bus = bus;
 	signal_context = g_main_context_new();
-	g_thread_unref(g_thread_new("BlueZ signals", signal_thread, NULL));
+	JavaVM *vm;
+	(*env)->GetJavaVM(env, &vm);
+	g_thread_unref(g_thread_new("BlueZ signals", signal_thread, vm));
 	return JNI_TRUE;
 }
 

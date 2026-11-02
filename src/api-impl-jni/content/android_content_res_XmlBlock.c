@@ -110,6 +110,15 @@ JNIEXPORT jint JNICALL Java_android_content_res_XmlBlock_nativeGetLineNumber(JNI
 	return ResXMLParser_getLineNumber(parser);
 }
 
+/* androidfw's C API has no getText; ResXMLParser::getTextID() is exported from libandroidfw */
+int32_t _ZNK7android12ResXMLParser9getTextIDEv(const struct ResXMLParser *parser);
+
+JNIEXPORT jint JNICALL Java_android_content_res_XmlBlock_nativeGetText(JNIEnv *env, jclass this, jlong parser_ptr)
+{
+	struct ResXMLParser *parser = (struct ResXMLParser *)_PTR(parser_ptr);
+	return _ZNK7android12ResXMLParser9getTextIDEv(parser);
+}
+
 JNIEXPORT jint JNICALL Java_android_content_res_XmlBlock_nativeGetAttributeDataType(JNIEnv *env, jobject this, jlong parser_ptr, jint index)
 {
 	struct ResXMLParser *parser = (struct ResXMLParser *)_PTR(parser_ptr);
