@@ -1901,6 +1901,12 @@ public class PackageManager {
 			// notifications are shown; there is no runtime question to ask
 			case "android.permission.POST_NOTIFICATIONS":
 				return PERMISSION_GRANTED;
+			// granted where the app can really use Bluetooth: BlueZ lets every user talk to it
+			case "android.permission.BLUETOOTH":
+			case "android.permission.BLUETOOTH_ADMIN":
+			case "android.permission.BLUETOOTH_CONNECT":
+			case "android.permission.BLUETOOTH_SCAN":
+				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			case "android.permission.REQUEST_INSTALL_PACKAGES":
 				return canRequestPackageInstalls() ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			// only tell the app that it can access location if it *actually* can
@@ -2223,6 +2229,9 @@ public class PackageManager {
 				return System.getenv("ATL_IS_TELEVISION") != null;
 			case FEATURE_WATCH:
 				return System.getenv("ATL_IS_WATCH") != null;
+			case FEATURE_BLUETOOTH:
+			case FEATURE_BLUETOOTH_LE:
+				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null;
 			default:
 				Slog.e(TAG, "!!!!!!! hasSystemFeature: case >" + name + "< is not implemented yet");
 				return false;
