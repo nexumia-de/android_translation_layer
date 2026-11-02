@@ -119,6 +119,10 @@ a commit is added, sent or merged.
 | `Vibrator: vibrate through feedbackd's haptic interface` | 70 lines | kept |
 | `Activity: pause and resume an open activity around onNewIntent` | 20 lines | kept |
 | `api-impl: add Android 11's APK Signature Scheme v2 and v3 verifier` and `ApkSigners` (verified signers for installs) | 3200 lines (AOSP, unchanged) + 150 | kept |
+| `e8a04b61 api-impl: implement Drawable levels and ImageView.setImageLevel` (Gadgetbridge aborted after pairing) | 40 lines | kept |
+| `912c216f api-impl: make Intent cloneable, add Activity up navigation` (Gadgetbridge: every sync and Find device failed; up button aborted) | 25 lines | kept |
+| `2448e67c api-impl: load interpolators from XML instead of returning null` (Material progress bars aborted the app) | 40 lines | kept |
+| `3755db41 api-impl: add android.util.LogPrinter` (androidx GridLayout aborted the app) | 20 lines | kept |
 
 Commit ids are those on `phosh`; cherry-pick them from there.
 
