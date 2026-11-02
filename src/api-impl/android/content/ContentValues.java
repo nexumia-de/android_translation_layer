@@ -239,6 +239,15 @@ public final class ContentValues {
 	 * @param key the value to get
 	 * @return the data for the value
 	 */
+	public boolean isEmpty() {
+		return mValues.isEmpty();
+	}
+
+	/* package: ContentProviderOperation stores values of any type */
+	void putObjectInternal(String key, Object value) {
+		mValues.put(key, value);
+	}
+
 	public Object get(String key) {
 		return mValues.get(key);
 	}

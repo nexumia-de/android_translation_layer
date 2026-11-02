@@ -141,6 +141,8 @@ srcs = [
 	'android/content/ContentCaptureOptions.java',
 	'android/content/ContentProvider.java',
 	'android/content/ContentProviderClient.java',
+	'android/content/ContentProviderOperation.java',
+	'android/content/ContentProviderResult.java',
 	'android/content/ContentResolver.java',
 	'android/content/ContentUris.java',
 	'android/content/ContentValues.java',

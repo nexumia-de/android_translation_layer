@@ -3,11 +3,14 @@ package android.content;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
+import android.os.CancellationSignal;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 
 public class ContentProviderClient implements AutoCloseable {
 	private final ContentProvider contentProvider;
@@ -56,6 +59,22 @@ public class ContentProviderClient implements AutoCloseable {
 	public OutputStream openOutputStream(Uri url) throws FileNotFoundException, RemoteException {
 		ParcelFileDescriptor fd = openFile(url, "w");
 		return fd != null ? new ParcelFileDescriptor.AutoCloseOutputStream(fd) : null;
+	}
+
+	public Cursor query(Uri url, String[] projection, String selection, String[] selectionArgs, String sortOrder, CancellationSignal signal) throws RemoteException {
+		return contentProvider.query(url, projection, selection, selectionArgs, sortOrder, signal);
+	}
+
+	public Bundle call(String method, String arg, Bundle extras) throws RemoteException {
+		return contentProvider.call(method, arg, extras);
+	}
+
+	public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations) throws RemoteException, OperationApplicationException {
+		return contentProvider.applyBatch(operations);
+	}
+
+	public int bulkInsert(Uri url, ContentValues[] values) throws RemoteException {
+		return contentProvider.bulkInsert(url, values);
 	}
 
 	public boolean release() {
