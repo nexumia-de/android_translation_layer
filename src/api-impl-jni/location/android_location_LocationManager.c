@@ -4,6 +4,8 @@
 #include "../util.h"
 #include "../generated_headers/android_location_LocationManager.h"
 
+static XdpPortal *portal = NULL;
+
 static void location_updated(
     XdpPortal *self,
     gdouble latitude,
@@ -19,11 +21,21 @@ static void location_updated(
 {
 	JNIEnv *env;
 	(*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_6);
-	jlong timestamp = timestamp_s * 1000 + timestamp_ms;
+	/* the portal sends seconds and microseconds of the fix time */
+	jlong timestamp = timestamp_s * 1000 + timestamp_ms / 1000;
 	J__LocationManager__locationUpdated(env, latitude, longitude, altitude, accuracy, speed, heading, timestamp);
+	if ((*env)->ExceptionCheck(env))
+		(*env)->ExceptionDescribe(env);
 }
 
-JNIEXPORT void JNICALL Java_android_location_LocationManager_nativeGetLocation(JNIEnv *env, jobject)
+static void monitor_started(GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	g_autoptr(GError) error = NULL;
+	if (!xdp_portal_location_monitor_start_finish(XDP_PORTAL(source), result, &error))
+		g_warning("LocationManager: cannot start the location portal: %s", error->message);
+}
+
+JNIEXPORT void JNICALL Java_android_location_LocationManager_nativeStartMonitor(JNIEnv *env, jclass)
 {
 	if (!getenv("ATL_UGLY_ENABLE_LOCATION")) {
 		// Location access is prohibited by default until sanboxing is implemented.
@@ -31,7 +43,6 @@ JNIEXPORT void JNICALL Java_android_location_LocationManager_nativeGetLocation(J
 		return;
 	}
 
-	static XdpPortal *portal = NULL;
 	if (!portal) {
 		portal = xdp_portal_new();
 		JavaVM *jvm;
@@ -39,5 +50,11 @@ JNIEXPORT void JNICALL Java_android_location_LocationManager_nativeGetLocation(J
 		g_signal_connect(portal, "location-updated", G_CALLBACK(location_updated), jvm);
 	}
 
-	xdp_portal_location_monitor_start(portal, NULL, 0, 0, XDP_LOCATION_ACCURACY_EXACT, XDP_LOCATION_MONITOR_FLAG_NONE, NULL, NULL, NULL);
+	xdp_portal_location_monitor_start(portal, NULL, 0, 0, XDP_LOCATION_ACCURACY_EXACT, XDP_LOCATION_MONITOR_FLAG_NONE, NULL, monitor_started, NULL);
+}
+
+JNIEXPORT void JNICALL Java_android_location_LocationManager_nativeStopMonitor(JNIEnv *env, jclass)
+{
+	if (portal)
+		xdp_portal_location_monitor_stop(portal);
 }
