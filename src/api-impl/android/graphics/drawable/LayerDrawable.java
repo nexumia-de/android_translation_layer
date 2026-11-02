@@ -25,6 +25,7 @@ import android.graphics.PixelFormat;
 //import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.View;
 import java.io.IOException;
 import org.xmlpull.v1.XmlPullParser;
@@ -152,6 +153,15 @@ public class LayerDrawable extends Drawable implements Drawable.Callback {
 			    com.android.internal.R.styleable.LayerDrawableItem_drawable, 0);
 			int id = a.getResourceId(com.android.internal.R.styleable.LayerDrawableItem_id,
 			                         View.NO_ID);
+			int start = a.getDimensionPixelOffset(
+			    com.android.internal.R.styleable.LayerDrawableItem_start, INSET_UNDEFINED);
+			int end = a.getDimensionPixelOffset(
+			    com.android.internal.R.styleable.LayerDrawableItem_end, INSET_UNDEFINED);
+			int width = a.getDimensionPixelSize(
+			    com.android.internal.R.styleable.LayerDrawableItem_width, -1);
+			int height = a.getDimensionPixelSize(
+			    com.android.internal.R.styleable.LayerDrawableItem_height, -1);
+			int gravity = a.getInt(com.android.internal.R.styleable.LayerDrawableItem_gravity, Gravity.NO_GRAVITY);
 
 			a.recycle();
 
@@ -168,8 +178,15 @@ public class LayerDrawable extends Drawable implements Drawable.Callback {
 				dr = Drawable.createFromXmlInner(r, parser, attrs, theme);
 			}
 
-			if (dr != null)
+			if (dr != null) {
 				addLayer(dr, id, left, top, right, bottom);
+				ChildDrawable child = mLayerState.mChildren[mLayerState.mNum - 1];
+				child.mInsetS = start;
+				child.mInsetE = end;
+				child.mWidth = width;
+				child.mHeight = height;
+				child.mGravity = gravity;
+			}
 		}
 
 		ensurePadding();
@@ -530,10 +547,20 @@ public class LayerDrawable extends Drawable implements Drawable.Callback {
 		int padL = 0, padT = 0, padR = 0, padB = 0;
 		for (int i = 0; i < N; i++) {
 			final ChildDrawable r = array[i];
-			r.mDrawable.setBounds(bounds.left + r.mInsetL + padL,
-			                      bounds.top + r.mInsetT + padT,
-			                      bounds.right - r.mInsetR - padR,
-			                      bounds.bottom - r.mInsetB - padB);
+			final Rect container = new Rect(bounds.left + r.insetLeft() + padL,
+			                                bounds.top + r.mInsetT + padT,
+			                                bounds.right - r.insetRight() - padR,
+			                                bounds.bottom - r.mInsetB - padB);
+			if (r.mWidth < 0 && r.mHeight < 0 && r.mGravity == Gravity.NO_GRAVITY) {
+				r.mDrawable.setBounds(container);
+			} else {
+				// as Android's LayerDrawable.updateLayerBounds: an explicit size or a gravity places the layer inside the inset area
+				int w = r.mWidth >= 0 ? r.mWidth : r.mDrawable.getIntrinsicWidth();
+				int h = r.mHeight >= 0 ? r.mHeight : r.mDrawable.getIntrinsicHeight();
+				final Rect out = new Rect();
+				Gravity.apply(resolveGravity(r.mGravity, r.mWidth, r.mHeight, w, h), w, h, container, out);
+				r.mDrawable.setBounds(out);
+			}
 			padL += mPaddingL[i];
 			padR += mPaddingR[i];
 			padT += mPaddingT[i];
@@ -549,7 +576,7 @@ public class LayerDrawable extends Drawable implements Drawable.Callback {
 		int padL = 0, padR = 0;
 		for (int i = 0; i < N; i++) {
 			final ChildDrawable r = array[i];
-			int w = r.mDrawable.getIntrinsicWidth() + r.mInsetL + r.mInsetR + padL + padR;
+			int w = (r.mWidth >= 0 ? r.mWidth : r.mDrawable.getIntrinsicWidth()) + r.insetLeft() + r.insetRight() + padL + padR;
 			if (w > width) {
 				width = w;
 			}
@@ -567,7 +594,7 @@ public class LayerDrawable extends Drawable implements Drawable.Callback {
 		int padT = 0, padB = 0;
 		for (int i = 0; i < N; i++) {
 			final ChildDrawable r = array[i];
-			int h = r.mDrawable.getIntrinsicHeight() + r.mInsetT + r.mInsetB + +padT + padB;
+			int h = (r.mHeight >= 0 ? r.mHeight : r.mDrawable.getIntrinsicHeight()) + r.mInsetT + r.mInsetB + padT + padB;
 			if (h > height) {
 				height = h;
 			}
@@ -638,18 +665,146 @@ public class LayerDrawable extends Drawable implements Drawable.Callback {
 		super.setLayoutDirection(layoutDirection);
 	}*/
 
-	public void setLayerWidth(int index, int width) {}
+	/* Android's LayerDrawable.resolveGravity: without a gravity a layer fills the
+	 * dimensions it has no size for, and is placed at the top left otherwise. */
+	private static int resolveGravity(int gravity, int width, int height, int intrinsicWidth, int intrinsicHeight) {
+		if (!Gravity.isHorizontal(gravity)) {
+			gravity |= width < 0 ? Gravity.FILL_HORIZONTAL : Gravity.START;
+		}
+		if (!Gravity.isVertical(gravity)) {
+			gravity |= height < 0 ? Gravity.FILL_VERTICAL : Gravity.TOP;
+		}
+		if (width < 0 && intrinsicWidth < 0) {
+			gravity |= Gravity.FILL_HORIZONTAL;
+		}
+		if (height < 0 && intrinsicHeight < 0) {
+			gravity |= Gravity.FILL_VERTICAL;
+		}
+		return gravity;
+	}
 
-	public void setLayerHeight(int index, int height) {}
+	private void layersChanged() {
+		onBoundsChange(getBounds());
+		invalidateSelf();
+	}
 
-	public void setLayerGravity(int index, int gravity) {}
+	public void setLayerSize(int index, int width, int height) {
+		ChildDrawable child = mLayerState.mChildren[index];
+		child.mWidth = width;
+		child.mHeight = height;
+		layersChanged();
+	}
+
+	public void setLayerWidth(int index, int width) {
+		mLayerState.mChildren[index].mWidth = width;
+		layersChanged();
+	}
+
+	public int getLayerWidth(int index) {
+		return mLayerState.mChildren[index].mWidth;
+	}
+
+	public void setLayerHeight(int index, int height) {
+		mLayerState.mChildren[index].mHeight = height;
+		layersChanged();
+	}
+
+	public int getLayerHeight(int index) {
+		return mLayerState.mChildren[index].mHeight;
+	}
+
+	public void setLayerGravity(int index, int gravity) {
+		mLayerState.mChildren[index].mGravity = gravity;
+		layersChanged();
+	}
+
+	public int getLayerGravity(int index) {
+		return mLayerState.mChildren[index].mGravity;
+	}
+
+	public void setLayerInsetRelative(int index, int s, int t, int e, int b) {
+		ChildDrawable child = mLayerState.mChildren[index];
+		child.mInsetS = s;
+		child.mInsetT = t;
+		child.mInsetE = e;
+		child.mInsetB = b;
+		layersChanged();
+	}
+
+	public void setLayerInsetLeft(int index, int l) {
+		mLayerState.mChildren[index].mInsetL = l;
+		layersChanged();
+	}
+
+	public int getLayerInsetLeft(int index) {
+		return mLayerState.mChildren[index].mInsetL;
+	}
+
+	public void setLayerInsetRight(int index, int r) {
+		mLayerState.mChildren[index].mInsetR = r;
+		layersChanged();
+	}
+
+	public int getLayerInsetRight(int index) {
+		return mLayerState.mChildren[index].mInsetR;
+	}
+
+	public void setLayerInsetTop(int index, int t) {
+		mLayerState.mChildren[index].mInsetT = t;
+		layersChanged();
+	}
+
+	public int getLayerInsetTop(int index) {
+		return mLayerState.mChildren[index].mInsetT;
+	}
+
+	public void setLayerInsetBottom(int index, int b) {
+		mLayerState.mChildren[index].mInsetB = b;
+		layersChanged();
+	}
+
+	public int getLayerInsetBottom(int index) {
+		return mLayerState.mChildren[index].mInsetB;
+	}
+
+	public void setLayerInsetStart(int index, int s) {
+		mLayerState.mChildren[index].mInsetS = s;
+		layersChanged();
+	}
+
+	public int getLayerInsetStart(int index) {
+		return mLayerState.mChildren[index].mInsetS;
+	}
+
+	public void setLayerInsetEnd(int index, int e) {
+		mLayerState.mChildren[index].mInsetE = e;
+		layersChanged();
+	}
+
+	public int getLayerInsetEnd(int index) {
+		return mLayerState.mChildren[index].mInsetE;
+	}
 
 	public void setPaddingMode(int paddingMode) {}
+
+	public static final int INSET_UNDEFINED = Integer.MIN_VALUE;
 
 	static class ChildDrawable {
 		public Drawable mDrawable;
 		public int mInsetL, mInsetT, mInsetR, mInsetB;
+		public int mInsetS = INSET_UNDEFINED, mInsetE = INSET_UNDEFINED;
+		public int mWidth = -1, mHeight = -1;
+		public int mGravity = Gravity.NO_GRAVITY;
 		public int mId;
+
+		/* ATL lays out left to right, so start is left and end is right */
+		int insetLeft() {
+			return mInsetS != INSET_UNDEFINED ? mInsetS : mInsetL;
+		}
+
+		int insetRight() {
+			return mInsetE != INSET_UNDEFINED ? mInsetE : mInsetR;
+		}
 	}
 
 	static class LayerState extends ConstantState {
@@ -695,6 +850,11 @@ public class LayerDrawable extends Drawable implements Drawable.Callback {
 					r.mInsetT = or.mInsetT;
 					r.mInsetR = or.mInsetR;
 					r.mInsetB = or.mInsetB;
+					r.mInsetS = or.mInsetS;
+					r.mInsetE = or.mInsetE;
+					r.mWidth = or.mWidth;
+					r.mHeight = or.mHeight;
+					r.mGravity = or.mGravity;
 					r.mId = or.mId;
 				}
 
