@@ -515,5 +515,8 @@ void bionic_glBindFramebuffer(GLenum target, GLuint framebuffer)
 	if (getenv("ATL_DIRECT_EGL") || framebuffer != 0)
 		return glBindFramebuffer(target, framebuffer);
 	ATLSurface *atl_surface = g_hash_table_lookup(draw_surface_hashtable, eglGetCurrentContext());
-	return glBindFramebuffer(target, atl_surface ? atl_surface->back_buffer->gl_framebuffer : 0);
+	/* eglSwapBuffers gives up waiting for a free buffer after 100 ms */
+	if (atl_surface && !atl_surface->back_buffer)
+		atl_surface->back_buffer = g_async_queue_timeout_pop(atl_surface->unused_buffers, 100000);
+	return glBindFramebuffer(target, (atl_surface && atl_surface->back_buffer) ? atl_surface->back_buffer->gl_framebuffer : 0);
 }
