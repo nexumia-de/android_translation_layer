@@ -514,6 +514,7 @@ srcs = [
 	'android/service/notification/StatusBarNotification.java',
 	'android/speech/tts/TextToSpeech.java',
 	'android/speech/tts/UtteranceProgressListener.java',
+	'android/speech/tts/Voice.java',
 	'android/telecom/ConnectionService.java',
 	'android/telecom/TelecomManager.java',
 	'android/telephony/CellLocation.java',
