@@ -30,11 +30,10 @@ System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
 - 2026-11-03: [Permissions decision record](hardening-roadmap.md#decision-record-where-permissions-are-shown-and-changed):
-  one decision is still open: the microphone. The audio socket every app
-  needs for sound also allows recording, so "no" to `RECORD_AUDIO` is
-  enforced by ATL's own code, not by the sandbox (native code could
-  still record). Accept that, or give the audio socket only to apps
-  with `RECORD_AUDIO` (apps without it would then be silent)?
+  microphone decided (hard, through WirePlumber, ATL's check until
+  then). Phone test later, once the WirePlumber rule is in: as `user`,
+  `ls ~/.config/wireplumber/wireplumber.conf.d/` and
+  `pw-dump | grep -c pipewire.access.portal.app_id` while an ATL app plays sound.
 
 - 2026-10-28: Finish the apk repository in
   [nexumia-de/aports](https://github.com/nexumia-de/aports) (signing

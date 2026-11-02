@@ -426,6 +426,38 @@ features and usage pages):
 | Per-app exploit protection toggles (hardened malloc, dynamic code loading, memory tagging) | skip for now | Flatpak gives seccomp and namespaces per app but no per-app hardened malloc or MTE switch; ART needs dynamic code (JIT, dex2oat), so a "no dynamic code" switch would break every app |
 | Hardened kernel, verified boot, OS-level hardening | skip | outside ATL (postmarketOS) |
 
+**Microphone, enforced in PipeWire** (owner, 2026-11-03). The audio
+socket stays (without it apps are silent), and recording is blocked
+below the app:
+
+- First layer, until PipeWire does it: ATL's capture code refuses
+  without a "yes" (native code in the app could still bypass it).
+- Second layer: WirePlumber 0.5.18 (on the phone, with PipeWire 1.6.9)
+  reads `access.permission-managers` and `access.rules` from its
+  configuration (`client/find-config-access.lua`, which runs before the
+  Flatpak rule that gives every Flatpak client `rx` on all objects).
+  `pipewire-pulse`, which a Flatpak's pulseaudio socket talks to, tags
+  each sandboxed client with `pipewire.access.portal.app_id` from its
+  `.flatpak-info`. A configuration in the user's own
+  `~/.config/wireplumber/wireplumber.conf.d/` (no root) therefore
+  can: match `pipewire.access.portal.app_id` `~de.nexumia.atl.*` →
+  a permission manager with `rx` by default and no permissions on nodes
+  with `media.class` `Audio/Source*` (and on sink monitors, which would
+  record other apps' sound); apps answered "yes" match a later rule with
+  the normal Flatpak permissions. The installer service writes that file
+  from the permission store answers.
+- Open, to verify headless with an own PipeWire and WirePlumber: the
+  permission-manager rule syntax, monitor ports, and how a change
+  applies. WirePlumber reads the file only at start, so a change needs
+  `systemctl --user restart wireplumber` (a short audio drop) or a small
+  Lua script next to the configuration that WirePlumber loads from the
+  user's data directory; the script is preferred if WirePlumber's Lua
+  can read the answers without a restart.
+- Packaging: the configuration and any script go into the user's
+  directories by the installer service; a system file in aports is
+  needed only if the user directory turns out not to be read on the
+  phone (postmarketOS starts WirePlumber as a user service, which does).
+
 **Facts behind it** (2026-11-03, on the phone):
 
 - phosh-mobile-settings 0.58 loads GIO modules from the fixed
@@ -450,7 +482,7 @@ features and usage pages):
 | `ACCESS_FINE/COARSE_LOCATION` | location portal | portal dialog at first use | GNOME Settings, at once |
 | `ACCESS_BACKGROUND_LOCATION` | own answer; ATL stops updates while no window is shown otherwise | own dialog | App info |
 | `CAMERA` | camera portal (PipeWire remote with cameras only)[^portal-camera] | portal dialog | GNOME Settings, at once |
-| `RECORD_AUDIO` | own answer; ATL's capture refuses without it. The audio socket that playback needs allows recording too, so this is ATL-enforced, not sandbox-enforced | own dialog | App info |
+| `RECORD_AUDIO` | first ATL's capture check, then PipeWire: WirePlumber gives ATL app clients no access to capture nodes unless the answer is yes (below); playback unaffected | own dialog | App info; next start of the app's audio client |
 | Audio playback (no permission) | audio socket by default | - | - |
 | `POST_NOTIFICATIONS` (API 33+) | notification portal | not asked: allowed, as the portal does | GNOME Settings (switch per app) |
 | `READ_CONTACTS`, `READ_CALENDAR`, `READ/SEND_SMS`, `READ_CALL_LOG`, `READ_PHONE_STATE` | not implemented by ATL: data stays empty | own dialog, so the app sees a real answer | App info |
