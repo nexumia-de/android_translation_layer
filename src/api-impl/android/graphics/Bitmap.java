@@ -6,6 +6,7 @@ import android.util.DisplayMetrics;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.Buffer;
+import java.nio.ByteBuffer;
 
 /*
  * Bitmap is implemented as GdkTexture or GtkSnapshot. It can only be one of the two at a time.
@@ -229,6 +230,25 @@ public final class Bitmap implements Parcelable {
 		}
 		native_copy_to_buffer(getTexture(), buffer, config.gdk_memory_format, getRowBytes());
 		buffer.position(buffer.position() + getAllocationByteCount());
+	}
+
+	public void copyPixelsFromBuffer(Buffer buffer) {
+		if (config != Config.ARGB_8888 || !(buffer instanceof ByteBuffer)) {
+			throw new UnsupportedOperationException("copyPixelsFromBuffer: only ARGB_8888 from a ByteBuffer is implemented");
+		}
+		ByteBuffer bytes = (ByteBuffer)buffer;
+		if (bytes.remaining() < width * height * 4)
+			throw new RuntimeException("Buffer not large enough for pixels");
+		// RGBA bytes in memory, as copyPixelsToBuffer writes them
+		int[] pixels = new int[width * height];
+		for (int i = 0; i < pixels.length; i++) {
+			int r = bytes.get() & 0xff;
+			int g = bytes.get() & 0xff;
+			int b = bytes.get() & 0xff;
+			int a = bytes.get() & 0xff;
+			pixels[i] = (a << 24) | (r << 16) | (g << 8) | b;
+		}
+		setPixels(pixels, 0, width, 0, 0, width, height);
 	}
 
 	public int getByteCount() {
