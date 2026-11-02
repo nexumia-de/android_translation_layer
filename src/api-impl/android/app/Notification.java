@@ -54,6 +54,18 @@ public class Notification implements Parcelable {
 
 	public String category;
 
+	public int priority;
+
+	public PendingIntent contentIntent;
+
+	public int visibility;
+
+	public int number;
+
+	public int color;
+
+	String channelId;
+
 	String text;
 	String title;
 	List<Action> actions = new ArrayList<Action>();
@@ -121,6 +133,7 @@ public class Notification implements Parcelable {
 
 		public Builder setContentIntent(PendingIntent intent) {
 			notification.intent = intent;
+			notification.contentIntent = intent;
 			return this;
 		}
 
@@ -202,11 +215,28 @@ public class Notification implements Parcelable {
 		}
 	}
 
+	public String getChannelId() {
+		return channelId;
+	}
+
+	public android.graphics.drawable.Icon getSmallIcon() {
+		return null;
+	}
+
+	public android.graphics.drawable.Icon getLargeIcon() {
+		return null;
+	}
+
 	public static class Action {
 
 		int icon;
 		String title;
 		PendingIntent intent;
+		public PendingIntent actionIntent;
+
+		public RemoteInput[] getRemoteInputs() {
+			return null;
+		}
 
 		public String toString() {
 			return "Action [" + icon + ", " + title + ", " + intent + "]";
@@ -220,6 +250,7 @@ public class Notification implements Parcelable {
 				action.icon = icon;
 				action.title = String.valueOf(title);
 				action.intent = intent;
+				action.actionIntent = intent;
 			}
 
 			public Builder(Icon icon, CharSequence title, PendingIntent intent) {

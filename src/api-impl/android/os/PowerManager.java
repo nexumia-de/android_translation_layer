@@ -61,8 +61,21 @@ public final class PowerManager {
 		return false;
 	}
 
+	private static native boolean nativeIsScreenOn();
+
+	private static boolean screenOn = true;
+	private static long screenOnChecked;
+
+	/* asked at most once a second; apps call this for every event */
 	public boolean isScreenOn() {
-		return true;
+		long now = SystemClock.uptimeMillis();
+		synchronized (PowerManager.class) {
+			if (screenOnChecked == 0 || now - screenOnChecked > 1000) {
+				screenOn = nativeIsScreenOn();
+				screenOnChecked = now;
+			}
+			return screenOn;
+		}
 	}
 
 	public boolean isIgnoringBatteryOptimizations(String packageName) {
@@ -74,7 +87,7 @@ public final class PowerManager {
 	}
 
 	public boolean isInteractive() {
-		return true;
+		return isScreenOn();
 	}
 
 	public boolean isWakeLockLevelSupported(int level) {

@@ -510,6 +510,7 @@ srcs = [
 	'android/security/keystore/KeyGenerator.java',
 	'android/security/keystore/KeyGenParameterSpec.java',
 	'android/service/media/MediaBrowserService.java',
+	'android/service/notification/NotificationListenerService.java',
 	'android/service/notification/StatusBarNotification.java',
 	'android/speech/tts/TextToSpeech.java',
 	'android/speech/tts/UtteranceProgressListener.java',

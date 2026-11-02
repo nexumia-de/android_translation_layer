@@ -14,6 +14,7 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Slog;
@@ -22,9 +23,11 @@ import dalvik.system.PathClassLoader;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import org.xmlpull.v1.XmlPullParserException;
 
 /**
@@ -193,6 +196,12 @@ public final class ATLLoadedApp {
 			}
 			application.atl_attach_base_context(new ContextImpl(
 			    this.createDefaultResources(), this, pkg.applicationInfo.theme));
+			/* after Application.onCreate, which runs before the main loop handles this */
+			new Handler(Looper.getMainLooper()).post(new Runnable() {
+				public void run() {
+					bindNotificationListeners();
+				}
+			});
 			/* like Android: temporary files go to the app's own cache directory, not the shared /tmp,
 			 * where a directory created by another user is not writable */
 			File cache_dir = application.getCacheDir();
@@ -247,6 +256,39 @@ public final class ATLLoadedApp {
 			activity.setTitle(r.getText(pkg.applicationInfo.labelRes));
 		}
 		return activity;
+	}
+
+	/* the app's services that are notification listeners */
+	public List<ComponentName> getNotificationListeners() {
+		List<ComponentName> result = new ArrayList<>();
+		for (PackageParser.Service service : pkg.services) {
+			if (service.intents == null)
+				continue;
+			for (PackageParser.IntentInfo intentInfo : service.intents) {
+				if (intentInfo.matchAction(android.service.notification.NotificationListenerService.SERVICE_INTERFACE)) {
+					result.add(new ComponentName(pkg.packageName, service.className));
+					break;
+				}
+			}
+		}
+		return result;
+	}
+
+	/* binds them as Android does when the user granted notification access, here ATL_ENABLE_NOTIFICATION_LISTENER */
+	public void bindNotificationListeners() {
+		if (!android.service.notification.NotificationListenerService.isEnabled())
+			return;
+		for (ComponentName component : getNotificationListeners()) {
+			Intent intent = new Intent(android.service.notification.NotificationListenerService.SERVICE_INTERFACE);
+			intent.setComponent(component);
+			startOrBindService(intent, new ServiceConnection() {
+				public void onServiceConnected(ComponentName name, IBinder binder) {
+					android.service.notification.NotificationListenerService.bound(binder);
+				}
+
+				public void onServiceDisconnected(ComponentName name) {}
+			});
+		}
 	}
 
 	public ComponentName startOrBindService(final Intent intent, final ServiceConnection serviceConnection) {
