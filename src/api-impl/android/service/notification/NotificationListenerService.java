@@ -264,10 +264,16 @@ public abstract class NotificationListenerService extends Service {
 
 	/* called on GDBus's worker thread for every Notify call on the session bus */
 	@Export
-	private static void onNotify(String appName, String desktopEntry, int replacesId, String summary, String body, String category, int urgency, boolean resident) {
-		String pkg = desktopEntry != null && !desktopEntry.isEmpty() ? desktopEntry : (appName != null && !appName.isEmpty() ? appName : "unknown");
-		synchronized (desktopSources) {
-			desktopSources.put(pkg, appName != null && !appName.isEmpty() ? appName : pkg);
+	private static void onNotify(String appName, String desktopEntry, int replacesId, String summary, String body, String category, int urgency, boolean resident, boolean own) {
+		String pkg;
+		if (own) {
+			/* as on Android, the app's own notifications carry its own package name */
+			pkg = android.atl.ATLLoadedApp.getPrimaryApplication().pkg.packageName;
+		} else {
+			pkg = desktopEntry != null && !desktopEntry.isEmpty() ? desktopEntry : (appName != null && !appName.isEmpty() ? appName : "unknown");
+			synchronized (desktopSources) {
+				desktopSources.put(pkg, appName != null && !appName.isEmpty() ? appName : pkg);
+			}
 		}
 		Notification notification = new Notification();
 		notification.when = System.currentTimeMillis();
