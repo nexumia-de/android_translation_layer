@@ -171,6 +171,14 @@ build variables. Without `-l`, ATL starts the APK's main activity.
   `natives` directory, not `~/.local/lib`. Without `LD_LIBRARY_PATH` it
   fails with `Error loading shared library libdl_bio.so.0`; check with
   `ldd ~/.local/bin/android-translation-layer`.
+- ATL takes `api-impl.jar`, `framework-res.apk` and its natives from
+  the prefix libart.so is in (`main.c`, `find_jar_or_die`), not from
+  its own. An ATL built into another prefix (`~/.atl-<topic>`, for an
+  agent working next to others) with art in `~/.local` therefore runs
+  the `~/.local` copy of the Java code. Run it from its build
+  directory instead: `cd builddir && RUN_FROM_BUILDDIR=1
+  LD_LIBRARY_PATH=~/.local/lib/art:$LD_LIBRARY_PATH
+  ./android-translation-layer ...`.
 - App data goes to `~/.local/share/android_translation_layer/<apk
   name>_/`, the dex2oat cache to `~/.cache/art/`.
 - ATL opens the phone's vibrator (`/dev/input/event4`); as `claude` this

@@ -20,6 +20,7 @@ Change history is in [log.md](log.md).
 * [Bringing up and auditing an app](app-bring-up.md) - The order of work for every app: manifest, static gap and stub list, run-time stub log, comparison with real Android, per-feature audit.
 * [App status](apps.md) - Every Android app tried with ATL, its state, the cause of failures and the fixes.
 * [App audit](app-audit.md) - Per app and feature: what works, what is stubbed or missing, what is wrong or untested, with the evidence.
+* [Google Play services compatibility](gms-compat.md) - GMS, Firebase and Play APIs in the tested apps, local or server-only, why a local GMS needs Google's certificate, and `ATL_GMS_STUB`.
 * [Installing apps with F-Droid and Aurora Store](installing-apps.md) - How ATL installs, lists and uninstalls APKs, also split APKs from Google Play, how to set up F-Droid and Aurora Store, and the gaps.
 
 # Security
@@ -28,4 +29,5 @@ Change history is in [log.md](log.md).
 
 # Decisions
 
+* [Google Play services APIs only where they work locally](decisions/gms-local-only.md) - Accepted: local GMS APIs in scope, server-only ones out, never Google's certificate or fake attestation.
 * [Every Android app as its own Flatpak](decisions/app-sandbox.md) - Proposed: one Flatpak per app, built on the phone from the APK, on an ATL engine for Flatpak, with a small host broker.
