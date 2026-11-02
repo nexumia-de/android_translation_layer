@@ -49,8 +49,13 @@ the separate user `claude` without sudo or doas.
 
 ## Apps
 
-- Apps that need Google Play Services (Play Integrity, Google sign-in,
-  FCM push) are out of scope.
+- Google Play services APIs that work locally are in scope; anything
+  that needs Google's servers (Play Integrity, Google sign-in, FCM push,
+  billing) stays out. ATL's local GMS may report Google's signing
+  certificate like microG; never contact Google's servers and never
+  fake attestation (Play Integrity, SafetyNet)
+  ([decision](docs/decisions/gms-local-only.md),
+  [GMS compatibility](docs/gms-compat.md)).
 - Status of every app tried, with the cause of each failure and the fix:
   [docs/apps.md](docs/apps.md). Check upstream's issue tracker for known
   reports before debugging an app.

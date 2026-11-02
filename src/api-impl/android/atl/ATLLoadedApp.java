@@ -126,7 +126,7 @@ public final class ATLLoadedApp {
 		}
 		packageParser.collectCertificates(pkg, 0);
 		// Support for MicroG and other custom GMS implementations.
-		if (play_services.contains(pkg.packageName)) {
+		if (ATLToggles.ATL_GMS_STUB && play_services.contains(pkg.packageName)) {
 			ATLSigHelper.addGMSSignatures(pkg);
 		}
 		pkg.applicationInfo.sourceDir = mainApk;
