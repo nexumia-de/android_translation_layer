@@ -530,6 +530,7 @@ srcs = [
 	'android/text/GetChars.java',
 	'android/text/Html.java',
 	'android/text/InputFilter.java',
+	'android/text/InputType.java',
 	'android/text/Layout.java',
 	'android/text/NoCopySpan.java',
 	'android/text/ParcelableSpan.java',
