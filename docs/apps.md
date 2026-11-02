@@ -61,31 +61,28 @@ entry: date, what, why. Remove an entry once it is done.
   and open an APK from the file manager
   ([installing apps](installing-apps.md#opening-an-apk-file)).
 
-- 2026-11-02: Gadgetbridge with the Amazfit Balance, as `user` (the
-  watch is a Zepp OS device: Gadgetbridge needs its auth key, see
-  Gadgetbridge's wiki page "Huami Server pairing"; close any other app
-  that talks to the watch first):
+- 2026-11-02: Gadgetbridge with the Amazfit Balance, after the aports
+  pin that includes ATL pull request #54 is published: `sudo apk upgrade`,
+  then as `user` (close any other app that talks to the watch first; in
+  Phosh's Bluetooth settings, "Forget" the watch if it is listed):
 
   ```sh
-  cd /home/claude/work/atl-gadgetbridge/builddir && env RUN_FROM_BUILDDIR=1 \
-    LD_LIBRARY_PATH=/home/claude/.atl-gadgetbridge/lib:/home/claude/.local/lib:/home/claude/.local/lib/art \
-    XDG_DATA_DIRS=/home/claude/.atl-gadgetbridge/share:/home/claude/.local/share:/usr/local/share:/usr/share \
-    ATL_ENABLE_NOTIFICATION_LISTENER=1 ./android-translation-layer /home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk \
+  ATL_ENABLE_NOTIFICATION_LISTENER=1 android-translation-layer \
+    /home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk \
     2>&1 | tee /tmp/gadgetbridge.log
   ```
 
-  Go through the welcome pages, "Add first device", Start discovery,
-  long-press "Amazfit Balance", enter the auth key under its settings,
-  then tap it, set "About you" or go back, and tap Pair. Report whether it shows "Connected", the battery
-  level and steps after a sync, and whether "Find device" vibrates the
-  watch. The log stays in `/tmp/gadgetbridge.log`.
-  Then lock the phone and let another app notify (a chat message, or
-  `notify-send Test Hello` in a terminal): it should appear on the watch.
-  `ATL_ENABLE_NOTIFICATION_LISTENER=1` gives Gadgetbridge every desktop
-  notification, like Android's notification access.
-  F-Droid's "incompatible" and the APK page's "unsigned" are fixed in this
-  build; in the packaged ATL only after its aports pin moves past this
-  pull request.
+  If the watch is already in Gadgetbridge's device list, remove it there
+  first. Then "+", Start discovery, long-press "Amazfit Balance", enter
+  the auth key under its settings (Gadgetbridge's wiki page "Huami Server
+  pairing"), tap it, go back from "About you", tap Pair, and in ATL's
+  "Bluetooth pairing request" dialog check that the watch shows the same
+  code and tap Pair. Report whether it shows "Connected" and the battery,
+  whether the sync button (circular arrow) fetches steps, and whether it
+  reconnects by itself after the watch was out of range or Bluetooth was
+  off and on, and after the phone was suspended. Then let another app
+  notify (`notify-send Test Hello`): it should appear on the watch. The
+  log stays in `/tmp/gadgetbridge.log`.
 
 # Notes
 
