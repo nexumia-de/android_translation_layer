@@ -399,6 +399,33 @@ Every generated app may talk to a second bus name of the service,
 `de.nexumia.atl.Permissions`; `de.nexumia.atl.Installer` stays limited
 to apps with `REQUEST_INSTALL_PACKAGES`.
 
+**Google services only with consent** (owner, 2026-11-03). An app
+reaches Google servers (FCM push, microG-style services) only after the
+user accepted it for that app: at the app's first request ATL shows a
+warning, "<app> wants to use Google services. This connects to Google
+servers.", with **Deny** and **Accept**; the default is denied. The
+answer is the permission `atl.google-services` (own dialog, stored like
+the others, changeable in App info). Code that talks to Google (the
+push client) checks it with `Context.checkSelfPermission("atl.google-services")`
+and asks with `Activity.requestPermissions`, or, without an activity,
+through the same service call the activity uses. Play Integrity and
+SafetyNet tokens are never faked.
+
+**GrapheneOS as the reference** (owner, 2026-11-03; grapheneos.org
+features and usage pages):
+
+| GrapheneOS feature | Here | Why |
+|---|---|---|
+| Network permission, asked | adopt | install page question, Flatpak override (above) |
+| Sensors permission (accelerometer, compass, ... off unless granted) | adapt | sensors come from iio-sensor-proxy on the system bus; apps get its bus name only after "yes" in an own dialog, next start |
+| Storage Scopes | adapt | apps have no host files at all; what they open goes through the file chooser and documents portals, which is the scoped model by construction |
+| Contact Scopes | adapt | ATL has no contacts provider; once it has one, the app sees only contacts picked through a chooser, never the whole address book |
+| Sandboxed Google Play, never privileged | adapt | no Play services; Google contact only with `atl.google-services` (above), in the app's own sandbox |
+| Notification when something is denied ("X tried to use the network") | adapt | ATL inside the sandbox posts one notification per app and permission when a denied permission blocks a call (network: a failed connect without network access); tapping it opens App info |
+| Auto-revoke permissions of unused apps | adapt, later | the service knows the last start; after 90 days unused it resets own answers and the network override to "ask"; portal answers stay with GNOME Settings |
+| Per-app exploit protection toggles (hardened malloc, dynamic code loading, memory tagging) | skip for now | Flatpak gives seccomp and namespaces per app but no per-app hardened malloc or MTE switch; ART needs dynamic code (JIT, dex2oat), so a "no dynamic code" switch would break every app |
+| Hardened kernel, verified boot, OS-level hardening | skip | outside ATL (postmarketOS) |
+
 **Facts behind it** (2026-11-03, on the phone):
 
 - phosh-mobile-settings 0.58 loads GIO modules from the fixed
@@ -431,6 +458,7 @@ to apps with `REQUEST_INSTALL_PACKAGES`.
 | `BLUETOOTH_CONNECT/SCAN` (API 31+), `BLUETOOTH`, `BLUETOOTH_ADMIN` | `--system-talk-name=org.bluez` as user override | own dialog | App info; next start |
 | `BODY_SENSORS`, `ACTIVITY_RECOGNITION`; plain sensors (no permission) | iio-sensor-proxy (`--system-talk-name=net.hadess.SensorProxy`) for apps that use sensors | own dialog for the dangerous ones | App info; next start |
 | `READ/WRITE_EXTERNAL_STORAGE`, `READ_MEDIA_*`, `MANAGE_EXTERNAL_STORAGE` | none; file chooser and documents portals (Storage Access Framework) | granted inside the app's own storage | - |
+| `atl.google-services` (ATL's own) | own answer; the push client and other Google clients check it | own dialog with a warning, default denied | App info |
 | `REQUEST_INSTALL_PACKAGES` | `de.nexumia.atl.Installer` talk name | every install confirmed on the host | Android apps page |
 | `RECEIVE_BOOT_COMPLETED`, autostart, background work | no background portal on Phosh: not available | - | - |
 | Normal permissions (`VIBRATE`, `WAKE_LOCK`, `ACCESS_NETWORK_STATE`, ...) | granted, like Android | - | - |
