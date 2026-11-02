@@ -19,6 +19,7 @@ public class ImageView extends View {
 	private ScaleType scaleType = ScaleType.FIT_CENTER;
 	private Drawable drawable = null;
 	private ColorFilter colorFilter = null;
+	private int level = 0;
 
 	public ImageView(Context context) {
 		this(context, null);
@@ -88,6 +89,16 @@ public class ImageView extends View {
 			drawable.setCallback(this);
 		}
 		native_setDrawable(widget, drawable != null ? drawable.paintable : 0);
+		if (drawable != null && level != 0) {
+			drawable.setLevel(level);
+		}
+	}
+
+	public void setImageLevel(int level) {
+		this.level = level;
+		if (drawable != null) {
+			drawable.setLevel(level);
+		}
 	}
 
 	public void setImageMatrix(Matrix matrix) {}

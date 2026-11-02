@@ -2207,8 +2207,27 @@ public class PackageManager {
 	 * @return An array of FeatureInfo classes describing the features
 	 * that are available on the system, or null if there are none(!!).
 	 */
+	/* the features hasSystemFeature reports; app stores such as F-Droid compare an app's required features with this list */
+	private static final String[] KNOWN_FEATURES = {
+		"android.hardware.touchscreen.multitouch.distinct",
+		FEATURE_AUTOMOTIVE,
+		FEATURE_LEANBACK,
+		FEATURE_TELEVISION,
+		FEATURE_WATCH,
+		FEATURE_BLUETOOTH,
+		FEATURE_BLUETOOTH_LE,
+	};
+
 	public FeatureInfo[] getSystemAvailableFeatures() {
-		return new FeatureInfo[0];
+		java.util.List<FeatureInfo> features = new java.util.ArrayList<>();
+		for (String name : KNOWN_FEATURES) {
+			if (hasSystemFeature(name)) {
+				FeatureInfo info = new FeatureInfo();
+				info.name = name;
+				features.add(info);
+			}
+		}
+		return features.toArray(new FeatureInfo[0]);
 	}
 
 	/**

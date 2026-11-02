@@ -23,6 +23,14 @@ public class Settings {
 					return "_totally_an_androidID"; // TODO: is this a good ID? :P
 				case "advertising_id":
 					return "";
+				case "enabled_notification_listeners": {
+					if (!android.service.notification.NotificationListenerService.isEnabled())
+						return "";
+					StringBuilder listeners = new StringBuilder();
+					for (android.content.ComponentName component : android.atl.ATLLoadedApp.getPrimaryApplication().getNotificationListeners())
+						listeners.append(listeners.length() > 0 ? ":" : "").append(component.flattenToString());
+					return listeners.toString();
+				}
 				default:
 					Slog.w(TAG, "!!!! getString: unknown key: >" + key + "<");
 					return "NOTICEME";

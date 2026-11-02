@@ -350,12 +350,19 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 				final Activity activity = internalCreateActivity(intent.getComponent().getClassName(), getWindow().native_window, intent);
 				activity.resultRequestCode = requestCode;
 				activity.resultActivity = this;
-				runOnUiThread(new Runnable() {
+				Runnable start = new Runnable() {
 					@Override
 					public void run() {
 						nativeStartActivity(activity);
 					}
-				});
+				};
+				/* started from onCreate: this activity is not on the stack yet, and the new one
+				 * belongs above it, as on Android (Gadgetbridge's pairing page opens the user
+				 * settings from onCreate, which then ended up hidden below it) */
+				if (creating)
+					new Handler(Looper.getMainLooper()).post(start);
+				else
+					runOnUiThread(start);
 			} catch (ReflectiveOperationException e) {
 				onActivityResult(requestCode, 0 /*RESULT_CANCELED*/, new Intent());
 			}
@@ -459,9 +466,21 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		startActivityForResult(intent, requestCode, null);
 	}
 
+	/* like Android, the result goes to the caller when this activity finishes, RESULT_CANCELED
+	 * unless set; Gadgetbridge's pairing page waited forever for the user settings closed with back */
+	private int resultCode = RESULT_CANCELED;
+	private Intent resultData;
+	private boolean resultSent;
+
 	public void setResult(int resultCode, Intent data) {
-		if (resultActivity != null) {
-			resultActivity.onActivityResult(resultRequestCode, resultCode, data);
+		this.resultCode = resultCode;
+		this.resultData = data;
+	}
+
+	private void sendResult() {
+		if (resultActivity != null && !resultSent && resultRequestCode >= 0) {
+			resultSent = true;
+			resultActivity.onActivityResult(resultRequestCode, resultCode, resultData);
 		}
 	}
 
@@ -508,6 +527,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		new Handler(Looper.getMainLooper()).post(new Runnable() {
 			@Override
 			public void run() {
+				sendResult();
 				if (window != null && window.native_window != 0) {
 					nativeFinish(getWindow().native_window);
 					window.native_window = 0;
@@ -619,6 +639,17 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 
 	public Intent getParentActivityIntent() {
 		return null;
+	}
+
+	/* ATL runs every activity of an app in one task, so the parent is never in another task */
+	public boolean shouldUpRecreateTask(Intent targetIntent) {
+		return false;
+	}
+
+	/* TODO: finish every activity above the parent, not only this one */
+	public boolean navigateUpTo(Intent upIntent) {
+		finish();
+		return true;
 	}
 
 	@Override
@@ -734,10 +765,18 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	}
 
 	/* the lifecycle as ATL runs it, with the pre and post callbacks around the app's methods */
+	/* true while onCreate runs */
+	private boolean creating;
+
 	@Export
 	final void performCreate(Bundle savedInstanceState) {
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_CREATED, savedInstanceState);
-		onCreate(savedInstanceState);
+		creating = true;
+		try {
+			onCreate(savedInstanceState);
+		} finally {
+			creating = false;
+		}
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_CREATED, savedInstanceState);
 	}
 

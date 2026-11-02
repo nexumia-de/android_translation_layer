@@ -204,13 +204,15 @@ No stub log yet.
 
 | Feature | State | Evidence |
 |---|---|---|
+| Install from F-Droid or the APK file | `headless` | Install page accepts the APK since the v3 signer fix (2026-11-02); F-Droid's compatibility check uses the now filled `getSystemAvailableFeatures` |
 | Start, welcome pages | `headless` | All five pages, 2026-11-02; the changelog dialog on first start is empty |
 | Permissions page | `wrong` | Lists calendar, contacts, location, do-not-disturb, notification access and more as not granted; requesting them does nothing useful |
 | Device discovery | `headless` | BLE scan and classic discovery through BlueZ found the owner's Amazfit Balance as supported and bonded ([screenshot](screenshots/gadgetbridge-discovery-2026-11-02.png)); BlueZ's discovery stops afterwards |
-| Pairing, connecting, sync (BLE GATT) | `untested` | Implemented on BlueZ ([Bluetooth](bluetooth.md)); an owner test with the watch ([app status](apps.md#needs-owner)). GATT reads as `claude` work (`busctl`) |
+| Pairing, connecting (BLE GATT) | `headless` | With a dummy auth key: connect, service discovery, notifications and writes up to Zepp OS authentication, which then fails on the key (2026-11-02). With the real key an owner test ([app status](apps.md#needs-owner)) |
+| Sync | `untested` | Needs the real auth key |
 | Devices needing a GATT server on the phone | `missing` | `BluetoothManager.openGattServer` returns null |
 | Classic Bluetooth devices (RFCOMM) | `missing` | `BluetoothSocket.connect` throws |
-| Forwarding phone notifications | `missing` | `NotificationListenerService` and `StatusBarNotification` absent (11 and 20+ own calls) |
+| Forwarding phone notifications | `headless` | With `ATL_ENABLE_NOTIFICATION_LISTENER=1`, a desktop notification sent on the test session bus reached Gadgetbridge's listener; forwarding to the watch is an owner test. By default Gadgetbridge forwards only while the screen is off, which ATL now reads from Phosh |
 | Calls on the watch | `missing` | No telephony state on the phone side |
 | Music control | `missing` | `MediaController$TransportControls`, `AudioManager.dispatchMediaKeyEvent` |
 | Do not disturb | `missing` | Reported as not granted, the desktop owns it |

@@ -217,6 +217,9 @@ public class ApkSignatureSchemeV3Verifier {
         return result;
     }
 
+    /** The platform level signers are chosen for: the last one without APK Signature Scheme v3.1. */
+    static final int VERIFIER_SDK_INT = 32;
+
     private static VerifiedSigner verifySigner(
             ByteBuffer signerBlock,
             Map<Integer, byte[]> contentDigests,
@@ -226,11 +229,15 @@ public class ApkSignatureSchemeV3Verifier {
         int minSdkVersion = signerBlock.getInt();
         int maxSdkVersion = signerBlock.getInt();
 
-        if (Build.VERSION.SDK_INT < minSdkVersion || Build.VERSION.SDK_INT > maxSdkVersion) {
+        // ATL: Build.VERSION.SDK_INT is the level ATL emulates for the running app, often its
+        // minSdk (23 for Gadgetbridge), not the platform's. A signer is chosen for the platform
+        // that verifies: this verifier implements v3 but not v3.1, whose rotated signers start at
+        // API 33, so it verifies as an API 32 platform would.
+        if (VERIFIER_SDK_INT < minSdkVersion || VERIFIER_SDK_INT > maxSdkVersion) {
             // this signature isn't meant to be used with this platform, skip it.
             throw new PlatformNotSupportedException(
                     "Signer not supported by this platform "
-                    + "version. This platform: " + Build.VERSION.SDK_INT
+                    + "version. This platform: " + VERIFIER_SDK_INT
                     + ", signer minSdkVersion: " + minSdkVersion
                     + ", maxSdkVersion: " + maxSdkVersion);
         }

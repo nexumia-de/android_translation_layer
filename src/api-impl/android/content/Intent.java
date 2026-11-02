@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.xmlpull.v1.XmlPullParser;
 
-public class Intent implements Parcelable {
+public class Intent implements Parcelable, Cloneable {
 	public static final int FLAG_ACTIVITY_CLEAR_TOP = 1 << 26;
 	public static final int FLAG_ACTIVITY_NEW_TASK = 1 << 28;
 	public static final int FLAG_ACTIVITY_CLEAR_TASK = 1 << 15;
@@ -496,6 +496,11 @@ public class Intent implements Parcelable {
 
 	@Export
 	public Intent() {}
+	@Override
+	public Object clone() {
+		return new Intent(this);
+	}
+
 	public Intent(Intent o) {
 		this.action = o.action;
 		this.data = o.data;
