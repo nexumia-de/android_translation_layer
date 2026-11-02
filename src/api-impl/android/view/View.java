@@ -2337,6 +2337,17 @@ public class View implements Drawable.Callback {
 
 	public void setHapticFeedbackEnabled(boolean hapticFeedbackEnabled) {}
 
+	/* no other app can draw over this one on Wayland, so there are no obscured touches to filter */
+	private boolean filterTouchesWhenObscured;
+
+	public void setFilterTouchesWhenObscured(boolean enabled) {
+		filterTouchesWhenObscured = enabled;
+	}
+
+	public boolean getFilterTouchesWhenObscured() {
+		return filterTouchesWhenObscured;
+	}
+
 	public StateListAnimator getStateListAnimator() { return null; }
 
 	public void requestFitSystemWindows() {}

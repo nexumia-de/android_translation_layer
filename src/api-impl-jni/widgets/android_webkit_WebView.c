@@ -13,6 +13,8 @@
 #include "../generated_headers/android_view_View.h"
 #include "../generated_headers/android_webkit_WebView.h"
 
+char *get_app_data_dir();
+
 static void asset_uri_scheme_request_cb(WebKitURISchemeRequest *request, gpointer user_data)
 {
 	const gchar *path = webkit_uri_scheme_request_get_path(request);
@@ -46,6 +48,89 @@ static void bridge_uri_scheme_request_cb(WebKitURISchemeRequest *request, gpoint
 	webkit_uri_scheme_request_finish_with_response(request, response);
 	g_object_unref(response);
 	g_object_unref(stream);
+}
+
+static void intercept_uri_scheme_request_cb(WebKitURISchemeRequest *request, gpointer user_data)
+{
+	JNIEnv *env = get_jni_env();
+	WrapperWidget *wrapper = WRAPPER_WIDGET(gtk_widget_get_parent(gtk_widget_get_parent(GTK_WIDGET(webkit_uri_scheme_request_get_web_view(request)))));
+	SoupMessageHeaders *headers = webkit_uri_scheme_request_get_http_headers(request);
+	GPtrArray *pairs = g_ptr_array_new();
+	if (headers) {
+		SoupMessageHeadersIter iter;
+		const char *name, *value;
+		soup_message_headers_iter_init(&iter, headers);
+		while (soup_message_headers_iter_next(&iter, &name, &value)) {
+			g_ptr_array_add(pairs, (gpointer)name);
+			g_ptr_array_add(pairs, (gpointer)value);
+		}
+	}
+	jobjectArray header_array = (*env)->NewObjectArray(env, pairs->len, (*env)->FindClass(env, "java/lang/String"), NULL);
+	for (guint i = 0; i < pairs->len; i++) {
+		jstring str = _JSTRING(g_ptr_array_index(pairs, i));
+		(*env)->SetObjectArrayElement(env, header_array, i, str);
+		(*env)->DeleteLocalRef(env, str);
+	}
+	g_ptr_array_free(pairs, TRUE);
+	/* the reference is given up in native_finishInterceptedRequest */
+	jstring uri = _JSTRING(webkit_uri_scheme_request_get_uri(request));
+	jstring method = _JSTRING(webkit_uri_scheme_request_get_http_method(request));
+	J__WebView__internalInterceptRequest(env, wrapper->jobj, _INTPTR(g_object_ref(request)), uri, method, header_array);
+	(*env)->DeleteLocalRef(env, uri);
+	(*env)->DeleteLocalRef(env, method);
+	(*env)->DeleteLocalRef(env, header_array);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		GError *error = g_error_new_literal(G_IO_ERROR, G_IO_ERROR_FAILED, "shouldInterceptRequest failed");
+		webkit_uri_scheme_request_finish_error(request, error);
+		g_error_free(error);
+		g_object_unref(request);
+	}
+}
+
+static char *dup_jstring(JNIEnv *env, jstring str)
+{
+	if (!str)
+		return NULL;
+	const char *chars = (*env)->GetStringUTFChars(env, str, NULL);
+	char *copy = g_strdup(chars);
+	(*env)->ReleaseStringUTFChars(env, str, chars);
+	return copy;
+}
+
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1finishInterceptedRequest(JNIEnv *env, jclass class, jlong request_ptr, jint status, jstring reason, jstring mime_type, jobjectArray headers, jbyteArray body)
+{
+	WebKitURISchemeRequest *request = _PTR(request_ptr);
+	jsize length = (*env)->GetArrayLength(env, body);
+	gpointer data = g_malloc(length);
+	(*env)->GetByteArrayRegion(env, body, 0, length, data);
+	GInputStream *stream = g_memory_input_stream_new_from_data(data, length, g_free);
+	WebKitURISchemeResponse *response = webkit_uri_scheme_response_new(stream, length);
+	char *reason_str = dup_jstring(env, reason);
+	char *mime_type_str = dup_jstring(env, mime_type);
+	webkit_uri_scheme_response_set_status(response, status, reason_str);
+	if (mime_type_str)
+		webkit_uri_scheme_response_set_content_type(response, mime_type_str);
+	g_free(reason_str);
+	g_free(mime_type_str);
+	SoupMessageHeaders *response_headers = soup_message_headers_new(SOUP_MESSAGE_HEADERS_RESPONSE);
+	for (jsize i = 0; i + 1 < (*env)->GetArrayLength(env, headers); i += 2) {
+		jstring name = (*env)->GetObjectArrayElement(env, headers, i);
+		jstring value = (*env)->GetObjectArrayElement(env, headers, i + 1);
+		char *name_str = dup_jstring(env, name);
+		char *value_str = dup_jstring(env, value);
+		if (name_str && value_str)
+			soup_message_headers_append(response_headers, name_str, value_str);
+		g_free(name_str);
+		g_free(value_str);
+		(*env)->DeleteLocalRef(env, name);
+		(*env)->DeleteLocalRef(env, value);
+	}
+	webkit_uri_scheme_response_set_http_headers(response, response_headers);
+	webkit_uri_scheme_request_finish_with_response(request, response);
+	g_object_unref(response);
+	g_object_unref(stream);
+	g_object_unref(request);
 }
 
 static void evaluate_cb(GObject *source, GAsyncResult *result, gpointer user_data)
@@ -99,7 +184,7 @@ static gboolean decide_policy(WebKitWebView *web_view, WebKitPolicyDecision *dec
 		const gchar *uri = webkit_uri_request_get_uri(request);
 
 		JNIEnv *env = get_jni_env();
-		jboolean result = J__WebView__internalShouldOverrideUrlLoading(env, wrapper->jobj, _JSTRING(uri));
+		jboolean result = J__WebView__internalShouldOverrideUrlLoading(env, wrapper->jobj, _JSTRING(uri), JNI_TRUE);
 		if (result)
 			webkit_policy_decision_ignore(decision);
 		else
@@ -121,7 +206,16 @@ static WebKitWebView *get_web_view(GtkWidget *box, gboolean javascript_enabled)
 	GtkWidget *webview = gtk_widget_get_first_child(box);
 	if (!webview) {
 		WrapperWidget *wrapper = WRAPPER_WIDGET(gtk_widget_get_parent(box));
-		webview = webkit_web_view_new();
+		/* the app's own website data (localStorage, IndexedDB, cookies), like app_webview on Android */
+		static WebKitNetworkSession *session = NULL;
+		if (!session) {
+			char *data_dir = g_build_filename(get_app_data_dir(), "app_webview", NULL);
+			char *cache_dir = g_build_filename(get_app_data_dir(), "cache", "webview", NULL);
+			session = webkit_network_session_new(data_dir, cache_dir);
+			g_free(data_dir);
+			g_free(cache_dir);
+		}
+		webview = g_object_new(WEBKIT_TYPE_WEB_VIEW, "network-session", session, NULL);
 		gtk_widget_set_hexpand(webview, TRUE);
 		gtk_widget_set_vexpand(webview, TRUE);
 		gtk_box_append(GTK_BOX(box), webview);
@@ -132,11 +226,19 @@ static WebKitWebView *get_web_view(GtkWidget *box, gboolean javascript_enabled)
 			WebKitSecurityManager *security_manager = webkit_web_context_get_security_manager(webkit_web_view_get_context(WEBKIT_WEB_VIEW(webview)));
 			webkit_security_manager_register_uri_scheme_as_cors_enabled(security_manager, "atl-bridge");
 			webkit_security_manager_register_uri_scheme_as_secure(security_manager, "atl-bridge");
+			/* pages of clients that intercept requests, see WebView.toWebKitUrl */
+			for (const char **scheme = (const char *[]){"atl-http", "atl-https", NULL}; *scheme; scheme++) {
+				webkit_web_context_register_uri_scheme(webkit_web_view_get_context(WEBKIT_WEB_VIEW(webview)), *scheme, intercept_uri_scheme_request_cb, NULL, NULL);
+				webkit_security_manager_register_uri_scheme_as_cors_enabled(security_manager, *scheme);
+				webkit_security_manager_register_uri_scheme_as_secure(security_manager, *scheme);
+			}
 			uri_scheme_registered = TRUE;
 		}
 		g_signal_connect(webview, "load-changed", G_CALLBACK(web_view_load_changed), wrapper);
 		g_signal_connect(webview, "decide-policy", G_CALLBACK(decide_policy), wrapper);
 	}
+	/* console.log and errors of the page go to the app's log, as Android's chromium logs them */
+	webkit_settings_set_enable_write_console_messages_to_stdout(webkit_web_view_get_settings(WEBKIT_WEB_VIEW(webview)), TRUE);
 	/* scripts of the page; the ones we evaluate ourselves still run */
 	webkit_settings_set_enable_javascript_markup(webkit_web_view_get_settings(WEBKIT_WEB_VIEW(webview)), javascript_enabled);
 	return WEBKIT_WEB_VIEW(webview);

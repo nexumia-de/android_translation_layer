@@ -321,6 +321,14 @@ JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1reload
 JNIEXPORT jstring JNICALL Java_android_webkit_WebView_native_1getUrl
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     android_webkit_WebView
+ * Method:    native_finishInterceptedRequest
+ * Signature: (JILjava/lang/String;Ljava/lang/String;[Ljava/lang/String;[B)V
+ */
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1finishInterceptedRequest
+  (JNIEnv *, jclass, jlong, jint, jstring, jstring, jobjectArray, jbyteArray);
+
 #ifdef __cplusplus
 }
 #endif

@@ -4,12 +4,24 @@ import android.atl.annotation.Export;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Base64;
 import android.view.ViewGroup;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,18 +58,172 @@ public class WebView extends ViewGroup {
 
 	public void setWebViewClient(WebViewClient webViewClient) {
 		this.webViewClient = webViewClient;
+		interceptRequests = webViewClient != null && overridesInterceptRequest(webViewClient.getClass());
 	}
+
+	/* WebKitGTK cannot intercept http and https. When the client wants to (Capacitor and
+	 * WebViewAssetLoader serve the app from https://localhost/ that way), the page is loaded
+	 * through the own scheme atl-https:// instead, which WebKit hands to internalInterceptRequest. */
+	private static final String INTERCEPT_PREFIX = "atl-";
+	private static final ExecutorService interceptExecutor = Executors.newCachedThreadPool();
+	private boolean interceptRequests;
+	private String mainFrameUrl;
+	private int progress;
+
+	private static boolean overridesInterceptRequest(Class<?> clazz) {
+		for (; clazz != null && clazz != WebViewClient.class; clazz = clazz.getSuperclass()) {
+			for (Method method : clazz.getDeclaredMethods()) {
+				if (method.getName().equals("shouldInterceptRequest"))
+					return true;
+			}
+		}
+		return false;
+	}
+
+	private String toWebKitUrl(String url) {
+		if (interceptRequests && url != null && (url.startsWith("http://") || url.startsWith("https://")))
+			return INTERCEPT_PREFIX + url;
+		return url;
+	}
+
+	private static String toAndroidUrl(String url) {
+		if (url != null && (url.startsWith("atl-http://") || url.startsWith("atl-https://")))
+			return url.substring(INTERCEPT_PREFIX.length());
+		return url;
+	}
+
+	private static class Request implements WebResourceRequest {
+		private final Uri url;
+		private final String method;
+		private final Map<String, String> headers = new HashMap<>();
+		private final boolean mainFrame;
+
+		Request(String url, String method, String[] headers, boolean mainFrame) {
+			this.url = Uri.parse(url);
+			this.method = method != null ? method : "GET";
+			for (int i = 0; headers != null && i + 1 < headers.length; i += 2)
+				this.headers.put(headers[i], headers[i + 1]);
+			this.mainFrame = mainFrame;
+		}
+
+		public Uri getUrl() { return url; }
+		public boolean isForMainFrame() { return mainFrame; }
+		public boolean isRedirect() { return false; }
+		public boolean hasGesture() { return false; }
+		public String getMethod() { return method; }
+		public Map<String, String> getRequestHeaders() { return headers; }
+	}
+
+	private static byte[] readAll(InputStream in) throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		byte[] buffer = new byte[65536];
+		int n;
+		try {
+			while ((n = in.read(buffer)) > 0)
+				out.write(buffer, 0, n);
+		} finally {
+			in.close();
+		}
+		return out.toByteArray();
+	}
+
+	/* the client returned nothing: load the resource from the network, as Android does */
+	private static WebResourceResponse fetch(Request request) throws IOException {
+		HttpURLConnection connection = (HttpURLConnection)new URL(request.getUrl().toString()).openConnection();
+		connection.setRequestMethod(request.getMethod());
+		for (Map.Entry<String, String> header : request.getRequestHeaders().entrySet())
+			connection.setRequestProperty(header.getKey(), header.getValue());
+		int status = connection.getResponseCode();
+		InputStream in = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
+		Map<String, String> headers = new HashMap<>();
+		for (Map.Entry<String, List<String>> header : connection.getHeaderFields().entrySet()) {
+			if (header.getKey() != null && !header.getValue().isEmpty())
+				headers.put(header.getKey(), header.getValue().get(0));
+		}
+		String mimeType = connection.getContentType();
+		if (mimeType != null && mimeType.contains(";"))
+			mimeType = mimeType.substring(0, mimeType.indexOf(';')).trim();
+		return new WebResourceResponse(mimeType, connection.getContentEncoding(), status, connection.getResponseMessage(), headers, in);
+	}
+
+	// to be used by native code; the client runs on a worker thread, as on Android
+	@Export
+	void internalInterceptRequest(final long request, String url, String method, String[] headers) {
+		final WebViewClient client = webViewClient;
+		final String androidUrl = toAndroidUrl(url);
+		final Request androidRequest = new Request(androidUrl, method, headers, androidUrl.equals(mainFrameUrl));
+		final Handler handler = new Handler(Looper.getMainLooper());
+		interceptExecutor.execute(new Runnable() {
+			@Override
+			public void run() {
+				int status = 404;
+				String reason = "Not Found";
+				String mimeType = null;
+				List<String> responseHeaders = new ArrayList<>();
+				byte[] body = new byte[0];
+				try {
+					WebResourceResponse response = client != null ? client.shouldInterceptRequest(WebView.this, androidRequest) : null;
+					if (response == null)
+						response = fetch(androidRequest);
+					if (response.getData() != null) {
+						status = response.getStatusCode();
+						reason = response.getReasonPhrase();
+						body = readAll(response.getData());
+					}
+					mimeType = response.getMimeType();
+					if (mimeType != null && response.getEncoding() != null && mimeType.startsWith("text/"))
+						mimeType += "; charset=" + response.getEncoding();
+					if (response.getResponseHeaders() != null) {
+						for (Map.Entry<String, String> header : response.getResponseHeaders().entrySet()) {
+							responseHeaders.add(header.getKey());
+							responseHeaders.add(header.getValue());
+						}
+					}
+				} catch (IOException | RuntimeException e) {
+					e.printStackTrace();
+				}
+				final int finalStatus = status;
+				final String finalReason = reason;
+				final String finalMimeType = mimeType;
+				final String[] finalHeaders = responseHeaders.toArray(new String[0]);
+				final byte[] finalBody = body;
+				handler.post(new Runnable() {
+					@Override
+					public void run() {
+						native_finishInterceptedRequest(request, finalStatus, finalReason, finalMimeType, finalHeaders, finalBody);
+					}
+				});
+			}
+		});
+	}
+
+	public int getProgress() {
+		return progress;
+	}
+
+	public WebBackForwardList saveState(Bundle outState) {
+		return null;
+	}
+
+	public WebBackForwardList restoreState(Bundle inState) {
+		return null;
+	}
+
+	public void pauseTimers() {}
 
 	// to be used by native code
 	@Export
 	void internalLoadChanged(int loadState, String url) {
+		url = toAndroidUrl(url);
 		if (loadState == /*WEBKIT_LOAD_STARTED*/ 0) {
 			if (webViewClient != null)
 				webViewClient.onPageStarted(this, url, null);
 			// Android reports some progress right away, too
+			progress = 10;
 			if (webChromeClient != null)
 				webChromeClient.onProgressChanged(this, 10);
 		} else if (loadState == /*WEBKIT_LOAD_FINISHED*/ 3) {
+			progress = 100;
 			if (webChromeClient != null)
 				webChromeClient.onProgressChanged(this, 100);
 			if (webViewClient != null)
@@ -66,14 +232,17 @@ public class WebView extends ViewGroup {
 	}
 
 	@Export
-	boolean internalShouldOverrideUrlLoading(String url) {
+	boolean internalShouldOverrideUrlLoading(String url, boolean mainFrame) {
+		url = toAndroidUrl(url);
+		if (mainFrame)
+			mainFrameUrl = url;
 		// on Android the app's own loadUrl/loadData does not reach the client
 		if (ownLoadPending || url.startsWith("about:")) {
 			ownLoadPending = false;
 			return false;
 		}
 		if (webViewClient != null)
-			return webViewClient.shouldOverrideUrlLoading(this, url);
+			return webViewClient.shouldOverrideUrlLoading(this, new Request(url, "GET", null, mainFrame));
 		else
 			return false;
 	}
@@ -136,7 +305,7 @@ public class WebView extends ViewGroup {
 		data = data.replace("file:///android_asset/", "android-asset:///assets/");
 		ownLoadPending = true;
 		updateBridgeScript();
-		native_loadDataWithBaseURL(widget, baseUrl, data, mimeType, encoding, settings.getJavaScriptEnabled());
+		native_loadDataWithBaseURL(widget, toWebKitUrl(baseUrl), data, mimeType, encoding, settings.getJavaScriptEnabled());
 	}
 
 	public void loadUrl(String url) {
@@ -147,8 +316,9 @@ public class WebView extends ViewGroup {
 		// webkit doesn't allow overwriting the file:// uri scheme. So we replace it with the android-asset:// scheme
 		url = url.replace("file:///android_asset/", "android-asset:///assets/");
 		ownLoadPending = true;
+		mainFrameUrl = url;
 		updateBridgeScript();
-		native_loadUrl(widget, url, settings.getJavaScriptEnabled());
+		native_loadUrl(widget, toWebKitUrl(url), settings.getJavaScriptEnabled());
 	}
 
 	public void stopLoading() {}
@@ -182,7 +352,7 @@ public class WebView extends ViewGroup {
 	}
 
 	public String getUrl() {
-		return native_getUrl(widget);
+		return toAndroidUrl(native_getUrl(widget));
 	}
 
 	// to be used by native code
@@ -308,4 +478,5 @@ public class WebView extends ViewGroup {
 	private native void native_goBackOrForward(long widget, int steps);
 	private native void native_reload(long widget);
 	private native String native_getUrl(long widget);
+	private static native void native_finishInterceptedRequest(long request, int status, String reason, String mimeType, String[] headers, byte[] body);
 }
