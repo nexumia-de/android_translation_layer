@@ -136,27 +136,38 @@ public final class Discovery {
 		}
 		boolean wanted = classic || !leScans.isEmpty();
 		String filter = classic ? "auto" : "le";
-		try {
-			if (wanted && (!running || !filter.equals(runningFilter))) {
-				Map<String, Object> filterArgs = new HashMap<>();
-				filterArgs.put("Transport", filter);
-				filterArgs.put("DuplicateData", Boolean.TRUE);
+		if (wanted && (!running || !filter.equals(runningFilter))) {
+			Map<String, Object> filterArgs = new HashMap<>();
+			filterArgs.put("Transport", filter);
+			filterArgs.put("DuplicateData", Boolean.TRUE);
+			try {
 				BlueZ.call(adapter.path, BlueZ.ADAPTER, "SetDiscoveryFilter", "a{sv}", filterArgs);
-				if (!running)
-					BlueZ.call(adapter.path, BlueZ.ADAPTER, "StartDiscovery", "");
-				running = true;
 				runningFilter = filter;
-			} else if (!wanted && running) {
-				running = false;
-				BlueZ.call(adapter.path, BlueZ.ADAPTER, "StopDiscovery", "");
+			} catch (IOException e) {
+				Slog.w(TAG, "SetDiscoveryFilter: " + e.getMessage());
 			}
-			return true;
-		} catch (IOException e) {
-			Slog.w(TAG, "discovery: " + e.getMessage());
-			if (e.getMessage() != null && e.getMessage().contains("InProgress"))
-				return true;
-			return false;
+			if (!running) {
+				try {
+					BlueZ.call(adapter.path, BlueZ.ADAPTER, "StartDiscovery", "");
+				} catch (IOException e) {
+					/* InProgress: this client's session is starting or already runs; it still has to be stopped later */
+					if (e.getMessage() == null || !e.getMessage().contains("InProgress")) {
+						Slog.w(TAG, "StartDiscovery: " + e.getMessage());
+						return false;
+					}
+				}
+				running = true;
+			}
+		} else if (!wanted && running) {
+			running = false;
+			runningFilter = null;
+			try {
+				BlueZ.call(adapter.path, BlueZ.ADAPTER, "StopDiscovery", "");
+			} catch (IOException e) {
+				Slog.w(TAG, "StopDiscovery: " + e.getMessage());
+			}
 		}
+		return true;
 	}
 
 	static void sendFound(String path) {
