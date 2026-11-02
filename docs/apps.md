@@ -60,14 +60,6 @@ entry: date, what, why. Remove an entry once it is done.
   and open an APK from the file manager
   ([installing apps](installing-apps.md#opening-an-apk-file)).
 
-- 2026-11-02: Google Play services: a local GMS for the apps (fused
-  location on `LocationManager`, Maps on MapLibre, Mobile Vision
-  barcodes for DHL) is only reachable if ATL reports Google's signing
-  certificate for it, which the
-  [decision of 2026-11-01](decisions/gms-local-only.md) rules out.
-  Decide whether to allow it per app, or keep GMS absent
-  ([GMS compatibility](gms-compat.md)).
-
 # Notes
 
 APKs come from F-Droid with their `.asc` signature, checked against

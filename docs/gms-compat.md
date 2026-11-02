@@ -1,7 +1,7 @@
 ---
 type: Concept
 title: Google Play services compatibility
-description: Which Google Play services, Firebase, Play Core and billing APIs the tested apps ship, which of them could work locally and which need Google's servers, why a local GMS is out of reach without Google's certificate, and how ATL reports GMS (ATL_GMS_STUB).
+description: Which Google Play services, Firebase, Play Core and billing APIs the tested apps ship, which of them could work locally and which need Google's servers, why a local GMS needs Google's certificate, how ATL reports GMS per app (ATL_GMS_STUB), and the plan for local fused location and Maps.
 resource: ../src/api-impl/android/atl/ATLToggles.java
 tags: [gms, google-play-services, firebase, location, maps, compatibility]
 generated: { by: claude-code/2.1.312, at: 2026-11-01T23:30:00Z }
@@ -24,8 +24,9 @@ sources:
 
 [Decision](decisions/gms-local-only.md) of 2026-11-01: GMS APIs that work
 on the phone alone are in scope, anything that needs Google's servers is
-out, and ATL never reports Google's signing certificate or fakes
-attestation.
+out, ATL never contacts Google's servers and never fakes attestation.
+Amended 2026-11-02: ATL may report Google's certificate for its own
+local GMS, as microG does.
 
 # How apps see GMS
 
@@ -42,10 +43,9 @@ Dynamite module (Maps, Mobile Vision, unbundled ML Kit) and Firebase
 Cloud Messaging goes through this check. microG needs signature
 spoofing for the same reason[^microg-sigspoof].
 
-Consequence: without Google's certificate, which the decision rules
-out, no local implementation behind the GMS interfaces (the way microG
-works) can be reached by the apps' client libraries. The only local
-GMS features are the ones that run inside the app without GMS anyway.
+Consequence: a local implementation behind the GMS interfaces (the
+way microG works) is only reachable when ATL reports Google's
+certificate for it, which the amended decision allows.
 
 ## ATL_GMS_STUB
 
@@ -56,9 +56,12 @@ Google's certificate to them and to an installed microG
 (`ATLSigHelper`). Apps then believe GMS is present, but nearly all of
 its services are missing.
 
-This fork turns that off by default: the toggle `ATL_GMS_STUB`
-(`android.atl.ATLToggles`, environment variable, default off) restores
-upstream's behaviour for comparisons. With it off, apps see a phone
+This fork makes it a per-app choice: the toggle `ATL_GMS_STUB`
+(`android.atl.ATLToggles`, environment variable, default off) turns
+upstream's behaviour on, and `--install` keeps it in the app's
+launcher. Per app and not global, because no app may get worse than
+without GMS: an app gets it once it was compared with and without.
+With it off, apps see a phone
 without GMS: `NameNotFoundException` for the three
 packages, and no Google certificate anywhere. An installed microG is
 then also reported with its own certificate, which the client
@@ -81,8 +84,8 @@ download).
 |---|---|---|---|
 | Availability check (`GoogleApiAvailability`, `GooglePlayServicesUtil`) | DB, DHL, Duolingo, WhatsApp | local | ATL reports no GMS; the apps log "requires the Google Play Store, but it is missing" and get `SERVICE_INVALID` (9) or `SERVICE_MISSING` (1), as on a phone without GMS |
 | Tasks (`com.google.android.gms.tasks`) | DB, DHL, Duolingo, WhatsApp | local, in the app | runs inside the app's own copy, nothing to do |
-| Fused location, settings, geofencing (`gms.location`) | DB, DHL, Duolingo, WhatsApp | local in principle | not reachable without Google's certificate (see above); apps use `LocationManager`: DB and WhatsApp request updates, DHL and Duolingo only read the last known location. ATL's `LocationManager` is the work of the CoMaps agent |
-| Maps (`gms.maps`) | DB, DHL, WhatsApp | local in principle (MapLibre and OpenStreetMap, as in microG) | Dynamite module, not reachable without Google's certificate; the app shows its "no Google Play services" placeholder |
+| Fused location, settings, geofencing (`gms.location`) | DB, DHL, Duolingo, WhatsApp | local in principle | local service in `gstub.jar` on `LocationManager`, see [plan](#plan-fused-location-and-maps); without it apps use `LocationManager`: DB and WhatsApp request updates, DHL and Duolingo only read the last known location. ATL's `LocationManager` is the work of the CoMaps agent |
+| Maps (`gms.maps`) | DB, DHL, WhatsApp | local in principle (MapLibre and OpenStreetMap, as in microG) | later, see [plan](#plan-fused-location-and-maps); today the app shows its "no Google Play services" placeholder |
 | ML Kit barcode, bundled model (`mlkit.vision.barcode.bundled`, `libbarhopper_v3.so`) | DB | local, in the app | runs without GMS[^mlkit-bundled]; not tested yet |
 | ML Kit unbundled (barcode, document scanner, GenAI) | WhatsApp | model from GMS | not reachable; out |
 | Mobile Vision (`gms.vision`: barcode, face, text) | DHL, WhatsApp | local in principle | Dynamite module, not reachable; DHL's barcode scan needs another path |
@@ -118,13 +121,51 @@ No app was worse without the stub on its first screen. Deeper screens
 that use GMS (DHL's Standorte map, DB Navigator's location search) were
 not reached headless and are still to be compared.
 
-# Open owner decision
+# Services ATL lacks
 
-A local GMS for the apps (fused location on `LocationManager`, Maps on
-MapLibre, Mobile Vision barcodes) is only reachable if ATL reports
-Google's certificate for it, per app or globally, as upstream does
-today. The decision forbids that; it stays listed under "Needs owner"
-in [app status](apps.md). Another path, replacing the client library
-classes inside the app (`ghax.jar`), breaks on every library version
-and does not work for DB Navigator and WhatsApp, whose GMS classes are
-renamed by R8 (method names `a`, `b`, `A00`).
+With `ATL_GMS_STUB=1` the apps bind to GMS services that `gstub.jar`
+does not have (Duolingo: Block Store and others). ATL's `bindService`
+finds no matching service and returns `false` at once; the client
+library logs "unable to connect to service" and fails the call with a
+connection error, the same path as a GMS without that API. No hang was
+seen (Duolingo's welcome screen is the same in both modes). Every new
+service in `gstub.jar` must keep this: answer or refuse, never leave a
+call without an answer.
+
+# Plan: fused location and Maps
+
+All four apps reach fused location the same way: bind
+`com.google.android.location.internal.GoogleLocationManagerService.START`
+in `com.google.android.gms`, get the service from `IGmsServiceBroker`,
+then call `IGoogleLocationManagerService` (strings present in all four
+APKs; DB and DHL ship the newer client with `ILocationStatusCallback`).
+One service therefore serves all four, independent of R8 renaming.
+
+Chosen path: **port microG's broker and location service code into
+`gstub.jar`** (Apache-2.0, attributed in the files), on top of ATL's
+`LocationManager`. Running microG's whole GmsCore inside ATL was
+rejected: it is a large Kotlin app with its own network location
+backends, accounts and many system APIs ATL lacks, while the apps need
+only one binder service.
+
+Steps, each compared with and without `ATL_GMS_STUB` before an app
+gets it:
+
+1. `gstub` package declares the `GoogleLocationManagerService` action;
+   ATL binds it in-process to a Java `IGmsServiceBroker` that answers
+   `getService` for location and refuses every other service id at
+   once (`API_UNAVAILABLE`).
+2. `IGoogleLocationManagerService`: last location, location updates
+   for both client generations (`LocationRequestUpdateData` and the
+   newer `registerLocationUpdates`), location availability, and
+   `SettingsClient.checkLocationSettings` answered "satisfied";
+   geofencing refused. Parcels follow microG's `SafeParcelable`
+   readers and writers, hand-written like `CreatorImpl` (no AIDL
+   compiler in the build).
+3. Fixes come from ATL's `LocationManager` (GPS through GeoClue, being
+   extended by the CoMaps work); no network location, nothing sent to
+   any server.
+4. Maps only after that: microG's MapLibre backend needs the MapLibre
+   Android SDK with native libraries and an OpenStreetMap tile source
+   with its usage terms, a separate, larger step. Until then the Maps
+   creator keeps returning no map.

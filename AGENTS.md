@@ -51,8 +51,9 @@ the separate user `claude` without sudo or doas.
 
 - Google Play services APIs that work locally are in scope; anything
   that needs Google's servers (Play Integrity, Google sign-in, FCM push,
-  billing) stays out. Never report Google's signing certificate and
-  never fake attestation
+  billing) stays out. ATL's local GMS may report Google's signing
+  certificate like microG; never contact Google's servers and never
+  fake attestation (Play Integrity, SafetyNet)
   ([decision](docs/decisions/gms-local-only.md),
   [GMS compatibility](docs/gms-compat.md)).
 - Status of every app tried, with the cause of each failure and the fix:

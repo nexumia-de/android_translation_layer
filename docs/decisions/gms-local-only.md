@@ -1,7 +1,7 @@
 ---
 type: Decision Record
 title: Google Play services APIs only where they work locally
-description: Accepted - Google Play services APIs that can work on the phone without Google's servers are in scope; anything that needs Google's servers stays out; ATL never reports Google's signing certificate and never fakes attestation.
+description: Accepted - Google Play services APIs that can work on the phone without Google's servers are in scope; anything that needs Google's servers stays out; ATL may report Google's certificate for its local GMS like microG, but never contacts Google's servers and never fakes attestation.
 tags: [decision, gms, google-play-services, firebase, privacy, scope]
 status: accepted
 generated: { by: claude-code/2.1.312, at: 2026-11-01T12:00:00Z }
@@ -16,7 +16,8 @@ sources:
 
 # Status
 
-Accepted by the owner on 2026-11-01. Replaces the line "Apps that need
+Accepted by the owner on 2026-11-01, amended on 2026-11-02 (Google's
+certificate allowed for the GMS package). Replaces the line "Apps that need
 Google Play Services (Play Integrity, Google sign-in, FCM push) are out
 of scope" in `AGENTS.md`.
 
@@ -42,22 +43,22 @@ certificate before they use any GMS API; microG needs the same
   Integrity, Google sign-in, Play billing, ads) stay out of scope. They
   fail the way they fail on a phone without GMS, so apps take their own
   fallback.
-- ATL never reports Google's signing certificate for a package and
-  never produces attestation or integrity tokens.
+- ATL may report Google's signing certificate for its own local GMS
+  package, as microG's signature spoofing does (amended 2026-11-02).
+  It never contacts Google's servers for it, and never produces
+  attestation or integrity tokens (Play Integrity, SafetyNet).
 - An app must never be worse than on a phone without GMS. If claiming
   GMS for an app breaks it, ATL does not claim GMS for that app.
 
 # Consequences
 
-- Without Google's certificate the client libraries in the apps answer
-  `SERVICE_INVALID` (9) for any GMS package, and do not bind to its
-  services[^gms-availability]. A local GMS behind the GMS interfaces,
-  the way microG does it, is therefore not reachable for the apps; see
-  [GMS compatibility](../gms-compat.md) for the measurement and the
-  apps it affects.
-- This fork turns upstream's fake GMS and its certificate off by
-  default (`ATL_GMS_STUB`, see [GMS compatibility](../gms-compat.md));
-  apps see a phone without GMS (`SERVICE_MISSING` or `SERVICE_INVALID`).
-- Whether a local GMS with Google's certificate should be allowed for
-  single apps is an open owner decision, listed in
-  [app status](../apps.md) under "Needs owner".
+- The client libraries in the apps only use a GMS package signed with
+  Google's certificate; without it they answer `SERVICE_INVALID` (9)
+  and never bind to its services[^gms-availability]. Reporting the
+  certificate for ATL's own GMS (`gstub.jar`) is what makes a local
+  GMS reachable at all.
+- A GMS that claims to be present but lacks a service must answer at
+  once (bind refused), never hang, so the app takes its fallback.
+- Because no app may get worse than without GMS, the fake GMS is on per
+  app (`ATL_GMS_STUB=1`), not globally, until the app was compared
+  with and without it; see [GMS compatibility](../gms-compat.md).
