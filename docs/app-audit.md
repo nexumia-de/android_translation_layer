@@ -194,3 +194,29 @@ cause.
 | Purchases | `out of scope` | Google Play billing |
 
 Result: not usable yet, but sign-in and the first steps are open to testing. The look of buttons and text is the next visible problem.
+
+# Gadgetbridge
+
+`nodomain.freeyourgadget.gadgetbridge` 0.95.1. ATL reports `SDK_INT` 23 (its
+minSdk), so Gadgetbridge uses the pre-Android-8 Bluetooth paths and no
+companion device manager. Gap list: `app-audit/nodomain.freeyourgadget.gadgetbridge.gaps.tsv`.
+No stub log yet.
+
+| Feature | State | Evidence |
+|---|---|---|
+| Start, welcome pages | `headless` | All five pages, 2026-11-02; the changelog dialog on first start is empty |
+| Permissions page | `wrong` | Lists calendar, contacts, location, do-not-disturb, notification access and more as not granted; requesting them does nothing useful |
+| Device discovery | `headless` | BLE scan and classic discovery through BlueZ found the owner's Amazfit Balance as supported and bonded ([screenshot](screenshots/gadgetbridge-discovery-2026-11-02.png)); BlueZ's discovery stops afterwards |
+| Pairing, connecting, sync (BLE GATT) | `untested` | Implemented on BlueZ ([Bluetooth](bluetooth.md)); an owner test with the watch ([app status](apps.md#needs-owner)). GATT reads as `claude` work (`busctl`) |
+| Devices needing a GATT server on the phone | `missing` | `BluetoothManager.openGattServer` returns null |
+| Classic Bluetooth devices (RFCOMM) | `missing` | `BluetoothSocket.connect` throws |
+| Forwarding phone notifications | `missing` | `NotificationListenerService` and `StatusBarNotification` absent (11 and 20+ own calls) |
+| Calls on the watch | `missing` | No telephony state on the phone side |
+| Music control | `missing` | `MediaController$TransportControls`, `AudioManager.dispatchMediaKeyEvent` |
+| Do not disturb | `missing` | Reported as not granted, the desktop owns it |
+| Settings with number pickers | `missing` | `NumberPicker` (170 own calls) |
+| Quick settings tiles | `out of scope` | No Android quick settings on Phosh |
+| Background sync, alarms | `untested` | Needs the watch |
+
+Result: the app runs and finds the watch; whether it connects and syncs is
+the owner's test.
