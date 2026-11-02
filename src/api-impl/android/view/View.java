@@ -988,6 +988,9 @@ public class View implements Drawable.Callback {
 
 	private CopyOnWriteArrayList<OnLayoutChangeListener> on_layout_change_listeners;
 
+	private boolean clickable = false;
+	private boolean longclickable = false;
+
 	public static final Property<View, Float> TRANSLATION_X = new Property<View, Float>(Float.class, "translationX") {
 		@Override
 		public Float get(View view) {
@@ -1029,6 +1032,17 @@ public class View implements Drawable.Callback {
 		@Override
 		public void set(View view, Float value) {
 			view.setAlpha(value);
+		}
+	};
+
+	public static final Property<View, Float> ROTATION = new FloatProperty<View>("rotation") {
+		@Override
+		public void setValue(View object, float value) {
+			object.setRotation(value);
+		}
+		@Override
+		public Float get(View object) {
+			return object.getRotation();
 		}
 	};
 
@@ -1243,8 +1257,44 @@ public class View implements Drawable.Callback {
 		return handled;
 	}
 
+	private class LongClickRunnable implements Runnable {
+		private boolean long_click_done = false;
+
+		@Override
+		public void run() {
+			long_click_done = performLongClick();
+		}
+	}
+
+	private LongClickRunnable pendingLongClick = null;
+
 	@Export
 	public boolean onTouchEvent(MotionEvent event) {
+		if (isClickable() || isLongClickable()) {
+			switch (event.getActionMasked()) {
+				case MotionEvent.ACTION_DOWN:
+					if (isLongClickable()) {
+						cancelLongPress();
+						pendingLongClick = new LongClickRunnable();
+						postDelayed(pendingLongClick, ViewConfiguration.getLongPressTimeout());
+					}
+					return true;
+				case MotionEvent.ACTION_MOVE:
+					if (event.getX() < 0 || event.getY() < 0 || event.getX() > getWidth() || event.getY() > getHeight())
+						cancelLongPress();
+					return true;
+				case MotionEvent.ACTION_UP:
+					boolean long_click_done = pendingLongClick != null && pendingLongClick.long_click_done;
+					cancelLongPress();
+					if (isClickable() && !long_click_done && event.getX() >= 0 && event.getY() >= 0 && event.getX() <= getWidth() && event.getY() <= getHeight())
+						return performClick();
+					return true;
+				case MotionEvent.ACTION_CANCEL:
+					cancelLongPress();
+					return true;
+			}
+		}
+
 		return false;
 	}
 
@@ -1255,6 +1305,8 @@ public class View implements Drawable.Callback {
 	protected native void nativeSetOnTouchListener(long widget);
 	private OnClickListener on_click_listener = null;
 	public void setOnClickListener(OnClickListener l) {
+		if (!isClickable())
+			setClickable(true);
 		nativeSetOnClickListener(widget);
 		on_click_listener = l;
 	}
@@ -1293,6 +1345,11 @@ public class View implements Drawable.Callback {
 	protected native void native_drawBackground(long widget, long snapshot);
 	protected native void native_drawContent(long widget, long snapshot);
 	protected void native_drawChildren(long widget, long snapshot) {} // override in ViewGroup
+
+	/* should be called from onTouchEvent() of GtkWidget implementations */
+	protected native boolean native_gtkEventPropagation();
+	/* used by the DecorView to register a GtkEventController and wire it to dispatchTouchEvent() */
+	protected native void native_registerTouchEventPropagation(long widget);
 
 	// --- stubs
 
@@ -1571,7 +1628,9 @@ public class View implements Drawable.Callback {
 		return background;
 	}
 
-	public void setClickable(boolean clickable) {}
+	public void setClickable(boolean clickable) {
+		this.clickable = clickable;
+	}
 
 	public void setEnabled(boolean enabled) {
 		atl_enabled = enabled;
@@ -1597,12 +1656,16 @@ public class View implements Drawable.Callback {
 		return performLongClick(Float.NaN, Float.NaN);
 	}
 	public void setOnLongClickListener(OnLongClickListener listener) {
+		if (!isLongClickable())
+			setLongClickable(true);
 		nativeSetOnLongClickListener(widget);
 		on_long_click_listener = listener;
 	}
 	protected native void nativeSetOnLongClickListener(long widget);
 
-	public void setLongClickable(boolean longClickable) {}
+	public void setLongClickable(boolean longClickable) {
+		this.longclickable = longClickable;
+	}
 
 	public void setOnHoverListener(OnHoverListener listener) {}
 
@@ -1686,7 +1749,8 @@ public class View implements Drawable.Callback {
 	@Export
 	protected void onLayout(boolean changed, int l, int t, int r, int b) {}
 
-	boolean layouted = false;
+	private boolean layouted = false;
+	private boolean in_layout = false;
 
 	public void layout(int l, int t, int r, int b) {
 		this.layouted = true;
@@ -1694,12 +1758,16 @@ public class View implements Drawable.Callback {
 		this.top = t;
 		this.right = r;
 		this.bottom = b;
-		native_layout(widget, l, t, r, b);
+		if (this.in_layout)                   // check re-entrancy
+			native_queueAllocate(widget); // GTK is not re-entrant-safe. Queue allocation
+		else
+			native_layout(widget, l, t, r, b);
 	}
 
 	/** Helper function to be called from GTKs LayoutManager via JNI */
 	@Export
 	private void layoutInternal(int width, int height) {
+		in_layout = true;
 		// if the layout is triggered from a native widget, we might not have measured yet
 		if (!(parent instanceof ViewGroup) && (width != getMeasuredWidth() || height != getMeasuredHeight())) {
 			requestLayout();
@@ -1728,6 +1796,7 @@ public class View implements Drawable.Callback {
 		}
 		oldWidth = width;
 		oldHeight = height;
+		in_layout = false;
 	}
 
 	/** Prefill the measureSpec cache, so that AndroidLayout can use it from native code if GTK measure spec is incomplete */
@@ -2081,8 +2150,8 @@ public class View implements Drawable.Callback {
 	public void setOnApplyWindowInsetsListener(View.OnApplyWindowInsetsListener l) {}
 
 	public final boolean isFocusable() { return atl_focusable; }
-	public boolean isClickable() { return true; }
-	public boolean isLongClickable() { return true; }
+	public boolean isClickable() { return clickable; }
+	public boolean isLongClickable() { return longclickable; }
 
 	public int getLayoutDirection() { return LAYOUT_DIRECTION_LTR; }
 
@@ -2152,7 +2221,9 @@ public class View implements Drawable.Callback {
 
 	public boolean hasTransientState() { return false; }
 
-	public final void cancelPendingInputEvents() {}
+	public final void cancelPendingInputEvents() {
+		cancelLongPress();
+	}
 
 	public ViewOutlineProvider getOutlineProvider() { return new ViewOutlineProvider(); }
 	public void setOutlineProvider(ViewOutlineProvider provider) {}
@@ -2302,7 +2373,11 @@ public class View implements Drawable.Callback {
 	public boolean onInterceptTouchEvent(MotionEvent event) { return false; }
 
 	@Export
-	public boolean dispatchTouchEvent(MotionEvent event) { return false; }
+	public boolean dispatchTouchEvent(MotionEvent event) {
+		if (on_touch_listener != null && on_touch_listener.onTouch(this, event))
+			return true;
+		return onTouchEvent(event);
+	}
 
 	public boolean canScrollHorizontally(int direction) { return false; }
 
@@ -2412,7 +2487,10 @@ public class View implements Drawable.Callback {
 		return new ViewOverlay();
 	}
 
-	public void cancelLongPress() {}
+	public void cancelLongPress() {
+		removeCallbacks(pendingLongClick);
+		pendingLongClick = null;
+	}
 
 	public int getTextAlignment() { return 0; }
 
@@ -2749,4 +2827,10 @@ public class View implements Drawable.Callback {
 	public int getTextDirection() { return 0; /* TEXT_DIRECTION_INHERIT */ }
 
 	public TouchDelegate getTouchDelegate() { return null; }
+
+
+	public void drawableStateChanged() {
+		if (background != null && background.isStateful() && background.setState(getDrawableState()))
+			invalidate();
+	}
 }

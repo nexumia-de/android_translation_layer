@@ -51,6 +51,12 @@ public class FeatureInfo {
 	 */
 	public int flags;
 
+	/**
+	 * If this object represents a feature supported by a device, this is the
+	 * version of the feature, or 0 if it has no version (API 24).
+	 */
+	public int version;
+
 	public FeatureInfo() {
 	}
 
@@ -58,6 +64,7 @@ public class FeatureInfo {
 		name = orig.name;
 		reqGlEsVersion = orig.reqGlEsVersion;
 		flags = orig.flags;
+		version = orig.version;
 	}
 
 	public String toString() {

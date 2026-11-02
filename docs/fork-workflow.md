@@ -86,6 +86,24 @@ owner does not want to flood the maintainers.
 - Fixes in ATL's dependencies (`art_standalone`, …) go to that project's
   GitLab repository the same way.
 
+# Mirror on GitLab
+
+`.github/workflows/mirror-gitlab.yml` pushes `phosh` and `master` to the
+owner's GitLab fork (`gitlab.com/Xilance/android_translation_layer`) on
+every push, so upstream developers find this fork's work on GitLab. It
+uses a deploy key limited to that project:
+
+1. `ssh-keygen -t ed25519 -N '' -C atl-mirror -f atl-mirror`
+2. GitLab fork: Settings, Repository, Deploy keys: add `atl-mirror.pub`
+   with **Grant write permissions to this key**.
+3. GitHub repository: Settings, Secrets and variables, Actions: new
+   secret `GITLAB_DEPLOY_KEY` with the content of `atl-mirror`; then
+   delete both files.
+4. Actions, "Mirror to GitLab", Run workflow once.
+
+Merge requests still come from a branch off `master` with only the fix
+commits (see above); `phosh` on GitLab is for reading.
+
 # Upstream candidates
 
 Fix commits on `phosh` that are not upstream yet, as of 2026-10-28. This

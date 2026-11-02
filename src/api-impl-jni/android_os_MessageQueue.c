@@ -17,6 +17,7 @@ struct native_message_queue {
 };
 
 GThread *main_thread_id;
+ALooper *main_thread_looper;
 
 /**
  * callback to execute java handlers on glib managed thread loops
@@ -41,6 +42,7 @@ static GSource *source = NULL;
 void prepare_main_looper(JNIEnv *env)
 {
 	main_thread_id = g_thread_self();
+	main_thread_looper = ALooper_prepare(0);
 
 	J__Looper__prepareMainLooper(env);
 	if ((*env)->ExceptionCheck(env))

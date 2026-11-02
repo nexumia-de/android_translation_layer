@@ -86,4 +86,5 @@ public class ViewConfiguration {
 	public static int getKeyRepeatDelay() {
 		return 100;
 	}
+
 }
