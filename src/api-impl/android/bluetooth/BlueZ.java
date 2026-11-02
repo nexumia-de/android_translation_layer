@@ -257,8 +257,6 @@ final class BlueZ {
 		BluetoothDevice device = BluetoothDevice.fromPath(path);
 		if (device == null)
 			return;
-		if (changed.containsKey("Paired") || changed.containsKey("Connected") || changed.containsKey("ServicesResolved"))
-			Slog.i(TAG, path.substring(path.lastIndexOf('/') + 1) + " " + changed.keySet());
 		if ((changed.containsKey("Paired") || changed.containsKey("Bonded")) && !BluetoothDevice.isBonding(device.getAddress())) {
 			boolean was = getBoolean(old.get("Paired")) || getBoolean(old.get("Bonded"));
 			boolean is = device.getBondState() == BluetoothDevice.BOND_BONDED;
