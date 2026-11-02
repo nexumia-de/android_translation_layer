@@ -616,6 +616,7 @@ srcs = [
 	'android/util/JsonWriter.java',
 	'android/util/LayoutDirection.java',
 	'android/util/Log.java',
+	'android/util/LogPrinter.java',
 	'android/util/LongArray.java',
 	'android/util/LongSparseArray.java',
 	'android/util/LruCache.java',
