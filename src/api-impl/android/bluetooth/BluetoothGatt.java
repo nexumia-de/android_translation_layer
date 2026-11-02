@@ -213,7 +213,20 @@ public final class BluetoothGatt implements BluetoothProfile {
 			try {
 				device.ensureKnown(transport);
 				if (!device.isConnected()) {
-					BlueZ.call(60000, devicePath(), BlueZ.DEVICE, "Connect", "");
+					/* a running discovery makes BlueZ abort the LE connection (le-connection-abort-by-local),
+					 * so it pauses until the services are resolved, as Android's stack does around connects */
+					BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+					Discovery.pause(adapter);
+					/* the device may ask for pairing after connecting (a lost bond) */
+					PairingAgent.acquire();
+					boolean ok = false;
+					try {
+						BlueZ.call(60000, devicePath(), BlueZ.DEVICE, "Connect", "");
+						ok = true;
+					} finally {
+						resumeDiscoveryWhenResolved(adapter, ok);
+						PairingAgent.release();
+					}
 					connectedByUs = true;
 				}
 				connected();
@@ -236,6 +249,21 @@ public final class BluetoothGatt implements BluetoothProfile {
 			}
 			SystemClock.sleep(AUTO_CONNECT_RETRY_MS);
 		}
+	}
+
+	private void resumeDiscoveryWhenResolved(final BluetoothAdapter adapter, boolean connected) {
+		if (!connected) {
+			Discovery.resume(adapter);
+			return;
+		}
+		final String path = devicePath();
+		new Thread(new Runnable() {
+			public void run() {
+			for (int i = 0; i < 100 && !closed && !BlueZ.getBoolean(BlueZ.getProperty(path, BlueZ.DEVICE, "ServicesResolved")); i++)
+				SystemClock.sleep(100);
+			Discovery.resume(adapter);
+		}
+		}, "BluetoothGatt resume discovery").start();
 	}
 
 	private void connected() {
