@@ -7,7 +7,8 @@ After=pipewire.service
 
 [Service]
 RuntimeDirectory=atl-pulse-norecord
-RuntimeDirectoryPreserve=no
+# kept across restarts: running apps hold a bind mount of this directory
+RuntimeDirectoryPreserve=restart
 ExecStart=/usr/bin/pipewire-pulse -c atl-pulse-norecord.conf
 Restart=on-failure
 
