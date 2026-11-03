@@ -135,27 +135,3 @@ Cost, measured on the phone after 60 s idle with one connection open:
 Most of its RSS are the Qt 6 and KDE Frameworks libraries, shared with
 any other Qt app; with none running, about 50 MB of RAM (PSS) is what
 push costs on the phone.
-
-## Cloud Messaging without consent
-
-An app's c2dm intents and services of `com.google.android.gms` that ATL
-does not run in the app go over D-Bus to an external Google Play
-services (upstream's GCM service, which talks to Google). Without the
-app's `atl.google-services`, or with no such service on the session bus,
-ATL drops them; a `REGISTER` or `UNREGISTER` gets `REGISTRATION` with
-`error=SERVICE_NOT_AVAILABLE` at once, as Google Play services answers
-when it cannot reach Google. Firebase then retries with backoff and the
-app carries on without push. Without `ATL_GMS_STUB` the client libraries
-already stop before that (`MISSING_INSTANCEID_SERVICE`).
-
-## Linux distributors
-
-On Alpine edge (2026-11-03): `kunifiedpush` (KDE's distributor daemon,
-the only Linux D-Bus distributor listed by unifiedpush.org; servers:
-ntfy, Gotify, NextPush, Mozilla autopush; needs Qt 6 and KDE Frameworks
-6, not on the phone yet), `ntfy` (server and client, no D-Bus
-distributor) and `gotify` (server). ntfy fits as the server: one
-self-hosted HTTP service, one WebSocket from the phone for all apps,
-and the same server serves Android phones through the ntfy app. Each
-open connection costs battery only while the phone is awake; while
-suspended no push arrives on Phosh unless the modem or Wi-Fi wakes it.

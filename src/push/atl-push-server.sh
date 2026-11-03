@@ -67,7 +67,12 @@ set_url() {
 	http://?* | https://?*) ;;
 	*) echo "atl-push-server: not an http(s) URL: $1" >&2; exit 1 ;;
 	esac
-	case $1 in *"'"* | *'"'* | *' '* | *'\'*) echo "atl-push-server: invalid URL: $1" >&2; exit 1 ;; esac
+	# one line of printable characters, no space, quote or backslash: it goes into an INI file and
+	# a GVariant text literal
+	if [ "$(printf '%s\n' "$1" | wc -l)" -ne 1 ] || ! printf '%s' "$1" | LC_ALL=C grep -qx '[[:graph:]]*'; then
+		echo "atl-push-server: invalid URL" >&2; exit 1
+	fi
+	case $1 in *"'"* | *'"'* | *'\'*) echo "atl-push-server: invalid URL: $1" >&2; exit 1 ;; esac
 	if running; then
 		gdbus call --session -d "$BUS_NAME" -o "$OBJECT" -m "$MGMT.setPushProvider" Ntfy "{'Url': <'$1'>}" >/dev/null
 	else

@@ -23,6 +23,10 @@ check "file: reset" "$("$helper" get)" https://ntfy.sh
 check "file: one Url line" "$(grep -c '^Url=' "$conf")" 1
 "$helper" set 'http://x/ y' 2>/dev/null; check "file: bad URL refused" $? 1
 "$helper" set ftp://x 2>/dev/null; check "file: non-http refused" $? 1
+"$helper" set "$(printf 'https://x\n[Clients]\nevil=1')" 2>/dev/null; check "file: newline refused" $? 1
+check "file: nothing injected" "$(grep -c '^evil=' "$conf")" 0
+"$helper" set "$(printf 'https://x\tz')" 2>/dev/null; check "file: control character refused" $? 1
+"$helper" set "https://x/'a" 2>/dev/null; check "file: quote refused" $? 1
 "$helper" frob 2>/dev/null; check "usage" $? 2
 
 # with a running distributor: over D-Bus
