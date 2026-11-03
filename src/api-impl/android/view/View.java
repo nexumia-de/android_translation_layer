@@ -2217,7 +2217,7 @@ public class View implements Drawable.Callback {
 			if (view.visibility != VISIBLE)
 				return false;
 			if (!(view.parent instanceof View))
-				return true;
+				return view.isAttachedToWindow(); // a detached view is not shown
 			view = (View)view.parent;
 		}
 	}
