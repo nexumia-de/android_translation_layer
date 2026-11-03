@@ -128,12 +128,16 @@ entry: date, what, why. Remove an entry once it is done.
      its ongoing notification), as on Android 10+; without either only
      if you allow it per app (default no). Recommended: yes, as proposed
      in #58.
-  2. Suspend while tracking: Phosh cannot wake from suspend for an
-     Android alarm (that needs `CAP_WAKE_ALARM`, i.e. root), and GPSLogger
-     sleeps between fixes on `AlarmManager` wake-up alarms. Recommended:
-     while an app runs a foreground service and has a location session or
-     a wake-up alarm due within 15 minutes, ATL inhibits suspend (screen
-     off still allowed). The battery cost is measured in the phone test.
+  2. Suspend while tracking: decided 2026-11-03, see
+     [system wake windows](decisions/wake-windows.md). Steps for the owner:
+     - Find what keeps the phone from suspending (it had not suspended in
+       2 days; gnome-session holds a sleep inhibitor for an app), as
+       `user`: `gnome-session-inhibit --list` and send the output.
+     - Once ATL's package ships `atl-wake.timer`:
+       `sudo systemctl enable --now atl-wake.timer`. Interval until the
+       settings page has it (example 5 minutes):
+       `sudo systemctl edit atl-wake.timer`, add
+       `[Timer]` / `OnCalendar=` / `OnCalendar=*:0/5`.
   3. Autostart after reboot (`RECEIVE_BOOT_COMPLETED`): recommended no for
      now; start the tracker by hand after a reboot.
 
