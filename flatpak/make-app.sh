@@ -23,9 +23,10 @@
 #   -r DIR      local repository (default: ~/.local/share/android_translation_layer/flatpak-repo)
 #
 # Every app gets Wayland, the GPU, IPC, feedbackd (vibration), audio
-# playback and the installer service's runtime permissions, plus what
-# -P maps and -f adds. The app id is de.nexumia.atl.<PACKAGE>, so it
-# cannot collide with a real Flatpak of the same name.
+# playback through a pulse server that refuses recording (microphone/)
+# and the installer service's runtime permissions, plus what -P maps and
+# -f adds. The app id is de.nexumia.atl.<PACKAGE>, so it cannot collide
+# with a real Flatpak of the same name.
 set -eu
 
 base=de.nexumia.atl.BaseApp
@@ -69,7 +70,8 @@ id=de.nexumia.atl.$pkg
 wants_network=
 for perm in $(printf '%s' "$permissions" | tr ';' ' '); do
 	case $perm in
-	android.permission.INTERNET) wants_network=1 ;;
+	# network (asked separately), and the host's UnifiedPush distributor for push messages (docs/push.md)
+	android.permission.INTERNET) wants_network=1; finish="$finish --talk-name=org.unifiedpush.Distributor.*" ;;
 	# app stores: the host's installer service, which asks the user for every install
 	android.permission.REQUEST_INSTALL_PACKAGES) finish="$finish --talk-name=de.nexumia.atl.Installer" ;;
 	esac
@@ -155,9 +157,36 @@ runtime=$runtime
 command=atl-app
 EOF
 
+# Audio (docs/hardening-roadmap.md, phase 4: microphone): only the socket of
+# a second pipewire-pulse that refuses every record stream, never the normal
+# one; an app the user allows to record gets the normal socket as a user
+# override. Set up here, in the user's own configuration, so no app is
+# installed before it exists.
+norecord_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/atl-pulse-norecord
+microphone_dir=
+for dir in "$(dirname "$0")/microphone" "$(dirname "$0")/../../share/android-translation-layer/microphone"; do
+	[ -f "$dir/atl-pulse-norecord.conf" ] && { microphone_dir=$dir; break; }
+done
+if [ -n "$microphone_dir" ]; then
+	config=${XDG_CONFIG_HOME:-$HOME/.config}
+	mkdir -p "$config/pipewire/atl-pulse-norecord.conf.d" "$config/systemd/user"
+	ln -sf /usr/share/pipewire/pipewire-pulse.conf "$config/pipewire/atl-pulse-norecord.conf"
+	sed "s|@RUNTIME_DIR@|${norecord_dir%/atl-pulse-norecord}|" "$microphone_dir/atl-pulse-norecord.conf" \
+		> "$config/pipewire/atl-pulse-norecord.conf.d/50-atl.conf"
+	if ! cmp -s "$microphone_dir/atl-pulse-norecord.service" "$config/systemd/user/atl-pulse-norecord.service"; then
+		cp "$microphone_dir/atl-pulse-norecord.service" "$config/systemd/user/"
+		systemctl --user daemon-reload 2>/dev/null || true
+	fi
+	systemctl --user enable --now atl-pulse-norecord.service >/dev/null 2>&1 ||
+		echo "warning: atl-pulse-norecord.service did not start; the app has no sound" >&2
+else
+	echo "warning: microphone/ not found; the app has no sound" >&2
+fi
+
 # shellcheck disable=SC2086 # $finish is a list of arguments
 flatpak build-finish "$build" --socket=wayland --device=dri --share=ipc \
-	--socket=pulseaudio --talk-name=org.sigxcpu.Feedback $finish >/dev/null
+	--filesystem=xdg-run/atl-pulse-norecord:ro --env=PULSE_SERVER="unix:$norecord_dir/native" \
+	--talk-name=org.sigxcpu.Feedback $finish >/dev/null
 flatpak build-export "$repo" "$build" stable >/dev/null
 flatpak remote-add --user --if-not-exists --no-gpg-verify atl-local "$repo"
 flatpak remote-modify --user --url="file://$repo" atl-local

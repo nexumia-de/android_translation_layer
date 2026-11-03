@@ -41,6 +41,10 @@ static void on_scrim_pressed(GtkGestureClick *gesture, int n_press, double x, do
 
 void atl_dialog_set_child(GtkWidget *dialog, GtkWidget *child)
 {
+	if (GTK_IS_WINDOW(dialog)) { /* ATLKeyboardDialog */
+		gtk_window_set_child(GTK_WINDOW(dialog), child);
+		return;
+	}
 	GtkWidget *old = g_object_get_data(G_OBJECT(dialog), "content");
 	if (old == child)
 		return;
@@ -57,6 +61,8 @@ void atl_dialog_set_child(GtkWidget *dialog, GtkWidget *child)
 
 void atl_dialog_set_gravity(GtkWidget *dialog, int gravity)
 {
+	if (GTK_IS_WINDOW(dialog))
+		return;
 	GtkWidget *child = g_object_get_data(G_OBJECT(dialog), "content");
 	g_object_set_data(G_OBJECT(dialog), "gravity", GINT_TO_POINTER(gravity));
 	if (child) {
@@ -69,7 +75,9 @@ void atl_dialog_set_gravity(GtkWidget *dialog, int gravity)
 
 void atl_dialog_set_dim(GtkWidget *dialog, float dim_amount)
 {
-	gtk_widget_set_opacity(GTK_WIDGET(g_object_get_data(G_OBJECT(dialog), "scrim")), dim_amount);
+	GtkWidget *scrim = g_object_get_data(G_OBJECT(dialog), "scrim");
+	if (scrim)
+		gtk_widget_set_opacity(scrim, dim_amount);
 }
 
 gboolean atl_is_dialog(GtkWidget *widget)
@@ -131,6 +139,10 @@ void back_button_set_sensitive(bool sensitive);
 JNIEXPORT void JNICALL Java_android_app_Dialog_nativeShow(JNIEnv *env, jobject this, jlong ptr)
 {
 	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
+	if (GTK_IS_WINDOW(dialog)) { /* a toplevel of its own: ATLKeyboardDialog */
+		gtk_window_present(GTK_WINDOW(dialog));
+		return;
+	}
 	if (!gtk_widget_get_parent(dialog))
 		gtk_overlay_add_overlay(dialog_overlay(), dialog);
 	gtk_widget_set_visible(dialog, TRUE);
@@ -140,6 +152,10 @@ JNIEXPORT void JNICALL Java_android_app_Dialog_nativeShow(JNIEnv *env, jobject t
 JNIEXPORT void JNICALL Java_android_app_Dialog_nativeClose(JNIEnv *env, jobject this, jlong ptr)
 {
 	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
+	if (GTK_IS_WINDOW(dialog)) {
+		gtk_widget_set_visible(dialog, FALSE);
+		return;
+	}
 	if (gtk_widget_get_parent(dialog))
 		gtk_overlay_remove_overlay(dialog_overlay(), dialog);
 }
@@ -147,6 +163,8 @@ JNIEXPORT void JNICALL Java_android_app_Dialog_nativeClose(JNIEnv *env, jobject 
 JNIEXPORT jboolean JNICALL Java_android_app_Dialog_nativeIsShowing(JNIEnv *env, jobject this, jlong ptr)
 {
 	GtkWidget *dialog = GTK_WIDGET(_PTR(ptr));
+	if (GTK_IS_WINDOW(dialog))
+		return gtk_widget_get_visible(dialog);
 	return gtk_widget_get_parent(dialog) && gtk_widget_get_visible(dialog);
 }
 

@@ -166,10 +166,12 @@ step_tools() {
 	tmp=$(mktemp -d)
 	wayland-scanner client-header "$dir/wlr-virtual-pointer-unstable-v1.xml" "$tmp/wlr-virtual-pointer-unstable-v1-client-protocol.h"
 	wayland-scanner private-code "$dir/wlr-virtual-pointer-unstable-v1.xml" "$tmp/wlr-virtual-pointer-unstable-v1-protocol.c"
+	wayland-scanner client-header "$ATL/protocol/virtual-keyboard-unstable-v1.xml" "$tmp/virtual-keyboard-unstable-v1-client-protocol.h"
+	wayland-scanner private-code "$ATL/protocol/virtual-keyboard-unstable-v1.xml" "$tmp/virtual-keyboard-unstable-v1-protocol.c"
 	mkdir -p "$PREFIX/bin"
 	# shellcheck disable=SC2046
 	cc -O2 -Wall -I"$tmp" -o "$PREFIX/bin/wl-pointer" "$dir/wl-pointer.c" "$tmp/wlr-virtual-pointer-unstable-v1-protocol.c" \
-		$(pkg-config --cflags --libs wayland-client)
+		"$tmp/virtual-keyboard-unstable-v1-protocol.c" $(pkg-config --cflags --libs wayland-client xkbcommon)
 	rm -rf "$tmp"
 	echo "Installed $PREFIX/bin/wl-pointer"
 }

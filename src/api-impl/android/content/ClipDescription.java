@@ -19,13 +19,46 @@ public class ClipDescription /*implements Parcelable*/ {
 	public static final int CLASSIFICATION_NOT_PERFORMED = 2;
 	public static final int CLASSIFICATION_COMPLETE = 3;
 
-	public ClipDescription(CharSequence label, String[] mimeTypes) {}
+	private final CharSequence mLabel;
+	private final String[] mMimeTypes;
+	private final long mTimeStamp;
+
+	public ClipDescription(CharSequence label, String[] mimeTypes) {
+		mLabel = label;
+		mMimeTypes = mimeTypes != null ? mimeTypes : new String[0];
+		mTimeStamp = System.currentTimeMillis();
+	}
+
+	public CharSequence getLabel() {
+		return mLabel;
+	}
+
+	public long getTimestamp() {
+		return mTimeStamp;
+	}
+
+	public static boolean compareMimeTypes(String concreteType, String desiredType) {
+		if (desiredType.equals("*/*") || desiredType.equals(concreteType))
+			return true;
+		if (desiredType.endsWith("/*")) {
+			String prefix = desiredType.substring(0, desiredType.length() - 1);
+			return concreteType.startsWith(prefix);
+		}
+		return false;
+	}
+
+	public boolean hasMimeType(String mimeType) {
+		for (String type : mMimeTypes)
+			if (compareMimeTypes(type, mimeType))
+				return true;
+		return false;
+	}
 
 	public int getMimeTypeCount() {
-		return 0;
+		return mMimeTypes.length;
 	}
 
 	public String getMimeType(int index) {
-		return "FIXME";
+		return mMimeTypes[index];
 	}
 }

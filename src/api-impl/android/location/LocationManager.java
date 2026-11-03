@@ -1,6 +1,8 @@
 package android.location;
 
 import android.app.PendingIntent;
+import android.atl.ATLLoadedApp;
+import android.atl.ATLPaths;
 import android.atl.annotation.Export;
 import android.content.Intent;
 import android.os.Bundle;
@@ -46,6 +48,7 @@ public class LocationManager {
 	private static final List<String> PROVIDERS = Collections.unmodifiableList(Arrays.asList(PASSIVE_PROVIDER, GPS_PROVIDER, NETWORK_PROVIDER, FUSED_PROVIDER));
 
 	/* accuracy values of XdpLocationAccuracy */
+	private static final int ACCURACY_NEIGHBORHOOD = 3;
 	private static final int ACCURACY_EXACT = 5;
 
 	private static class Registration {
@@ -68,9 +71,33 @@ public class LocationManager {
 	private static final List<Registration> registrations = new ArrayList<>();
 	private static Location lastLocation;
 	private static boolean running;
+	private static boolean denied;
 
+	/* On the host only with ATL_UGLY_ENABLE_LOCATION; in a Flatpak the location
+	 * portal asks the user. After the portal refused or failed once, never again
+	 * in this process (also with the variable), so re-registering cannot loop. */
 	private static boolean enabled() {
-		return System.getenv("ATL_UGLY_ENABLE_LOCATION") != null;
+		if (denied)
+			return false;
+		if (System.getenv("ATL_UGLY_ENABLE_LOCATION") != null)
+			return true;
+		return ATLPaths.in_flatpak;
+	}
+
+	/** @hide whether location is reachable: what checkPermission reports */
+	public static boolean atlLocationAllowed() {
+		return enabled();
+	}
+
+	/* ACCESS_COARSE_LOCATION alone gets about 1 km, like Android's coarse fixes */
+	private static int portalAccuracy() {
+		try {
+			List<String> perms = ATLLoadedApp.getPrimaryApplication().pkg.requestedPermissions;
+			if (perms != null && !perms.contains("android.permission.ACCESS_FINE_LOCATION") && perms.contains("android.permission.ACCESS_COARSE_LOCATION"))
+				return ACCURACY_NEIGHBORHOOD;
+		} catch (RuntimeException e) {
+		}
+		return ACCURACY_EXACT;
 	}
 
 	private static String normalize(String provider) {
@@ -95,14 +122,22 @@ public class LocationManager {
 	private void add(Registration r) {
 		r.provider = normalize(r.provider);
 		boolean start;
+		boolean disabled = !enabled();
+		if (disabled && r.nullOnExpiry) { /* getCurrentLocation with location off: null at once */
+			r.cancelled = true;
+			deliverNull(r);
+			return;
+		}
 		synchronized (lock) {
 			removeLocked(r.listener, r.pendingIntent);
 			registrations.add(r);
-			start = !running && !PASSIVE_PROVIDER.equals(r.provider);
+			/* after a refusal (or without the gate on the host) never ask the portal again in
+			 * this process: apps that re-register from onProviderDisabled would loop */
+			start = !running && !disabled && !PASSIVE_PROVIDER.equals(r.provider);
 			if (start)
 				running = true;
 		}
-		if (start && !nativeStart(ACCURACY_EXACT)) {
+		if (start && !nativeStart(portalAccuracy())) {
 			synchronized (lock) {
 				running = false;
 			}
@@ -368,6 +403,34 @@ public class LocationManager {
 				r.listener.onLocationChanged((Location)null);
 			}
 		});
+	}
+
+	@Export
+	private static void locationDenied() {
+		List<Registration> regs;
+		synchronized (lock) {
+			denied = true;
+			running = false;
+			regs = new ArrayList<>(registrations);
+		}
+		for (final Registration r : regs) {
+			if (r.nullOnExpiry) { /* getCurrentLocation: answer null at once */
+				synchronized (lock) {
+					registrations.remove(r);
+					r.cancelled = true;
+				}
+				deliverNull(r);
+				continue;
+			}
+			if (r.listener == null)
+				continue;
+			r.executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					r.listener.onProviderDisabled(r.provider);
+				}
+			});
+		}
 	}
 
 	private static void deliver(final Registration r, final Location location) {

@@ -2604,6 +2604,13 @@ public class View implements Drawable.Callback {
 			return false;
 	}
 
+	/* one window per process, so one state like ViewRootImpl's AttachInfo */
+	private static final KeyEvent.DispatcherState keyDispatcherState = new KeyEvent.DispatcherState();
+
+	public KeyEvent.DispatcherState getKeyDispatcherState() {
+		return keyDispatcherState;
+	}
+
 	public WindowInsets getRootWindowInsets() { return new WindowInsets(); }
 
 	public PointerIcon getPointerIcon() { return null; }
@@ -2677,6 +2684,10 @@ public class View implements Drawable.Callback {
 	public void setHasTransientState(boolean hasTransientState) {}
 
 	protected void onConfigurationChanged(Configuration newConfig) {}
+
+	public void dispatchConfigurationChanged(Configuration newConfig) {
+		onConfigurationChanged(newConfig);
+	}
 
 	public boolean isDrawingCacheEnabled() { return false; }
 
@@ -2832,5 +2843,9 @@ public class View implements Drawable.Callback {
 	public void drawableStateChanged() {
 		if (background != null && background.isStateful() && background.setState(getDrawableState()))
 			invalidate();
+	}
+
+	public boolean onHoverEvent(MotionEvent event) {
+		return false;
 	}
 }

@@ -280,6 +280,23 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   gives the app the normal pulse socket instead of the one without
   recording (Flatpak user override, from the app's next start). Headless check:
   `flatpak/permissions-test.sh`.
+- Microphone: the normal pulse socket would let every app record
+  (microphone and sink monitors, i.e. other apps' sound). Apps get
+  instead only the socket of a second pipewire-pulse,
+  `atl-pulse-norecord` (`flatpak/microphone/`: a user systemd unit and a
+  drop-in for the system's `pipewire-pulse.conf`), which refuses every
+  record stream of every client and lets no client load modules
+  (a loopback into a pipe sink, RTP or a tunnel would record on the
+  server side). The socket directory is mounted read-only, so an app
+  cannot replace the shared socket. `make-app-flatpak` sets it up in the
+  user's own configuration (no root) and gives the app
+  `--filesystem=xdg-run/atl-pulse-norecord` and `PULSE_SERVER`; an app
+  the user allows to record gets the normal socket as a user override
+  (next start). Rules on client properties are not used: pulse clients
+  can rewrite them (`PULSE_PROP`, `UPDATE_CLIENT_PROPLIST`), which made
+  the first version (WirePlumber and pipewire-pulse rules on
+  `pipewire.access.portal.app_id`) bypassable. Headless check with the
+  forged-property cases: `flatpak/microphone/test.sh`.
 - The package name is checked against Android's rules and the label is
   kept to one line, since both come from the APK and end up in the
   launcher.
@@ -434,10 +451,16 @@ android-translation-layer --install --sdk-int 26 -w 360 -h 720 org.fdroid.fdroid
   `Activity.getOnBackInvokedDispatcher()`. At 26 it needed
   `Context.startForegroundService` (added). `--install` keeps
   `--sdk-int` in the launcher.
-- `-w 360 -h 720`: ATL reports the launch size as the display size and
-  never updates it, and the default is 960×540, so F-Droid shows its
-  two-pane tablet layout squeezed into 360 px. Apps installed from
-  F-Droid inherit the size.
+- Window size: without `-w`/`-h` ATL starts with the monitor's size in
+  logical pixels and follows the window when the compositor resizes it
+  (Phosh maximizes it): `Display`, `Configuration` (`screenWidthDp`,
+  `screenHeightDp`, `smallestScreenWidthDp`, orientation), every
+  `Resources`' `DisplayMetrics`, and `onConfigurationChanged` for the
+  application, the activities and their views (2026-11-03). Before,
+  the default was 960×540 and never updated, so F-Droid showed its
+  two-pane tablet layout on the phone. With `-w`/`-h` the size is
+  fixed at launch as before, and only then do apps installed from a
+  store get `-w`/`-h` in their launcher.
 - F-Droid builds its compatibility flags when it updates the index; after
   changing `--sdk-int` it needs a fresh index (or new data directory).
 

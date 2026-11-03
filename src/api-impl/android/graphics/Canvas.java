@@ -697,4 +697,13 @@ public class Canvas {
 	public boolean quickReject(float left, float top, float right, float bottom, EdgeType edgeType) {
 		return false;
 	}
+
+	/* complex text shaping is done by pango anyway */
+	public void drawTextRun(CharSequence text, int start, int end, int contextStart, int contextEnd, float x, float y, boolean isRtl, Paint paint) {
+		drawText(text, start, end, x, y, paint);
+	}
+
+	public void drawTextRun(char[] text, int index, int count, int contextIndex, int contextCount, float x, float y, boolean isRtl, Paint paint) {
+		drawText(text, index, index + count, x, y, paint);
+	}
 }

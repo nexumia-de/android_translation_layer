@@ -96,8 +96,33 @@ an app's Flatpak, including `atl.google-services` (warning, default
 denied). Headless with GTK's dialog: not requested → no, contacts
 allowed, Google denied, microphone allowed and written into the
 PipeWire rules. Not yet tried inside a real app Flatpak.
+## 2026-11-04: microphone: separate pulse server instead of property rules
+
+Security review: pulse clients can overwrite
+`pipewire.access.portal.app_id`, so the 2026-11-03 rules were
+bypassable (`PULSE_PROP=...`). Now apps without the microphone get only
+the socket of a second pipewire-pulse that refuses all record streams;
+matching every client with and without `application.name`. Headless:
+denied app plays, cannot record microphone or monitor, also with forged
+properties, and cannot reach the normal socket; allowed app records.
+Native PipeWire with the WirePlumber rule was the alternative: its
+`pipewire.*` keys come from the server, but ATL's ALSA default and
+WebKit's GStreamer use pulse, so it would need changes in both.
+
+## 2026-11-03: microphone blocked in PipeWire, headless
+
+WirePlumber 0.5.18 `access.rules` + `access.permission-managers` and
+pipewire-pulse `pulse.rules` (`block-record-stream`) on
+`pipewire.access.portal.app_id`, in the user's own configuration:
+a fake ATL Flatpak client (bwrap with `/.flatpak-info`) plays but cannot
+record the microphone or a sink monitor; an allowed one can
+(`flatpak/microphone/test.sh`). The WirePlumber rule alone left sink
+monitors recordable through pipewire-pulse.
 
 ## 2026-11-03
+
+* **Back navigation**: Besides the header bar button, a swipe from the left or right edge and the keys Escape, Alt+Left and XF86Back go back; they send `KEYCODE_BACK` like Android, so dialogs (`OnKeyListener`, cancelable) and `Activity.onKeyDown`/`onKeyUp` see it before `onBackPressed`. `ATL_NAVIGATION=buttons|gesture|both` picks the on-screen means ([back navigation](navigation.md), [decision](decisions/navigation.md)). `wl-pointer key` types keys headless.
+* **HeliBoard**: [Feasibility](android-keyboard.md) of HeliBoard as the Phosh keyboard through ATL's existing IME host (size M; risks: lock screen, memory, start time). Its settings run headless; as on-screen keyboard its input view appears under headless phoc but is not usable yet ([app status](apps.md)).
 * **GPSLogger and location**: `LocationManager` only handled one `requestLocationUpdates` variant, never stopped the portal session and its `Location` lacked most fields, so GPSLogger 138 aborted at its first fix. Registrations now follow Android (Looper, Executor, `PendingIntent`, `LocationRequest`, minimum time and distance, `removeUpdates` ends the portal session) and the fix time is right (the portal's second timestamp field is microseconds, not milliseconds). Headless with a fake location portal GPSLogger logs and uploads through its Dawarich sender ([app status](apps.md)).
 ## 2026-11-03: internet asked on the install page
 
@@ -106,3 +131,6 @@ PipeWire rules. Not yet tried inside a real app Flatpak.
 Flatpak user override, not metadata. Headless with GPSLogger: "No
 internet" → override `shared=!network`, metadata without network;
 uninstall removed the override.
+* **Push messages**: Scan of the apps: DB Navigator, Post & DHL and Duolingo use only FCM, WhatsApp FCM and its own connection, FluffyChat UnifiedPush. FCM cannot be routed to ntfy; Google's servers only per app with consent (`atl.google-services`, owner decision 2026-11-03). UnifiedPush maps to the host distributor over D-Bus ([push](push.md)).
+* **UnifiedPush bridge and FCM without consent**: The connector found no distributor (null package name); ATL now reports any `org.unifiedpush.Distributor.*` on the session bus as `org.unifiedpush.distributor.dbus`, owns the app's name before registering, maps UNREGISTER, failures, message ids and Unregistered. c2dm registrations get `SERVICE_NOT_AVAILABLE` at once without `atl.google-services` ([push](push.md)).
+* **UnifiedPush on D-Bus activation**: the connector is exported before the app owns its name and takes calls in a worker thread; calls wait until `Application.onCreate` has run, so the push that started an app reaches it (checked headless). Without `atl.google-services` no c2dm intent and no external Google Play services start leaves the app ([push](push.md)).

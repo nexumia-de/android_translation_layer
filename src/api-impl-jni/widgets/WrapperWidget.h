@@ -43,5 +43,6 @@ void wrapper_widget_consume_touch_events(WrapperWidget *wrapper);
 void wrapper_widget_register_invalidation_listener(WrapperWidget *wrapper);
 
 void _setOnTouchListener(JNIEnv *env, jobject this, GtkWidget *widget);
+void view_cancel_touch_sequence(GtkWidget *target, GdkEvent *event);
 
 #endif

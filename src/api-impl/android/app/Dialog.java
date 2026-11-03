@@ -12,6 +12,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -21,7 +22,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager.LayoutParams;
 
-public class Dialog implements Window.Callback, DialogInterface {
+public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterface {
 	protected long nativePtr;
 
 	protected native long nativeInit(long decor_view);
@@ -260,7 +261,39 @@ public class Dialog implements Window.Callback, DialogInterface {
 		return false;
 	}
 
-	public void setOnKeyListener(OnKeyListener onKeyListener) {}
+	private OnKeyListener onKeyListener;
+
+	public void setOnKeyListener(OnKeyListener onKeyListener) {
+		this.onKeyListener = onKeyListener;
+	}
+
+	/* KEYCODE_BACK from navigation.c while the dialog shows, like Android:
+	 * the OnKeyListener first, then onKeyUp -> onBackPressed */
+	public boolean dispatchKeyEvent(KeyEvent event) {
+		if (onKeyListener != null && onKeyListener.onKey(this, event.getKeyCode(), event))
+			return true;
+		return event.dispatch(this, null, this);
+	}
+
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		return keyCode == KeyEvent.KEYCODE_BACK;
+	}
+
+	public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+		return false;
+	}
+
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		if (keyCode == KeyEvent.KEYCODE_BACK && !event.isCanceled()) {
+			onBackPressed();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean onKeyMultiple(int keyCode, int repeatCount, KeyEvent event) {
+		return false;
+	}
 
 	public View getCurrentFocus() {
 		return null;
