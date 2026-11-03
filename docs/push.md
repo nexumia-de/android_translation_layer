@@ -92,6 +92,67 @@ already stop before that (`MISSING_INSTANCEID_SERVICE`).
 On Alpine edge (2026-11-03): `kunifiedpush` (KDE's distributor daemon,
 the only Linux D-Bus distributor listed by unifiedpush.org; servers:
 ntfy, Gotify, NextPush, Mozilla autopush; needs Qt 6 and KDE Frameworks
+6), `ntfy` (server and client, no D-Bus distributor) and `gotify`
+(server). ntfy fits as the server: one HTTP service, one WebSocket from
+the phone for all apps, and the same server serves Android phones
+through the ntfy app. While the phone is suspended no push arrives on
+Phosh unless the modem or Wi-Fi wakes it.
+
+### KUnifiedPush on the phone
+
+Installed by the owner on 2026-11-03 (26.08.2). It starts at login
+(`/etc/xdg/autostart/org.kde.kunifiedpush-distributor.desktop`), owns
+`org.unifiedpush.Distributor.kde` and reads its settings with QSettings:
+`~/.config/KDE/kunifiedpush-distributor.conf` over
+`/etc/xdg/KDE/kunifiedpush-distributor.conf` (`[PushProvider] Type=Ntfy`,
+`[Ntfy] Url=`; the system file points to KDE's server). It stores its
+clients in the same file. Its settings page is a Plasma KCM, so on Phosh
+the push server is set with `atl-push-server` (installed with ATL;
+default `https://ntfy.sh`, the owner's decision of 2026-11-03):
+
+    atl-push-server get | set URL | reset
+
+A running distributor is changed over D-Bus,
+`org.kde.kunifiedpush.Management.setPushProvider("Ntfy", {"Url": <url>})`
+on `/org/unifiedpush/Distributor`, which saves the setting and moves the
+registered apps to the new server; otherwise the per-user file is
+written. The settings page for Android apps will call the same helper.
+Test: `src/push/atl-push-server-test.sh` (private bus, own config).
+
+Headless on 2026-11-03, private session bus, local ntfy 2.33
+(`apk fetch`, no root) and the real distributor: a test APK registered
+through ATL's bridge, got the ntfy endpoint, and an HTTP POST to it
+arrived as `MESSAGE`. After `UNREGISTER` KUnifiedPush called
+`Unregistered` with an empty token.
+
+Cost, measured on the phone after 60 s idle with one connection open:
+
+| Process | RSS | of it anonymous | PSS | CPU idle |
+|---|---|---|---|---|
+| `kunifiedpush-distributor` | 109 MB | 6 MB | 50 MB | 1 tick (10 ms) per minute |
+| `ntfy serve` (only for a local server) | 34 MB | | | |
+
+Most of its RSS are the Qt 6 and KDE Frameworks libraries, shared with
+any other Qt app; with none running, about 50 MB of RAM (PSS) is what
+push costs on the phone.
+
+## Cloud Messaging without consent
+
+An app's c2dm intents and services of `com.google.android.gms` that ATL
+does not run in the app go over D-Bus to an external Google Play
+services (upstream's GCM service, which talks to Google). Without the
+app's `atl.google-services`, or with no such service on the session bus,
+ATL drops them; a `REGISTER` or `UNREGISTER` gets `REGISTRATION` with
+`error=SERVICE_NOT_AVAILABLE` at once, as Google Play services answers
+when it cannot reach Google. Firebase then retries with backoff and the
+app carries on without push. Without `ATL_GMS_STUB` the client libraries
+already stop before that (`MISSING_INSTANCEID_SERVICE`).
+
+## Linux distributors
+
+On Alpine edge (2026-11-03): `kunifiedpush` (KDE's distributor daemon,
+the only Linux D-Bus distributor listed by unifiedpush.org; servers:
+ntfy, Gotify, NextPush, Mozilla autopush; needs Qt 6 and KDE Frameworks
 6, not on the phone yet), `ntfy` (server and client, no D-Bus
 distributor) and `gotify` (server). ntfy fits as the server: one
 self-hosted HTTP service, one WebSocket from the phone for all apps,
