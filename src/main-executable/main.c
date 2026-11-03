@@ -1234,7 +1234,11 @@ static gboolean instance_lock_take(const char *data_dir)
 	g_free(path);
 	if (!file)
 		return TRUE; /* cannot tell; do not block the start */
-	return lockf(fileno(file), F_TLOCK, 0) == 0; /* not flock(): <sys/file.h> declares open() on glibc */
+	/* not flock(): <sys/file.h> declares open() on glibc. Only "locked by another process"
+	 * means running; any other error (no lock support) must not block the start. */
+	if (lockf(fileno(file), F_TLOCK, 0) == 0)
+		return TRUE;
+	return errno != EAGAIN && errno != EACCES;
 }
 
 /* Asks the running process of this app id to show itself, like a launcher would: Open for a
@@ -1401,7 +1405,8 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	 * data directory. A lock on the data directory decides which process is the app; the bus
 	 * name only says where to hand over (the running one owns the app id once it started, see
 	 * RequestName below; a D-Bus activated start may already own it itself). */
-	if (!d->install && !instance_lock_take(app_data_dir)) {
+	/* not for installs: the installer service stages every apk under the same name */
+	if (!(d->install || d->install_internal || d->install_ask || d->install_flatpak) && !instance_lock_take(app_data_dir)) {
 		const char *id = g_application_get_application_id(G_APPLICATION(app));
 		if (!strcmp(id, "com.example.demo_application")) {
 			fprintf(stderr, "this apk is already running; start it with --gapplication-app-id to hand over to it\n");
