@@ -109,11 +109,6 @@ for apk in "$@"; do
 	i=$((i + 1))
 done
 
-# for App info (--app-info) and the permission service: the <uses-permission> list, one per line,
-# and the version, both from the APK
-printf '%s' "$permissions" | tr ';' '\n' > "$build/files/share/atl/permissions"
-printf '%s\n' "$version" | tr -d '\000-\011\013-\037' | head -n 1 > "$build/files/share/atl/version"
-
 cat > "$build/files/bin/atl-app" <<EOF
 #!/bin/sh
 exec android-translation-layer --gapplication-app-id=$id $atl_args$apks "\$@"
@@ -136,6 +131,9 @@ cat > "$build/files/share/dbus-1/services/$id.service" <<EOF
 Name=$id
 Exec=/app/bin/atl-app --dbus-activated
 EOF
+
+# the APK's version for App info (--app-info); the <uses-permission> list comes with #75
+printf '%s\n' "$version" | tr -d '\000-\011\013-\037' | head -n 1 > "$build/files/share/atl/version"
 
 mkdir -p "$build/files/share/applications"
 cat > "$build/files/share/applications/$id.desktop" <<EOF

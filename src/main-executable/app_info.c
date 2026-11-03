@@ -41,6 +41,7 @@ struct app_info {
 	GtkWindow *window;
 	AdwToastOverlay *toasts;
 	AdwBanner *restart_banner;
+	int restart_tries;
 	char *package;
 	char *id;
 	char *prgname;
@@ -61,14 +62,15 @@ static char *app_file(struct app_info *info, const char *name)
 	return path;
 }
 
-/* the APK's <uses-permission> list, written by make-app-flatpak */
-static gboolean app_requests(struct app_info *info, const char *permission)
+/* the APK's <uses-permission> list, written by make-app-flatpak (#75): 1 requested, 0 not, -1 unknown
+ * (an app built before the list existed) */
+static int app_requests(struct app_info *info, const char *permission)
 {
 	if (!strcmp(permission, "atl.google-services"))
 		return TRUE; // ATL's own: asked by ATL's Google clients, not in a manifest
 	char *path = app_file(info, "permissions");
 	char *contents = NULL;
-	gboolean found = FALSE;
+	int found = -1;
 	if (g_file_get_contents(path, &contents, NULL, NULL)) {
 		char **lines = g_strsplit(contents, "\n", -1);
 		found = g_strv_contains((const char *const *)lines, permission);
@@ -116,13 +118,35 @@ static void changed_static_permission(struct app_info *info)
 		adw_toast_overlay_add_toast(info->toasts, adw_toast_new("Applies when the app starts"));
 }
 
+#define RESTART_POLL_MS 200
+#define RESTART_TRIES   50 // 10 s
+
+/* starts the app again once Flatpak no longer lists the old instance */
+static gboolean restart_when_stopped(gpointer user_data)
+{
+	struct app_info *info = user_data;
+	if (app_running(info) && ++info->restart_tries < RESTART_TRIES)
+		return G_SOURCE_CONTINUE;
+	if (info->restart_tries >= RESTART_TRIES) {
+		adw_toast_overlay_add_toast(info->toasts, adw_toast_new("The app did not stop"));
+	} else {
+		const char *run_argv[] = {"flatpak", "run", "--user", info->id, NULL};
+		g_spawn_async(NULL, (char **)run_argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
+	}
+	gtk_widget_set_sensitive(GTK_WIDGET(info->restart_banner), TRUE);
+	g_application_release(G_APPLICATION(info->app));
+	return G_SOURCE_REMOVE;
+}
+
 static void restart_clicked(AdwBanner *banner, struct app_info *info)
 {
 	const char *kill_argv[] = {"flatpak", "kill", info->id, NULL};
 	run(kill_argv);
-	const char *run_argv[] = {"flatpak", "run", "--user", info->id, NULL};
-	g_spawn_async(NULL, (char **)run_argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
 	adw_banner_set_revealed(banner, FALSE);
+	gtk_widget_set_sensitive(GTK_WIDGET(banner), FALSE);
+	info->restart_tries = 0;
+	g_application_hold(G_APPLICATION(info->app)); // until the app runs again, even if the window closes
+	g_timeout_add(RESTART_POLL_MS, restart_when_stopped, info);
 }
 
 /* -------- internet -------- */
@@ -155,6 +179,8 @@ static void internet_toggled(AdwSwitchRow *row, GParamSpec *pspec, struct app_in
 	const char *argv[] = {"flatpak", "override", "--user", yes ? "--share=network" : "--unshare=network", info->id, NULL};
 	if (run(argv))
 		changed_static_permission(info);
+	else
+		adw_toast_overlay_add_toast(info->toasts, adw_toast_new("Could not change internet access"));
 }
 
 /* -------- answers in the permission store -------- */
@@ -176,22 +202,31 @@ static int stored_answer(struct app_info *info, const char *permission)
 
 /* The microphone is also enforced by the app's pulse socket (flatpak/microphone/, #68): the same
  * override the permission service writes for an answer in its dialog (#75). */
-static void apply_microphone(struct app_info *info, gboolean yes)
+static gboolean apply_microphone(struct app_info *info, gboolean yes)
 {
 	char *norecord = g_strdup_printf("--env=PULSE_SERVER=unix:%s/atl-pulse-norecord/native", g_get_user_runtime_dir());
 	const char *allow[] = {"flatpak", "override", "--user", "--socket=pulseaudio", "--unset-env=PULSE_SERVER",
 	                       "--nofilesystem=xdg-run/atl-pulse-norecord", info->id, NULL};
 	const char *deny[] = {"flatpak", "override", "--user", "--nosocket=pulseaudio", norecord,
 	                      "--filesystem=xdg-run/atl-pulse-norecord:ro", info->id, NULL};
-	if (run(yes ? allow : deny))
-		changed_static_permission(info);
+	gboolean ok = run(yes ? allow : deny);
 	g_free(norecord);
+	return ok;
 }
 
 static void permission_toggled(AdwSwitchRow *row, GParamSpec *pspec, struct app_info *info)
 {
 	const char *permission = g_object_get_data(G_OBJECT(row), "permission");
 	gboolean yes = adw_switch_row_get_active(row);
+	gboolean microphone = !strcmp(permission, "android.permission.RECORD_AUDIO");
+	/* the socket first: the stored answer must never claim less than the app can do */
+	if (microphone && !apply_microphone(info, yes)) {
+		adw_toast_overlay_add_toast(info->toasts, adw_toast_new("Could not change the microphone"));
+		g_signal_handlers_block_by_func(row, permission_toggled, info);
+		adw_switch_row_set_active(row, !yes);
+		g_signal_handlers_unblock_by_func(row, permission_toggled, info);
+		return;
+	}
 	/* "no" from here may be asked again by the app, like revoking on Android */
 	const char *value[] = {yes ? "yes" : "no", yes ? NULL : "0", NULL};
 	GError *err = NULL;
@@ -206,8 +241,8 @@ static void permission_toggled(AdwSwitchRow *row, GParamSpec *pspec, struct app_
 	}
 	g_variant_unref(reply);
 	adw_action_row_set_subtitle(ADW_ACTION_ROW(row), NULL); // answered now
-	if (!strcmp(permission, "android.permission.RECORD_AUDIO"))
-		apply_microphone(info, yes);
+	if (microphone)
+		changed_static_permission(info);
 }
 
 /* -------- other rows -------- */
@@ -326,7 +361,7 @@ void app_info_show(GtkApplication *app, const char *package, const char *prgname
 	GtkWidget *permissions = adw_preferences_group_new();
 	adw_preferences_group_set_title(ADW_PREFERENCES_GROUP(permissions), "Permissions");
 	int network = network_answer(info);
-	if (app_requests(info, "android.permission.INTERNET") || network >= 0) {
+	if (app_requests(info, "android.permission.INTERNET") != 0 || network >= 0) {
 		GtkWidget *row = adw_switch_row_new();
 		adw_preferences_row_set_title(ADW_PREFERENCES_ROW(row), "Internet");
 		adw_action_row_set_subtitle(ADW_ACTION_ROW(row), "Connect to any server");
@@ -337,7 +372,8 @@ void app_info_show(GtkApplication *app, const char *package, const char *prgname
 	for (gsize i = 0; i < G_N_ELEMENTS(permission_rows); i++) {
 		int answer = info->bus ? stored_answer(info, permission_rows[i].permission) : -1;
 		/* the ones the app requests, and Google services once the app asked for them */
-		if (!app_requests(info, permission_rows[i].permission) ||
+		int requested = app_requests(info, permission_rows[i].permission);
+		if (requested == 0 || (requested < 0 && answer < 0) ||
 		    (!strcmp(permission_rows[i].permission, "atl.google-services") && answer < 0))
 			continue;
 		GtkWidget *row = adw_switch_row_new();
