@@ -74,11 +74,14 @@ public class LocationManager {
 	private static boolean denied;
 
 	/* On the host only with ATL_UGLY_ENABLE_LOCATION; in a Flatpak the location
-	 * portal asks the user, until it refused once in this process. */
+	 * portal asks the user. After the portal refused or failed once, never again
+	 * in this process (also with the variable), so re-registering cannot loop. */
 	private static boolean enabled() {
+		if (denied)
+			return false;
 		if (System.getenv("ATL_UGLY_ENABLE_LOCATION") != null)
 			return true;
-		return ATLPaths.in_flatpak && !denied;
+		return ATLPaths.in_flatpak;
 	}
 
 	/** @hide whether location is reachable: what checkPermission reports */
