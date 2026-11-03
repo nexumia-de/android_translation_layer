@@ -767,6 +767,8 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	/* the lifecycle as ATL runs it, with the pre and post callbacks around the app's methods */
 	/* true while onCreate runs */
 	private boolean creating;
+	/* between onPostResume and onPause */
+	private boolean resumed;
 
 	@Export
 	final void performCreate(Bundle savedInstanceState) {
@@ -795,12 +797,14 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 
 	@Export
 	final void performPostResume() {
+		resumed = true;
 		onPostResume();
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_RESUMED, null);
 	}
 
 	@Export
 	final void performPause() {
+		resumed = false;
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_PAUSED, null);
 		onPause();
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_PAUSED, null);
@@ -821,6 +825,10 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	}
 
 	public void setDisablePreviewScreenshots(boolean disable) {}
+	/* no lock screen integration */
+	public void setShowWhenLocked(boolean showWhenLocked) {}
+
+	public void setTurnScreenOn(boolean turnScreenOn) {}
 	public final View requireViewById(int id) {
 		View view = findViewById(id);
 		if (view == null)
@@ -883,12 +891,28 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		new Handler(Looper.getMainLooper()).post(new Runnable() {
 			@Override
 			public void run() {
-				onRequestPermissionsResult(requestCode, permissions, grantResults);
+				deliverPermissionsResult(requestCode, permissions, grantResults);
 			}
 		});
 	}
 
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {}
+
+	/*
+	 * On Android the request opens the system's permission activity, so the
+	 * app is paused and resumed around the answer. Some apps rely on that,
+	 * e.g. CoMaps' splash screen only goes on in onResume.
+	 */
+	private void deliverPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+		boolean wasResumed = resumed;
+		if (wasResumed)
+			performPause();
+		onRequestPermissionsResult(requestCode, permissions, grantResults);
+		if (wasResumed) {
+			performResume();
+			performPostResume();
+		}
+	}
 
 	public boolean shouldShowRequestPermissionRationale(String permission) {
 		return true;
