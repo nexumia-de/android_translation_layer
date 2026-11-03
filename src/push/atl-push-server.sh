@@ -4,7 +4,8 @@
 #
 #   atl-push-server get        print the server URL in use
 #   atl-push-server set URL    use the ntfy server at URL (http:// or https://)
-#   atl-push-server reset      use the default, https://ntfy.sh
+#   atl-push-server reset      back to KUnifiedPush's own default (its system setting, KDE's
+#                              https://unifiedpush.kde.org/), by removing the per-user server
 #
 # A running distributor is changed over D-Bus (org.kde.kunifiedpush.Management.setPushProvider):
 # it saves the setting itself and moves the apps' registrations to the new server, which a
@@ -13,7 +14,8 @@
 # Exit status: 0 done, 1 error, 2 usage.
 set -eu
 
-DEFAULT_URL=https://ntfy.sh
+SYSTEM_CONF=/etc/xdg/KDE/kunifiedpush-distributor.conf
+FALLBACK_URL=https://unifiedpush.kde.org/
 BUS_NAME=org.unifiedpush.Distributor.kde
 OBJECT=/org/unifiedpush/Distributor
 MGMT=org.kde.kunifiedpush.Management
@@ -37,6 +39,22 @@ ini_get() {
 		in_g && index($0, k "=") == 1 { print substr($0, length(k) + 2); exit }' "$1"
 }
 
+# remove KEY from [GROUP]
+ini_del() {
+	[ -e "$1" ] || return 0
+	tmp=$(mktemp "$1.XXXXXX")
+	awk -v g="[$2]" -v k="$3" '
+		/^\[/ { in_g = ($0 == g); print; next }
+		in_g && index($0, k "=") == 1 { next }
+		{ print }' "$1" >"$tmp"
+	mv "$tmp" "$1"
+}
+
+system_url() {
+	url=$(ini_get "$SYSTEM_CONF" Ntfy Url)
+	echo "${url:-$FALLBACK_URL}"
+}
+
 # set KEY=VALUE in [GROUP], keeping everything else (the distributor stores its clients there too)
 ini_set() {
 	mkdir -p "$(dirname "$1")"
@@ -58,8 +76,7 @@ get_url() {
 		[ -n "$url" ] && { echo "$url"; return; }
 	fi
 	url=$(ini_get "$USER_CONF" Ntfy Url)
-	[ -n "$url" ] || url=$(ini_get /etc/xdg/KDE/kunifiedpush-distributor.conf Ntfy Url)
-	echo "${url:-$DEFAULT_URL}"
+	[ -n "$url" ] && echo "$url" || system_url
 }
 
 set_url() {
@@ -85,6 +102,12 @@ set_url() {
 case $1 in
 get) [ $# -eq 1 ] || usage; get_url ;;
 set) [ $# -eq 2 ] || usage; set_url "$2" ;;
-reset) [ $# -eq 1 ] || usage; set_url "$DEFAULT_URL" ;;
+reset)
+	[ $# -eq 1 ] || usage
+	# a running distributor moves its apps to the default server; then the system setting applies
+	if running; then set_url "$(system_url)"; fi
+	ini_del "$USER_CONF" Ntfy Url
+	ini_del "$USER_CONF" PushProvider Type
+	;;
 *) usage ;;
 esac

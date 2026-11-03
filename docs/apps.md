@@ -156,20 +156,13 @@ entry: date, what, why. Remove an entry once it is done.
   to get Stevia back (`phosh-osk-stevia --allow-replacement`).
 
 - 2026-11-03: Push messages ([push](push.md)). Decided: FCM through
-  Google only per app after consent (`atl.google-services`); the push
-  server is each user's choice, default `https://ntfy.sh`. KUnifiedPush
-  is installed, but its system setting points to KDE's server
-  (`unifiedpush.kde.org`) and its settings page is Plasma-only. Once an
-  ATL build with `atl-push-server` is installed, as `user`, after
-  logging in again (the distributor starts at login):
-
-  ```sh
-  pgrep -l kunifiedpush || kunifiedpush-distributor &
-  atl-push-server reset   # https://ntfy.sh; or: atl-push-server set https://your-ntfy.example
-  atl-push-server get
-  ```
-
-  Then FluffyChat (once it starts in ATL) can pick the distributor.
+  Google only per app after consent (`atl.google-services`); push goes
+  through KUnifiedPush's default server, KDE's
+  `https://unifiedpush.kde.org/`, each user can choose another. Nothing
+  to do on the phone: KUnifiedPush is installed and starts at the next
+  login. Only to use another server, as `user`, with an ATL build that
+  has `atl-push-server`: `atl-push-server set https://your-ntfy.example`
+  (back with `atl-push-server reset`).
 
 # Notes
 
