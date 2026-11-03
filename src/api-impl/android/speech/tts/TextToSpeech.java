@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Speaks through speech-dispatcher's spd-say, which uses the voices the
@@ -79,6 +80,7 @@ public class TextToSpeech {
 	private static class Utterance {
 		String text;
 		String id;
+		long silenceMs;
 	}
 
 	private final String spdSay;
@@ -87,6 +89,8 @@ public class TextToSpeech {
 	private Process current;
 	private Utterance currentUtterance;
 	private boolean shutdown;
+	/* the worker cancels the killed spd-say's message in speechd before going on */
+	private boolean cancelPending;
 	private Locale language = Locale.getDefault();
 	private int rate = 0;
 	private int pitch = 0;
@@ -255,20 +259,26 @@ public class TextToSpeech {
 	}
 
 	public int playSilentUtterance(long durationInMs, int queueMode, String utteranceId) {
-		return enqueue(null, queueMode, utteranceId);
+		return enqueue(null, durationInMs, queueMode, utteranceId);
 	}
 
 	private int enqueue(String text, int queueMode, String utteranceId) {
+		return enqueue(text, 0, queueMode, utteranceId);
+	}
+
+	private int enqueue(String text, long silenceMs, int queueMode, String utteranceId) {
 		if (spdSay == null)
 			return ERROR;
+		Stopped stopped = null;
 		synchronized (queue) {
 			if (shutdown)
 				return ERROR;
 			if (queueMode == QUEUE_FLUSH)
-				stopLocked(true);
+				stopped = stopLocked();
 			Utterance u = new Utterance();
 			u.text = text;
 			u.id = utteranceId;
+			u.silenceMs = silenceMs;
 			queue.add(u);
 			if (worker == null) {
 				worker = new Thread(new Runnable() {
@@ -282,6 +292,7 @@ public class TextToSpeech {
 			}
 			queue.notifyAll();
 		}
+		finishStop(stopped, true);
 		return SUCCESS;
 	}
 
@@ -289,23 +300,46 @@ public class TextToSpeech {
 		while (true) {
 			Utterance u;
 			Process p = null;
+			boolean cancel;
 			synchronized (queue) {
-				while (queue.isEmpty() && !shutdown) {
+				while (queue.isEmpty() && !shutdown && !cancelPending) {
 					try {
 						queue.wait();
 					} catch (InterruptedException e) {
 					}
 				}
-				if (shutdown)
-					return;
-				u = queue.removeFirst();
-				currentUtterance = u;
+				cancel = cancelPending;
+				cancelPending = false;
+				if (!cancel) {
+					if (shutdown)
+						return;
+					u = queue.removeFirst();
+					currentUtterance = u;
+				} else {
+					u = null;
+				}
+			}
+			if (cancel) {
+				cancelInDaemon();
+				continue;
 			}
 			UtteranceProgressListener l = progressListener;
 			if (l != null && u.id != null)
 				l.onStart(u.id);
 			boolean ok = true;
-			if (u.text != null && !u.text.isEmpty()) {
+			if (u.text == null && u.silenceMs > 0) {
+				/* stop() and shutdown() wake this up */
+				long end = System.currentTimeMillis() + u.silenceMs;
+				synchronized (queue) {
+					long left;
+					while (currentUtterance == u && !shutdown && (left = end - System.currentTimeMillis()) > 0) {
+						try {
+							queue.wait(left);
+						} catch (InterruptedException e) {
+						}
+					}
+				}
+			} else if (u.text != null && !u.text.isEmpty()) {
 				try {
 					synchronized (queue) {
 						if (currentUtterance == u) {
@@ -349,23 +383,56 @@ public class TextToSpeech {
 		}
 	}
 
-	/* called with the queue lock held */
-	private void stopLocked(boolean notify) {
-		UtteranceProgressListener l = progressListener;
+	private static class Stopped {
+		List<String> ids = new ArrayList<>();
+	}
+
+	/* killing spd-say leaves its message in speechd (spd-say -C cancels all of them) */
+	private void cancelInDaemon() {
+		try {
+			Process p = new ProcessBuilder(spdSay, "-C").redirectErrorStream(true).start();
+			p.getOutputStream().close();
+			if (!p.waitFor(2, TimeUnit.SECONDS))
+				p.destroy();
+		} catch (Exception e) {
+			Log.w(TAG, "spd-say -C failed: " + e);
+		}
+	}
+
+	/* called with the queue lock held; the caller passes the result to finishStop after releasing it */
+	private Stopped stopLocked() {
+		Stopped stopped = new Stopped();
 		for (Utterance u : queue) {
-			if (notify && l != null && u.id != null)
-				l.onStop(u.id, false);
+			if (u.id != null)
+				stopped.ids.add(u.id);
 		}
 		queue.clear();
 		currentUtterance = null;
-		if (current != null)
+		if (current != null) {
 			current.destroy();
+			cancelPending = true;
+		}
+		queue.notifyAll();
+		return stopped;
+	}
+
+	/* without the queue lock: listeners may call speak() or stop() */
+	private void finishStop(Stopped stopped, boolean notify) {
+		if (stopped == null)
+			return;
+		UtteranceProgressListener l = progressListener;
+		if (notify && l != null) {
+			for (String id : stopped.ids)
+				l.onStop(id, false);
+		}
 	}
 
 	public int stop() {
+		Stopped stopped;
 		synchronized (queue) {
-			stopLocked(true);
+			stopped = stopLocked();
 		}
+		finishStop(stopped, true);
 		return SUCCESS;
 	}
 
@@ -376,11 +443,12 @@ public class TextToSpeech {
 	}
 
 	public void shutdown() {
+		Stopped stopped;
 		synchronized (queue) {
-			stopLocked(false);
+			stopped = stopLocked();
 			shutdown = true;
-			queue.notifyAll();
 		}
+		finishStop(stopped, false);
 	}
 
 	public int setOnUtteranceProgressListener(UtteranceProgressListener listener) {
