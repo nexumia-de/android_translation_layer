@@ -11,6 +11,7 @@
   AccessDenied. A permission the APK does not request is always "no".
 
   Version 1: Check and Request.
+  Version 2: OpenAppInfo.
 -->
 <node>
   <interface name="de.nexumia.atl.Permissions">
@@ -30,5 +31,8 @@
       <arg direction="in" name="permission" type="s"/>
       <arg direction="out" name="answer" type="s"/>
     </method>
+
+    <!-- Opens the calling app's App info on the host (the launcher's "App info" action). -->
+    <method name="OpenAppInfo"/>
   </interface>
 </node>
