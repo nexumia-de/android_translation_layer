@@ -100,6 +100,30 @@ entry: date, what, why. Remove an entry once it is done.
   Dismiss the Chatty notification on the phone: report whether it also
   disappears on the watch. The log stays in `/tmp/gadgetbridge.log`.
 
+- 2026-11-03: Location tracking for Dawarich (GPSLogger; pull requests
+  #61 location, #62 battery, #63 foreground services, wake locks next).
+  Three decisions, each with the agent's recommendation:
+  1. Background location (`ACCESS_BACKGROUND_LOCATION`): an app gets
+     locations while it has a window or a foreground service (shown by
+     its ongoing notification), as on Android 10+; without either only
+     if you allow it per app (default no). Recommended: yes, as proposed
+     in #58.
+  2. Suspend while tracking: Phosh cannot wake from suspend for an
+     Android alarm (that needs `CAP_WAKE_ALARM`, i.e. root), and GPSLogger
+     sleeps between fixes on `AlarmManager` wake-up alarms. Recommended:
+     while an app runs a foreground service and has a location session or
+     a wake-up alarm due within 15 minutes, ATL inhibits suspend (screen
+     off still allowed). The battery cost is measured in the phone test.
+  3. Autostart after reboot (`RECEIVE_BOOT_COMPLETED`): recommended no for
+     now; start the tracker by hand after a reboot.
+
+  Check on the phone, as `user` (prints no coordinates):
+  `/usr/libexec/geoclue-2.0/demos/where-am-i -t 60 -a 8 | grep -i -E 'accuracy|error|fail'`
+  and say whether a GNSS fix comes (accuracy under 50 m) outdoors.
+  `/etc/geoclue/geoclue.conf` has no `[xdg-desktop-portal]` section and no
+  Wi-Fi `url`, so the location portal depends on Phosh's geoclue agent and
+  on the modem GNSS (`[modem-gps]`); as `claude` geoclue timed out.
+
 # Notes
 
 APKs come from F-Droid with their `.asc` signature, checked against
