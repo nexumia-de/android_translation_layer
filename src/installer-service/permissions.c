@@ -185,7 +185,7 @@ static void apply_microphone_answer(const char *app_id, gboolean yes)
 	const char *allow[] = {"flatpak", "override", "--user", "--socket=pulseaudio", "--unset-env=PULSE_SERVER",
 	                       "--nofilesystem=xdg-run/atl-pulse-norecord", app_id, NULL};
 	const char *deny[] = {"flatpak", "override", "--user", "--nosocket=pulseaudio", norecord,
-	                      "--filesystem=xdg-run/atl-pulse-norecord", app_id, NULL};
+	                      "--filesystem=xdg-run/atl-pulse-norecord:ro", app_id, NULL};
 	int wait_status;
 	GError *err = NULL;
 	if (!g_spawn_sync(NULL, (char **)(yes ? allow : deny), NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL, NULL, NULL,

@@ -107,8 +107,10 @@ for apk in "$@"; do
 	i=$((i + 1))
 done
 
-# the <uses-permission> list, one per line: the installer service grants only what the APK requests
+# the <uses-permission> list, one per line: the permission service grants only what the APK requests
 printf '%s' "$permissions" | tr ';' '\n' > "$build/files/share/atl/permissions"
+# every app may ask the permission service (atl-permission-service), which asks the user
+finish="$finish --talk-name=de.nexumia.atl.Permissions"
 
 cat > "$build/files/bin/atl-app" <<EOF
 #!/bin/sh
@@ -155,7 +157,7 @@ EOF
 
 # shellcheck disable=SC2086 # $finish is a list of arguments
 flatpak build-finish "$build" --socket=wayland --device=dri --share=ipc \
-	--socket=pulseaudio --talk-name=org.sigxcpu.Feedback --talk-name=de.nexumia.atl.Permissions $finish >/dev/null
+	--socket=pulseaudio --talk-name=org.sigxcpu.Feedback $finish >/dev/null
 flatpak build-export "$repo" "$build" stable >/dev/null
 flatpak remote-add --user --if-not-exists --no-gpg-verify atl-local "$repo"
 flatpak remote-modify --user --url="file://$repo" atl-local
