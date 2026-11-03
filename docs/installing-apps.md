@@ -243,6 +243,23 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   resets the app's overrides. Apps without `INTERNET` are never asked
   and get `--unshare=network`, also when an update drops `INTERNET`.
   Everything else waits for portals and the broker (phases 3 and 4).
+- Microphone: the normal pulse socket would let every app record
+  (microphone and sink monitors, i.e. other apps' sound). Apps get
+  instead only the socket of a second pipewire-pulse,
+  `atl-pulse-norecord` (`flatpak/microphone/`: a user systemd unit and a
+  drop-in for the system's `pipewire-pulse.conf`), which refuses every
+  record stream of every client and lets no client load modules
+  (a loopback into a pipe sink, RTP or a tunnel would record on the
+  server side). The socket directory is mounted read-only, so an app
+  cannot replace the shared socket. `make-app-flatpak` sets it up in the
+  user's own configuration (no root) and gives the app
+  `--filesystem=xdg-run/atl-pulse-norecord` and `PULSE_SERVER`; an app
+  the user allows to record gets the normal socket as a user override
+  (next start). Rules on client properties are not used: pulse clients
+  can rewrite them (`PULSE_PROP`, `UPDATE_CLIENT_PROPLIST`), which made
+  the first version (WirePlumber and pipewire-pulse rules on
+  `pipewire.access.portal.app_id`) bypassable. Headless check with the
+  forged-property cases: `flatpak/microphone/test.sh`.
 - The package name is checked against Android's rules and the label is
   kept to one line, since both come from the APK and end up in the
   launcher.
