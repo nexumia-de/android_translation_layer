@@ -278,6 +278,15 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   (`make-app-flatpak` writes the list to `/app/share/atl/permissions`)
   and stops asking after the second "no"; requests for the same
   question while its dialog is open wait for that one answer.
+  Apps made for Android before 6 (target SDK or `SDK_INT` below 23,
+  e.g. CoMaps at SDK 21) never ask: before their code runs, ATL asks
+  the service's `Review` once, which shows one dialog of the app's
+  dangerous permissions, each off by default
+  ([screenshot](screenshots/legacy-review-2026-11-04.png)); the
+  answers are stored like the others and `checkSelfPermission` reports
+  them, also for location and camera, whose access still goes through
+  the portals (owner, 2026-11-03; Android 10+ and GrapheneOS do the
+  same). Headless check: `flatpak/legacy-review-test.sh`.
   Background location (owner, 2026-11-03; split with the location
   portal work, #76): the portal decides fine and coarse location, and
   its dialog covers use while the app has a window or a foreground

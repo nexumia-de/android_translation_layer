@@ -206,7 +206,10 @@ public abstract class Context {
 
 	@Export
 	static Application createApplication(long native_window) throws Exception {
-		Application application = ATLLoadedApp.getPrimaryApplication().getApplication();
+		ATLLoadedApp loaded_app = ATLLoadedApp.getPrimaryApplication();
+		/* apps made for Android before 6 never ask: one review before their code runs */
+		android.atl.ATLPermissions.legacyReviewIfNeeded(loaded_app.effective_sdk_compat);
+		Application application = loaded_app.getApplication();
 		application.native_window = native_window;
 		this_application = application;
 		return application;
