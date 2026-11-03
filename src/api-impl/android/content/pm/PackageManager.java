@@ -1920,10 +1920,7 @@ public class PackageManager {
 			// (until we find apps that refuse to launch without being lied to anyway)
 			case "android.permission.ACCESS_FINE_LOCATION":
 			case "android.permission.ACCESS_COARSE_LOCATION":
-				if (System.getenv("ATL_UGLY_ENABLE_LOCATION") != null)
-					return PERMISSION_GRANTED;
-				else
-					return PERMISSION_DENIED;
+				return android.location.LocationManager.atlLocationAllowed() ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			case "android.permission.RECORD_AUDIO":
 				if (System.getenv("ATL_UGLY_ENABLE_MICROPHONE") != null)
 					return PERMISSION_GRANTED;

@@ -64,6 +64,11 @@ done
 gdbus call --system --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.ListNames >/dev/null 2>&1 \
 	&& echo "INFO  reaches the system bus (only granted names)" || pass "no system bus"
 
+# location: only through the portal, which asks and records the answer; never geoclue directly
+gdbus call --system --dest org.freedesktop.GeoClue2 --object-path /org/freedesktop/GeoClue2/Manager \
+	--method org.freedesktop.GeoClue2.Manager.GetClient >/dev/null 2>&1 \
+	&& escaped "gets a geoclue client on the system bus" || pass "no direct geoclue"
+
 # network (only when the app has no network permission)
 if grep -q '^shared=.*network' /.flatpak-info; then
 	echo "INFO  has network permission"
