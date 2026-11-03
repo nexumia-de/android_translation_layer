@@ -65,6 +65,32 @@ public class KeyGenParameterSpec {
 			return this;
 		}
 
+		/* keys are kept in the Secret Service; there is no secure hardware
+		 * and no user authentication to bind them to */
+		public Builder setIsStrongBoxBacked(boolean isStrongBoxBacked) {
+			return this;
+		}
+
+		public Builder setUnlockedDeviceRequired(boolean unlockedDeviceRequired) {
+			return this;
+		}
+
+		public Builder setInvalidatedByBiometricEnrollment(boolean invalidateKey) {
+			return this;
+		}
+
+		public Builder setUserAuthenticationParameters(int timeout, int type) {
+			return this;
+		}
+
+		public Builder setUserAuthenticationValidityDurationSeconds(int seconds) {
+			return this;
+		}
+
+		public Builder setRandomizedEncryptionRequired(boolean required) {
+			return this;
+		}
+
 		public KeyGenParameterSpec build() {
 			return spec;
 		}
