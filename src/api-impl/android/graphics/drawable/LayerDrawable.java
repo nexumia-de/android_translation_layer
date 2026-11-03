@@ -343,6 +343,9 @@ public class LayerDrawable extends Drawable implements Drawable.Callback {
 		childDrawable.mInsetT = t;
 		childDrawable.mInsetR = r;
 		childDrawable.mInsetB = b;
+		childDrawable.mInsetS = INSET_UNDEFINED;
+		childDrawable.mInsetE = INSET_UNDEFINED;
+		layersChanged();
 	}
 
 	// overrides from Drawable.Callback
