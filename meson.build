@@ -112,7 +112,8 @@ executable('atl-installer-service', ['src/installer-service/atl-installer-servic
 executable('atl-permission-service', ['src/installer-service/permissions.c', 'src/installer-service/caller.c', installer_service_resources],
            dependencies: [dependency('gio-unix-2.0')],
            install: true,
-           install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'))
+           install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
+           c_args: ['-DINSTALL_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"'])
 configure_file(input: 'src/installer-service/de.nexumia.atl.Installer.service.in',
                output: 'de.nexumia.atl.Installer.service',
                configuration: {'libexecdir': join_paths(get_option('prefix'), get_option('libexecdir'))},

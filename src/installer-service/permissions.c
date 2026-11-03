@@ -26,7 +26,7 @@
 /* like Android 11+: after the second "no" the app is not allowed to ask again */
 #define MAX_DENIALS 2
 
-#define PERMISSIONS_VERSION 1
+#define PERMISSIONS_VERSION 2
 
 struct question {
 	const char *permission;
@@ -372,11 +372,40 @@ static void handle(GDBusMethodInvocation *invocation, const char *method, GVaria
 	g_free(handle_path);
 }
 
+static const char *atl_binary(void)
+{
+	const char *path = g_getenv("ATL_BINARY");
+	return path ? path : INSTALL_BINDIR "/android-translation-layer";
+}
+
+/* the launcher's "App info" action: the caller's own App info, on the host (--app-info) */
+static void handle_open_app_info(GDBusMethodInvocation *invocation)
+{
+	char *app_id = caller_app_id(invocation);
+	if (!app_id) {
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+		                                           "only apps in their own ATL Flatpak");
+		return;
+	}
+	const char *argv[] = {atl_binary(), "--app-info", app_id + strlen(APP_PREFIX), NULL};
+	GError *err = NULL;
+	if (!g_spawn_async(NULL, (char **)argv, NULL, G_SPAWN_DEFAULT, NULL, NULL, NULL, &err)) {
+		g_dbus_method_invocation_return_gerror(invocation, err);
+		g_error_free(err);
+	} else {
+		g_dbus_method_invocation_return_value(invocation, NULL);
+	}
+	g_free(app_id);
+}
+
 static void method_call(GDBusConnection *connection, const char *sender, const char *object_path, const char *interface_name,
                         const char *method_name, GVariant *params, GDBusMethodInvocation *invocation, gpointer user_data)
 {
 	hold();
-	handle(invocation, method_name, params);
+	if (!strcmp(method_name, "OpenAppInfo"))
+		handle_open_app_info(invocation);
+	else
+		handle(invocation, method_name, params);
 	release();
 }
 

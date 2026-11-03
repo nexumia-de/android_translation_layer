@@ -144,3 +144,11 @@ and permission store): Internet and microphone switched on → override
 * **UnifiedPush bridge and FCM without consent**: The connector found no distributor (null package name); ATL now reports any `org.unifiedpush.Distributor.*` on the session bus as `org.unifiedpush.distributor.dbus`, owns the app's name before registering, maps UNREGISTER, failures, message ids and Unregistered. c2dm registrations get `SERVICE_NOT_AVAILABLE` at once without `atl.google-services` ([push](push.md)).
 * **UnifiedPush on D-Bus activation**: the connector is exported before the app owns its name and takes calls in a worker thread; calls wait until `Application.onCreate` has run, so the push that started an app reaches it (checked headless). Without `atl.google-services` no c2dm intent and no external Google Play services start leaves the app ([push](push.md)).
 * **Push server setting**: KUnifiedPush, now on the phone, is configured on Phosh with `atl-push-server get|set|reset` (default KUnifiedPush's own, KDE's `https://unifiedpush.kde.org/`; no published usage terms), over its D-Bus Management interface when it runs, else in the per-user file. Tested headless with a local ntfy: ATL bridge to KUnifiedPush to ntfy and back. It costs about 50 MB PSS and no measurable CPU at idle ([push](push.md)).
+
+## 2026-11-04: App info from the launcher
+
+Generated launchers get the action "App Info"; ATL in the sandbox
+answers it without starting the app and calls the permission service's
+new `OpenAppInfo` (interface version 2), which opens `--app-info` for
+the caller on the host. Headless: the service part (`permissions-test.sh`,
+24 checks); the in-sandbox part needs an engine build.
