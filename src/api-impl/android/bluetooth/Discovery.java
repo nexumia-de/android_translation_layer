@@ -41,6 +41,9 @@ public final class Discovery {
 	private static String runningFilter;
 	private static Handler handler;
 	private static boolean listening;
+	/* connection attempts that need discovery off: many controllers abort an LE connection while scanning */
+	private static int pauses;
+	private static boolean stopRetryRunning;
 	private static final Runnable stopClassicLater = new Runnable() {
 		public void run() {
 			stopClassic(BluetoothAdapter.getDefaultAdapter());
@@ -134,7 +137,7 @@ public final class Discovery {
 			BlueZ.addListener(listener);
 			listening = true;
 		}
-		boolean wanted = classic || !leScans.isEmpty();
+		boolean wanted = (classic || !leScans.isEmpty()) && pauses == 0;
 		String filter = classic ? "auto" : "le";
 		if (wanted && (!running || !filter.equals(runningFilter))) {
 			Map<String, Object> filterArgs = new HashMap<>();
@@ -161,13 +164,67 @@ public final class Discovery {
 		} else if (!wanted && running) {
 			running = false;
 			runningFilter = null;
-			try {
-				BlueZ.call(adapter.path, BlueZ.ADAPTER, "StopDiscovery", "");
-			} catch (IOException e) {
-				Slog.w(TAG, "StopDiscovery: " + e.getMessage());
-			}
+			if (!stopDiscovery(adapter))
+				retryStop(adapter);
 		}
 		return true;
+	}
+
+	/* false if BlueZ is still busy starting or changing the discovery (InProgress) and the stop has to be retried */
+	private static boolean stopDiscovery(BluetoothAdapter adapter) {
+		try {
+			BlueZ.call(adapter.path, BlueZ.ADAPTER, "StopDiscovery", "");
+		} catch (IOException e) {
+			if (e.getMessage() != null && e.getMessage().contains("InProgress"))
+				return false;
+			Slog.w(TAG, "StopDiscovery: " + e.getMessage());
+		}
+		return true;
+	}
+
+	/* BlueZ refuses StopDiscovery while a StartDiscovery or filter change of this client is pending;
+	 * without a retry its discovery keeps running although nobody wants it */
+	private static void retryStop(final BluetoothAdapter adapter) {
+		if (stopRetryRunning)
+			return;
+		stopRetryRunning = true;
+		new Thread(new Runnable() {
+			public void run() {
+				for (int i = 0; i < 50; i++) {
+					SystemClock.sleep(100);
+					synchronized (Discovery.class) {
+						if (running) {
+							stopRetryRunning = false;
+							return;
+						}
+						if (stopDiscovery(adapter)) {
+							stopRetryRunning = false;
+							return;
+						}
+					}
+				}
+				synchronized (Discovery.class) {
+					stopRetryRunning = false;
+				}
+				Slog.w(TAG, "StopDiscovery: still in progress after 5 s");
+			}
+		}, "BluetoothDiscovery stop").start();
+	}
+
+	/* stops the discovery of this process until resume(); calls nest */
+	static void pause(BluetoothAdapter adapter) {
+		synchronized (Discovery.class) {
+			pauses++;
+			update(adapter);
+		}
+	}
+
+	static void resume(BluetoothAdapter adapter) {
+		synchronized (Discovery.class) {
+			if (pauses > 0)
+				pauses--;
+			update(adapter);
+		}
 	}
 
 	static void sendFound(String path) {

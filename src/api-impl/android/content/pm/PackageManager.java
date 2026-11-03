@@ -1612,6 +1612,9 @@ public class PackageManager {
 		if (pkg != null) {
 			return PackageParser.generateApplicationInfo(pkg, flags, new PackageUserState());
 		}
+		ApplicationInfo desktop = android.service.notification.NotificationListenerService.desktopApplicationInfo(packageName);
+		if (desktop != null)
+			return desktop;
 		throw new NameNotFoundException(packageName);
 	}
 

@@ -323,6 +323,7 @@ struct jni_callback_data {
 	gboolean install_flatpak;
 	char *installer_name;
 	char *uninstall_flatpak;
+	char *network;
 	char *prgname;
 	char **extra_jvm_options;
 	char **extra_string_keys;
@@ -456,6 +457,40 @@ static char *flatpak_user_dir(void)
 {
 	const char *dir = g_getenv("FLATPAK_USER_DIR");
 	return dir ? g_strdup(dir) : g_build_filename(g_get_user_data_dir(), "flatpak", NULL);
+}
+
+/* the user's answer to "Allow internet?" (docs/hardening-roadmap.md, phase 4): a Flatpak user
+ * override, the file Flatseal edits too. 1 allowed, 0 denied, -1 not answered yet */
+static int flatpak_network_answer(const char *package_name)
+{
+	char *dir = flatpak_user_dir();
+	char *id = g_strconcat(FLATPAK_APP_PREFIX, package_name, NULL);
+	char *path = g_build_filename(dir, "overrides", id, NULL);
+	int answer = -1;
+	GKeyFile *key_file = g_key_file_new();
+	if (g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, NULL)) {
+		char **shared = g_key_file_get_string_list(key_file, "Context", "shared", NULL, NULL);
+		for (int i = 0; shared && shared[i]; i++) {
+			if (!strcmp(shared[i], "network"))
+				answer = 1;
+			else if (!strcmp(shared[i], "!network"))
+				answer = 0;
+		}
+		g_strfreev(shared);
+	}
+	g_key_file_free(key_file);
+	g_free(path);
+	g_free(id);
+	g_free(dir);
+	return answer;
+}
+
+static gboolean permissions_contain(const char *permissions, const char *permission)
+{
+	char **list = g_strsplit(permissions ? permissions : "", ";", -1);
+	gboolean found = g_strv_contains((const char *const *)list, permission);
+	g_strfreev(list);
+	return found;
 }
 
 /* the base apk inside the app's Flatpak, as make-app-flatpak puts it */
@@ -621,6 +656,10 @@ static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject ap
 		g_ptr_array_add(argv, g_strdup("-P"));
 		g_ptr_array_add(argv, g_strdup(permissions));
 	}
+	if (d->network) {
+		g_ptr_array_add(argv, g_strdup("-N"));
+		g_ptr_array_add(argv, g_strdup(!strcmp(d->network, "yes") ? "yes" : "no"));
+	}
 	for (int i = 0; i < nfiles; i++)
 		g_ptr_array_add(argv, g_file_get_path(files[i]));
 	g_ptr_array_add(argv, NULL);
@@ -676,6 +715,9 @@ struct install_request {
 	/* the --sdk-int for an app installed from a file, see default_sdk_int() */
 	char *default_sdk_int;
 	gboolean updating;
+	/* "Allow internet?" on the page: the question, and the answer (-1 none yet) */
+	GtkWidget *network_question;
+	int network_answer;
 	/* the data directory made for the opened file, which is not the installed app's */
 	gboolean remove_data_dir;
 };
@@ -846,6 +888,8 @@ static void install_ask_confirmed_flatpak(struct install_request *r)
 	}
 	g_ptr_array_add(argv, g_strdup("--sdk-int"));
 	g_ptr_array_add(argv, g_strdup(r->d->sdk_int ? r->d->sdk_int : r->default_sdk_int));
+	if (r->network_answer >= 0)
+		g_ptr_array_add(argv, g_strdup(r->network_answer ? "--network=yes" : "--network=no"));
 	for (int i = 0; i < r->nfiles; i++)
 		g_ptr_array_add(argv, g_file_get_path(r->files[i]));
 	g_ptr_array_add(argv, NULL);
@@ -865,6 +909,8 @@ static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 {
 	struct install_request *r = user_data;
 	prompt_page_set_busy(page, r->updating ? "Updating…" : "Installing…");
+	if (r->network_question)
+		gtk_widget_set_sensitive(r->network_question, FALSE);
 	if (r->d->install_flatpak) {
 		install_ask_confirmed_flatpak(r);
 		return;
@@ -887,6 +933,26 @@ static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 	g_object_unref(dest);
 }
 
+static void network_answered(int answer, gpointer user_data)
+{
+	struct install_request *r = user_data;
+	r->network_answer = answer;
+	if (r->page->action)
+		gtk_widget_set_sensitive(r->page->action, TRUE);
+}
+
+/* Internet is asked, never granted by default (docs/hardening-roadmap.md, phase 4): no answer is
+ * preselected, and the action waits for one */
+static void ask_network(struct install_request *r)
+{
+	r->network_question = prompt_page_add_question(r->page, "Allow internet?",
+	                                               "Allow internet", "The app can connect to any server",
+	                                               "No internet", "The app works offline only",
+	                                               network_answered, r);
+	if (r->page->action)
+		gtk_widget_set_sensitive(r->page->action, FALSE);
+}
+
 static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv *env, jobject application_object, GFile **files,
                         int nfiles, const char *package_name, const char *app_icon_path, const char *app_data_dir_base,
                         gboolean data_dir_existed)
@@ -901,6 +967,7 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 	for (int i = 0; i < nfiles; i++)
 		r->files[i] = g_object_ref(files[i]);
 	r->nfiles = nfiles;
+	r->network_answer = -1;
 	r->app_data_dir_base = g_strdup(app_data_dir_base);
 	char *installed_data_dir = g_strdup_printf("%s/%s.apk_/", app_data_dir_base, package_name);
 	r->remove_data_dir = !data_dir_existed && strcmp(app_data_dir, installed_data_dir);
@@ -995,6 +1062,16 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 			prompt_page_set_message(r->page, "This APK is not signed or was changed after signing, so it cannot be installed.");
 			prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_refused, NULL, r);
 			break;
+	}
+	/* asked once per app: an update keeps the answer, App info changes it */
+	if (d->install_flatpak && (state == INSTALL_NEW || state == INSTALL_UPDATE || state == INSTALL_REINSTALL)) {
+		char *permissions = jstring_dup(env, J__Application__get_requested_permissions(env, application_object));
+		/* a new install asks even if an override was left behind by a removal outside
+		 * --uninstall-flatpak (flatpak uninstall, GNOME Software) */
+		if (permissions_contain(permissions, "android.permission.INTERNET") &&
+		    (state == INSTALL_NEW || flatpak_network_answer(package_name) < 0))
+			ask_network(r);
+		g_free(permissions);
 	}
 	gtk_window_present(r->page->window);
 	/* Phosh shows the installer's name and icon for the window */
@@ -1688,7 +1765,15 @@ static void uninstall_flatpak_confirmed(struct prompt_page *page, gpointer user_
 	              g_spawn_check_wait_status(wait_status, &err);
 	if (!ok) {
 		fprintf(stderr, "uninstall-flatpak: %s\n", err->message);
-		g_error_free(err);
+		g_clear_error(&err);
+	} else {
+		/* the answers given for this app (internet), so a new install asks again */
+		const char *reset_argv[] = {"flatpak", "override", "--user", "--reset", id, NULL};
+		if (!g_spawn_sync(NULL, (char **)reset_argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &wait_status, &err) ||
+		    !g_spawn_check_wait_status(wait_status, &err)) {
+			fprintf(stderr, "uninstall-flatpak: resetting the overrides: %s\n", err->message);
+			g_clear_error(&err);
+		}
 	}
 	fflush(NULL);
 	_exit(ok ? 0 : 1);
@@ -1774,6 +1859,7 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "install-internal",  0 , 0, G_OPTION_ARG_NONE,         &d->install_internal,          "copy an apk to _installed_apks_ but don't create a desktop entry",                             NULL            },
 		{ "install-ask",       0 , 0, G_OPTION_ARG_NONE,         &d->install_ask,               "ask before installing the given apk, like Android's package installer (for opening apk files)", NULL            },
 		{ "install-flatpak",   0 , 0, G_OPTION_ARG_NONE,         &d->install_flatpak,           "install the given apk as its own Flatpak, without running its code",                           NULL            },
+		{ "network",           0 , 0, G_OPTION_ARG_STRING,       &d->network,                   "--install-flatpak: allow internet (yes) or not (no), kept for updates; unset keeps the answer",  "yes|no"        },
 		{ "installer-name",    0 , 0, G_OPTION_ARG_STRING,       &d->installer_name,            "the app store that asks to install or uninstall (shown on the page)",                          "NAME"          },
 		{ "uninstall-flatpak", 0 , 0, G_OPTION_ARG_STRING,       &d->uninstall_flatpak,         "ask, then remove the Flatpak of an app installed with --install-flatpak and its data",         "PACKAGE"       },
 		{ "uninstall",         0 , 0, G_OPTION_ARG_NONE,         &d->uninstall,                 "remove an apk installed with --install, its data and its launcher (asks first)",                NULL            },
