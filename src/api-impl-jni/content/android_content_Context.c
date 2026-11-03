@@ -42,37 +42,63 @@ static void set_screen_size(JNIEnv *env, jobject configuration)
 static void monitor_changed_cb(GdkSurface *surface, GdkMonitor *monitor, jobject configuration)
 {
 	JNIEnv *env = get_jni_env();
+	/* also called from GTK signals outside any JNI frame: free the local references */
+	(*env)->PushLocalFrame(env, 16);
 	if (!configuration)
 		configuration = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "sys_config", "Landroid/content/res/Configuration;");
 	set_screen_size(env, configuration);
+	(*env)->PopLocalFrame(env, NULL);
+}
+
+static int pending_width, pending_height;
+static guint pending_size_source;
+
+/* applies the last size of a series of resizes once, on idle */
+static gboolean apply_window_size(gpointer user_data)
+{
+	pending_size_source = 0;
+	JNIEnv *env = get_jni_env();
+	(*env)->PushLocalFrame(env, 16);
+	jclass display = _CACHED_CLASS(Display);
+	jfieldID width_field = _STATIC_FIELD_ID(display, "window_width", "I");
+	jfieldID height_field = _STATIC_FIELD_ID(display, "window_height", "I");
+	if (pending_width != (*env)->GetStaticIntField(env, display, width_field) || pending_height != (*env)->GetStaticIntField(env, display, height_field)) {
+		printf("window size %dx%d\n", pending_width, pending_height);
+		(*env)->SetStaticIntField(env, display, width_field, pending_width);
+		(*env)->SetStaticIntField(env, display, height_field, pending_height);
+
+		jclass context = _CACHED_CLASS(Context);
+		jobject sys_config = _GET_STATIC_OBJ_FIELD(context, "sys_config", "Landroid/content/res/Configuration;");
+		set_screen_size(env, sys_config);
+		(*env)->CallStaticVoidMethod(env, context, (*env)->GetStaticMethodID(env, context, "atlScreenSizeChanged", "()V"));
+		if ((*env)->ExceptionCheck(env))
+			(*env)->ExceptionDescribe(env);
+		activities_screen_size_changed(env);
+	}
+	(*env)->PopLocalFrame(env, NULL);
+	return G_SOURCE_REMOVE;
 }
 
 /* the compositor gave the window a new size (e.g. Phosh maximized it): Display, the Configuration,
- * every Resources and the activities follow */
+ * every Resources and the activities follow. Not with -w/-h, which fix the size at launch. */
 static void surface_layout_cb(GdkSurface *surface, int width, int height, GtkWindow *window)
 {
 	JNIEnv *env = get_jni_env();
+	jclass display = _CACHED_CLASS(Display);
+	gboolean explicit = (*env)->GetStaticBooleanField(env, display, _STATIC_FIELD_ID(display, "window_size_explicit", "Z"));
+	if (explicit)
+		return;
 	double shadow_x, shadow_y;
 	/* without the client-side shadow around a floating window */
 	gtk_native_get_surface_transform(GTK_NATIVE(window), &shadow_x, &shadow_y);
 	width -= 2 * (int)shadow_x;
 	height -= 2 * (int)shadow_y;
-	jclass display = _CACHED_CLASS(Display);
-	jfieldID width_field = _STATIC_FIELD_ID(display, "window_width", "I");
-	jfieldID height_field = _STATIC_FIELD_ID(display, "window_height", "I");
-	if (width <= 0 || height <= 0 || (width == (*env)->GetStaticIntField(env, display, width_field) && height == (*env)->GetStaticIntField(env, display, height_field)))
+	if (width <= 0 || height <= 0)
 		return;
-	printf("window size %dx%d\n", width, height);
-	(*env)->SetStaticIntField(env, display, width_field, width);
-	(*env)->SetStaticIntField(env, display, height_field, height);
-
-	jobject sys_config = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "sys_config", "Landroid/content/res/Configuration;");
-	set_screen_size(env, sys_config);
-	jclass context = _CACHED_CLASS(Context);
-	(*env)->CallStaticVoidMethod(env, context, (*env)->GetStaticMethodID(env, context, "atlScreenSizeChanged", "()V"));
-	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
-	activities_screen_size_changed(env);
+	pending_width = width;
+	pending_height = height;
+	if (!pending_size_source)
+		pending_size_source = g_idle_add(apply_window_size, NULL);
 }
 
 #ifdef XDP_TYPE_INPUT_CAPTURE_SESSION // libportal >= 0.8

@@ -1225,20 +1225,30 @@ static char *install_split_apks(GFile *dest, GFile **files, gint nfiles)
 	return g_string_free(paths, FALSE);
 }
 
-/* -w/-h, or else the size of the first monitor in logical pixels (Phosh then maximizes the window,
+/* -w/-h, or else the size of the built-in or smallest monitor in logical pixels (Phosh then maximizes the window,
  * and Display and the Configuration follow its real size, see android_content_Context.c) */
 static void get_window_size(struct jni_callback_data *d, int *width, int *height)
 {
 	*width = 960;
 	*height = 540;
+	/* the built-in panel (eDP, DSI, LVDS) if there is one, else the smallest monitor: an external
+	 * display must not make the app start at its size */
 	GdkDisplay *display = gdk_display_get_default();
-	GdkMonitor *monitor = display ? g_list_model_get_item(gdk_display_get_monitors(display), 0) : NULL;
-	if (monitor) {
+	GListModel *monitors = display ? gdk_display_get_monitors(display) : NULL;
+	gboolean found_builtin = FALSE;
+	guint64 smallest_area = G_MAXUINT64;
+	for (guint i = 0; monitors && i < g_list_model_get_n_items(monitors); i++) {
+		GdkMonitor *monitor = g_list_model_get_item(monitors, i);
 		GdkRectangle geometry;
 		gdk_monitor_get_geometry(monitor, &geometry);
-		if (geometry.width > 0 && geometry.height > 0) {
+		const char *connector = gdk_monitor_get_connector(monitor);
+		gboolean builtin = connector && (g_str_has_prefix(connector, "eDP") || g_str_has_prefix(connector, "DSI") || g_str_has_prefix(connector, "LVDS"));
+		guint64 area = (guint64)geometry.width * geometry.height;
+		if (geometry.width > 0 && geometry.height > 0 && !found_builtin && (builtin || area < smallest_area)) {
 			*width = geometry.width;
 			*height = geometry.height;
+			smallest_area = area;
+			found_builtin = builtin;
 		}
 		g_object_unref(monitor);
 	}
