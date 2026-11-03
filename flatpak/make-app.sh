@@ -19,10 +19,10 @@
 #   -f ARG      extra finish-arg, repeatable, e.g. -f --share=network
 #   -r DIR      local repository (default: ~/.local/share/android_translation_layer/flatpak-repo)
 #
-# Every app gets Wayland, the GPU, IPC, feedbackd (vibration) and audio
-# playback, plus what -P maps and -f adds. The app id is
-# de.nexumia.atl.<PACKAGE>, so it cannot collide with a real Flatpak of
-# the same name.
+# Every app gets Wayland, the GPU, IPC, feedbackd (vibration), audio
+# playback and the installer service's runtime permissions, plus what
+# -P maps and -f adds. The app id is de.nexumia.atl.<PACKAGE>, so it
+# cannot collide with a real Flatpak of the same name.
 set -eu
 
 base=de.nexumia.atl.BaseApp
@@ -99,6 +99,9 @@ for apk in "$@"; do
 	i=$((i + 1))
 done
 
+# the <uses-permission> list, one per line: the installer service grants only what the APK requests
+printf '%s' "$permissions" | tr ';' '\n' > "$build/files/share/atl/permissions"
+
 cat > "$build/files/bin/atl-app" <<EOF
 #!/bin/sh
 exec android-translation-layer --gapplication-app-id=$id $atl_args$apks "\$@"
@@ -144,7 +147,7 @@ EOF
 
 # shellcheck disable=SC2086 # $finish is a list of arguments
 flatpak build-finish "$build" --socket=wayland --device=dri --share=ipc \
-	--socket=pulseaudio --talk-name=org.sigxcpu.Feedback $finish >/dev/null
+	--socket=pulseaudio --talk-name=org.sigxcpu.Feedback --talk-name=de.nexumia.atl.Permissions $finish >/dev/null
 flatpak build-export "$repo" "$build" stable >/dev/null
 flatpak remote-add --user --if-not-exists --no-gpg-verify atl-local "$repo"
 flatpak remote-modify --user --url="file://$repo" atl-local

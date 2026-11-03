@@ -874,18 +874,28 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		return false;
 	}
 
-	/* no dialog yet: answer with the current state, like a user who denies what is not granted */
+	/* permissions the host's installer service decides are asked there (in the app's own Flatpak);
+	 * the rest are answered with the current state, like a user who denies what is not granted */
 	public void requestPermissions(final String[] permissions, final int requestCode) {
-		Slog.w(TAG, "requestPermissions(" + Arrays.toString(permissions) + "): answering without asking");
-		final int[] grantResults = new int[permissions.length];
-		for (int i = 0; i < permissions.length; i++)
-			grantResults[i] = checkSelfPermission(permissions[i]);
-		new Handler(Looper.getMainLooper()).post(new Runnable() {
+		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				onRequestPermissionsResult(requestCode, permissions, grantResults);
+				final int[] grantResults = new int[permissions.length];
+				for (int i = 0; i < permissions.length; i++) {
+					if (android.atl.ATLPermissions.decidedByService(permissions[i]))
+						grantResults[i] = android.atl.ATLPermissions.request(permissions[i]) ? PackageManager.PERMISSION_GRANTED : PackageManager.PERMISSION_DENIED;
+					else
+						grantResults[i] = checkSelfPermission(permissions[i]);
+				}
+				Slog.i(TAG, "requestPermissions(" + Arrays.toString(permissions) + "): " + Arrays.toString(grantResults));
+				new Handler(Looper.getMainLooper()).post(new Runnable() {
+					@Override
+					public void run() {
+						onRequestPermissionsResult(requestCode, permissions, grantResults);
+					}
+				});
 			}
-		});
+		}, "requestPermissions").start();
 	}
 
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {}

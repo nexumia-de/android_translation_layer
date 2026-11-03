@@ -14,7 +14,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "permissions.h"
+
 #define BUS_NAME     "de.nexumia.atl.Installer"
+/* every app Flatpak may talk to this one; Installer only stores (make-app-flatpak) */
+#define PERMISSIONS_BUS_NAME "de.nexumia.atl.Permissions"
 #define OBJECT_PATH  "/de/nexumia/atl/Installer"
 #define APP_PREFIX   "de.nexumia.atl."
 #define IDLE_TIMEOUT 120
@@ -388,6 +392,7 @@ static void bus_acquired(GDBusConnection *connection, const char *name, gpointer
 	g_dbus_connection_register_object(connection, OBJECT_PATH, node->interfaces[0], &vtable, NULL, NULL, NULL);
 	g_dbus_node_info_unref(node);
 	g_bytes_unref(xml);
+	permissions_register(connection, hold, release);
 }
 
 static void name_lost(GDBusConnection *connection, const char *name, gpointer user_data)
@@ -398,7 +403,9 @@ static void name_lost(GDBusConnection *connection, const char *name, gpointer us
 int main(int argc, char **argv)
 {
 	loop = g_main_loop_new(NULL, FALSE);
+	/* one process for both names, whichever D-Bus activated it */
 	g_bus_own_name(G_BUS_TYPE_SESSION, BUS_NAME, G_BUS_NAME_OWNER_FLAGS_NONE, bus_acquired, NULL, name_lost, NULL, NULL);
+	g_bus_own_name(G_BUS_TYPE_SESSION, PERMISSIONS_BUS_NAME, G_BUS_NAME_OWNER_FLAGS_NONE, NULL, NULL, name_lost, NULL, NULL);
 	idle_source = g_timeout_add_seconds(IDLE_TIMEOUT, idle_quit, NULL);
 	g_main_loop_run(loop);
 	return 0;

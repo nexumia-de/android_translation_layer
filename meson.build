@@ -103,13 +103,17 @@ install_data('res/desktop/com.gitlab.android_translation_layer.install.desktop',
 installer_service_resources = gnome.compile_resources('installer-service-resources',
                                                      'src/installer-service/installer-service.gresource.xml',
                                                      source_dir: 'src/installer-service')
-executable('atl-installer-service', ['src/installer-service/atl-installer-service.c', installer_service_resources],
+executable('atl-installer-service', ['src/installer-service/atl-installer-service.c', 'src/installer-service/permissions.c', installer_service_resources],
            dependencies: [dependency('gio-unix-2.0')],
            install: true,
            install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
            c_args: ['-DINSTALL_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"'])
 configure_file(input: 'src/installer-service/de.nexumia.atl.Installer.service.in',
                output: 'de.nexumia.atl.Installer.service',
+               configuration: {'libexecdir': join_paths(get_option('prefix'), get_option('libexecdir'))},
+               install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'dbus-1', 'services'))
+configure_file(input: 'src/installer-service/de.nexumia.atl.Permissions.service.in',
+               output: 'de.nexumia.atl.Permissions.service',
                configuration: {'libexecdir': join_paths(get_option('prefix'), get_option('libexecdir'))},
                install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'dbus-1', 'services'))
 
@@ -190,6 +194,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/audio/audio.c',
                                                                   	'src/api-impl-jni/com_google_android_gles_jni_GLImpl.c',
                                                                   	'src/api-impl-jni/content/android_atl_ATLMediaContentProvider.c',
+                                                                  	'src/api-impl-jni/content/android_atl_ATLPermissions.c',
                                                                   	'src/api-impl-jni/content/android_content_ClipboardManager.c',
                                                                   	'src/api-impl-jni/content/android_content_ContentResolver.c',
                                                                   	'src/api-impl-jni/content/android_content_Context.c',
