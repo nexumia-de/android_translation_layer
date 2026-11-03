@@ -108,6 +108,32 @@ static char *installer_policy(const char *id)
 
 /* -------- navigation -------- */
 
+struct navigation_update {
+	struct android_apps *page;
+	guint remaining;
+	gboolean ok;
+};
+
+static void navigation_update_done(struct navigation_update *update)
+{
+	if (--update->remaining)
+		return;
+	toast(update->page, update->ok ? "Applies when an app starts" : "Could not change every app");
+	g_free(update);
+}
+
+static void navigation_override_done(GObject *source, GAsyncResult *res, gpointer user_data)
+{
+	struct navigation_update *update = user_data;
+	GError *err = NULL;
+	if (!g_subprocess_wait_check_finish(G_SUBPROCESS(source), res, &err)) {
+		fprintf(stderr, "android-apps: flatpak override: %s\n", err->message);
+		g_error_free(err);
+		update->ok = FALSE;
+	}
+	navigation_update_done(update);
+}
+
 static const char *const navigation_values[] = {"both", "buttons", "gesture"};
 
 static void navigation_selected(AdwComboRow *row, GParamSpec *pspec, struct android_apps *page)
@@ -123,17 +149,32 @@ static void navigation_selected(AdwComboRow *row, GParamSpec *pspec, struct andr
 		g_error_free(err);
 		return;
 	}
-	/* apps in their own Flatpak read it from their environment, set per app */
+	/* apps in their own Flatpak read it from their environment, set per app; flatpak runs off the
+	 * UI thread */
 	GPtrArray *ids = installed_apps();
 	char *env = g_strdup_printf("--env=ATL_NAVIGATION=%s", mode);
-	gboolean ok = TRUE;
+	struct navigation_update *update = g_new0(struct navigation_update, 1);
+	update->page = page;
+	update->remaining = ids->len;
+	update->ok = TRUE;
 	for (guint i = 0; i < ids->len; i++) {
-		const char *argv[] = {"flatpak", "override", "--user", env, g_ptr_array_index(ids, i), NULL};
-		ok &= run(argv, NULL, NULL);
+		GError *err = NULL;
+		GSubprocess *proc = g_subprocess_new(G_SUBPROCESS_FLAGS_STDOUT_SILENCE, &err, "flatpak", "override", "--user", env,
+		                                     (char *)g_ptr_array_index(ids, i), NULL);
+		if (!proc) {
+			fprintf(stderr, "android-apps: %s\n", err->message);
+			g_error_free(err);
+			update->ok = FALSE;
+			navigation_update_done(update);
+			continue;
+		}
+		g_subprocess_wait_check_async(proc, NULL, navigation_override_done, update);
+		g_object_unref(proc);
 	}
+	if (ids->len == 0)
+		toast(page, "Applies when an app starts");
 	g_free(env);
 	g_ptr_array_unref(ids);
-	toast(page, ok ? "Applies when an app starts" : "Could not change every app");
 }
 
 /* -------- push server (atl-push-server, docs/push.md) -------- */
@@ -180,19 +221,29 @@ static void push_server_reset(GtkButton *button, struct android_apps *page)
 
 /* -------- wake interval (docs/decisions/wake-windows.md) -------- */
 
-/* the system timer's schedule; it is changed by the owner (a polkit helper is planned) */
+/* the system timer's schedule while it is enabled and active; it is changed by the owner (a polkit
+ * helper is planned) */
 static char *wake_interval(void)
 {
 	char *out = NULL;
-	const char *argv[] = {"systemctl", "show", "--property=TimersCalendar", "--value", "atl-wake.timer", NULL};
+	const char *argv[] = {"systemctl", "show", "--property=ActiveState,UnitFileState,TimersCalendar", "atl-wake.timer", NULL};
 	char *text = NULL;
-	if (run(argv, &out, NULL) && out && strstr(out, "OnCalendar=")) {
-		char *calendar = strstr(out, "OnCalendar=") + strlen("OnCalendar=");
-		char *end = strpbrk(calendar, " ;\n");
-		if (end)
-			*end = '\0';
-		const char *slash = strstr(calendar, "0/");
-		text = slash ? g_strdup_printf("Every %s minutes", slash + 2) : g_strdup(calendar);
+	if (run(argv, &out, NULL) && out) {
+		gboolean active = strstr(out, "ActiveState=active\n") != NULL;
+		gboolean enabled = strstr(out, "UnitFileState=enabled") != NULL;
+		char *calendar = strstr(out, "OnCalendar=");
+		if (!calendar || strstr(out, "UnitFileState=\n")) {
+			text = g_strdup("Off (the wake timer is not installed)");
+		} else if (!active || !enabled) {
+			text = g_strdup("Off (the wake timer is not enabled)");
+		} else {
+			calendar += strlen("OnCalendar=");
+			char *end = strpbrk(calendar, " ;\n");
+			if (end)
+				*end = '\0';
+			const char *slash = strstr(calendar, "0/");
+			text = slash ? g_strdup_printf("Every %s minutes", slash + 2) : g_strdup(calendar);
+		}
 	}
 	g_free(out);
 	return text ? text : g_strdup("Off (the wake timer is not installed)");
