@@ -67,6 +67,14 @@ packages, and no Google certificate anywhere. An installed microG is
 then also reported with its own certificate, which the client
 libraries reject.
 
+Apps that need it by default are listed in `GMS_STUB_APPS`
+(`ATLToggles.gmsStub()`); `ATL_GMS_STUB=0` still turns it off for them.
+DB Navigator is the first (2026-11-03): without the stub, the client
+library's failed location and messaging connections ended in Google's
+error "DB Navigator won't run without Google Play services, which are
+not supported by your device" (`SERVICE_INVALID`) on the phone, while
+with it (upstream's behaviour, as on 2026-10-28..30) the app ran.
+
 `ghax.jar` stays: it replaces `AdvertisingIdClient` in the app with one
 that returns a zero advertising ID and "limit ad tracking", locally.
 
@@ -91,7 +99,7 @@ download).
 | Mobile Vision (`gms.vision`: barcode, face, text) | DHL, WhatsApp | local in principle | Dynamite module, not reachable; DHL's barcode scan needs another path |
 | Security provider (`gms.security.ProviderInstaller`) | DB, DHL, Duolingo | local | `GooglePlayServicesNotAvailableException`, apps keep the system TLS provider |
 | Firebase core, installations, analytics, Crashlytics, Remote Config, sessions, data transport | DB, DHL, Duolingo, WhatsApp | app talks to Firebase's servers itself, not through GMS | not a GMS question; runs as in the app |
-| Firebase Cloud Messaging, Instance ID, `gms.cloudmessaging` | DB, DHL, Duolingo, WhatsApp | server only[^fcm-no-gms] | fails as without GMS (`SERVICE_NOT_AVAILABLE` / `MISSING_INSTANCEID_SERVICE`); no push |
+| Firebase Cloud Messaging, Instance ID, `gms.cloudmessaging` | DB, DHL, Duolingo, WhatsApp | server only[^fcm-no-gms] | fails as without GMS (`SERVICE_NOT_AVAILABLE` / `MISSING_INSTANCEID_SERVICE`); a registration that reaches ATL is answered at once with `SERVICE_NOT_AVAILABLE` unless the app has `atl.google-services` ([push](push.md)) |
 | Firebase Auth, Realtime Database, App Check | DHL | server (Firebase) | app's own business; App Check with Play Integrity fails |
 | Google sign-in, Credential Manager, One Tap, Block Store, FIDO / passkeys (`gms.auth`, `gms.identity`, `gms.fido`, `androidx.credentials.playservices`) | DB, DHL, Duolingo, WhatsApp | server (Google account) | out; fails as without GMS |
 | SMS Retriever (`auth.api.phone`) | Duolingo, WhatsApp | local in principle, needs GMS | not reachable; apps fall back to typing the code |
