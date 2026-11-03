@@ -769,6 +769,8 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	private boolean creating;
 	/* between onPostResume and onPause */
 	private boolean resumed;
+	/* between onStop and onStart */
+	private boolean stopped;
 
 	@Export
 	final void performCreate(Bundle savedInstanceState) {
@@ -784,6 +786,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 
 	@Export
 	final void performStart() {
+		stopped = false;
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_STARTED, null);
 		onStart();
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_STARTED, null);
@@ -812,6 +815,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 
 	@Export
 	final void performStop() {
+		stopped = true;
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_STOPPED, null);
 		onStop();
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_STOPPED, null);
@@ -908,7 +912,8 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		if (wasResumed)
 			performPause();
 		onRequestPermissionsResult(requestCode, permissions, grantResults);
-		if (wasResumed) {
+		/* not when the answer started another activity or finished this one */
+		if (wasResumed && !resumed && !stopped && !finishing && !destroyed) {
 			performResume();
 			performPostResume();
 		}
