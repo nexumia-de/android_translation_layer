@@ -71,7 +71,8 @@ id=de.nexumia.atl.$pkg
 wants_network=
 for perm in $(printf '%s' "$permissions" | tr ';' ' '); do
 	case $perm in
-	android.permission.INTERNET) wants_network=1 ;;
+	# network (asked separately), and the host's UnifiedPush distributor for push messages (docs/push.md)
+	android.permission.INTERNET) wants_network=1; finish="$finish --talk-name=org.unifiedpush.Distributor.*" ;;
 	# app stores: the host's installer service, which asks the user for every install
 	android.permission.REQUEST_INSTALL_PACKAGES) finish="$finish --talk-name=de.nexumia.atl.Installer" ;;
 	esac

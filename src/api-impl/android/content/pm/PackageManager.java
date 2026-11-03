@@ -1910,6 +1910,10 @@ public class PackageManager {
 			case "android.permission.BLUETOOTH_CONNECT":
 			case "android.permission.BLUETOOTH_SCAN":
 				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null ? PERMISSION_GRANTED : PERMISSION_DENIED;
+			// ATL's own consent to contact Google's servers (FCM push and the like), denied by
+			// default. Until the consent dialog exists only ATL_GOOGLE_SERVICES=1 grants it.
+			case android.atl.ATLToggles.GOOGLE_SERVICES_PERMISSION:
+				return android.atl.ATLToggles.ATL_GOOGLE_SERVICES ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			case "android.permission.REQUEST_INSTALL_PACKAGES":
 				return canRequestPackageInstalls() ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			// only tell the app that it can access location if it *actually* can
@@ -2469,9 +2473,16 @@ public class PackageManager {
 	 */
 	public List<ResolveInfo> queryBroadcastReceivers(Intent intent,
 	                                                 int flags) {
-		if ("org.unifiedpush.android.distributor.REGISTER".equals(intent.getAction())) {
+		// The host's D-Bus UnifiedPush distributor, as one distributor package (see Context)
+		if ("org.unifiedpush.android.distributor.REGISTER".equals(intent.getAction())
+		    && (intent.getPackage() == null || Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR.equals(intent.getPackage()))
+		    && Context.hasUnifiedPushDistributor()) {
 			ResolveInfo ri = new ResolveInfo();
 			ri.activityInfo.exported = true;
+			ri.activityInfo.packageName = Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR;
+			ri.activityInfo.name = Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR + ".Receiver";
+			ri.activityInfo.applicationInfo = new ApplicationInfo();
+			ri.activityInfo.applicationInfo.packageName = Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR;
 			return Arrays.asList(ri);
 		}
 		return new ArrayList<ResolveInfo>();

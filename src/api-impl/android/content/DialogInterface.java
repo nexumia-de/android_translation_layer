@@ -1,6 +1,7 @@
 package android.content;
 
 import android.atl.annotation.Export;
+import android.view.KeyEvent;
 
 public interface DialogInterface {
 	/** The identifier for the positive button. */
@@ -30,5 +31,6 @@ public interface DialogInterface {
 	public interface OnMultiChoiceClickListener {
 	}
 	public interface OnKeyListener {
+		boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event);
 	}
 }

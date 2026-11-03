@@ -225,6 +225,7 @@ public class Resources {
 		}
 		mToken = new WeakReference<IBinder>(token);
 		updateConfiguration(config, metrics);
+		sAllResources.add(this);
 		//        assets.ensureStringBlocks();
 	}
 
@@ -234,6 +235,35 @@ public class Resources {
 	 * the current screen (can not use dimension units, does not change based
 	 * on orientation, etc).
 	 */
+	/* ATL: every Resources, so a new window size reaches them all */
+	private static final java.util.Set<Resources> sAllResources = Collections.synchronizedSet(Collections.newSetFromMap(new java.util.WeakHashMap<Resources, Boolean>()));
+
+	/**
+	 * ATL: the app window has a new size (Display.window_width/height, logical pixels at density 1);
+	 * the screen fields of every Resources follow Context.sys_config, their metrics the window.
+	 * @hide
+	 */
+	public static void atlScreenSizeChanged() {
+		Resources[] all;
+		synchronized (sAllResources) {
+			all = sAllResources.toArray(new Resources[0]);
+		}
+		Configuration sys = android.content.Context.sys_config;
+		for (Resources r : all) {
+			Configuration config = new Configuration(r.mConfiguration);
+			config.screenWidthDp = sys.screenWidthDp;
+			config.screenHeightDp = sys.screenHeightDp;
+			config.smallestScreenWidthDp = sys.smallestScreenWidthDp;
+			config.screenLayout = sys.screenLayout;
+			config.orientation = sys.orientation;
+			DisplayMetrics metrics = new DisplayMetrics();
+			metrics.setTo(r.mMetrics);
+			metrics.widthPixels = metrics.noncompatWidthPixels = android.view.Display.window_width;
+			metrics.heightPixels = metrics.noncompatHeightPixels = android.view.Display.window_height;
+			r.updateConfiguration(config, metrics);
+		}
+	}
+
 	public static Resources getSystem() {
 		Resources ret = mSystem;
 		if (ret != null) {

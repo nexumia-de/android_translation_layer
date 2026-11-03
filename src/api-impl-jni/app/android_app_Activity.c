@@ -163,6 +163,61 @@ void current_activity_back_pressed(void)
 	}
 }
 
+#define KEYCODE_BACK 4
+
+/* whether a back press would do something: a dialog shows, an activity is
+ * below the current one, or the current one handles back or keys itself */
+gboolean current_activity_back_available(void)
+{
+	JNIEnv *env = get_jni_env();
+
+	if (atl_dialog_get_top())
+		return TRUE;
+	if (!activity_current)
+		return FALSE;
+	if (g_list_length(activity_backlog) > 1)
+		return TRUE;
+	jclass class = (*env)->GetObjectClass(env, activity_current);
+	jclass activity_class = (*env)->FindClass(env, "android/app/Activity");
+	static const char *const methods[][2] = {
+		{"onBackPressed", "()V"},
+		{"dispatchKeyEvent", "(Landroid/view/KeyEvent;)Z"},
+		{"onKeyDown", "(ILandroid/view/KeyEvent;)Z"},
+		{"onKeyUp", "(ILandroid/view/KeyEvent;)Z"},
+	};
+	gboolean overridden = FALSE;
+	for (int i = 0; i < G_N_ELEMENTS(methods) && !overridden; i++)
+		overridden = (*env)->GetMethodID(env, class, methods[i][0], methods[i][1]) != (*env)->GetMethodID(env, activity_class, methods[i][0], methods[i][1]);
+	if ((*env)->ExceptionCheck(env))
+		(*env)->ExceptionDescribe(env);
+	(*env)->DeleteLocalRef(env, activity_class);
+	(*env)->DeleteLocalRef(env, class);
+	return overridden;
+}
+
+/* KEYCODE_BACK down or up (action 0 or 1) from a key or the edge gesture,
+ * like Android: the top dialog gets it first, else the current activity's
+ * dispatchKeyEvent, whose default ends in onKeyUp -> onBackPressed.
+ * Returns whether the app consumed it. */
+gboolean current_activity_back_key(int action)
+{
+	JNIEnv *env = get_jni_env();
+	GtkWidget *dialog = atl_dialog_get_top();
+	jobject target = dialog ? g_object_get_data(G_OBJECT(dialog), "dialog-jobject") : activity_current;
+
+	if (!target)
+		return FALSE;
+	jobject key_event = J_new__KeyEvent(env, (jlong)0, (jlong)0, action, KEYCODE_BACK, 0, 0);
+	jmethodID dispatch = _METHOD(_CLASS(target), "dispatchKeyEvent", "(Landroid/view/KeyEvent;)Z");
+	gboolean ret = (*env)->CallBooleanMethod(env, target, dispatch, key_event);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		ret = FALSE;
+	}
+	(*env)->DeleteLocalRef(env, key_event);
+	return ret;
+}
+
 void activity_close_all(void)
 {
 	GList *activities, *l;
@@ -385,4 +440,15 @@ JNIEXPORT jboolean JNICALL Java_android_app_Activity_isTaskRoot(JNIEnv *env, job
 	jobject root_activity = activity_backlog ? g_list_last(activity_backlog)->data : NULL;
 	// NULL means that we are currently creating the root activity, so no other activity can exist yet
 	return root_activity == NULL || (*env)->IsSameObject(env, this, root_activity);
+}
+
+/* the window was resized: every started activity gets onConfigurationChanged */
+void activities_screen_size_changed(JNIEnv *env)
+{
+	for (GList *l = activity_backlog; l != NULL; l = l->next) {
+		jobject activity = l->data;
+		(*env)->CallVoidMethod(env, activity, (*env)->GetMethodID(env, _CACHED_CLASS(Activity), "atlScreenSizeChanged", "()V"));
+		if ((*env)->ExceptionCheck(env))
+			(*env)->ExceptionDescribe(env);
+	}
 }

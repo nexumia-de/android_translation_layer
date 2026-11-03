@@ -15,6 +15,7 @@
 #include "actions.h"
 #include "app_info.h"
 #include "back_button.h"
+#include "navigation.h"
 #include "libc_bio_path_overrides.h"
 #include "prompt_page.h"
 
@@ -854,19 +855,26 @@ static void install_ask_copied(GObject *source, GAsyncResult *res, gpointer user
 		g_error_free(err);
 		return;
 	}
-	/* the installed app starts with this window size, like one an app store installs */
+	/* the installed app starts with -w/-h when this one got them, like one an app store installs */
 	char *width = g_strdup_printf("%d", r->d->window_width);
 	char *height = g_strdup_printf("%d", r->d->window_height);
 	/* an update keeps the SDK level the app ran at, e.g. the one its app store gave it */
 	char *sdk_int = r->d->sdk_int ? g_strdup(r->d->sdk_int) : r->updating ? installed_launcher_sdk_int(r->package_name) : NULL;
 	if (!sdk_int)
 		sdk_int = g_strdup(r->default_sdk_int);
-	const char *argv[] = {r->d->prgname, "--install", "-w", width, "-h", height, r->staged_apk, NULL, NULL, NULL};
-	if (sdk_int) {
-		argv[6] = "--sdk-int";
-		argv[7] = sdk_int;
-		argv[8] = r->staged_apk;
+	const char *argv[10] = {r->d->prgname, "--install"};
+	int argc = 2;
+	if (r->d->window_width && r->d->window_height) {
+		argv[argc++] = "-w";
+		argv[argc++] = width;
+		argv[argc++] = "-h";
+		argv[argc++] = height;
 	}
+	if (sdk_int) {
+		argv[argc++] = "--sdk-int";
+		argv[argc++] = sdk_int;
+	}
+	argv[argc++] = r->staged_apk;
 	printf("install: running %s --install%s%s for %s\n", r->d->prgname, sdk_int ? " --sdk-int " : "", sdk_int ? sdk_int : "", r->staged_apk);
 	GSubprocess *install = g_subprocess_newv(argv, G_SUBPROCESS_FLAGS_NONE, &err);
 	g_free(width);
@@ -1144,6 +1152,9 @@ static gboolean dbus_activation_asks_uninstall(GApplication *app)
 	if (!bus)
 		return FALSE;
 	guint filter = g_dbus_connection_add_filter(bus, dbus_request_filter, NULL, NULL);
+	/* a UnifiedPush distributor may have started us with a call to the connector: export it before
+	 * the name is ours, the app's Context answers or drops the calls it queued */
+	unifiedpush_export_connector(bus);
 	GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
 	                                              "RequestName", g_variant_new("(su)", g_application_get_application_id(app), G_BUS_NAME_OWNER_FLAGS_NONE),
 	                                              G_VARIANT_TYPE("(u)"), 0, -1, NULL, NULL);
@@ -1304,6 +1315,39 @@ static char *install_split_apks(GFile *dest, GFile **files, gint nfiles)
 	return g_string_free(paths, FALSE);
 }
 
+/* -w/-h, or else the size of the built-in or smallest monitor in logical pixels (Phosh then maximizes the window,
+ * and Display and the Configuration follow its real size, see android_content_Context.c) */
+static void get_window_size(struct jni_callback_data *d, int *width, int *height)
+{
+	*width = 960;
+	*height = 540;
+	/* the built-in panel (eDP, DSI, LVDS) if there is one, else the smallest monitor: an external
+	 * display must not make the app start at its size */
+	GdkDisplay *display = gdk_display_get_default();
+	GListModel *monitors = display ? gdk_display_get_monitors(display) : NULL;
+	gboolean found_builtin = FALSE;
+	guint64 smallest_area = G_MAXUINT64;
+	for (guint i = 0; monitors && i < g_list_model_get_n_items(monitors); i++) {
+		GdkMonitor *monitor = g_list_model_get_item(monitors, i);
+		GdkRectangle geometry;
+		gdk_monitor_get_geometry(monitor, &geometry);
+		const char *connector = gdk_monitor_get_connector(monitor);
+		gboolean builtin = connector && (g_str_has_prefix(connector, "eDP") || g_str_has_prefix(connector, "DSI") || g_str_has_prefix(connector, "LVDS"));
+		guint64 area = (guint64)geometry.width * geometry.height;
+		if (geometry.width > 0 && geometry.height > 0 && !found_builtin && (builtin || area < smallest_area)) {
+			*width = geometry.width;
+			*height = geometry.height;
+			smallest_area = area;
+			found_builtin = builtin;
+		}
+		g_object_unref(monitor);
+	}
+	if (d->window_width)
+		*width = d->window_width;
+	if (d->window_height)
+		*height = d->window_height;
+}
+
 static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *hint, struct jni_callback_data *d)
 {
 	if (app_starting && !window) { // the bus name is owned early when D-Bus activated
@@ -1410,6 +1454,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		return;
 	}
 	if (d->dbus_activated && !d->install && uninstall_allowed && dbus_activation_asks_uninstall(G_APPLICATION(app))) {
+		unifiedpush_connector_refuse();
 		uninstall_pending = TRUE;
 		g_application_hold(G_APPLICATION(app));
 		return;
@@ -1450,9 +1495,12 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	free(app_lib_dir);
 
+	int window_width, window_height;
+	get_window_size(d, &window_width, &window_height);
 	jclass display_class = _CACHED_CLASS(Display);
-	_SET_STATIC_INT_FIELD(display_class, "window_width", d->window_width);
-	_SET_STATIC_INT_FIELD(display_class, "window_height", d->window_height);
+	_SET_STATIC_INT_FIELD(display_class, "window_width", window_width);
+	_SET_STATIC_INT_FIELD(display_class, "window_height", window_height);
+	(*env)->SetStaticBooleanField(env, display_class, _STATIC_FIELD_ID(display_class, "window_size_explicit", "Z"), d->window_width && d->window_height);
 
 	/* -- register our JNI library under the appropriate classloader -- */
 
@@ -1533,6 +1581,9 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		J__Application__onCreate(env, application_object);
 		if ((*env)->ExceptionCheck(env))
 			(*env)->ExceptionDescribe(env);
+
+		// as on Android, a push message that started the app reaches it after Application.onCreate
+		unifiedpush_connector_drain();
 	}
 
 	if (d->apk_instrumentation_class) {
@@ -1634,17 +1685,27 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 		/* the D-Bus service file needs an absolute path, dbus-daemon does not search PATH */
 		GString *exec_cmd = g_string_new("/usr/bin/env ");
+		char *prgname = g_strdup(d->prgname);
 		if (getenv("RUN_FROM_BUILDDIR")) {
+			/* not `env -C`, which busybox env lacks: the build directory goes into RUN_FROM_BUILDDIR,
+			 * main() changes into it, and the program path is made absolute */
 			printf("WARNING: RUN_FROM_BUILDDIR set and --install given: using current directory in desktop entry\n");
-			g_string_append_printf(exec_cmd, "-C %s ", g_get_current_dir());
+			char *cwd = g_get_current_dir();
+			g_string_append_printf(exec_cmd, "RUN_FROM_BUILDDIR=%s ", cwd);
+			if (strchr(prgname, '/')) {
+				g_free(prgname);
+				prgname = g_canonicalize_filename(d->prgname, cwd);
+			}
+			g_free(cwd);
 		}
-		char *envs[] = {"RUN_FROM_BUILDDIR", "LD_LIBRARY_PATH", "ANDROID_APP_DATA_DIR", "ATL_UGLY_ENABLE_LOCATION", "ATL_UGLY_ENABLE_MICROPHONE", "ATL_UGLY_DISABLE_WEBVIEW", "ATL_DISABLE_WINDOW_DECORATIONS", "ATL_FORCE_FULLSCREEN", "ATL_IS_AUTOMOTIVE", "ATL_IS_TELEVISION", "ATL_IS_WATCH", "ATL_GMS_STUB"};
+		char *envs[] = {"LD_LIBRARY_PATH", "ANDROID_APP_DATA_DIR", "ATL_UGLY_ENABLE_LOCATION", "ATL_UGLY_ENABLE_MICROPHONE", "ATL_UGLY_DISABLE_WEBVIEW", "ATL_DISABLE_WINDOW_DECORATIONS", "ATL_FORCE_FULLSCREEN", "ATL_IS_AUTOMOTIVE", "ATL_IS_TELEVISION", "ATL_IS_WATCH", "ATL_GMS_STUB"};
 		for (int i = 0; i < ARRAY_SIZE(envs); i++) {
 			if (getenv(envs[i])) {
 				g_string_append_printf(exec_cmd, "%s=%s ", envs[i], getenv(envs[i]));
 			}
 		}
-		g_string_append_printf(exec_cmd, "%s ", d->prgname);
+		g_string_append_printf(exec_cmd, "%s ", prgname);
+		g_free(prgname);
 		g_string_append_printf(exec_cmd, "--gapplication-app-id %s ", package_name);
 		if (d->apk_main_activity_class)
 			g_string_append_printf(exec_cmd, "-l %s ", d->apk_main_activity_class);
@@ -1684,7 +1745,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	if (!d->apk_instrumentation_class)
 		gtk_window_set_title(GTK_WINDOW(window), package_name);
-	gtk_window_set_default_size(GTK_WINDOW(window), d->window_width, d->window_height);
+	gtk_window_set_default_size(GTK_WINDOW(window), window_width, window_height);
 	g_signal_connect(window, "close-request", G_CALLBACK(app_exit), env);
 
 	GtkWidget *header_bar = gtk_header_bar_new();
@@ -1692,6 +1753,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), back_button);
 	gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
+	navigation_setup(GTK_WINDOW(window), back_button);
 	GtkDropTarget *drop_target = gtk_drop_target_new(G_TYPE_STRING, GDK_ACTION_COPY);
 	g_signal_connect(drop_target, "drop", G_CALLBACK(on_drop), NULL);
 	gtk_widget_add_controller(window, GTK_EVENT_CONTROLLER(drop_target));
@@ -1922,6 +1984,13 @@ int main(int argc, char **argv)
 	GtkApplication *app;
 	int status;
 
+	/* launchers made by --install from a build directory name it here (see below) */
+	const char *builddir = getenv("RUN_FROM_BUILDDIR");
+	if (builddir && builddir[0] == '/' && chdir(builddir) < 0) {
+		fprintf(stderr, "error: cannot change to RUN_FROM_BUILDDIR %s: %s\n", builddir, strerror(errno));
+		exit(1);
+	}
+
 	pregrow_stack();
 
 	/* this has to be done in the main executable, so might as well do it here */
@@ -1936,8 +2005,9 @@ int main(int argc, char **argv)
 	struct jni_callback_data *callback_data = malloc(sizeof(struct jni_callback_data));
 	callback_data->apk_main_activity_class = NULL;
 	callback_data->apk_instrumentation_class = NULL;
-	callback_data->window_width = 960;
-	callback_data->window_height = 540;
+	/* 0: the size of the monitor, see get_window_size */
+	callback_data->window_width = 0;
+	callback_data->window_height = 0;
 	callback_data->install = FALSE;
 	callback_data->install_internal = FALSE;
 	callback_data->install_ask = FALSE;
