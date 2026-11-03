@@ -14,6 +14,7 @@
 
 #include "actions.h"
 #include "back_button.h"
+#include "navigation.h"
 #include "libc_bio_path_overrides.h"
 #include "prompt_page.h"
 
@@ -1726,6 +1727,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), back_button);
 	gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
+	navigation_setup(GTK_WINDOW(window), back_button);
 	GtkDropTarget *drop_target = gtk_drop_target_new(G_TYPE_STRING, GDK_ACTION_COPY);
 	g_signal_connect(drop_target, "drop", G_CALLBACK(on_drop), NULL);
 	gtk_widget_add_controller(window, GTK_EVENT_CONTROLLER(drop_target));

@@ -171,6 +171,11 @@ public class Window {
 		return context;
 	}
 
+	/* views get keys through GTK directly, so nothing is left to dispatch here */
+	public boolean superDispatchKeyEvent(KeyEvent event) {
+		return false;
+	}
+
 	public boolean hasFeature(int featureId) {
 		return false;
 	}

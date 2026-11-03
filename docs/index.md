@@ -14,6 +14,7 @@ Change history is in [log.md](log.md).
 
 * [Fork workflow](fork-workflow.md) - Branches, updating from upstream, how fixes go upstream as GitLab merge requests, and the fixes not yet upstream.
 * [Development environment](dev-environment.md) - The owner's phone as test device: separate user, build into `~/.local`, headless test display, required hosts.
+* [Back navigation](navigation.md) - Header bar button, edge swipe and Escape/Alt+Left as Android back (KEYCODE_BACK), the ATL_NAVIGATION setting, headless tests with wl-pointer key.
 
 # Apps
 
@@ -32,4 +33,5 @@ Change history is in [log.md](log.md).
 # Decisions
 
 * [Google Play services APIs only where they work locally](decisions/gms-local-only.md) - Accepted: local GMS APIs in scope, server-only ones out, never Google's certificate or fake attestation.
+* [Back navigation by button, edge swipe and keys](decisions/navigation.md) - Proposed: header button, edge swipe and Escape/Alt+Left go back via KEYCODE_BACK; ATL_NAVIGATION=buttons|gesture|both until the settings app.
 * [Every Android app as its own Flatpak](decisions/app-sandbox.md) - Proposed: one Flatpak per app, built on the phone from the APK, on an ATL engine for Flatpak, with a small host broker.

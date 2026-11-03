@@ -45,7 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Activity extends ContextThemeWrapper implements Window.Callback, LayoutInflater.Factory2 {
+public class Activity extends ContextThemeWrapper implements Window.Callback, KeyEvent.Callback, LayoutInflater.Factory2 {
 	private final static String TAG = "Activity";
 
 	public static final int RESULT_CANCELED = 0;
@@ -880,7 +880,45 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		finish();
 	}
 
+	/* Keys reach focused views through GTK first (WrapperWidget.c), so the
+	 * window has nothing left to dispatch; what arrives here is unhandled.
+	 * Navigation keys (KEYCODE_BACK) come from src/main-executable/navigation.c. */
 	public boolean dispatchKeyEvent(KeyEvent event) {
+		onUserInteraction();
+		Window window = getWindow();
+		if (window.superDispatchKeyEvent(event))
+			return true;
+		View decor = window.getDecorView();
+		return event.dispatch(this, decor != null ? decor.getKeyDispatcherState() : null, this);
+	}
+
+	public void onUserInteraction() {}
+
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		if (keyCode == KeyEvent.KEYCODE_BACK) {
+			event.startTracking();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+		return false;
+	}
+
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		if (keyCode == KeyEvent.KEYCODE_BACK && event.isTracking() && !event.isCanceled()) {
+			onBackPressed();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean onKeyMultiple(int keyCode, int repeatCount, KeyEvent event) {
+		return false;
+	}
+
+	public boolean onKeyShortcut(int keyCode, KeyEvent event) {
 		return false;
 	}
 
