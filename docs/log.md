@@ -124,6 +124,8 @@ monitors recordable through pipewire-pulse.
 * **Back navigation**: Besides the header bar button, a swipe from the left or right edge and the keys Escape, Alt+Left and XF86Back go back; they send `KEYCODE_BACK` like Android, so dialogs (`OnKeyListener`, cancelable) and `Activity.onKeyDown`/`onKeyUp` see it before `onBackPressed`. `ATL_NAVIGATION=buttons|gesture|both` picks the on-screen means ([back navigation](navigation.md), [decision](decisions/navigation.md)). `wl-pointer key` types keys headless.
 * **HeliBoard**: [Feasibility](android-keyboard.md) of HeliBoard as the Phosh keyboard through ATL's existing IME host (size M; risks: lock screen, memory, start time). Its settings run headless; as on-screen keyboard its input view appears under headless phoc but is not usable yet ([app status](apps.md)).
 * **GPSLogger and location**: `LocationManager` only handled one `requestLocationUpdates` variant, never stopped the portal session and its `Location` lacked most fields, so GPSLogger 138 aborted at its first fix. Registrations now follow Android (Looper, Executor, `PendingIntent`, `LocationRequest`, minimum time and distance, `removeUpdates` ends the portal session) and the fix time is right (the portal's second timestamp field is microseconds, not milliseconds). Headless with a fake location portal GPSLogger logs and uploads through its Dawarich sender ([app status](apps.md)).
+* **HeliBoard types**: Under headless phoc HeliBoard now types into a GTK entry and takes over from Stevia when it stops; a reversible phone test is under Needs owner ([keyboard](android-keyboard.md), [app status](apps.md)).
+
 ## 2026-11-03: internet asked on the install page
 
 `--install-ask --install-flatpak` asks "Allow internet?" for apps with

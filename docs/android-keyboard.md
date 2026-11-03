@@ -72,10 +72,18 @@ built when `gtk4-layer-shell-0` is found (1.3.0 on the phone).
 ## Status (2026-11-03)
 
 - Settings activity: runs headless ([app status](apps.md)).
-- Keyboard: under headless phoc HeliBoard's input view shows as the
-  layer-shell window over a text field, with its dictionary loaded, but
-  full screen, on the emoji page and twice too big; no text typed yet.
-  Gaps 1 and 2 above are fixed on the branch, 3 to 6 are open.
+- Keyboard: under headless phoc HeliBoard shows its letter keyboard with
+  suggestions at the bottom and types into a GTK entry, Enter included
+  ([screenshot](screenshots/heliboard-osk-typing-2026-11-03.png)).
+  All six gaps above are closed: surrounding text, UTF-8 byte counts,
+  keys through the virtual keyboard (default xkb keymap), the content
+  type as `inputType`, the input lifecycle per field; `setSelection`
+  still does nothing.
+- Switching: the compositor gives one input method per seat. With
+  Stevia running the Android keyboard gets the D-Bus name but
+  "unavailable"; it asks again every second and takes over when Stevia
+  stops (tested headless with an own Stevia). The owner's live test is
+  under Needs owner in [app status](apps.md).
 
 ## Size and risks
 
