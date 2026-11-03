@@ -61,7 +61,8 @@ id=de.nexumia.atl.$pkg
 # phase 4); the rest needs portals or the broker and is not granted.
 for perm in $(printf '%s' "$permissions" | tr ';' ' '); do
 	case $perm in
-	android.permission.INTERNET) finish="$finish --share=network" ;;
+	# network, and the host's UnifiedPush distributor for push messages (docs/push.md)
+	android.permission.INTERNET) finish="$finish --share=network --talk-name=org.unifiedpush.Distributor.*" ;;
 	# app stores: the host's installer service, which asks the user for every install
 	android.permission.REQUEST_INSTALL_PACKAGES) finish="$finish --talk-name=de.nexumia.atl.Installer" ;;
 	esac

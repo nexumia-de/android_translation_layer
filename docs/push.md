@@ -59,13 +59,16 @@ native Linux apps share the one distributor of the host:
   service file lets the distributor start an app that is not running.
   ATL owns the name and exports `Connector1` before it registers, so the
   distributor's immediate `NewEndpoint` is not lost.
+- In a Flatpak the app's bus name is its app id (`$FLATPAK_ID`), the
+  only name it may own; `flatpak/make-app.sh` lets apps with `INTERNET`
+  talk to `org.unifiedpush.Distributor.*`. Not tested in a Flatpak yet.
 - `ATL_UNIFIEDPUSH_DISTRIBUTOR` picks a distributor name when several
   are installed.
 
 Tested headless on 2026-11-03 with a test APK that sends the same
 broadcasts as connector 3, a small D-Bus distributor and push server
 (scratch script of the push agent): distributor found, `Register`,
-endpoint, an HTTP push arrives as `MESSAGE` with its id, `UNREGISTER`
+`NEW_ENDPOINT` with the endpoint, an HTTP push arrives as `MESSAGE` with its id, `UNREGISTER`
 gives `UNREGISTERED`. FluffyChat itself does not start in ATL yet, so
 the end-to-end test with a Matrix server is still open.
 

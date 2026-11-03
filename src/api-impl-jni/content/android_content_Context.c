@@ -218,10 +218,18 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeShareEmail(JNIEnv *env
 	g_object_unref(connection);
 }
 
+/* A Flatpak may own only its app id (de.nexumia.atl.<package>), so that is the app's name there. */
+static const char *unifiedpush_service_name(const char *application)
+{
+	const char *flatpak_id = getenv("FLATPAK_ID");
+	return flatpak_id && *flatpak_id ? flatpak_id : application;
+}
+
 /* The distributor calls the app's package name; own it before anyone hears of it. ATL requests
  * the same name for the app window later, which then is a no-op. */
 static void unifiedpush_own_name(GDBusConnection *connection, const char *application)
 {
+	application = unifiedpush_service_name(application);
 	GError *error = NULL;
 	GVariant *ret = g_dbus_connection_call_sync(connection, "org.freedesktop.DBus", "/org/freedesktop/DBus",
 	                                            "org.freedesktop.DBus", "RequestName",
@@ -416,7 +424,7 @@ JNIEXPORT jstring JNICALL Java_android_content_Context_nativeRegisterUnifiedPush
 	unifiedpush_own_name(connection, application);
 	Distributor1 *distributor1 = distributor1_proxy_new_sync(connection, 0, name, "/org/unifiedpush/Distributor", NULL, &error);
 	if (distributor1)
-		distributor1_call_register_sync(distributor1, application, token, description, &result, &reason, NULL, &error);
+		distributor1_call_register_sync(distributor1, unifiedpush_service_name(application), token, description, &result, &reason, NULL, &error);
 	if (error) {
 		printf("nativeRegisterUnifiedPush: %s: error=%s\n", name, error->message);
 		ret = _JSTRING("NETWORK");
