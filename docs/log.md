@@ -74,3 +74,11 @@
 * **Gadgetbridge sync and charts**: After pairing, Gadgetbridge aborted on `ImageView.setImageLevel` (Drawable had no levels), every sync and Find device failed with `CloneNotSupportedException` (`Intent` not cloneable), the sync button's progress bar aborted because `AnimationUtils.loadInterpolator` returned null, and the HRV page aborted because androidx GridLayout needs `android.util.LogPrinter`. All four fixed (commits in [fork-workflow](fork-workflow.md)); tested with the owner's Amazfit Balance: pairing, sync and charts work.
 * **Handoff rules**: parallel agents write findings after every step, commit WIP, use their own prefix and the build lock, and keep secrets out ([dev-environment](dev-environment.md#parallel-agents-and-handoff)); AGENTS.md only links there.
 * **GitLab mirror**: `phosh` and `master` are pushed to the owner's GitLab fork on every push ([fork-workflow](fork-workflow.md#mirror-on-gitlab)); needs a deploy key set up by the owner.
+
+## 2026-11-03: internet asked on the install page
+
+`--install-ask --install-flatpak` asks "Allow internet?" for apps with
+`INTERNET` (no default, Install disabled until answered); the answer is a
+Flatpak user override, not metadata. Headless with GPSLogger: "No
+internet" → override `shared=!network`, metadata without network;
+uninstall removed the override.
