@@ -45,13 +45,15 @@ final class PairingAgent {
 		final long invocation;
 		final String method;
 		final String devicePath;
+		final String address;
 		AlertDialog dialog;
 		boolean answered;
 
-		Request(long invocation, String method, String devicePath) {
+		Request(long invocation, String method, String devicePath, String address) {
 			this.invocation = invocation;
 			this.method = method;
 			this.devicePath = devicePath;
+			this.address = address;
 		}
 	}
 
@@ -62,6 +64,8 @@ final class PairingAgent {
 	private static Handler handler;
 	/* pending requests by device address */
 	private static final Map<String, Request> pending = new HashMap<>();
+	/* the dialog showing the code to type on a device (DisplayPasskey), one per device address */
+	private static final Map<String, AlertDialog> codeDialogs = new HashMap<>();
 
 	private static synchronized Handler handler() {
 		if (handler == null)
@@ -122,10 +126,18 @@ final class PairingAgent {
 		Request request;
 		synchronized (PairingAgent.class) {
 			request = pending.get(address);
-			if (request == null || request.answered)
+		}
+		return request != null && answer(request, accept, value);
+	}
+
+	/* answers this request only; a newer request for the same device stays pending */
+	private static boolean answer(Request request, boolean accept, String value) {
+		synchronized (PairingAgent.class) {
+			if (request.answered)
 				return false;
 			request.answered = true;
-			pending.remove(address);
+			if (pending.get(request.address) == request)
+				pending.remove(request.address);
 		}
 		Object result = null;
 		String error = accept ? null : REJECTED;
@@ -141,16 +153,43 @@ final class PairingAgent {
 				error = REJECTED;
 			}
 		}
-		Slog.i(TAG, request.method + " for " + address + (error == null ? ": accepted" : ": rejected"));
+		Slog.i(TAG, request.method + " for " + request.address + (error == null ? ": accepted" : ": rejected"));
 		nativeReply(request.invocation, error, error == null ? result : null);
-		final AlertDialog dialog = request.dialog;
+		dismiss(request);
+		return true;
+	}
+
+	private static void dismiss(Request request) {
+		final AlertDialog dialog;
+		synchronized (PairingAgent.class) {
+			dialog = request.dialog;
+			request.dialog = null;
+		}
 		if (dialog != null)
 			handler().post(new Runnable() {
 				public void run() {
 					dialog.dismiss();
 				}
 			});
-		return true;
+	}
+
+	/* pairing with the device ended (or BlueZ cancelled it): close its code dialog */
+	static void pairingEnded(final String address) {
+		handler().post(new Runnable() {
+			public void run() {
+				AlertDialog dialog;
+				synchronized (PairingAgent.class) {
+					dialog = address != null ? codeDialogs.remove(address) : null;
+					if (address == null) {
+						for (AlertDialog d : codeDialogs.values())
+							d.dismiss();
+						codeDialogs.clear();
+					}
+				}
+				if (dialog != null)
+					dialog.dismiss();
+			}
+		});
 	}
 
 	private static String name(String devicePath) {
@@ -193,11 +232,9 @@ final class PairingAgent {
 				synchronized (PairingAgent.class) {
 					all = pending.values().toArray(new Request[0]);
 				}
-				for (Request r : all) {
-					BluetoothDevice d = BluetoothDevice.fromPath(r.devicePath);
-					if (d != null)
-						answer(d.getAddress(), false, null);
-				}
+				for (Request r : all)
+					answer(r, false, null);
+				pairingEnded(null);
 				return;
 			default: /* Release */
 				nativeReply(invocation, null, null);
@@ -209,19 +246,25 @@ final class PairingAgent {
 			nativeReply(invocation, REJECTED, null);
 			return;
 		}
-		final Request request = new Request(invocation, method, devicePath);
+		final Request request = new Request(invocation, method, devicePath, device.getAddress());
+		Request old;
 		synchronized (PairingAgent.class) {
-			Request old = pending.put(device.getAddress(), request);
-			if (old != null && !old.answered) {
+			old = pending.put(device.getAddress(), request);
+			if (old != null && !old.answered)
 				old.answered = true;
-				nativeReply(old.invocation, CANCELED, null);
-			}
+			else
+				old = null;
+		}
+		if (old != null) {
+			/* the device asked again: the old invocation is cancelled and its dialog closed */
+			nativeReply(old.invocation, CANCELED, null);
+			dismiss(old);
 		}
 		handler().post(new Runnable() {
 			public void run() {
 				ATLLoadedApp app = ATLLoadedApp.getPrimaryApplication();
 				if (app == null) {
-					answer(device.getAddress(), false, null);
+					answer(request, false, null);
 					return;
 				}
 				Context context = app.getApplication();
@@ -267,19 +310,19 @@ final class PairingAgent {
 		dialog.setButton(DialogInterface.BUTTON_POSITIVE, "Pair", new DialogInterface.OnClickListener() {
 			@Override
 			public void onClick(DialogInterface d, int which) {
-				answer(device.getAddress(), true, input != null ? input.getText().toString() : null);
+				answer(request, true, input != null ? input.getText().toString() : null);
 			}
 		});
 		dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancel", new DialogInterface.OnClickListener() {
 			@Override
 			public void onClick(DialogInterface d, int which) {
-				answer(device.getAddress(), false, null);
+				answer(request, false, null);
 			}
 		});
 		dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
 			@Override
 			public void onDismiss(DialogInterface d) {
-				answer(device.getAddress(), false, null);
+				answer(request, false, null);
 			}
 		});
 		synchronized (PairingAgent.class) {
@@ -302,10 +345,33 @@ final class PairingAgent {
 				intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, BluetoothDevice.PAIRING_VARIANT_DISPLAY_PASSKEY);
 				if (context.atlSendOrderedBroadcast(intent))
 					return;
-				AlertDialog dialog = new AlertDialog(context);
+				String message = "Type " + code + " on " + name(devicePath) + ", then confirm there.";
+				/* BlueZ calls DisplayPasskey again for every key typed on the device: update the one dialog */
+				AlertDialog dialog;
+				synchronized (PairingAgent.class) {
+					dialog = codeDialogs.get(device.getAddress());
+				}
+				if (dialog != null) {
+					dialog.setMessage(message);
+					return;
+				}
+				dialog = new AlertDialog(context);
 				dialog.setTitle("Bluetooth pairing request");
-				dialog.setMessage("Type " + code + " on " + name(devicePath) + ", then confirm there.");
+				dialog.setMessage(message);
 				dialog.setButton(DialogInterface.BUTTON_POSITIVE, "OK", (DialogInterface.OnClickListener)null);
+				final AlertDialog shown = dialog;
+				dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+					@Override
+					public void onDismiss(DialogInterface d) {
+						synchronized (PairingAgent.class) {
+							if (codeDialogs.get(device.getAddress()) == shown)
+								codeDialogs.remove(device.getAddress());
+						}
+					}
+				});
+				synchronized (PairingAgent.class) {
+					codeDialogs.put(device.getAddress(), dialog);
+				}
 				dialog.show();
 			}
 		});

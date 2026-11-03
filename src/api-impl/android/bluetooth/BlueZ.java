@@ -260,7 +260,7 @@ final class BlueZ {
 		if ((changed.containsKey("Paired") || changed.containsKey("Bonded")) && !BluetoothDevice.isBonding(device.getAddress())) {
 			boolean was = getBoolean(old.get("Paired")) || getBoolean(old.get("Bonded"));
 			boolean is = device.getBondState() == BluetoothDevice.BOND_BONDED;
-			if (was != is) {
+			if (was != is && BluetoothDevice.noteBondState(device.getAddress(), is ? BluetoothDevice.BOND_BONDED : BluetoothDevice.BOND_NONE)) {
 				Intent intent = new Intent(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 				intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
 				intent.putExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, was ? BluetoothDevice.BOND_BONDED : BluetoothDevice.BOND_NONE);

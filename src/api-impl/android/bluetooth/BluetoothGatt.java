@@ -214,9 +214,14 @@ public final class BluetoothGatt implements BluetoothProfile {
 				device.ensureKnown(transport);
 				if (!device.isConnected()) {
 					/* a running discovery makes BlueZ abort the LE connection (le-connection-abort-by-local),
-					 * so it pauses until the services are resolved, as Android's stack does around connects */
+					 * so it pauses until the services are resolved, as Android's stack does around connects.
+					 * A background reconnect (autoConnect) pauses only when the device was seen in this
+					 * discovery (BlueZ keeps its RSSI), so retrying an out-of-range device does not hold
+					 * every scan of the process for the length of each Connect call. */
 					BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-					Discovery.pause(adapter);
+					final boolean pause = !autoConnect || BlueZ.getProperty(devicePath(), BlueZ.DEVICE, "RSSI") != null;
+					if (pause)
+						Discovery.pause(adapter);
 					/* the device may ask for pairing after connecting (a lost bond) */
 					PairingAgent.acquire();
 					boolean ok = false;
@@ -224,7 +229,8 @@ public final class BluetoothGatt implements BluetoothProfile {
 						BlueZ.call(60000, devicePath(), BlueZ.DEVICE, "Connect", "");
 						ok = true;
 					} finally {
-						resumeDiscoveryWhenResolved(adapter, ok);
+						if (pause)
+							resumeDiscoveryWhenResolved(adapter, ok);
 						PairingAgent.release();
 					}
 					connectedByUs = true;

@@ -71,6 +71,8 @@ public final class BluetoothDevice implements Parcelable {
 	private final String address;
 	/* set while createBond's Pair call runs */
 	private static final java.util.Set<String> bonding = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+	/* the bond state last broadcast per address, so the bonding thread and the "Paired" signal never report the same change twice */
+	private static final java.util.Map<String, Integer> broadcastBondState = new java.util.HashMap<>();
 
 	BluetoothDevice(String address) {
 		this.address = address.toUpperCase();
@@ -221,7 +223,12 @@ public final class BluetoothDevice implements Parcelable {
 			/* as on Android, the bonding thread reports the end of its own bond in any case; the "Paired"
 			 * signal is not broadcast for a device in bonding, so BONDED is sent exactly once */
 			sendBondState(result, BOND_BONDING);
+			/* the Pair reply can come before the "Paired" signal: keep the device marked as bonding
+			 * until BlueZ's cached state agrees, so the signal is not broadcast as a second change */
+			for (int i = 0; i < 20 && result == BOND_BONDED && !BlueZ.getBoolean(property("Paired")) && !BlueZ.getBoolean(property("Bonded")); i++)
+				android.os.SystemClock.sleep(100);
 			bonding.remove(address);
+			PairingAgent.pairingEnded(address);
 		}
 		}, "BluetoothDevice.createBond").start();
 		return true;
@@ -231,7 +238,17 @@ public final class BluetoothDevice implements Parcelable {
 		return bonding.contains(address);
 	}
 
+	/* records the state as broadcast; false if it was already the last one broadcast for this device */
+	static boolean noteBondState(String address, int state) {
+		synchronized (broadcastBondState) {
+			Integer last = broadcastBondState.put(address, state);
+			return last == null || last != state;
+		}
+	}
+
 	private void sendBondState(int state, int previous) {
+		if (!noteBondState(address, state))
+			return;
 		android.content.Intent intent = new android.content.Intent(ACTION_BOND_STATE_CHANGED);
 		intent.putExtra(EXTRA_DEVICE, this);
 		intent.putExtra(EXTRA_BOND_STATE, state);
