@@ -1,4 +1,4 @@
-#include <gio/gio.h>
+#include <gtk/gtk.h>
 
 #include "../defines.h"
 #include "../util.h"
@@ -38,4 +38,42 @@ JNIEXPORT jboolean JNICALL Java_android_os_PowerManager_nativeIsScreenOn(JNIEnv 
 	}
 	g_object_unref(bus);
 	return result;
+}
+
+/* one inhibit cookie per flags value (suspend, or suspend + idle) */
+static guint inhibit_cookies[16];
+
+struct inhibit_request {
+	int flags;
+	gboolean inhibit;
+	char *reason;
+};
+
+static gboolean inhibit_on_main(gpointer data)
+{
+	struct inhibit_request *req = data;
+	GtkApplication *application = GTK_APPLICATION(g_application_get_default());
+	guint *cookie = &inhibit_cookies[req->flags & 15];
+	if (req->inhibit && !*cookie) {
+		*cookie = gtk_application_inhibit(application, NULL, req->flags, req->reason);
+		if (!*cookie)
+			g_warning("PowerManager: could not inhibit (flags %d): no session manager or Inhibit portal", req->flags);
+	} else if (!req->inhibit && *cookie) {
+		gtk_application_uninhibit(application, *cookie);
+		*cookie = 0;
+	}
+	g_free(req->reason);
+	g_free(req);
+	return G_SOURCE_REMOVE;
+}
+
+JNIEXPORT void JNICALL Java_android_os_PowerManager_nativeInhibit(JNIEnv *env, jclass class, jint flags, jboolean inhibit, jstring reason)
+{
+	struct inhibit_request *req = g_new(struct inhibit_request, 1);
+	const char *reason_utf = (*env)->GetStringUTFChars(env, reason, NULL);
+	req->flags = flags;
+	req->inhibit = inhibit;
+	req->reason = g_strdup(reason_utf);
+	(*env)->ReleaseStringUTFChars(env, reason, reason_utf);
+	g_main_context_invoke(NULL, inhibit_on_main, req);
 }
