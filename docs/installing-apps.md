@@ -252,11 +252,26 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   `de.nexumia.atl`; the microphone also switches the pulse socket),
   **More Permissions** (`gnome-control-center applications <id>`),
   **Clear Data** (asks, stops the app, removes `~/.var/app/<id>`) and
-  **Uninstall** (the existing page). Open: the launcher action **App
-  info**, which needs a host method the app can call (an
-  `OpenAppInfo` on the permission service, after #75), and the
-  "Android apps" page that lists apps. Headless check:
+  **Uninstall** (the existing page). The launcher's **App Info** action
+  (long press) reaches the app inside its sandbox (`DBusActivatable`,
+  `ActivateAction("app-info")`; a D-Bus activated start for it does not
+  start the app), which asks the permission service's `OpenAppInfo`
+  to open its own App info on the host. Open: the "Android apps" page
+  that lists apps. Headless check:
   `flatpak/app-info-test.sh`.
+- "Android apps" page (`android-translation-layer --android-apps`,
+  [screenshot](screenshots/android-apps-2026-11-04.png); opened from
+  every app's App info, **All Android Apps**, since there is no third
+  settings app in the grid): back navigation (saved in
+  `~/.config/android_translation_layer/settings.ini`, which ATL on the
+  host reads, and given to every app Flatpak as `ATL_NAVIGATION` by a
+  user override; `make-app-flatpak` applies it at install), the push
+  server (`atl-push-server get|set|reset`, default KDE's), the wake
+  interval (shown; the system timer is changed by the owner until a
+  polkit helper exists, see the wake decision), signature checks (always
+  on), which app stores may install apps (the `de.nexumia.atl.Installer`
+  talk name as an override) and the installed apps with a link to their
+  App info. Headless check: `flatpak/android-apps-test.sh`.
 - Runtime permissions without a portal (contacts, calendar, SMS, call
   log, phone state, background location, microphone, Bluetooth, body
   sensors, activity recognition, and ATL's own `atl.google-services`):
@@ -278,6 +293,18 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   (`make-app-flatpak` writes the list to `/app/share/atl/permissions`)
   and stops asking after the second "no"; requests for the same
   question while its dialog is open wait for that one answer.
+  Apps made for Android before 6 (target SDK or `SDK_INT` below 23,
+  e.g. CoMaps at SDK 21) never ask: before their code runs, ATL asks
+  the service's `Review` once, which shows one dialog of the app's
+  dangerous permissions that the service decides, each off by default,
+  an earlier "yes" ticked and an earlier final "no" left out
+  ([screenshot](screenshots/legacy-review-2026-11-04.png)); the answers
+  are stored like the others (owner, 2026-11-03; Android 10+ and
+  GrapheneOS do the same). Location and camera are not part of it:
+  their portals ask at first use. The service reviews only apps whose
+  Flatpak says so (`make-app-flatpak -T` writes the target SDK; else the
+  `--sdk-int` it runs with), and concurrent calls share one dialog.
+  Headless check: `flatpak/legacy-review-test.sh`.
   Background location (owner, 2026-11-03; split with the location
   portal work, #76): the portal decides fine and coarse location, and
   its dialog covers use while the app has a window or a foreground

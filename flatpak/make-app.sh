@@ -20,6 +20,7 @@
 #   -N yes|no   internet: the user's answer for an app with android.permission.INTERNET,
 #               written as a user override (flatpak override --user); without -N an
 #               earlier answer stays, and without any answer the app has no network
+#   -T SDK      the APK's target SDK (the permission service reviews apps below 23)
 #   -f ARG      extra finish-arg, repeatable, e.g. -f --share=network
 #   -r DIR      local repository (default: ~/.local/share/android_translation_layer/flatpak-repo)
 #
@@ -32,11 +33,11 @@ set -eu
 
 base=de.nexumia.atl.BaseApp
 repo=$HOME/.local/share/android_translation_layer/flatpak-repo
-version= pkg= name= icon= atl_args= finish= mime_types= permissions= network=
+version= target_sdk= pkg= name= icon= atl_args= finish= mime_types= permissions= network=
 
 usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit "${1:-0}"; }
 
-while getopts "p:n:i:b:a:m:P:N:V:f:r:h" opt; do
+while getopts "p:n:i:b:a:m:P:N:V:f:r:hT:" opt; do
 	case $opt in
 	p) pkg=$OPTARG ;;
 	n) name=$OPTARG ;;
@@ -45,6 +46,7 @@ while getopts "p:n:i:b:a:m:P:N:V:f:r:h" opt; do
 	a) atl_args=$OPTARG ;;
 	m) mime_types=$OPTARG ;;
 	P) permissions=$OPTARG ;;
+	T) target_sdk=$OPTARG ;;
 	N) network=$OPTARG ;;
 	V) version=$OPTARG ;;
 	f) finish="$finish $OPTARG" ;;
@@ -113,6 +115,8 @@ done
 
 # the <uses-permission> list, one per line: the permission service grants only what the APK requests
 printf '%s' "$permissions" | tr ';' '\n' > "$build/files/share/atl/permissions"
+# the target SDK, for the legacy permission review
+printf '%s\n' "$target_sdk" | tr -cd '0-9\n' > "$build/files/share/atl/target-sdk"
 # every app may ask the permission service (atl-permission-service), which asks the user
 finish="$finish --talk-name=de.nexumia.atl.Permissions"
 
@@ -153,6 +157,11 @@ $icon_line
 $mime_line
 X-Purism-FormFactor=Workstation;Mobile;
 StartupNotify=true
+Actions=app-info;
+
+[Desktop Action app-info]
+Name=App Info
+Exec=atl-app --dbus-activated
 EOF
 
 cat > "$build/metadata" <<EOF
@@ -210,4 +219,10 @@ elif [ "$network" = yes ]; then
 elif [ "$network" = no ]; then
 	flatpak override --user --unshare=network "$id"
 fi
+# back navigation as chosen on the "Android apps" page (android-translation-layer --android-apps)
+settings=${XDG_CONFIG_HOME:-$HOME/.config}/android_translation_layer/settings.ini
+navigation=$(sed -n '/^\[navigation\]/,/^\[/s/^mode=//p' "$settings" 2>/dev/null | head -n 1)
+case $navigation in
+buttons | gesture | both) flatpak override --user --env=ATL_NAVIGATION="$navigation" "$id" ;;
+esac
 echo "installed $id"

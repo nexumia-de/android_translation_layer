@@ -956,7 +956,11 @@ JNIEXPORT void JNICALL Java_android_view_View_nativeSetFullscreen(JNIEnv *env, j
 	for (GtkWidget *parent = widget; parent; parent = gtk_widget_get_parent(parent))
 		if (atl_is_dialog(parent))
 			return;
-	GtkWindow *window = GTK_WINDOW(gtk_widget_get_native(widget));
+	GtkNative *native = gtk_widget_get_native(widget);
+	/* a view that is not in a window yet (DB Navigator sets its flags early) */
+	if (!GTK_IS_WINDOW(native))
+		return;
+	GtkWindow *window = GTK_WINDOW(native);
 	if (fullscreen) {
 		if (gtk_window_is_maximized(window)) {
 			gtk_window_fullscreen(window);

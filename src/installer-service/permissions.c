@@ -26,7 +26,7 @@
 /* like Android 11+: after the second "no" the app is not allowed to ask again */
 #define MAX_DENIALS 2
 
-#define PERMISSIONS_VERSION 1
+#define PERMISSIONS_VERSION 3
 
 struct question {
 	const char *permission;
@@ -248,6 +248,7 @@ static void request_free(struct request *r)
 	g_free(r->app_id);
 	g_free(r->permission);
 	g_clear_pointer(&r->dialog_args, g_variant_unref);
+	g_free(r->key);
 	g_free(r);
 	release();
 }
@@ -301,8 +302,14 @@ static void ask_backend(struct request *r)
 	                       G_VARIANT_TYPE("(ua{sv})"), G_DBUS_CALL_FLAGS_NONE, G_MAXINT, NULL, dialog_answered, r);
 }
 
+static void handle_review(GDBusMethodInvocation *invocation, GVariant *params);
+
 static void handle(GDBusMethodInvocation *invocation, const char *method, GVariant *params)
 {
+	if (!strcmp(method, "Review")) {
+		handle_review(invocation, params);
+		return;
+	}
 	const char *permission;
 	g_variant_get(params, "(&s)", &permission);
 	char *app_id = caller_app_id(invocation);
@@ -372,11 +379,73 @@ static void handle(GDBusMethodInvocation *invocation, const char *method, GVaria
 	g_free(handle_path);
 }
 
+static const char *atl_binary(void)
+{
+	const char *path = g_getenv("ATL_BINARY");
+	return path ? path : INSTALL_BINDIR "/android-translation-layer";
+}
+
+/* App info windows this service started, by app id; a sandboxed app must not be able to open more
+ * than one, or open them as fast as it can call */
+static GHashTable *app_info_open;
+static GHashTable *app_info_last_call;
+#define APP_INFO_MIN_INTERVAL (2 * G_USEC_PER_SEC)
+
+static void app_info_closed(GPid pid, gint status, gpointer user_data)
+{
+	g_hash_table_remove(app_info_open, user_data);
+	g_spawn_close_pid(pid);
+	release();
+}
+
+/* the launcher's "App info" action: the caller's own App info, on the host (--app-info) */
+static void handle_open_app_info(GDBusMethodInvocation *invocation)
+{
+	char *app_id = caller_app_id(invocation);
+	if (!app_id) {
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+		                                           "only apps in their own ATL Flatpak");
+		return;
+	}
+	if (!app_info_open) {
+		app_info_open = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+		app_info_last_call = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+	}
+	gint64 now = g_get_monotonic_time();
+	gint64 last = GPOINTER_TO_SIZE(g_hash_table_lookup(app_info_last_call, app_id));
+	gboolean too_soon = last && now - last < APP_INFO_MIN_INTERVAL;
+	g_hash_table_insert(app_info_last_call, g_strdup(app_id), GSIZE_TO_POINTER((gsize)now));
+	if (too_soon || g_hash_table_contains(app_info_open, app_id)) {
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.LimitsExceeded",
+		                                           "App info is already open or was just opened");
+		g_free(app_id);
+		return;
+	}
+	const char *argv[] = {atl_binary(), "--app-info", app_id + strlen(APP_PREFIX), NULL};
+	GError *err = NULL;
+	GPid pid;
+	if (!g_spawn_async(NULL, (char **)argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &pid, &err)) {
+		g_dbus_method_invocation_return_gerror(invocation, err);
+		g_error_free(err);
+		g_free(app_id);
+		return;
+	}
+	char *key = g_strdup(app_id);
+	g_hash_table_add(app_info_open, key);
+	hold(); // until the window closes
+	g_child_watch_add(pid, app_info_closed, key);
+	g_dbus_method_invocation_return_value(invocation, NULL);
+	g_free(app_id);
+}
+
 static void method_call(GDBusConnection *connection, const char *sender, const char *object_path, const char *interface_name,
                         const char *method_name, GVariant *params, GDBusMethodInvocation *invocation, gpointer user_data)
 {
 	hold();
-	handle(invocation, method_name, params);
+	if (!strcmp(method_name, "OpenAppInfo"))
+		handle_open_app_info(invocation);
+	else
+		handle(invocation, method_name, params);
 	release();
 }
 
@@ -410,4 +479,228 @@ int main(int argc, char **argv)
 	idle_source = g_timeout_add_seconds(IDLE_TIMEOUT, idle_quit, NULL);
 	g_main_loop_run(loop);
 	return 0;
+}
+
+/* -------- legacy permission review (owner, 2026-11-03) --------
+ * Apps made for Android before 6 (target SDK < 23, or run with SDK_INT < 23) never ask at runtime:
+ * androidx answers from checkSelfPermission. As on Android 10+ and GrapheneOS, their first start
+ * shows one review of the dangerous permissions this service decides, each off by default (an
+ * earlier "yes" ticked, an earlier final "no" left out), stored like the other answers, once (id
+ * atl.legacy-review). Location and camera are not part of it: their portals ask at first use. Only
+ * for apps whose Flatpak says they are made for Android before 6. */
+
+#define REVIEW_DONE "atl.legacy-review"
+
+static const struct {
+	const char *permission;
+	const char *label;
+} reviewed[] = {
+	{"android.permission.RECORD_AUDIO", "Microphone"},
+	{"android.permission.READ_CONTACTS", "Contacts"},
+	{"android.permission.WRITE_CONTACTS", "Change contacts"},
+	{"android.permission.READ_CALENDAR", "Calendar"},
+	{"android.permission.WRITE_CALENDAR", "Change calendar"},
+	{"android.permission.READ_SMS", "Text messages"},
+	{"android.permission.SEND_SMS", "Send text messages"},
+	{"android.permission.READ_CALL_LOG", "Call log"},
+	{"android.permission.READ_PHONE_STATE", "Phone state"},
+	{"android.permission.BODY_SENSORS", "Body sensors"},
+};
+
+/* target SDK (make-app-flatpak's target-sdk) or the --sdk-int the app runs with below 23 */
+static gboolean app_is_legacy(const char *app_id)
+{
+	char *flatpak = flatpak_user_dir();
+	char *files = g_build_filename(flatpak, "app", app_id, "current", "active", "files", NULL);
+	char *target_path = g_build_filename(files, "share", "atl", "target-sdk", NULL);
+	char *launcher_path = g_build_filename(files, "bin", "atl-app", NULL);
+	char *contents = NULL;
+	gboolean legacy = FALSE;
+	if (g_file_get_contents(target_path, &contents, NULL, NULL) && *g_strstrip(contents))
+		legacy = atoi(contents) > 0 && atoi(contents) < 23;
+	g_clear_pointer(&contents, g_free);
+	if (!legacy && g_file_get_contents(launcher_path, &contents, NULL, NULL)) {
+		char *sdk = strstr(contents, "--sdk-int ");
+		legacy = sdk && atoi(sdk + strlen("--sdk-int ")) > 0 && atoi(sdk + strlen("--sdk-int ")) < 23;
+	}
+	g_free(contents);
+	g_free(launcher_path);
+	g_free(target_path);
+	g_free(files);
+	g_free(flatpak);
+	return legacy;
+}
+
+struct review {
+	GDBusConnection *bus;
+	char *app_id;
+	GPtrArray *permissions; // the reviewed ones this app requests
+	GVariant *dialog_args;
+	int backend; // index into access_backends
+	char *key; // in pending: the invocations waiting for this review
+};
+
+static void review_answered(GObject *source, GAsyncResult *res, gpointer user_data);
+
+static void review_ask(struct review *r)
+{
+	g_dbus_connection_call(r->bus, access_backends[r->backend], "/org/freedesktop/portal/desktop",
+	                       "org.freedesktop.impl.portal.Access", "AccessDialog", g_variant_ref(r->dialog_args),
+	                       G_VARIANT_TYPE("(ua{sv})"), G_DBUS_CALL_FLAGS_NONE, G_MAXINT, NULL, review_answered, r);
+}
+
+static void review_reply(struct review *r, GHashTable *granted)
+{
+	GVariantBuilder answers;
+	g_variant_builder_init(&answers, G_VARIANT_TYPE("a{ss}"));
+	for (guint i = 0; i < r->permissions->len; i++) {
+		const char *permission = g_ptr_array_index(r->permissions, i);
+		int denials;
+		int answer = granted ? (g_hash_table_contains(granted, permission) ? 1 : 0)
+		                     : stored_answer(r->bus, r->app_id, permission, &denials);
+		g_variant_builder_add(&answers, "{ss}", permission, answer == 1 ? "yes" : "no");
+	}
+	GVariant *value = g_variant_ref_sink(g_variant_new("(a{ss})", &answers));
+	GPtrArray *waiting = g_hash_table_lookup(pending, r->key);
+	for (guint i = 0; waiting && i < waiting->len; i++)
+		g_dbus_method_invocation_return_value(g_ptr_array_index(waiting, i), g_variant_ref(value));
+	g_hash_table_remove(pending, r->key);
+	g_variant_unref(value);
+}
+
+static void review_free(struct review *r)
+{
+	g_object_unref(r->bus);
+	g_free(r->app_id);
+	g_ptr_array_unref(r->permissions);
+	g_clear_pointer(&r->dialog_args, g_variant_unref);
+	g_free(r);
+	release();
+}
+
+static void review_answered(GObject *source, GAsyncResult *res, gpointer user_data)
+{
+	struct review *r = user_data;
+	GError *err = NULL;
+	GVariant *reply = g_dbus_connection_call_finish(G_DBUS_CONNECTION(source), res, &err);
+	guint32 response = 2;
+	GVariant *results = NULL;
+	if (reply) {
+		g_variant_get(reply, "(u@a{sv})", &response, &results);
+		g_variant_unref(reply);
+	} else {
+		gboolean missing = g_error_matches(err, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN) ||
+		                   g_error_matches(err, G_DBUS_ERROR, G_DBUS_ERROR_NAME_HAS_NO_OWNER) ||
+		                   g_error_matches(err, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD);
+		if (missing && ++r->backend < (int)G_N_ELEMENTS(access_backends)) {
+			g_error_free(err);
+			review_ask(r);
+			return;
+		}
+		g_warning("review for %s: %s", r->app_id, err->message);
+		g_error_free(err);
+	}
+	GHashTable *granted = g_hash_table_new(g_str_hash, g_str_equal);
+	GVariant *choices = results && response == 0 ? g_variant_lookup_value(results, "choices", G_VARIANT_TYPE("a(ss)")) : NULL;
+	if (choices) {
+		GVariantIter iter;
+		const char *id, *value;
+		g_variant_iter_init(&iter, choices);
+		while (g_variant_iter_next(&iter, "(&s&s)", &id, &value))
+			if (!strcmp(value, "true"))
+				for (guint i = 0; i < r->permissions->len; i++)
+					if (!strcmp(id, g_ptr_array_index(r->permissions, i)))
+						g_hash_table_add(granted, g_ptr_array_index(r->permissions, i));
+	}
+	/* an answered review is final (until App info changes it); a dismissed one comes again */
+	if (response <= 1) {
+		for (guint i = 0; i < r->permissions->len; i++) {
+			const char *permission = g_ptr_array_index(r->permissions, i);
+			gboolean yes = g_hash_table_contains(granted, permission);
+			store_answer(r->bus, r->app_id, permission, yes, yes ? 0 : MAX_DENIALS);
+			if (!strcmp(permission, "android.permission.RECORD_AUDIO"))
+				apply_microphone_answer(r->app_id, yes);
+		}
+		store_answer(r->bus, r->app_id, REVIEW_DONE, TRUE, 0);
+	}
+	g_message("review for %s: response %u, %u of %u allowed", r->app_id, response, g_hash_table_size(granted), r->permissions->len);
+	review_reply(r, granted);
+	g_hash_table_unref(granted);
+	g_clear_pointer(&choices, g_variant_unref);
+	g_clear_pointer(&results, g_variant_unref);
+	review_free(r);
+}
+
+static void handle_review(GDBusMethodInvocation *invocation, GVariant *params)
+{
+	char *app_id = caller_app_id(invocation);
+	if (!app_id) {
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+		                                           "only apps in their own ATL Flatpak");
+		return;
+	}
+	if (!app_is_legacy(app_id)) {
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+		                                           "only for apps made for Android before 6");
+		g_free(app_id);
+		return;
+	}
+	/* one review at a time per app: later calls wait for its answers */
+	char *key = g_strdup_printf("%s\n" REVIEW_DONE, app_id);
+	GPtrArray *waiting = g_hash_table_lookup(pending, key);
+	if (waiting) {
+		g_ptr_array_add(waiting, invocation);
+		g_free(key);
+		g_free(app_id);
+		return;
+	}
+	waiting = g_ptr_array_new();
+	g_ptr_array_add(waiting, invocation);
+	g_hash_table_insert(pending, g_strdup(key), waiting);
+	struct review *r = g_new0(struct review, 1);
+	r->key = key;
+	r->bus = g_object_ref(g_dbus_method_invocation_get_connection(invocation));
+	r->app_id = app_id;
+	r->permissions = g_ptr_array_new();
+	GVariantBuilder choices;
+	g_variant_builder_init(&choices, G_VARIANT_TYPE("a(ssa(ss)s)"));
+	for (gsize i = 0; i < G_N_ELEMENTS(reviewed); i++) {
+		if (app_requests(app_id, reviewed[i].permission) != TRUE)
+			continue;
+		/* a final "no" (asked twice, or an earlier review) stays; App info can change it */
+		int earlier_denials;
+		int answer = stored_answer(r->bus, app_id, reviewed[i].permission, &earlier_denials);
+		if (answer == 0 && earlier_denials >= MAX_DENIALS)
+			continue;
+		g_ptr_array_add(r->permissions, (gpointer)reviewed[i].permission);
+		/* a check box, off by default, ticked after an earlier "yes" */
+		g_variant_builder_add(&choices, "(ss@a(ss)s)", reviewed[i].permission, reviewed[i].label,
+		                      g_variant_new_array(G_VARIANT_TYPE("(ss)"), NULL, 0), answer == 1 ? "true" : "false");
+	}
+	hold();
+	int denials;
+	if (r->permissions->len == 0 || stored_answer(r->bus, app_id, REVIEW_DONE, &denials) == 1) {
+		g_variant_builder_clear(&choices);
+		review_reply(r, NULL);
+		review_free(r);
+		return;
+	}
+	char *name = app_name(app_id);
+	char *title = g_strdup_printf("Review Permissions of %s", name);
+	GVariantBuilder options;
+	g_variant_builder_init(&options, G_VARIANT_TYPE_VARDICT);
+	g_variant_builder_add(&options, "{sv}", "deny_label", g_variant_new_string("Deny All"));
+	g_variant_builder_add(&options, "{sv}", "grant_label", g_variant_new_string("Continue"));
+	g_variant_builder_add(&options, "{sv}", "icon", g_variant_new_string(app_id));
+	g_variant_builder_add(&options, "{sv}", "choices", g_variant_builder_end(&choices));
+	static guint serial;
+	char *handle_path = g_strdup_printf(PERMISSIONS_PATH "/review/%u", ++serial);
+	r->dialog_args = g_variant_ref_sink(g_variant_new("(osssssa{sv})", handle_path, app_id, "", title,
+	                               "This app was made for an older Android and does not ask when it needs something.",
+	                               "Choose what it may use. You can change it later in App info.", &options));
+	/* the shell's dialog first, then GTK's, as for single questions */
+	review_ask(r);
+	g_free(handle_path);
+	g_free(title);
+	g_free(name);
 }

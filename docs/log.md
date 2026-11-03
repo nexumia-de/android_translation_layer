@@ -124,6 +124,8 @@ monitors recordable through pipewire-pulse.
 * **Back navigation**: Besides the header bar button, a swipe from the left or right edge and the keys Escape, Alt+Left and XF86Back go back; they send `KEYCODE_BACK` like Android, so dialogs (`OnKeyListener`, cancelable) and `Activity.onKeyDown`/`onKeyUp` see it before `onBackPressed`. `ATL_NAVIGATION=buttons|gesture|both` picks the on-screen means ([back navigation](navigation.md), [decision](decisions/navigation.md)). `wl-pointer key` types keys headless.
 * **HeliBoard**: [Feasibility](android-keyboard.md) of HeliBoard as the Phosh keyboard through ATL's existing IME host (size M; risks: lock screen, memory, start time). Its settings run headless; as on-screen keyboard its input view appears under headless phoc but is not usable yet ([app status](apps.md)).
 * **GPSLogger and location**: `LocationManager` only handled one `requestLocationUpdates` variant, never stopped the portal session and its `Location` lacked most fields, so GPSLogger 138 aborted at its first fix. Registrations now follow Android (Looper, Executor, `PendingIntent`, `LocationRequest`, minimum time and distance, `removeUpdates` ends the portal session) and the fix time is right (the portal's second timestamp field is microseconds, not milliseconds). Headless with a fake location portal GPSLogger logs and uploads through its Dawarich sender ([app status](apps.md)).
+* **HeliBoard types**: Under headless phoc HeliBoard now types into a GTK entry and takes over from Stevia when it stops; a reversible phone test is under Needs owner ([keyboard](android-keyboard.md), [app status](apps.md)).
+
 ## 2026-11-03: internet asked on the install page
 
 `--install-ask --install-flatpak` asks "Allow internet?" for apps with
@@ -143,4 +145,28 @@ and permission store): Internet and microphone switched on → override
 * **Push messages**: Scan of the apps: DB Navigator, Post & DHL and Duolingo use only FCM, WhatsApp FCM and its own connection, FluffyChat UnifiedPush. FCM cannot be routed to ntfy; Google's servers only per app with consent (`atl.google-services`, owner decision 2026-11-03). UnifiedPush maps to the host distributor over D-Bus ([push](push.md)).
 * **UnifiedPush bridge and FCM without consent**: The connector found no distributor (null package name); ATL now reports any `org.unifiedpush.Distributor.*` on the session bus as `org.unifiedpush.distributor.dbus`, owns the app's name before registering, maps UNREGISTER, failures, message ids and Unregistered. c2dm registrations get `SERVICE_NOT_AVAILABLE` at once without `atl.google-services` ([push](push.md)).
 * **UnifiedPush on D-Bus activation**: the connector is exported before the app owns its name and takes calls in a worker thread; calls wait until `Application.onCreate` has run, so the push that started an app reaches it (checked headless). Without `atl.google-services` no c2dm intent and no external Google Play services start leaves the app ([push](push.md)).
+* **Wake windows**: the owner decided that Android apps never keep the phone awake; a system timer wakes it at a user-set interval and ATL apps run their due alarms in a short window ([decision](decisions/wake-windows.md)). Measured: the phone had not suspended in 2 days (a session inhibitor), unprivileged alarm timers get `EPERM`.
 * **Push server setting**: KUnifiedPush, now on the phone, is configured on Phosh with `atl-push-server get|set|reset` (default KUnifiedPush's own, KDE's `https://unifiedpush.kde.org/`; no published usage terms), over its D-Bus Management interface when it runs, else in the per-user file. Tested headless with a local ntfy: ATL bridge to KUnifiedPush to ntfy and back. It costs about 50 MB PSS and no measurable CPU at idle ([push](push.md)).
+
+## 2026-11-04: "Android apps" page
+
+`--android-apps`: navigation, push server, wake interval (read-only),
+signature checks, installer rights per store and the installed apps;
+reached from App info. Headless (`flatpak/android-apps-test.sh`, fake
+apps, stand-in `atl-push-server`): store switched off → override
+`Installer=none`, push server set, navigation "gesture" saved and given
+to every app.
+## 2026-11-04: legacy permission review
+
+Apps with target SDK or SDK_INT below 23 get one review dialog of their
+dangerous permissions before their code runs (service method `Review`,
+GTK/Phosh access dialog with check boxes, default off, shown once).
+Headless (`flatpak/legacy-review-test.sh`, 7 checks): camera ticked →
+yes, others no, internet not listed, second call without a dialog.
+## 2026-11-04: App info from the launcher
+
+Generated launchers get the action "App Info"; ATL in the sandbox
+answers it without starting the app and calls the permission service's
+new `OpenAppInfo` (interface version 2), which opens `--app-info` for
+the caller on the host. Headless: the service part (`permissions-test.sh`,
+24 checks); the in-sandbox part needs an engine build.

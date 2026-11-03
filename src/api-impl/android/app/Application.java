@@ -94,6 +94,11 @@ public class Application extends ContextWrapper {
 	}
 
 	@Export
+	int get_target_sdk_version() {
+		return this.get_atl_loaded_app().pkg.applicationInfo.targetSdkVersion;
+	}
+
+	@Export
 	String get_installed_version_name() {
 		return installed_version_name;
 	}

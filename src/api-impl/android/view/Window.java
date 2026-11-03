@@ -215,8 +215,13 @@ public class Window {
 
 	public void setDecorFitsSystemWindows(boolean fits) {}
 
+	private InsetsController insetsController;
+
+	/* one per window, so appearance set through it can be read back */
 	public WindowInsetsController getInsetsController() {
-		return new InsetsController();
+		if (insetsController == null)
+			insetsController = new InsetsController();
+		return insetsController;
 	}
 
 	public void setStatusBarContrastEnforced(boolean enforced) {}

@@ -13,6 +13,7 @@
 #include "../api-impl-jni/content/android_content_Context.h"
 
 #include "actions.h"
+#include "android_apps.h"
 #include "app_info.h"
 #include "back_button.h"
 #include "navigation.h"
@@ -332,6 +333,7 @@ struct jni_callback_data {
 	char *installer_name;
 	char *uninstall_flatpak;
 	char *app_info;
+	gboolean android_apps;
 	char *network;
 	char *prgname;
 	char **extra_jvm_options;
@@ -665,6 +667,9 @@ static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject ap
 		g_ptr_array_add(argv, g_strdup("-P"));
 		g_ptr_array_add(argv, g_strdup(permissions));
 	}
+	/* for the legacy permission review: apps made for Android before 6 */
+	g_ptr_array_add(argv, g_strdup("-T"));
+	g_ptr_array_add(argv, g_strdup_printf("%d", J__Application__get_target_sdk_version(env, application_object)));
 	char *version = jstring_dup(env, J__Application__get_version_name(env, application_object));
 	if (version && *version) {
 		g_ptr_array_add(argv, g_strdup("-V"));
@@ -1122,6 +1127,7 @@ enum dbus_request {
 	DBUS_REQUEST_NONE,
 	DBUS_REQUEST_OTHER,
 	DBUS_REQUEST_UNINSTALL,
+	DBUS_REQUEST_APP_INFO,
 };
 static enum dbus_request dbus_request = DBUS_REQUEST_NONE;
 
@@ -1139,6 +1145,8 @@ static GDBusMessage *dbus_request_filter(GDBusConnection *connection, GDBusMessa
 		g_variant_get_child(body, 0, "&s", &action_name);
 		if (!strcmp(action_name, "uninstall"))
 			request = DBUS_REQUEST_UNINSTALL;
+		else if (!strcmp(action_name, "app-info"))
+			request = DBUS_REQUEST_APP_INFO;
 	}
 	g_mutex_lock(&dbus_request_mutex);
 	if (dbus_request == DBUS_REQUEST_NONE)
@@ -1152,11 +1160,11 @@ static GDBusMessage *dbus_request_filter(GDBusConnection *connection, GDBusMessa
  * launcher action), but the request only arrives once we own the bus name. Own it before the app
  * starts and wait briefly for the request, so the launcher's "uninstall" action does not start the
  * app first (which it might not survive). */
-static gboolean dbus_activation_asks_uninstall(GApplication *app)
+static enum dbus_request dbus_activation_request(GApplication *app)
 {
 	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 	if (!bus)
-		return FALSE;
+		return DBUS_REQUEST_NONE;
 	guint filter = g_dbus_connection_add_filter(bus, dbus_request_filter, NULL, NULL);
 	/* a UnifiedPush distributor may have started us with a call to the connector: export it before
 	 * the name is ours, the app's Context answers or drops the calls it queued */
@@ -1171,11 +1179,41 @@ static gboolean dbus_activation_asks_uninstall(GApplication *app)
 	while (dbus_request == DBUS_REQUEST_NONE)
 		if (!g_cond_wait_until(&dbus_request_cond, &dbus_request_mutex, end_time))
 			break;
-	gboolean uninstall = dbus_request == DBUS_REQUEST_UNINSTALL;
+	enum dbus_request request = dbus_request;
 	g_mutex_unlock(&dbus_request_mutex);
 	g_dbus_connection_remove_filter(bus, filter);
 	g_object_unref(bus);
-	return uninstall;
+	return request;
+}
+
+static gboolean app_info_pending = FALSE;
+
+/* the launcher's "App info" action (long press) in an app's own Flatpak: App info runs on the host,
+ * never in the sandbox, so the permission service opens it for the calling app */
+static void open_app_info(void)
+{
+	GError *err = NULL;
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &err);
+	GVariant *reply = bus ? g_dbus_connection_call_sync(bus, "de.nexumia.atl.Permissions", "/de/nexumia/atl/Permissions",
+	                                                    "de.nexumia.atl.Permissions", "OpenAppInfo", NULL, NULL,
+	                                                    G_DBUS_CALL_FLAGS_NONE, -1, NULL, &err)
+	                      : NULL;
+	if (reply)
+		g_variant_unref(reply);
+	else
+		fprintf(stderr, "app-info: %s\n", err->message);
+	g_clear_error(&err);
+	g_clear_object(&bus);
+}
+
+static void action_app_info(GSimpleAction *action, GVariant *parameter, gpointer user_data)
+{
+	GApplication *app = G_APPLICATION(user_data);
+	open_app_info();
+	if (app_info_pending) { // the hold from open(), which did not start the app
+		app_info_pending = FALSE;
+		g_application_release(app);
+	}
 }
 
 static void parse_string_extras(JNIEnv *env, char **extra_string_keys, jobject intent)
@@ -1525,11 +1563,19 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		ask_uninstall(G_APPLICATION(app));
 		return;
 	}
-	if (d->dbus_activated && !d->install && uninstall_allowed && dbus_activation_asks_uninstall(G_APPLICATION(app))) {
-		unifiedpush_connector_refuse();
-		uninstall_pending = TRUE;
-		g_application_hold(G_APPLICATION(app));
-		return;
+	gboolean in_flatpak = g_file_test("/.flatpak-info", G_FILE_TEST_EXISTS);
+	if (d->dbus_activated && !d->install && (uninstall_allowed || in_flatpak)) {
+		enum dbus_request request = dbus_activation_request(G_APPLICATION(app));
+		/* launcher actions that must not start the app first */
+		if ((request == DBUS_REQUEST_UNINSTALL && uninstall_allowed) || (request == DBUS_REQUEST_APP_INFO && in_flatpak)) {
+			unifiedpush_connector_refuse();
+			if (request == DBUS_REQUEST_UNINSTALL)
+				uninstall_pending = TRUE;
+			else
+				app_info_pending = TRUE;
+			g_application_hold(G_APPLICATION(app));
+			return;
+		}
 	}
 	/* One process per app, as on Android: the app may still run without a window (a foreground
 	 * service keeps it, see Service.startForeground), and a second process would use the same
@@ -1983,6 +2029,10 @@ static void activate(GtkApplication *app, struct jni_callback_data *d)
 		app_info_show(app, d->app_info, d->prgname);
 		return;
 	}
+	if (d->android_apps) {
+		android_apps_show(app, d->prgname);
+		return;
+	}
 	if (app_starting && !window) // D-Bus activation's own request, which started us
 		return;
 	if (window) { // this is not the first launch, but a DBus activate request to the running app
@@ -2025,6 +2075,7 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "network",           0 , 0, G_OPTION_ARG_STRING,       &d->network,                   "--install-flatpak: allow internet (yes) or not (no), kept for updates; unset keeps the answer",  "yes|no"        },
 		{ "installer-name",    0 , 0, G_OPTION_ARG_STRING,       &d->installer_name,            "the app store that asks to install or uninstall (shown on the page)",                          "NAME"          },
 		{ "uninstall-flatpak", 0 , 0, G_OPTION_ARG_STRING,       &d->uninstall_flatpak,         "ask, then remove the Flatpak of an app installed with --install-flatpak and its data",         "PACKAGE"       },
+		{ "android-apps",      0 , 0, G_OPTION_ARG_NONE,         &d->android_apps,              "show the settings for all Android apps (navigation, push server, installed apps)",            NULL            },
 		{ "app-info",          0 , 0, G_OPTION_ARG_STRING,       &d->app_info,                  "show App info of an app installed with --install-flatpak: permissions, data, uninstall",        "PACKAGE"       },
 		{ "uninstall",         0 , 0, G_OPTION_ARG_NONE,         &d->uninstall,                 "remove an apk installed with --install, its data and its launcher (asks first)",                NULL            },
 		{ "dbus-activated",    0 , G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &d->dbus_activated, "started through the launcher's D-Bus service file",                                          NULL            },
@@ -2121,8 +2172,8 @@ int main(int argc, char **argv)
 	g_signal_connect(app, "activate", G_CALLBACK(activate), callback_data);
 	g_signal_connect(app, "open", G_CALLBACK(open), callback_data);
 	g_action_map_add_action_entries(G_ACTION_MAP(app), action_entries, action_entries_count, NULL);
-	const GActionEntry uninstall_action_entry = {"uninstall", action_uninstall};
-	g_action_map_add_action_entries(G_ACTION_MAP(app), &uninstall_action_entry, 1, app);
+	const GActionEntry launcher_action_entries[] = {{"uninstall", action_uninstall}, {"app-info", action_app_info}};
+	g_action_map_add_action_entries(G_ACTION_MAP(app), launcher_action_entries, G_N_ELEMENTS(launcher_action_entries), app);
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 	remove_ongoing_notifications();
 	g_object_unref(app);
