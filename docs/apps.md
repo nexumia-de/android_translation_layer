@@ -56,6 +56,10 @@ entry: date, what, why. Remove an entry once it is done.
   `systemctl --user status atl-pulse-norecord` (active) and, while an
   ATL app plays sound, `pactl -s /run/user/$(id -u)/atl-pulse-norecord/native list short clients`.
 
+- 2026-11-03: Google Play services' error text was bare text in DB
+  Navigator's top left corner. After the fix (#95) is in the aports
+  package: if a "trouble with Google Play services" message shows
+  again, it is a centred dialog.
 - 2026-10-28: Finish the apk repository in
   [nexumia-de/aports](https://github.com/nexumia-de/aports) (signing
   secret in the environment `apk-signing`, merge its pull request #1;
