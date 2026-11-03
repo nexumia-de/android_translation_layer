@@ -338,11 +338,23 @@ void view_cancel_touch_sequence(GtkWidget *target, GdkEvent *event)
 	/* no dispatcher, or its Java dispatch could not reach GTK children (see
 	 * view_dispatch_motionevent): the views inside it get the cancel the GTK way */
 	if (!dispatcher || synthetic_propagation_failed == event) {
-		for (GtkWidget *widget = target; widget && widget != dispatcher; widget = gtk_widget_get_parent(widget)) {
-			GtkEventController *controller = g_object_get_data(G_OBJECT(widget), "on_touch_listener");
-			if (controller && WRAPPER_IS_WIDGET(widget))
+		/* like GTK's propagation: capture outer views first, so the ancestors'
+		 * disallowIntercept and intercepting state are reset, then bubble inner first */
+		GPtrArray *chain = g_ptr_array_new();
+		for (GtkWidget *widget = target; widget && widget != dispatcher; widget = gtk_widget_get_parent(widget))
+			if (WRAPPER_IS_WIDGET(widget))
+				g_ptr_array_add(chain, widget);
+		for (int i = chain->len - 1; i >= 0; i--) {
+			GtkEventController *controller = g_object_get_data(G_OBJECT(chain->pdata[i]), "on_intercept_touch_listener");
+			if (controller)
 				on_pointer_event(GTK_EVENT_CONTROLLER_LEGACY(controller), event, NULL);
 		}
+		for (guint i = 0; i < chain->len; i++) {
+			GtkEventController *controller = g_object_get_data(G_OBJECT(chain->pdata[i]), "on_touch_listener");
+			if (controller)
+				on_pointer_event(GTK_EVENT_CONTROLLER_LEGACY(controller), event, NULL);
+		}
+		g_ptr_array_free(chain, TRUE);
 	}
 	navigation_cancel_event = NULL;
 

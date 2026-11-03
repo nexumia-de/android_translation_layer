@@ -211,6 +211,11 @@ static gboolean on_taken_event(GtkEventControllerLegacy *controller, GdkEvent *e
 
 	double x, y;
 	GdkEventType type = gdk_event_get_event_type(event);
+	/* a mouse swipe has no sequence: only its motion and the left button's
+	 * release belong to it, other buttons, keys and scrolling stay the app's */
+	if (!edge.sequence && type != GDK_MOTION_NOTIFY &&
+	    !(type == GDK_BUTTON_RELEASE && gdk_button_event_get_button(event) == GDK_BUTTON_PRIMARY))
+		return FALSE;
 	switch (type) {
 		case GDK_TOUCH_UPDATE:
 		case GDK_MOTION_NOTIFY:
