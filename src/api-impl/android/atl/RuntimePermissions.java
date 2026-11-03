@@ -116,7 +116,13 @@ public final class RuntimePermissions {
 		final String group = groups.get(index);
 		final boolean[] answered = {false};
 		final AlertDialog dialog = new AlertDialog(activity);
-		CharSequence label = activity.getApplicationInfo().loadLabel(activity.getPackageManager());
+		/* the label from the app's own resources; loadLabel would parse the framework package */
+		android.content.pm.ApplicationInfo info = activity.getApplicationInfo();
+		CharSequence label = info.nonLocalizedLabel;
+		if (label == null && info.labelRes != 0)
+			label = activity.getResources().getText(info.labelRes);
+		if (label == null)
+			label = activity.getPackageName();
 		dialog.setTitle(LOCATION.equals(group) ? "Location" : "Microphone");
 		dialog.setMessage("Allow " + label + " to " + (LOCATION.equals(group) ? "access this device's location?" : "record audio?"));
 		dialog.setCanceledOnTouchOutside(false);

@@ -67,7 +67,7 @@ date), so a new session knows where to continue.
 | 1 ATL engine as Flatpak | done: CI build on `ubuntu-24.04-arm` (`.github/workflows/engine-flatpak.yml`), published through the release `engine` and phosh-apps to `flatpak.nexumia.de`; signed install from there verified on the phone, Chooser runs on it | #27, #29 | 2026-10-30 |
 | 2 Installer and broker on the host | `--install-flatpak` (#30); installer service `de.nexumia.atl.Installer` (install, uninstall, list, launch; only for APKs requesting `REQUEST_INSTALL_PACKAGES`), `--install-ask --install-flatpak` and `--uninstall-flatpak` pages ([installing apps](installing-apps.md#app-stores-in-their-own-flatpak)); open: opening an APK file on the Flatpak path, settings page | this branch | 2026-10-30 |
 | 3 ATL inside a per-app Flatpak | vibration through feedbackd (#31); install, uninstall, installed apps and starting other apps go to the installer service; links out (OpenURI) and in (D-Bus activation) checked headless; open: network state from the portal (F-Droid's "No internet"), a real login, sensors, WebView | this branch | 2026-10-30 |
-| 4 Permissions | not started | - | - |
+| 4 Permissions | first slice: runtime dialog for location and microphone on `requestPermissions`, decisions stored per app (`<data dir>/atl-permissions`), read by `checkPermission`, `LocationManager` and `AudioRecord`; env vars stay test overrides. Open: contacts, calendar, phone, SMS (denied until mapped), notification access as a stored switch, a settings page to list and revoke, portal identity outside Flatpak | this branch | 2026-11-03 |
 | 5 Install integrity | signers verified over the whole APK (v3 with key rotation, v2, v1 of every entry; AOSP's verifier); unsigned, changed and foreign-signed APKs and downgrades refused; open: installer of record, signer changes on the update page, v4 | this branch | 2026-10-30 |
 | 6 Migration and default | not started | - | - |
 
@@ -101,8 +101,8 @@ ATL runs every app as the owner's user with full access:
 
 | Area | Today | File |
 |---|---|---|
-| `checkPermission` | fixed list; location and microphone only with `ATL_UGLY_ENABLE_LOCATION` / `ATL_UGLY_ENABLE_MICROPHONE` | `src/api-impl/android/content/pm/PackageManager.java` |
-| `requestPermissions` | logs "not handled", never calls `onRequestPermissionsResult` | `src/api-impl/android/app/Activity.java` |
+| `checkPermission` | fixed list; location and microphone from the user's stored decision (or `ATL_UGLY_ENABLE_LOCATION` / `ATL_UGLY_ENABLE_MICROPHONE`) | `src/api-impl/android/content/pm/PackageManager.java` |
+| `requestPermissions` | allow/deny dialog once per group ATL can serve (location, microphone), then `onRequestPermissionsResult`; other permissions answered with their state | `src/api-impl/android/atl/RuntimePermissions.java` |
 | Files | app data in `~/.local/share/android_translation_layer/<apk>_/`; `/storage/emulated/0/` rewritten there by a libc path override (native code can ignore it) | `src/main-executable/libc_bio_path_overrides.c` |
 | Launchers, D-Bus services, installs | written by the app's own process (`~/.local/share/applications`, `dbus-1/services`, `_installed_apks_`), `update-desktop-database` via `system()` | `src/main-executable/main.c` |
 | Audio | ALSA `default`, playback and capture | `src/api-impl-jni/audio/` |
