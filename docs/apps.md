@@ -32,6 +32,11 @@ follow [bringing up an app](app-bring-up.md).
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
+- 2026-11-03: GMS fused location (branch `claude/gms-location-2`)
+  in a phone build: as `user`, start DB Navigator from its launcher
+  with location on, open Nearby and the From field's "Current
+  position", and report whether stations near you appear (log to
+  `/tmp/db-gms.log` with `ATL_GMS_DEBUG=1`).
 - 2026-11-03: CoMaps after PR #73 (and #61 for location) is in a
   phone build: as `user`, `android-translation-layer
   ~/work/apks/app.comaps.fdroid/app.comaps.fdroid_26100519.apk

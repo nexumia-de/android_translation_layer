@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 final class LocationBinder extends Binder implements LocationListener {
+	private static final boolean DEBUG = System.getenv("ATL_GMS_DEBUG") != null;
 	static final String DESCRIPTOR = "com.google.android.gms.location.internal.IGoogleLocationManagerService";
 	private static final String LISTENER = "com.google.android.gms.location.ILocationListener";
 	private static final String CALLBACK = "com.google.android.gms.location.ILocationCallback";
@@ -367,6 +368,8 @@ final class LocationBinder extends Binder implements LocationListener {
 	}
 
 	private void deliver(IBinder target, int type, Location location, boolean update) {
+		if (DEBUG)
+			System.err.println("ATL gms: deliver type " + type + " " + location);
 		if (type == TYPE_STATUS_CALLBACK) {
 			sendStatusLocation(target, location);
 		} else if (type == TYPE_CALLBACK) {
