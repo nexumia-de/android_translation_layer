@@ -256,6 +256,16 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 		removeView(children.get(index));
 	}
 
+	public void removeViews(int start, int count) {
+		removeViewsInLayout(start, count);
+		requestLayout();
+	}
+
+	public void removeViewsInLayout(int start, int count) {
+		for (int i = start + count - 1; i >= start; i--)
+			removeViewInternal(children.get(i));
+	}
+
 	public void removeAllViews() {
 		for (Iterator<View> it = children.iterator(); it.hasNext();) {
 			View child = it.next();

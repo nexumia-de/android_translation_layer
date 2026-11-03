@@ -7,13 +7,23 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_location_LocationManager_ACCURACY_EXACT
+#define android_location_LocationManager_ACCURACY_EXACT 5L
 /*
  * Class:     android_location_LocationManager
- * Method:    nativeGetLocation
+ * Method:    nativeStart
+ * Signature: (I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_android_location_LocationManager_nativeStart
+  (JNIEnv *, jclass, jint);
+
+/*
+ * Class:     android_location_LocationManager
+ * Method:    nativeStop
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_android_location_LocationManager_nativeGetLocation
-  (JNIEnv *, jobject);
+JNIEXPORT void JNICALL Java_android_location_LocationManager_nativeStop
+  (JNIEnv *, jclass);
 
 #ifdef __cplusplus
 }

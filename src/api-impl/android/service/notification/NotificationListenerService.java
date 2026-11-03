@@ -46,6 +46,28 @@ public abstract class NotificationListenerService extends Service {
 	private static final Map<String, StatusBarNotification> active = new LinkedHashMap<>();
 	/* the desktop's notification id -> key */
 	private static final Map<Integer, String> keysById = new java.util.HashMap<>();
+	/* desktop apps that sent a notification: package name (desktop entry) -> application name */
+	private static final Map<String, String> desktopSources = new java.util.HashMap<>();
+
+	/**
+	 * ATL-specific: an ApplicationInfo for a desktop app that sent a notification, so apps can
+	 * show its name (PackageManager.getApplicationLabel) as for an Android app. Only sources
+	 * seen here are answered, so package queries for other names still fail.
+	 */
+	public static android.content.pm.ApplicationInfo desktopApplicationInfo(String packageName) {
+		String label;
+		synchronized (desktopSources) {
+			label = desktopSources.get(packageName);
+		}
+		if (label == null)
+			return null;
+		android.content.pm.ApplicationInfo info = new android.content.pm.ApplicationInfo();
+		info.packageName = packageName;
+		info.processName = packageName;
+		info.nonLocalizedLabel = label;
+		info.enabled = true;
+		return info;
+	}
 	private static boolean monitoring;
 	private static int nextId = 1;
 	private static Handler mainHandler;
@@ -242,8 +264,17 @@ public abstract class NotificationListenerService extends Service {
 
 	/* called on GDBus's worker thread for every Notify call on the session bus */
 	@Export
-	private static void onNotify(String appName, String desktopEntry, int replacesId, String summary, String body, String category, int urgency, boolean resident) {
-		String pkg = desktopEntry != null && !desktopEntry.isEmpty() ? desktopEntry : (appName != null && !appName.isEmpty() ? appName : "unknown");
+	private static void onNotify(String appName, String desktopEntry, int replacesId, String summary, String body, String category, int urgency, boolean resident, boolean own) {
+		String pkg;
+		if (own) {
+			/* as on Android, the app's own notifications carry its own package name */
+			pkg = android.atl.ATLLoadedApp.getPrimaryApplication().pkg.packageName;
+		} else {
+			pkg = desktopEntry != null && !desktopEntry.isEmpty() ? desktopEntry : (appName != null && !appName.isEmpty() ? appName : "unknown");
+			synchronized (desktopSources) {
+				desktopSources.put(pkg, appName != null && !appName.isEmpty() ? appName : pkg);
+			}
+		}
 		Notification notification = new Notification();
 		notification.when = System.currentTimeMillis();
 		notification.category = category;
