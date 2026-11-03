@@ -288,11 +288,12 @@ public final class ContextImpl extends Context {
 	public ComponentName startService(Intent intent) {
 		// One way Messenger interface for GCM. Request per intent and response per Messenger.
 		// Wrap the response part in a BroadcastReceiver for compatibility with our gcm_service
-		if (intent.getAction() != null && intent.getAction().startsWith("com.google.android.c2dm.intent.") && intent.getParcelableExtra("google.messenger") instanceof Messenger) {
+		if ("com.google.android.c2dm.intent.REGISTER".equals(intent.getAction()) && intent.getParcelableExtra("google.messenger") instanceof Messenger) {
 			final Messenger messenger = (Messenger)intent.getParcelableExtra("google.messenger");
 			this.registerReceiver(new BroadcastReceiver() {
 				@Override
 				public void onReceive(Context context, Intent resultIntent) {
+					unregisterReceiver(this); // one reply per request
 					try {
 						messenger.send(Message.obtain(null, 0, resultIntent));
 					} catch (RemoteException e) {
@@ -305,7 +306,10 @@ public final class ContextImpl extends Context {
 		// Cloud Messaging (c2dm) intents should always be started using DBus. Delivering them to the in process gstub is pointless
 		if (targetApp == null || (intent.getAction() != null && intent.getAction().startsWith("com.google.android.c2dm"))) {
 			// External package. Try to start using DBus Action
-			if (intent.getPackage() != null && !googleServiceUnavailable(intent))
+			// also for intents with only a component, which get their answer there
+			if (googleServiceUnavailable(intent))
+				return null;
+			if (intent.getPackage() != null)
 				nativeStartExternalService(intent);
 			return null;
 		}
@@ -325,6 +329,7 @@ public final class ContextImpl extends Context {
 					registerReceiver(new BroadcastReceiver() {
 						@Override
 						public void onReceive(Context context, Intent responseIntent) {
+							unregisterReceiver(this); // one reply per request
 							try {
 								// map response Intent to Message
 								Message responseMessage = Message.obtain(null, 0, request_id, 0);

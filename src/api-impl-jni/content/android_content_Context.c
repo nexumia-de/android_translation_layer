@@ -264,39 +264,74 @@ static gboolean on_unregistered(Connector1 *connector, GDBusMethodInvocation *in
 /* main thread only */
 static gboolean connector_app_ready(void)
 {
-	if (!connector_wanted)
+	if (!connector_decided || !connector_wanted) /* not decided: Context (and maybe Java) not set up yet */
 		return FALSE;
 	JNIEnv *env = get_jni_env();
 	jobject context = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "this_application", "Landroid/app/Application;");
 	return context != NULL;
 }
 
-/* main thread: deliver or refuse queued calls; retry later while the app is not set up yet */
+#define CONNECTOR_CALL_DEADLINE (20 * G_TIME_SPAN_SECOND)
+
+struct connector_call {
+	GDBusMethodInvocation *invocation;
+	gint64 deadline;
+};
+
+static struct connector_call *connector_pop(void)
+{
+	g_mutex_lock(&connector_mutex);
+	struct connector_call *call = g_queue_pop_head(&connector_pending);
+	g_mutex_unlock(&connector_mutex);
+	return call;
+}
+
+static void connector_refuse(struct connector_call *call, const char *reason)
+{
+	g_dbus_method_invocation_return_dbus_error(call->invocation, "org.freedesktop.DBus.Error.UnknownObject", reason);
+	g_free(call);
+}
+
+/* main thread: deliver or refuse queued calls; while the app is not set up yet, retry until each
+ * call's deadline, then refuse it, so no call stays unanswered when the app never gets there */
 static gboolean connector_drain(gpointer user_data)
 {
 	if (user_data)
 		connector_retry_scheduled = FALSE;
 	gboolean refuse = connector_decided && !connector_wanted;
 	if (!refuse && !connector_app_ready()) {
+		gint64 now = g_get_monotonic_time();
 		g_mutex_lock(&connector_mutex);
+		GQueue expired = G_QUEUE_INIT;
+		for (GList *l = connector_pending.head; l;) {
+			GList *next = l->next;
+			if (((struct connector_call *)l->data)->deadline <= now) {
+				g_queue_push_tail(&expired, l->data);
+				g_queue_delete_link(&connector_pending, l);
+			}
+			l = next;
+		}
 		gboolean pending = !g_queue_is_empty(&connector_pending);
 		g_mutex_unlock(&connector_mutex);
+		struct connector_call *call;
+		while ((call = g_queue_pop_head(&expired)))
+			connector_refuse(call, "the app did not start");
 		if (pending && !connector_retry_scheduled) {
 			connector_retry_scheduled = TRUE;
 			g_timeout_add(100, connector_drain, GINT_TO_POINTER(1));
 		}
 		return G_SOURCE_REMOVE;
 	}
-	for (;;) {
-		g_mutex_lock(&connector_mutex);
-		GDBusMethodInvocation *invocation = g_queue_pop_head(&connector_pending);
-		g_mutex_unlock(&connector_mutex);
-		if (!invocation)
-			break;
+	struct connector_call *call;
+	while ((call = connector_pop())) {
+		GDBusMethodInvocation *invocation = call->invocation;
 		const char *method = g_dbus_method_invocation_get_method_name(invocation);
-		if (refuse)
-			g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.UnknownObject", "this app takes no UnifiedPush messages");
-		else if (!strcmp(method, "NewEndpoint"))
+		if (refuse) {
+			connector_refuse(call, "this app takes no UnifiedPush messages");
+			continue;
+		}
+		g_free(call);
+		if (!strcmp(method, "NewEndpoint"))
 			on_new_endpoint(connector1, invocation, NULL);
 		else if (!strcmp(method, "Message"))
 			on_message(connector1, invocation, NULL);
@@ -309,11 +344,22 @@ static gboolean connector_drain(gpointer user_data)
 /* GDBus worker thread */
 static gboolean on_connector_call(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
 {
+	struct connector_call *call = g_new(struct connector_call, 1);
+	call->invocation = invocation; /* completing it releases it */
+	call->deadline = g_get_monotonic_time() + CONNECTOR_CALL_DEADLINE;
 	g_mutex_lock(&connector_mutex);
-	g_queue_push_tail(&connector_pending, invocation); /* completing it releases it */
+	g_queue_push_tail(&connector_pending, call);
 	g_mutex_unlock(&connector_mutex);
 	g_idle_add(connector_drain, NULL);
 	return TRUE;
+}
+
+/* The app will not start (activation ends in the uninstall dialog): refuse queued and later calls. */
+void unifiedpush_connector_refuse(void)
+{
+	connector_decided = TRUE;
+	connector_wanted = FALSE;
+	connector_drain(NULL);
 }
 
 /* Deliver queued calls now if the app can take them: main.c after Application.onCreate, as

@@ -58,7 +58,10 @@ native Linux apps share the one distributor of the host:
   `Unregistered` become the connector broadcasts. The launcher's D-Bus
   service file lets the distributor start an app that is not running.
   ATL owns the name and exports `Connector1` before it registers, so the
-  distributor's immediate `NewEndpoint` is not lost.
+  distributor's immediate `NewEndpoint` is not lost. When D-Bus starts
+  the app for a push, the connector exists before the name is owned and
+  holds calls until `Application.onCreate` has run (at most 20 s, then
+  it answers with an error).
 - In a Flatpak the app's bus name is its app id (`$FLATPAK_ID`), the
   only name it may own; `flatpak/make-app.sh` lets apps with `INTERNET`
   talk to `org.unifiedpush.Distributor.*`. Not tested in a Flatpak yet.
@@ -74,12 +77,13 @@ the end-to-end test with a Matrix server is still open.
 
 ## Cloud Messaging without consent
 
-With `ATL_GMS_STUB` an app's c2dm `REGISTER` goes over D-Bus to an
-external `com.google.android.gms` (upstream's GCM service, which talks
-to Google). ATL now answers it at once with `REGISTRATION` and
-`error=SERVICE_NOT_AVAILABLE`, as Google Play services does when it
-cannot reach Google, when the app lacks `atl.google-services` or no such
-service is on the session bus. Firebase then retries with backoff and the
+An app's c2dm intents and services of `com.google.android.gms` that ATL
+does not run in the app go over D-Bus to an external Google Play
+services (upstream's GCM service, which talks to Google). Without the
+app's `atl.google-services`, or with no such service on the session bus,
+ATL drops them; a `REGISTER` or `UNREGISTER` gets `REGISTRATION` with
+`error=SERVICE_NOT_AVAILABLE` at once, as Google Play services answers
+when it cannot reach Google. Firebase then retries with backoff and the
 app carries on without push. Without `ATL_GMS_STUB` the client libraries
 already stop before that (`MISSING_INSTANCEID_SERVICE`).
 

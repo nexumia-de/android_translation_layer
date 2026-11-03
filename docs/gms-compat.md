@@ -91,7 +91,7 @@ download).
 | Mobile Vision (`gms.vision`: barcode, face, text) | DHL, WhatsApp | local in principle | Dynamite module, not reachable; DHL's barcode scan needs another path |
 | Security provider (`gms.security.ProviderInstaller`) | DB, DHL, Duolingo | local | `GooglePlayServicesNotAvailableException`, apps keep the system TLS provider |
 | Firebase core, installations, analytics, Crashlytics, Remote Config, sessions, data transport | DB, DHL, Duolingo, WhatsApp | app talks to Firebase's servers itself, not through GMS | not a GMS question; runs as in the app |
-| Firebase Cloud Messaging, Instance ID, `gms.cloudmessaging` | DB, DHL, Duolingo, WhatsApp | server only[^fcm-no-gms] | fails as without GMS (`SERVICE_NOT_AVAILABLE` / `MISSING_INSTANCEID_SERVICE`); with `ATL_GMS_STUB` a registration is answered at once with `SERVICE_NOT_AVAILABLE` unless the app has `atl.google-services` ([push](push.md)) |
+| Firebase Cloud Messaging, Instance ID, `gms.cloudmessaging` | DB, DHL, Duolingo, WhatsApp | server only[^fcm-no-gms] | fails as without GMS (`SERVICE_NOT_AVAILABLE` / `MISSING_INSTANCEID_SERVICE`); a registration that reaches ATL is answered at once with `SERVICE_NOT_AVAILABLE` unless the app has `atl.google-services` ([push](push.md)) |
 | Firebase Auth, Realtime Database, App Check | DHL | server (Firebase) | app's own business; App Check with Play Integrity fails |
 | Google sign-in, Credential Manager, One Tap, Block Store, FIDO / passkeys (`gms.auth`, `gms.identity`, `gms.fido`, `androidx.credentials.playservices`) | DB, DHL, Duolingo, WhatsApp | server (Google account) | out; fails as without GMS |
 | SMS Retriever (`auth.api.phone`) | Duolingo, WhatsApp | local in principle, needs GMS | not reachable; apps fall back to typing the code |

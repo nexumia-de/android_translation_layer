@@ -1404,6 +1404,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		return;
 	}
 	if (d->dbus_activated && !d->install && uninstall_allowed && dbus_activation_asks_uninstall(G_APPLICATION(app))) {
+		unifiedpush_connector_refuse();
 		uninstall_pending = TRUE;
 		g_application_hold(G_APPLICATION(app));
 		return;
