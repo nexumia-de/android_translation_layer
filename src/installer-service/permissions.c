@@ -248,6 +248,7 @@ static void request_free(struct request *r)
 	g_free(r->app_id);
 	g_free(r->permission);
 	g_clear_pointer(&r->dialog_args, g_variant_unref);
+	g_free(r->key);
 	g_free(r);
 	release();
 }
@@ -421,9 +422,10 @@ int main(int argc, char **argv)
 /* -------- legacy permission review (owner, 2026-11-03) --------
  * Apps made for Android before 6 (target SDK < 23, or run with SDK_INT < 23) never ask at runtime:
  * androidx answers from checkSelfPermission. As on Android 10+ and GrapheneOS, their first start
- * shows one review of their dangerous permissions, each off by default. The answers are stored
- * like the others (the portal-backed ones only as what checkSelfPermission reports; access still
- * goes through the portals), and the review is shown once (id atl.legacy-review). */
+ * shows one review of the dangerous permissions this service decides, each off by default (an
+ * earlier "yes" ticked, an earlier final "no" left out), stored like the other answers, once (id
+ * atl.legacy-review). Location and camera are not part of it: their portals ask at first use. Only
+ * for apps whose Flatpak says they are made for Android before 6. */
 
 #define REVIEW_DONE "atl.legacy-review"
 
@@ -431,9 +433,6 @@ static const struct {
 	const char *permission;
 	const char *label;
 } reviewed[] = {
-	{"android.permission.ACCESS_FINE_LOCATION", "Location"},
-	{"android.permission.ACCESS_COARSE_LOCATION", "Approximate location"},
-	{"android.permission.CAMERA", "Camera"},
 	{"android.permission.RECORD_AUDIO", "Microphone"},
 	{"android.permission.READ_CONTACTS", "Contacts"},
 	{"android.permission.WRITE_CONTACTS", "Change contacts"},
@@ -446,13 +445,37 @@ static const struct {
 	{"android.permission.BODY_SENSORS", "Body sensors"},
 };
 
+/* target SDK (make-app-flatpak's target-sdk) or the --sdk-int the app runs with below 23 */
+static gboolean app_is_legacy(const char *app_id)
+{
+	char *flatpak = flatpak_user_dir();
+	char *files = g_build_filename(flatpak, "app", app_id, "current", "active", "files", NULL);
+	char *target_path = g_build_filename(files, "share", "atl", "target-sdk", NULL);
+	char *launcher_path = g_build_filename(files, "bin", "atl-app", NULL);
+	char *contents = NULL;
+	gboolean legacy = FALSE;
+	if (g_file_get_contents(target_path, &contents, NULL, NULL) && *g_strstrip(contents))
+		legacy = atoi(contents) > 0 && atoi(contents) < 23;
+	g_clear_pointer(&contents, g_free);
+	if (!legacy && g_file_get_contents(launcher_path, &contents, NULL, NULL)) {
+		char *sdk = strstr(contents, "--sdk-int ");
+		legacy = sdk && atoi(sdk + strlen("--sdk-int ")) > 0 && atoi(sdk + strlen("--sdk-int ")) < 23;
+	}
+	g_free(contents);
+	g_free(launcher_path);
+	g_free(target_path);
+	g_free(files);
+	g_free(flatpak);
+	return legacy;
+}
+
 struct review {
-	GDBusMethodInvocation *invocation;
 	GDBusConnection *bus;
 	char *app_id;
 	GPtrArray *permissions; // the reviewed ones this app requests
 	GVariant *dialog_args;
 	int backend; // index into access_backends
+	char *key; // in pending: the invocations waiting for this review
 };
 
 static void review_answered(GObject *source, GAsyncResult *res, gpointer user_data);
@@ -475,7 +498,12 @@ static void review_reply(struct review *r, GHashTable *granted)
 		                     : stored_answer(r->bus, r->app_id, permission, &denials);
 		g_variant_builder_add(&answers, "{ss}", permission, answer == 1 ? "yes" : "no");
 	}
-	g_dbus_method_invocation_return_value(r->invocation, g_variant_new("(a{ss})", &answers));
+	GVariant *value = g_variant_ref_sink(g_variant_new("(a{ss})", &answers));
+	GPtrArray *waiting = g_hash_table_lookup(pending, r->key);
+	for (guint i = 0; waiting && i < waiting->len; i++)
+		g_dbus_method_invocation_return_value(g_ptr_array_index(waiting, i), g_variant_ref(value));
+	g_hash_table_remove(pending, r->key);
+	g_variant_unref(value);
 }
 
 static void review_free(struct review *r)
@@ -549,8 +577,26 @@ static void handle_review(GDBusMethodInvocation *invocation, GVariant *params)
 		                                           "only apps in their own ATL Flatpak");
 		return;
 	}
+	if (!app_is_legacy(app_id)) {
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+		                                           "only for apps made for Android before 6");
+		g_free(app_id);
+		return;
+	}
+	/* one review at a time per app: later calls wait for its answers */
+	char *key = g_strdup_printf("%s\n" REVIEW_DONE, app_id);
+	GPtrArray *waiting = g_hash_table_lookup(pending, key);
+	if (waiting) {
+		g_ptr_array_add(waiting, invocation);
+		g_free(key);
+		g_free(app_id);
+		return;
+	}
+	waiting = g_ptr_array_new();
+	g_ptr_array_add(waiting, invocation);
+	g_hash_table_insert(pending, g_strdup(key), waiting);
 	struct review *r = g_new0(struct review, 1);
-	r->invocation = invocation;
+	r->key = key;
 	r->bus = g_object_ref(g_dbus_method_invocation_get_connection(invocation));
 	r->app_id = app_id;
 	r->permissions = g_ptr_array_new();
@@ -559,10 +605,15 @@ static void handle_review(GDBusMethodInvocation *invocation, GVariant *params)
 	for (gsize i = 0; i < G_N_ELEMENTS(reviewed); i++) {
 		if (app_requests(app_id, reviewed[i].permission) != TRUE)
 			continue;
+		/* a final "no" (asked twice, or an earlier review) stays; App info can change it */
+		int earlier_denials;
+		int answer = stored_answer(r->bus, app_id, reviewed[i].permission, &earlier_denials);
+		if (answer == 0 && earlier_denials >= MAX_DENIALS)
+			continue;
 		g_ptr_array_add(r->permissions, (gpointer)reviewed[i].permission);
-		/* a check box, off by default */
+		/* a check box, off by default, ticked after an earlier "yes" */
 		g_variant_builder_add(&choices, "(ss@a(ss)s)", reviewed[i].permission, reviewed[i].label,
-		                      g_variant_new_array(G_VARIANT_TYPE("(ss)"), NULL, 0), "false");
+		                      g_variant_new_array(G_VARIANT_TYPE("(ss)"), NULL, 0), answer == 1 ? "true" : "false");
 	}
 	hold();
 	int denials;
