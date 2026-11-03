@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #ifndef DEFFILEMODE
 	#define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) /* 0666*/
@@ -53,6 +54,11 @@ char *apk_path;
 gboolean app_exit(GtkWindow *self, JNIEnv *env) // TODO: do more cleanup?
 {
 	activity_close_all();
+	/* a foreground service keeps running: keep the window hidden, to show again on the next launch */
+	if (foreground_service_running()) {
+		gtk_widget_set_visible(GTK_WIDGET(self), FALSE);
+		return true;
+	}
 	return false;
 }
 
@@ -1315,6 +1321,72 @@ static char *install_split_apks(GFile *dest, GFile **files, gint nfiles)
 	return g_string_free(paths, FALSE);
 }
 
+/* see the start of the app in open(): the first process to lock its data directory is the app */
+static gboolean instance_lock_take(const char *data_dir)
+{
+	g_mkdir_with_parents(data_dir, 0755);
+	char *path = g_build_filename(data_dir, ".atl-instance.lock", NULL);
+	/* "e": close on exec, so started helpers do not keep the lock; kept open for the process' lifetime */
+	FILE *file = fopen(path, "ae");
+	g_free(path);
+	if (!file)
+		return TRUE; /* cannot tell; do not block the start */
+	/* not flock(): <sys/file.h> declares open() on glibc. Only "locked by another process"
+	 * means running; any other error (no lock support) must not block the start. */
+	if (lockf(fileno(file), F_TLOCK, 0) == 0)
+		return TRUE;
+	return errno != EAGAIN && errno != EACCES;
+}
+
+/* Asks the running process of this app id to show itself, like a launcher would: Open for a
+ * URI, otherwise Activate (which starts the main activity again in a hidden window). */
+static gboolean hand_over_to_running_instance(const char *id, struct jni_callback_data *d)
+{
+	if (d->apk_main_activity_class || d->extra_string_keys)
+		fprintf(stderr, "warning: %s is already running; -l and -e are not passed on to it\n", id);
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!bus)
+		return FALSE;
+	/* the other process may still be starting and not own the name yet */
+	char *owner = NULL;
+	for (int i = 0; i < 50 && !owner; i++) {
+		GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetNameOwner",
+		                                              g_variant_new("(s)", id), G_VARIANT_TYPE("(s)"), G_DBUS_CALL_FLAGS_NONE, 1000, NULL, NULL);
+		if (reply) {
+			g_variant_get(reply, "(s)", &owner);
+			g_variant_unref(reply);
+			if (!g_strcmp0(owner, g_dbus_connection_get_unique_name(bus))) /* ourselves: no one to hand over to */
+				g_clear_pointer(&owner, g_free);
+		} else {
+			g_usleep(200 * 1000);
+		}
+	}
+	gboolean ok = FALSE;
+	if (owner) {
+		char *path = g_strdelimit(g_strdup_printf("/%s", id), ".", '/');
+		g_strdelimit(path, "-", '_');
+		fprintf(stderr, "%s is already running; asking it to show its window\n", id);
+		GVariant *ret;
+		if (uri_option && *uri_option) {
+			const char *uris[] = {uri_option, NULL};
+			ret = g_dbus_connection_call_sync(bus, owner, path, "org.freedesktop.Application", "Open",
+			                                  g_variant_new("(^asa{sv})", uris, NULL), NULL, G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL);
+		} else {
+			ret = g_dbus_connection_call_sync(bus, owner, path, "org.freedesktop.Application", "Activate",
+			                                  g_variant_new("(a{sv})", NULL), NULL, G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL);
+		}
+		ok = ret != NULL;
+		if (ret)
+			g_variant_unref(ret);
+		g_free(path);
+		g_free(owner);
+	}
+	if (!ok)
+		fprintf(stderr, "%s is already running, but could not be reached\n", id);
+	g_object_unref(bus);
+	return ok;
+}
+
 /* -w/-h, or else the size of the built-in or smallest monitor in logical pixels (Phosh then maximizes the window,
  * and Display and the Configuration follow its real size, see android_content_Context.c) */
 static void get_window_size(struct jni_callback_data *d, int *width, int *height)
@@ -1458,6 +1530,20 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		uninstall_pending = TRUE;
 		g_application_hold(G_APPLICATION(app));
 		return;
+	}
+	/* One process per app, as on Android: the app may still run without a window (a foreground
+	 * service keeps it, see Service.startForeground), and a second process would use the same
+	 * data directory. A lock on the data directory decides which process is the app; the bus
+	 * name only says where to hand over (the running one owns the app id once it started, see
+	 * RequestName below; a D-Bus activated start may already own it itself). */
+	/* not for installs: the installer service stages every apk under the same name */
+	if (!(d->install || d->install_internal || d->install_ask || d->install_flatpak) && !instance_lock_take(app_data_dir)) {
+		const char *id = g_application_get_application_id(G_APPLICATION(app));
+		if (!strcmp(id, "com.example.demo_application")) {
+			fprintf(stderr, "this apk is already running; start it with --gapplication-app-id to hand over to it\n");
+			exit(1);
+		}
+		exit(hand_over_to_running_instance(id, d) ? 0 : 1);
 	}
 	app_starting = TRUE;
 
@@ -1900,6 +1986,14 @@ static void activate(GtkApplication *app, struct jni_callback_data *d)
 	if (app_starting && !window) // D-Bus activation's own request, which started us
 		return;
 	if (window) { // this is not the first launch, but a DBus activate request to the running app
+		if (activity_backlog_empty()) { // the window was closed while a foreground service ran
+			JNIEnv *env = get_jni_env();
+			jobject activity = J__Activity__createMainActivity(env, _JSTRING(d->apk_main_activity_class), _INTPTR(window), NULL);
+			if ((*env)->ExceptionCheck(env))
+				(*env)->ExceptionDescribe(env);
+			if (activity)
+				activity_start(env, activity);
+		}
 		gtk_window_present(GTK_WINDOW(window));
 		return;
 	}
