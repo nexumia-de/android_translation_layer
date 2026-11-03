@@ -182,7 +182,7 @@ static void apply_microphone(struct app_info *info, gboolean yes)
 	const char *allow[] = {"flatpak", "override", "--user", "--socket=pulseaudio", "--unset-env=PULSE_SERVER",
 	                       "--nofilesystem=xdg-run/atl-pulse-norecord", info->id, NULL};
 	const char *deny[] = {"flatpak", "override", "--user", "--nosocket=pulseaudio", norecord,
-	                      "--filesystem=xdg-run/atl-pulse-norecord", info->id, NULL};
+	                      "--filesystem=xdg-run/atl-pulse-norecord:ro", info->id, NULL};
 	if (run(yes ? allow : deny))
 		changed_static_permission(info);
 	g_free(norecord);
@@ -205,6 +205,7 @@ static void permission_toggled(AdwSwitchRow *row, GParamSpec *pspec, struct app_
 		return;
 	}
 	g_variant_unref(reply);
+	adw_action_row_set_subtitle(ADW_ACTION_ROW(row), NULL); // answered now
 	if (!strcmp(permission, "android.permission.RECORD_AUDIO"))
 		apply_microphone(info, yes);
 }
@@ -314,7 +315,6 @@ void app_info_show(GtkApplication *app, const char *package, const char *prgname
 	char *details = version && *version ? g_strdup_printf("%s\nVersion %s", package, g_strstrip(version)) : g_strdup(package);
 	GtkWidget *details_label = gtk_label_new(details);
 	gtk_label_set_justify(GTK_LABEL(details_label), GTK_JUSTIFY_CENTER);
-	gtk_label_set_selectable(GTK_LABEL(details_label), TRUE);
 	gtk_widget_add_css_class(details_label, "dimmed");
 	gtk_box_append(GTK_BOX(box), details_label);
 	g_free(details);

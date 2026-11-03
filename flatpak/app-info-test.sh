@@ -2,7 +2,7 @@
 # Headless check of --app-info (src/main-executable/app_info.c) with a fake installed app in a
 # temporary Flatpak user directory and its own permission store. Run inside a display with its own
 # session bus, from the build directory:
-#   tools/headless-shot.sh -d 20 -w 4 -x "tap <internet>" -x "tap <microphone>" -- ../flatpak/app-info-test.sh
+#   APP_INFO_TEST_WAIT=25 tools/headless-shot.sh -d 10 -w 4 -x "tap 310 330" -x "tap 310 385" -- ../flatpak/app-info-test.sh
 # then read the checks it prints. With the shared lock use flock -o; the daemons started here are
 # stopped when the script ends.
 T=$(mktemp -d)

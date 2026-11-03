@@ -85,3 +85,11 @@
 Flatpak user override, not metadata. Headless with GPSLogger: "No
 internet" → override `shared=!network`, metadata without network;
 uninstall removed the override.
+
+## 2026-11-04: App info page
+
+`--app-info <package>` shows an installed app Flatpak's version,
+Internet, permission answers, More Permissions, Clear Data and
+Uninstall. Headless (`flatpak/app-info-test.sh`, own Flatpak directory
+and permission store): Internet and microphone switched on → override
+`shared=network`, `sockets=pulseaudio`, store answer yes.
