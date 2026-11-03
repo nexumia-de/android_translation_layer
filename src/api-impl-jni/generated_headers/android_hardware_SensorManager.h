@@ -7,6 +7,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_hardware_SensorManager_SENSOR_STATUS_NO_CONTACT
+#define android_hardware_SensorManager_SENSOR_STATUS_NO_CONTACT -1L
+#undef android_hardware_SensorManager_SENSOR_STATUS_UNRELIABLE
+#define android_hardware_SensorManager_SENSOR_STATUS_UNRELIABLE 0L
+#undef android_hardware_SensorManager_SENSOR_STATUS_ACCURACY_LOW
+#define android_hardware_SensorManager_SENSOR_STATUS_ACCURACY_LOW 1L
+#undef android_hardware_SensorManager_SENSOR_STATUS_ACCURACY_MEDIUM
+#define android_hardware_SensorManager_SENSOR_STATUS_ACCURACY_MEDIUM 2L
+#undef android_hardware_SensorManager_SENSOR_STATUS_ACCURACY_HIGH
+#define android_hardware_SensorManager_SENSOR_STATUS_ACCURACY_HIGH 3L
 /*
  * Class:     android_hardware_SensorManager
  * Method:    register_accelerometer_listener_native

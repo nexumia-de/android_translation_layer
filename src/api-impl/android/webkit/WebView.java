@@ -19,6 +19,11 @@ public class WebView extends ViewGroup {
 
 	private WebViewClient webViewClient;
 	private final WebSettings settings = new WebSettings();
+
+	/* the document height WebKitGTK reports, in CSS pixels as on Android */
+	public int getContentHeight() {
+		return contentHeight;
+	}
 	private int contentHeight;
 
 	public WebView(Context context) {
