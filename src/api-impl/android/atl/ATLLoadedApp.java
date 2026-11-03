@@ -81,6 +81,11 @@ public final class ATLLoadedApp {
 		                                             ATLLoadedApp.class.getClassLoader(), pkg);
 	}
 
+	/* the primary app's package, or null while it is still loading; never loads it */
+	static synchronized String primaryPackageName() {
+		return primary_application != null ? primary_application.pkg.packageName : null;
+	}
+
 	@NonNull
 	public static synchronized ATLLoadedApp getPrimaryApplication() {
 		if (primary_application != null) {
@@ -129,7 +134,7 @@ public final class ATLLoadedApp {
 		}
 		packageParser.collectCertificates(pkg, 0);
 		// Support for MicroG and other custom GMS implementations.
-		if (ATLToggles.ATL_GMS_STUB && play_services.contains(pkg.packageName)) {
+		if (ATLToggles.gmsStub() && play_services.contains(pkg.packageName)) {
 			ATLSigHelper.addGMSSignatures(pkg);
 		}
 		pkg.applicationInfo.sourceDir = mainApk;
