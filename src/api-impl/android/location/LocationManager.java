@@ -392,6 +392,8 @@ public class LocationManager {
 				r.listener.onLocationChanged((Location)null);
 			}
 		});
+	}
+
 	@Export
 	private static void locationDenied() {
 		List<Registration> regs;
