@@ -6,7 +6,8 @@ import java.util.List;
 public class TelephonyManager {
 	private static Boolean hasModem;
 
-	/* whether the device has a cellular modem, as ModemManager reports it; ATL_HAS_TELEPHONY=1 or 0 overrides */
+	/* whether the device has a cellular modem, as ModemManager reports it; ATL_HAS_TELEPHONY=1 or 0 overrides.
+	 * Asked once per process: a modem that ModemManager finds later (e.g. an app started right after boot) shows only after a restart of the app */
 	public static synchronized boolean hasModem() {
 		if (hasModem == null) {
 			String override = System.getenv("ATL_HAS_TELEPHONY");
@@ -64,7 +65,7 @@ public class TelephonyManager {
 	}
 
 	public String getLine1Number() {
-		return null;
+		return "";
 	}
 
 	public int getSimState() {
@@ -72,7 +73,7 @@ public class TelephonyManager {
 	}
 
 	public String getSimOperatorName() {
-		return null;
+		return "";
 	}
 
 	public int getCallState() {
