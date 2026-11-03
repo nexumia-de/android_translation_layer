@@ -86,6 +86,26 @@ static char *fonts_overrides[] = {
 
 extern char *get_app_data_dir(void);
 
+/* Android keeps the trusted CA certificates as <subject hash>.0 files in
+ * /system/etc/security/cacerts (Dart's dart:io and other TLS code read them
+ * there); distributions keep the same hashed links in their certificate
+ * directory. */
+static const char *cacerts_dirs[] = {
+	"/etc/ssl/certs",
+	"/etc/pki/ca-trust/extracted/pem/directory-hash",
+	NULL,
+};
+
+static const char *get_cacerts_dir(void)
+{
+	static const char *dir = NULL;
+
+	for (int i = 0; !dir && cacerts_dirs[i]; i++)
+		if (g_file_test(cacerts_dirs[i], G_FILE_TEST_IS_DIR))
+			dir = cacerts_dirs[i];
+	return dir;
+}
+
 bool apply_path_overrides(char **path)
 {
 	bool free_path = false;
@@ -120,6 +140,16 @@ bool apply_path_overrides(char **path)
 
 		fprintf(stderr, "%s: !!! app trying to access >%s<, rewriting to >%s<\n", __func__, *path, new_path);
 
+		*path = new_path;
+		free_path = true;
+	}
+
+#define ANDROID_CACERTS "/system/etc/security/cacerts"
+	if (starts_with(*path, ANDROID_CACERTS) && ((*path)[sizeof(ANDROID_CACERTS) - 1] == '\0' || (*path)[sizeof(ANDROID_CACERTS) - 1] == '/') && get_cacerts_dir()) {
+		char *new_path = g_strconcat(get_cacerts_dir(), *path + sizeof(ANDROID_CACERTS) - 1, NULL);
+
+		if (free_path)
+			free(*path);
 		*path = new_path;
 		free_path = true;
 	}
