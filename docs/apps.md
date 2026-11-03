@@ -68,6 +68,10 @@ entry: date, what, why. Remove an entry once it is done.
   `systemctl --user status atl-pulse-norecord` (active) and, while an
   ATL app plays sound, `pactl -s /run/user/$(id -u)/atl-pulse-norecord/native list short clients`.
 
+- 2026-11-03: Google Play services' error text was bare text in DB
+  Navigator's top left corner. After the fix (#95) is in the aports
+  package: if a "trouble with Google Play services" message shows
+  again, it is a centred dialog.
 - 2026-11-03: DB Navigator covered the whole screen (edge to edge made
   the window fullscreen). After the fix (#94) is in the aports package:
   start DB Navigator from the app grid; Phosh's bar and ATL's title bar
