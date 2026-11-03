@@ -1328,6 +1328,27 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		g_application_hold(G_APPLICATION(app));
 		return;
 	}
+	/* One process per app, as on Android: the app may still run without a window (a foreground
+	 * service keeps it, see Service.startForeground), and a second process would use the same
+	 * data directory. The running one owns the app id on the session bus (RequestName below). */
+	if (!d->install && strcmp(g_application_get_application_id(G_APPLICATION(app)), "com.example.demo_application")) {
+		GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+		GVariant *reply = bus ? g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "NameHasOwner",
+		                                                    g_variant_new("(s)", g_application_get_application_id(G_APPLICATION(app))),
+		                                                    G_VARIANT_TYPE("(b)"), G_DBUS_CALL_FLAGS_NONE, 1000, NULL, NULL)
+		                        : NULL;
+		gboolean running = FALSE;
+		if (reply) {
+			g_variant_get(reply, "(b)", &running);
+			g_variant_unref(reply);
+		}
+		g_clear_object(&bus);
+		if (running) {
+			fprintf(stderr, "%s is already running (maybe without a window, for a foreground service); not starting a second instance\n",
+			        g_application_get_application_id(G_APPLICATION(app)));
+			exit(0);
+		}
+	}
 	app_starting = TRUE;
 
 	ret = mkdir(app_data_dir, DEFFILEMODE | S_IXUSR | S_IXGRP | S_IXOTH);

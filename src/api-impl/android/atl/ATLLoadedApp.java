@@ -342,25 +342,44 @@ public final class ATLLoadedApp {
 		return component;
 	}
 
+	/* services are created, started and destroyed on the main thread only;
+	 * stopService and stopSelf may come from any thread */
 	public boolean stopService(Intent intent) {
 		if (intent.getComponent() == null)
 			return false;
-		String className = intent.getComponent().getClassName();
-		Service service = running_services.get(className);
+		final String className = intent.getComponent().getClassName();
+		final Service service = running_services.get(className);
 		if (service == null)
 			return false;
-		running_services.remove(className);
-		service.atl_stopped();
-		service.onDestroy();
+		new Handler(Looper.getMainLooper()).post(new Runnable() {
+			@Override
+			public void run() {
+				if (running_services.get(className) == service)
+					destroyService(className, service);
+			}
+		});
 		return true;
 	}
 
 	/* Service.stopSelf */
-	public void stopService(Service service) {
-		if (running_services.values().remove(service)) {
-			service.atl_stopped();
-			service.onDestroy();
-		}
+	public void stopService(final Service service) {
+		new Handler(Looper.getMainLooper()).post(new Runnable() {
+			@Override
+			public void run() {
+				for (java.util.Map.Entry<String, Service> e : running_services.entrySet()) {
+					if (e.getValue() == service) {
+						destroyService(e.getKey(), service);
+						return;
+					}
+				}
+			}
+		});
+	}
+
+	private void destroyService(String className, Service service) {
+		running_services.remove(className);
+		service.atl_stopped();
+		service.onDestroy();
 	}
 
 	public void receiveBroadcast(Context context, Intent intent) {
