@@ -2372,6 +2372,11 @@ public class View implements Drawable.Callback {
 	@Export
 	public boolean onInterceptTouchEvent(MotionEvent event) { return false; }
 
+	/* Input is not batched to vsync in ATL, so every event is already delivered unbuffered. */
+	public void requestUnbufferedDispatch(MotionEvent event) {}
+
+	public void requestUnbufferedDispatch(int source) {}
+
 	@Export
 	public boolean dispatchTouchEvent(MotionEvent event) {
 		if (on_touch_listener != null && on_touch_listener.onTouch(this, event))
