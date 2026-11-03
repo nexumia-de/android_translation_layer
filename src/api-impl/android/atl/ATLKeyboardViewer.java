@@ -20,9 +20,11 @@ public class ATLKeyboardViewer extends Activity {
 		InputMethodService ims = null;
 
 		try {
-			Class<? extends InputMethodService> cls = Class.forName(kb_class).asSubclass(InputMethodService.class);
+			Class<? extends InputMethodService> cls = Class.forName(kb_class, true, getClassLoader()).asSubclass(InputMethodService.class);
 			Constructor<? extends InputMethodService> constructor = cls.getConstructor();
 			ims = constructor.newInstance();
+			/* like a started service: the app's context, resources and theme */
+			ims.attachBaseContext(getApplicationContext());
 		} catch (ReflectiveOperationException e) {
 			System.err.println("ATLKeyboardViewer: failed to instantiate InputMethodService (kb_class: " + kb_class + ")");
 			e.printStackTrace();

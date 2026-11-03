@@ -1,4 +1,5 @@
 #include <libportal/portal.h>
+#include <unistd.h>
 
 #include "../defines.h"
 #include "../util.h"
@@ -34,8 +35,12 @@ static void monitor_started(GObject *source, GAsyncResult *result, gpointer user
 	g_autoptr(GError) error = NULL;
 	gboolean ok = xdp_portal_location_monitor_start_finish(XDP_PORTAL(source), result, &error);
 	starting = FALSE;
-	if (!ok)
+	if (!ok) {
 		g_warning("LocationManager: location portal refused or failed: %s", error ? error->message : "unknown");
+		JNIEnv *env;
+		(*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_6);
+		J__LocationManager__locationDenied(env);
+	}
 	if (stop_pending) {
 		stop_pending = FALSE;
 		xdp_portal_location_monitor_stop(XDP_PORTAL(source));
@@ -71,9 +76,10 @@ static gboolean stop_on_main(gpointer data)
 
 JNIEXPORT jboolean JNICALL Java_android_location_LocationManager_nativeStart(JNIEnv *env, jclass, jint accuracy)
 {
-	if (!getenv("ATL_UGLY_ENABLE_LOCATION")) {
-		// Location access is prohibited by default until sanboxing is implemented.
-		// Set ATL_UGLY_ENABLE_LOCATION environment variable to enable it.
+	if (!getenv("ATL_UGLY_ENABLE_LOCATION") && access("/.flatpak-info", F_OK)) {
+		// Outside a sandbox the portal cannot tell apps apart, so location is
+		// prohibited there unless ATL_UGLY_ENABLE_LOCATION is set. In a Flatpak
+		// the location portal asks the user and remembers the answer per app.
 		return JNI_FALSE;
 	}
 	g_main_context_invoke(NULL, start_on_main, GINT_TO_POINTER(accuracy));

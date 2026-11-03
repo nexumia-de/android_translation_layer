@@ -18,8 +18,13 @@ import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.CorrectionInfo;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.ExtractedText;
+import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputBinding;
 import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputMethodSubtype;
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
 import android.widget.LinearLayout;
 
 public class InputMethodService extends AbstractInputMethodService {
@@ -39,6 +44,55 @@ public class InputMethodService extends AbstractInputMethodService {
 		private native boolean nativeDeleteSurroundingText(long ptr, int beforeLength, int afterLength);
 		private native boolean nativeSetSelection(long ptr, int start, int end);
 		private native boolean nativeSendKeyEvent(long ptr, long time, long key, long state);
+		/* the focused field's text around the cursor, from input-method-v2 (UTF-8, cursor and
+		 * anchor in bytes): [before cursor, selected, after] */
+		private native byte[] nativeGetSurroundingText(long ptr);
+		private native int nativeGetSurroundingCursor(long ptr);
+		private native int nativeGetSurroundingAnchor(long ptr);
+
+		private String[] surrounding() {
+			byte[] text = nativeGetSurroundingText(nativePtr);
+			int cursor = Math.min(nativeGetSurroundingCursor(nativePtr), text.length);
+			int anchor = Math.min(nativeGetSurroundingAnchor(nativePtr), text.length);
+			int start = Math.min(cursor, anchor);
+			int end = Math.max(cursor, anchor);
+			java.nio.charset.Charset utf8 = java.nio.charset.StandardCharsets.UTF_8;
+			return new String[] {new String(text, 0, start, utf8), new String(text, start, end - start, utf8), new String(text, end, text.length - end, utf8)};
+		}
+
+		@Override
+		public CharSequence getTextBeforeCursor(int length, int flags) {
+			String before = surrounding()[0];
+			return before.substring(Math.max(0, before.length() - length));
+		}
+
+		@Override
+		public CharSequence getSelectedText(int flags) {
+			String selected = surrounding()[1];
+			return selected.isEmpty() ? null : selected;
+		}
+
+		@Override
+		public CharSequence getTextAfterCursor(int length, int flags) {
+			String after = surrounding()[2];
+			return after.substring(0, Math.min(after.length(), length));
+		}
+
+		@Override
+		public ExtractedText getExtractedText(ExtractedTextRequest request, int flags) {
+			String[] parts = surrounding();
+			ExtractedText et = new ExtractedText();
+			et.text = parts[0] + parts[1] + parts[2];
+			et.startOffset = 0;
+			et.selectionStart = parts[0].length();
+			et.selectionEnd = parts[0].length() + parts[1].length();
+			return et;
+		}
+
+		/* Android counts UTF-16 chars, the protocol UTF-8 bytes */
+		private int utf8Length(String s) {
+			return s.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+		}
 
 		ATLInputConnection() {
 			super(null, false);
@@ -68,7 +122,21 @@ public class InputMethodService extends AbstractInputMethodService {
 		@Override
 		public boolean deleteSurroundingText(int beforeLength, int afterLength) {
 			System.out.println("ATLKeyboardIMS: deleteSurroundingText(" + beforeLength + ", " + afterLength + ")");
-			return nativeDeleteSurroundingText(nativePtr, beforeLength, afterLength);
+			String[] parts = surrounding();
+			int beforeStart = Math.max(0, parts[0].length() - beforeLength);
+			// do not cut a surrogate pair: take the whole code point
+			if (beforeStart > 0 && Character.isLowSurrogate(parts[0].charAt(beforeStart)) && Character.isHighSurrogate(parts[0].charAt(beforeStart - 1)))
+				beforeStart--;
+			int afterEnd = Math.min(parts[2].length(), afterLength);
+			if (afterEnd > 0 && afterEnd < parts[2].length() && Character.isHighSurrogate(parts[2].charAt(afterEnd - 1)) && Character.isLowSurrogate(parts[2].charAt(afterEnd)))
+				afterEnd++;
+			String before = parts[0].substring(beforeStart);
+			String after = parts[2].substring(0, afterEnd);
+			/* the surrounding text can be missing (terminals) or lag one compositor round
+			 * trip behind: count what it does not cover as one byte per char, as before */
+			int beforeBytes = utf8Length(before) + Math.max(0, beforeLength - parts[0].length());
+			int afterBytes = utf8Length(after) + Math.max(0, afterLength - parts[2].length());
+			return nativeDeleteSurroundingText(nativePtr, beforeBytes, afterBytes);
 		}
 
 		@Override
@@ -209,10 +277,98 @@ public class InputMethodService extends AbstractInputMethodService {
 		return input_connection;
 	}
 
+	@Deprecated
+	public boolean enableHardwareAcceleration() {
+		return false;
+	}
+
+	public boolean isInputViewShown() {
+		return kb_view != null && kb_dialog != null && kb_dialog.isShowing();
+	}
+
+	public void showWindow(boolean showInput) {
+		if (kb_dialog != null && !kb_dialog.isShowing()) {
+			kb_dialog.show();
+			onWindowShown();
+		}
+	}
+
+	public void hideWindow() {
+		if (kb_dialog != null && kb_dialog.isShowing()) {
+			kb_dialog.hide();
+			onWindowHidden();
+		}
+	}
+
+	public void onWindowShown() {
+	}
+
+	public void onWindowHidden() {
+	}
+
+	public boolean onShowInputRequested(int flags, boolean configChange) {
+		return true;
+	}
+
+	public boolean onEvaluateFullscreenMode() {
+		return false;
+	}
+
+	public void onUpdateSelection(int oldSelStart, int oldSelEnd, int newSelStart, int newSelEnd, int candidatesStart, int candidatesEnd) {
+	}
+
+	public void onExtractedCursorMovement(int dx, int dy) {
+	}
+
+	public void onExtractedTextClicked() {
+	}
+
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		return false;
+	}
+
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		return false;
+	}
+
+	public void onTrimMemory(int level) {
+	}
+
+	public void onFinishInputView(boolean finishingInput) {
+	}
+
+	public void onCurrentInputMethodSubtypeChanged(InputMethodSubtype newSubtype) {
+	}
+
+	/* ATL runs one input method, there is nothing to switch to */
+	public boolean shouldOfferSwitchingToNextInputMethod() {
+		return false;
+	}
+
+	public boolean switchToNextInputMethod(boolean onlyCurrentIme) {
+		return false;
+	}
+
+	public boolean switchToPreviousInputMethod() {
+		return false;
+	}
+
+	public void switchInputMethod(String id) {
+	}
+
+	public final void switchInputMethod(String id, InputMethodSubtype subtype) {
+		// only this input method exists in ATL, so only its subtype can change
+		android.view.inputmethod.InputMethodManager.setCurrentSubtype(subtype);
+		onCurrentInputMethodSubtypeChanged(subtype);
+	}
+
+	protected void dump(FileDescriptor fd, PrintWriter fout, String[] args) {
+	}
+
 	/* --- */
 
 	public AbstractInputMethodImpl onCreateInputMethodInterface() {
-		return null;
+		return new InputMethodImpl();
 	}
 
 	public View onCreateCandidatesView() {

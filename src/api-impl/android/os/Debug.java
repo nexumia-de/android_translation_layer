@@ -9,6 +9,10 @@ public final class Debug {
 			return 0;
 		}
 
+		public int getTotalPrivateDirty() {
+			return 0;
+		}
+
 		public String getMemoryStat(String statName) {
 			return "fixme getMemoryStat";
 		}

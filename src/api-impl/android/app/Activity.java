@@ -45,7 +45,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Activity extends ContextThemeWrapper implements Window.Callback, LayoutInflater.Factory2 {
+public class Activity extends ContextThemeWrapper implements Window.Callback, KeyEvent.Callback, LayoutInflater.Factory2 {
 	private final static String TAG = "Activity";
 
 	public static final int RESULT_CANCELED = 0;
@@ -277,6 +277,16 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	}
 
 	public void onConfigurationChanged(Configuration newConfig) {
+	}
+
+	/* called from native code when the window got a new size. Android recreates an activity for it
+	 * unless the activity handles screen size changes itself; ATL does not recreate activities, so
+	 * every activity and its views get onConfigurationChanged */
+	void atlScreenSizeChanged() {
+		Configuration config = new Configuration(getResources().getConfiguration());
+		onConfigurationChanged(config);
+		if (window != null && window.getDecorView() != null)
+			window.getDecorView().dispatchConfigurationChanged(config);
 	}
 
 	public void onLowMemory() {
@@ -888,22 +898,74 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		finish();
 	}
 
+	/* Keys reach focused views through GTK first (WrapperWidget.c), so the
+	 * window has nothing left to dispatch; what arrives here is unhandled.
+	 * Navigation keys (KEYCODE_BACK) come from src/main-executable/navigation.c. */
 	public boolean dispatchKeyEvent(KeyEvent event) {
+		onUserInteraction();
+		Window window = getWindow();
+		if (window.superDispatchKeyEvent(event))
+			return true;
+		View decor = window.getDecorView();
+		return event.dispatch(this, decor != null ? decor.getKeyDispatcherState() : null, this);
+	}
+
+	public void onUserInteraction() {}
+
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		if (keyCode == KeyEvent.KEYCODE_BACK) {
+			event.startTracking();
+			return true;
+		}
 		return false;
 	}
 
-	/* no dialog yet: answer with the current state, like a user who denies what is not granted */
+	public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+		return false;
+	}
+
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		if (keyCode == KeyEvent.KEYCODE_BACK && event.isTracking() && !event.isCanceled()) {
+			onBackPressed();
+			return true;
+		}
+		return false;
+	}
+
+	public boolean onKeyMultiple(int keyCode, int repeatCount, KeyEvent event) {
+		return false;
+	}
+
+	public boolean onKeyShortcut(int keyCode, KeyEvent event) {
+		return false;
+	}
+
+	/* permissions the host's installer service decides are asked there (in the app's own Flatpak);
+	 * the rest are answered with the current state, like a user who denies what is not granted */
 	public void requestPermissions(final String[] permissions, final int requestCode) {
-		Slog.w(TAG, "requestPermissions(" + Arrays.toString(permissions) + "): answering without asking");
-		final int[] grantResults = new int[permissions.length];
-		for (int i = 0; i < permissions.length; i++)
-			grantResults[i] = checkSelfPermission(permissions[i]);
-		new Handler(Looper.getMainLooper()).post(new Runnable() {
+		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				deliverPermissionsResult(requestCode, permissions, grantResults);
+				final int[] grantResults = new int[permissions.length];
+				for (int i = 0; i < permissions.length; i++) {
+					if (android.atl.ATLPermissions.deniedWithoutAsking(permissions[i], permissions))
+						grantResults[i] = PackageManager.PERMISSION_DENIED;
+					else if (android.atl.ATLPermissions.BACKGROUND_LOCATION.equals(permissions[i]) && android.atl.ATLPaths.in_flatpak)
+						grantResults[i] = android.atl.ATLPermissions.backgroundLocationReported() ? PackageManager.PERMISSION_GRANTED : PackageManager.PERMISSION_DENIED;
+					else if (android.atl.ATLPermissions.decidedByService(permissions[i]))
+						grantResults[i] = android.atl.ATLPermissions.request(permissions[i]) ? PackageManager.PERMISSION_GRANTED : PackageManager.PERMISSION_DENIED;
+					else
+						grantResults[i] = checkSelfPermission(permissions[i]);
+				}
+				Slog.i(TAG, "requestPermissions(" + Arrays.toString(permissions) + "): " + Arrays.toString(grantResults));
+				new Handler(Looper.getMainLooper()).post(new Runnable() {
+					@Override
+					public void run() {
+						deliverPermissionsResult(requestCode, permissions, grantResults);
+					}
+				});
 			}
-		});
+		}, "requestPermissions").start();
 	}
 
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {}

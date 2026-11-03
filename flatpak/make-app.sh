@@ -16,25 +16,27 @@
 #               (x-scheme-handler/<scheme> from the APK's intent filters)
 #   -P PERMS    Android permissions the APK requests, ';'-separated;
 #               mapped to Flatpak permissions (phase 4 table)
+#   -V VERSION  the APK's versionName, shown in App info (--app-info)
 #   -N yes|no   internet: the user's answer for an app with android.permission.INTERNET,
 #               written as a user override (flatpak override --user); without -N an
 #               earlier answer stays, and without any answer the app has no network
 #   -f ARG      extra finish-arg, repeatable, e.g. -f --share=network
 #   -r DIR      local repository (default: ~/.local/share/android_translation_layer/flatpak-repo)
 #
-# Every app gets Wayland, the GPU, IPC, feedbackd (vibration) and audio
-# playback, plus what -P maps and -f adds. The app id is
-# de.nexumia.atl.<PACKAGE>, so it cannot collide with a real Flatpak of
-# the same name.
+# Every app gets Wayland, the GPU, IPC, feedbackd (vibration), audio
+# playback through a pulse server that refuses recording (microphone/)
+# and the installer service's runtime permissions, plus what -P maps and
+# -f adds. The app id is de.nexumia.atl.<PACKAGE>, so it cannot collide
+# with a real Flatpak of the same name.
 set -eu
 
 base=de.nexumia.atl.BaseApp
 repo=$HOME/.local/share/android_translation_layer/flatpak-repo
-pkg= name= icon= atl_args= finish= mime_types= permissions= network=
+version= pkg= name= icon= atl_args= finish= mime_types= permissions= network=
 
 usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit "${1:-0}"; }
 
-while getopts "p:n:i:b:a:m:P:N:f:r:h" opt; do
+while getopts "p:n:i:b:a:m:P:N:V:f:r:h" opt; do
 	case $opt in
 	p) pkg=$OPTARG ;;
 	n) name=$OPTARG ;;
@@ -44,6 +46,7 @@ while getopts "p:n:i:b:a:m:P:N:f:r:h" opt; do
 	m) mime_types=$OPTARG ;;
 	P) permissions=$OPTARG ;;
 	N) network=$OPTARG ;;
+	V) version=$OPTARG ;;
 	f) finish="$finish $OPTARG" ;;
 	r) repo=$OPTARG ;;
 	h) usage 0 ;;
@@ -69,7 +72,8 @@ id=de.nexumia.atl.$pkg
 wants_network=
 for perm in $(printf '%s' "$permissions" | tr ';' ' '); do
 	case $perm in
-	android.permission.INTERNET) wants_network=1 ;;
+	# network (asked separately), and the host's UnifiedPush distributor for push messages (docs/push.md)
+	android.permission.INTERNET) wants_network=1; finish="$finish --talk-name=org.unifiedpush.Distributor.*" ;;
 	# app stores: the host's installer service, which asks the user for every install
 	android.permission.REQUEST_INSTALL_PACKAGES) finish="$finish --talk-name=de.nexumia.atl.Installer" ;;
 	esac
@@ -107,6 +111,11 @@ for apk in "$@"; do
 	i=$((i + 1))
 done
 
+# the <uses-permission> list, one per line: the permission service grants only what the APK requests
+printf '%s' "$permissions" | tr ';' '\n' > "$build/files/share/atl/permissions"
+# every app may ask the permission service (atl-permission-service), which asks the user
+finish="$finish --talk-name=de.nexumia.atl.Permissions"
+
 cat > "$build/files/bin/atl-app" <<EOF
 #!/bin/sh
 exec android-translation-layer --gapplication-app-id=$id $atl_args$apks "\$@"
@@ -130,6 +139,9 @@ Name=$id
 Exec=/app/bin/atl-app --dbus-activated
 EOF
 
+# the APK's version for App info (--app-info); the <uses-permission> list comes with #75
+printf '%s\n' "$version" | tr -d '\000-\011\013-\037' | head -n 1 > "$build/files/share/atl/version"
+
 mkdir -p "$build/files/share/applications"
 cat > "$build/files/share/applications/$id.desktop" <<EOF
 [Desktop Entry]
@@ -150,9 +162,36 @@ runtime=$runtime
 command=atl-app
 EOF
 
+# Audio (docs/hardening-roadmap.md, phase 4: microphone): only the socket of
+# a second pipewire-pulse that refuses every record stream, never the normal
+# one; an app the user allows to record gets the normal socket as a user
+# override. Set up here, in the user's own configuration, so no app is
+# installed before it exists.
+norecord_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/atl-pulse-norecord
+microphone_dir=
+for dir in "$(dirname "$0")/microphone" "$(dirname "$0")/../../share/android-translation-layer/microphone"; do
+	[ -f "$dir/atl-pulse-norecord.conf" ] && { microphone_dir=$dir; break; }
+done
+if [ -n "$microphone_dir" ]; then
+	config=${XDG_CONFIG_HOME:-$HOME/.config}
+	mkdir -p "$config/pipewire/atl-pulse-norecord.conf.d" "$config/systemd/user"
+	ln -sf /usr/share/pipewire/pipewire-pulse.conf "$config/pipewire/atl-pulse-norecord.conf"
+	sed "s|@RUNTIME_DIR@|${norecord_dir%/atl-pulse-norecord}|" "$microphone_dir/atl-pulse-norecord.conf" \
+		> "$config/pipewire/atl-pulse-norecord.conf.d/50-atl.conf"
+	if ! cmp -s "$microphone_dir/atl-pulse-norecord.service" "$config/systemd/user/atl-pulse-norecord.service"; then
+		cp "$microphone_dir/atl-pulse-norecord.service" "$config/systemd/user/"
+		systemctl --user daemon-reload 2>/dev/null || true
+	fi
+	systemctl --user enable --now atl-pulse-norecord.service >/dev/null 2>&1 ||
+		echo "warning: atl-pulse-norecord.service did not start; the app has no sound" >&2
+else
+	echo "warning: microphone/ not found; the app has no sound" >&2
+fi
+
 # shellcheck disable=SC2086 # $finish is a list of arguments
 flatpak build-finish "$build" --socket=wayland --device=dri --share=ipc \
-	--socket=pulseaudio --talk-name=org.sigxcpu.Feedback $finish >/dev/null
+	--filesystem=xdg-run/atl-pulse-norecord:ro --env=PULSE_SERVER="unix:$norecord_dir/native" \
+	--talk-name=org.sigxcpu.Feedback $finish >/dev/null
 flatpak build-export "$repo" "$build" stable >/dev/null
 flatpak remote-add --user --if-not-exists --no-gpg-verify atl-local "$repo"
 flatpak remote-modify --user --url="file://$repo" atl-local

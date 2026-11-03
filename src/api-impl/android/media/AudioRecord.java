@@ -30,7 +30,8 @@ public class AudioRecord {
 	}
 
 	public int getState() {
-		return /*STATE_INITIALIZED*/ 1;
+		/* like Android without RECORD_AUDIO: no device, STATE_UNINITIALIZED */
+		return pcm_handle != 0 ? /*STATE_INITIALIZED*/ 1 : /*STATE_UNINITIALIZED*/ 0;
 	}
 
 	public int getRecordingState() {
