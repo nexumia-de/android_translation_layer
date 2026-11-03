@@ -18,7 +18,8 @@ public class InputMethodManager {
 
 	private final Context context;
 	private ArrayList<InputMethodInfo> input_method_list;
-	private InputMethodSubtype current_subtype;
+	/* one input method per process: shared by every InputMethodManager instance */
+	private static InputMethodSubtype current_subtype;
 
 	public InputMethodManager() {
 		this(null);
@@ -91,11 +92,16 @@ public class InputMethodManager {
 	}
 
 	public void setInputMethodAndSubtype(IBinder token, String id, InputMethodSubtype subtype) {
+		setCurrentSubtype(subtype);
+	}
+
+	/* ATL: sets the current subtype for InputMethodService.switchInputMethod */
+	public static void setCurrentSubtype(InputMethodSubtype subtype) {
 		current_subtype = subtype;
 	}
 
 	public boolean setCurrentInputMethodSubtype(InputMethodSubtype subtype) {
-		current_subtype = subtype;
+		setCurrentSubtype(subtype);
 		return true;
 	}
 

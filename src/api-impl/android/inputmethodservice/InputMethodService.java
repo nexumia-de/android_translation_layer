@@ -123,9 +123,20 @@ public class InputMethodService extends AbstractInputMethodService {
 		public boolean deleteSurroundingText(int beforeLength, int afterLength) {
 			System.out.println("ATLKeyboardIMS: deleteSurroundingText(" + beforeLength + ", " + afterLength + ")");
 			String[] parts = surrounding();
-			String before = parts[0].substring(Math.max(0, parts[0].length() - beforeLength));
-			String after = parts[2].substring(0, Math.min(parts[2].length(), afterLength));
-			return nativeDeleteSurroundingText(nativePtr, utf8Length(before), utf8Length(after));
+			int beforeStart = Math.max(0, parts[0].length() - beforeLength);
+			// do not cut a surrogate pair: take the whole code point
+			if (beforeStart > 0 && Character.isLowSurrogate(parts[0].charAt(beforeStart)) && Character.isHighSurrogate(parts[0].charAt(beforeStart - 1)))
+				beforeStart--;
+			int afterEnd = Math.min(parts[2].length(), afterLength);
+			if (afterEnd > 0 && afterEnd < parts[2].length() && Character.isHighSurrogate(parts[2].charAt(afterEnd - 1)) && Character.isLowSurrogate(parts[2].charAt(afterEnd)))
+				afterEnd++;
+			String before = parts[0].substring(beforeStart);
+			String after = parts[2].substring(0, afterEnd);
+			/* the surrounding text can be missing (terminals) or lag one compositor round
+			 * trip behind: count what it does not cover as one byte per char, as before */
+			int beforeBytes = utf8Length(before) + Math.max(0, beforeLength - parts[0].length());
+			int afterBytes = utf8Length(after) + Math.max(0, afterLength - parts[2].length());
+			return nativeDeleteSurroundingText(nativePtr, beforeBytes, afterBytes);
 		}
 
 		@Override
@@ -346,6 +357,9 @@ public class InputMethodService extends AbstractInputMethodService {
 	}
 
 	public final void switchInputMethod(String id, InputMethodSubtype subtype) {
+		// only this input method exists in ATL, so only its subtype can change
+		android.view.inputmethod.InputMethodManager.setCurrentSubtype(subtype);
+		onCurrentInputMethodSubtypeChanged(subtype);
 	}
 
 	protected void dump(FileDescriptor fd, PrintWriter fout, String[] args) {

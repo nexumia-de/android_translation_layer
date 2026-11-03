@@ -53,6 +53,11 @@ static void
 handle_activate(void *data,
                 struct zwp_input_method_v2 *zwp_input_method_v2)
 {
+	/* a new text field: the old one's surrounding text no longer applies */
+	osk.text_len = 0;
+	osk.cursor = 0;
+	osk.anchor = 0;
+	osk.surrounding[0] = '\0';
 	atlosk_set_visible(TRUE);
 }
 
