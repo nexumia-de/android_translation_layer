@@ -448,6 +448,30 @@ below the app:
 - Packaging: `make-app-flatpak` installs the unit and the drop-in into the
   user's own configuration; nothing needs root.
 
+**Owner decisions 2026-11-03 (second set):**
+
+- **Background location**: Phosh's location portal dialog already asks;
+  use while the app has a window or a running foreground service is
+  "while in use" and needs no second question. `requestPermissions` and
+  `checkSelfPermission` report `ACCESS_BACKGROUND_LOCATION` granted
+  without a dialog unless the user said no or the portal has no grant;
+  the extra question comes only at real background use (no window, no
+  foreground service), default no
+  (`ATLPermissions.locationAllowedNow`, #75).
+- **Legacy permission review** for apps targeting SDK < 23 (Android 10+
+  and GrapheneOS): such apps never ask at runtime (androidx answers from
+  `checkSelfPermission`; CoMaps at SDK 21 waits on its splash). On their
+  first start ATL shows one review dialog listing the app's dangerous
+  permissions, each allow/deny, default deny; the answers are stored like
+  the others and reported by `checkSelfPermission`. Access itself still
+  goes through the portals and ATL's checks.
+- **Autostart after reboot**: apps that request `RECEIVE_BOOT_COMPLETED`
+  get a question (default no), stored like the others and changeable in
+  App info; only apps answered "yes" get a boot autostart entry.
+- **Push server**: the "Android apps" page gets a "Push server" field
+  (default `https://ntfy.sh`, per user); the push work writes the
+  distributor's configuration from it (interface in the push handoff).
+
 **Facts behind it** (2026-11-03, on the phone):
 
 - phosh-mobile-settings 0.58 loads GIO modules from the fixed
@@ -470,7 +494,7 @@ below the app:
 |---|---|---|---|
 | `INTERNET` | `--share=network` as user override | install page (no default) | App info; next start |
 | `ACCESS_FINE/COARSE_LOCATION` | location portal | portal dialog at first use | GNOME Settings, at once |
-| `ACCESS_BACKGROUND_LOCATION` | own answer; ATL stops updates while no window is shown otherwise | own dialog | App info |
+| `ACCESS_BACKGROUND_LOCATION` | own answer, needed only without a window or foreground service | own dialog at the first real background use (below) | App info |
 | `CAMERA` | camera portal (PipeWire remote with cameras only)[^portal-camera] | portal dialog | GNOME Settings, at once |
 | `RECORD_AUDIO` | ATL's capture check, then the socket: only a pulse server without recording unless the answer is yes (below); playback unaffected | own dialog | App info; next start |
 | Audio playback (no permission) | audio socket by default | - | - |
@@ -482,7 +506,8 @@ below the app:
 | `READ/WRITE_EXTERNAL_STORAGE`, `READ_MEDIA_*`, `MANAGE_EXTERNAL_STORAGE` | none; file chooser and documents portals (Storage Access Framework) | granted inside the app's own storage | - |
 | `atl.google-services` (ATL's own) | own answer; the push client and other Google clients check it | own dialog with a warning, default denied | App info |
 | `REQUEST_INSTALL_PACKAGES` | `de.nexumia.atl.Installer` talk name | every install confirmed on the host | Android apps page |
-| `RECEIVE_BOOT_COMPLETED`, autostart, background work | no background portal on Phosh: not available | - | - |
+| `RECEIVE_BOOT_COMPLETED` | own answer; a boot autostart entry only after "yes" | own question, default no | App info |
+| Other background work | no background portal on Phosh: not available | - | - |
 | Normal permissions (`VIBRATE`, `WAKE_LOCK`, `ACCESS_NETWORK_STATE`, ...) | granted, like Android | - | - |
 
 Location is split between two deciders, so one request never shows two

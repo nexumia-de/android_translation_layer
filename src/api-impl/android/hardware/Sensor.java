@@ -338,6 +338,16 @@ public final class Sensor {
 		return mName;
 	}
 
+	public String getStringType() {
+		switch (mType) {
+			case TYPE_ACCELEROMETER: return "android.sensor.accelerometer";
+			case TYPE_MAGNETIC_FIELD: return "android.sensor.magnetic_field";
+			case TYPE_ORIENTATION: return "android.sensor.orientation";
+			case TYPE_ROTATION_VECTOR: return "android.sensor.rotation_vector";
+			default: return "android.sensor.type." + mType;
+		}
+	}
+
 	/**
 	 * @return vendor string of this sensor.
 	 */
