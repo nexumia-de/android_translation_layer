@@ -534,6 +534,7 @@ srcs = [
 	'android/text/BidiFormatter.java',
 	'android/text/BoringLayout.java',
 	'android/text/ClipboardManager.java',
+	'android/text/DynamicLayout.java',
 	'android/text/Editable.java',
 	'android/text/GetChars.java',
 	'android/text/Html.java',
