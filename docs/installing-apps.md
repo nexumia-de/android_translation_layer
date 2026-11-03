@@ -397,10 +397,16 @@ android-translation-layer --install --sdk-int 26 -w 360 -h 720 org.fdroid.fdroid
   `Activity.getOnBackInvokedDispatcher()`. At 26 it needed
   `Context.startForegroundService` (added). `--install` keeps
   `--sdk-int` in the launcher.
-- `-w 360 -h 720`: ATL reports the launch size as the display size and
-  never updates it, and the default is 960×540, so F-Droid shows its
-  two-pane tablet layout squeezed into 360 px. Apps installed from
-  F-Droid inherit the size.
+- Window size: without `-w`/`-h` ATL starts with the monitor's size in
+  logical pixels and follows the window when the compositor resizes it
+  (Phosh maximizes it): `Display`, `Configuration` (`screenWidthDp`,
+  `screenHeightDp`, `smallestScreenWidthDp`, orientation), every
+  `Resources`' `DisplayMetrics`, and `onConfigurationChanged` for the
+  application, the activities and their views (2026-11-03). Before,
+  the default was 960×540 and never updated, so F-Droid showed its
+  two-pane tablet layout on the phone. With `-w`/`-h` the size is
+  fixed at launch as before, and only then do apps installed from a
+  store get `-w`/`-h` in their launcher.
 - F-Droid builds its compatibility flags when it updates the index; after
   changing `--sdk-int` it needs a fresh index (or new data directory).
 

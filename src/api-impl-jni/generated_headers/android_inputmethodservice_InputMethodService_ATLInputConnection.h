@@ -71,6 +71,30 @@ JNIEXPORT jboolean JNICALL Java_android_inputmethodservice_InputMethodService_00
 JNIEXPORT jboolean JNICALL Java_android_inputmethodservice_InputMethodService_00024ATLInputConnection_nativeSendKeyEvent
   (JNIEnv *, jobject, jlong, jlong, jlong, jlong);
 
+/*
+ * Class:     android_inputmethodservice_InputMethodService_ATLInputConnection
+ * Method:    nativeGetSurroundingText
+ * Signature: (J)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_android_inputmethodservice_InputMethodService_00024ATLInputConnection_nativeGetSurroundingText
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     android_inputmethodservice_InputMethodService_ATLInputConnection
+ * Method:    nativeGetSurroundingCursor
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_android_inputmethodservice_InputMethodService_00024ATLInputConnection_nativeGetSurroundingCursor
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     android_inputmethodservice_InputMethodService_ATLInputConnection
+ * Method:    nativeGetSurroundingAnchor
+ * Signature: (J)I
+ */
+JNIEXPORT jint JNICALL Java_android_inputmethodservice_InputMethodService_00024ATLInputConnection_nativeGetSurroundingAnchor
+  (JNIEnv *, jobject, jlong);
+
 #ifdef __cplusplus
 }
 #endif

@@ -185,7 +185,7 @@ public final class ContextImpl extends Context {
 			case "uimode":
 				return new UiModeManager();
 			case "input_method":
-				return new InputMethodManager();
+				return new InputMethodManager(this);
 			case "accessibility":
 				return new AccessibilityManager();
 			case "layout_inflater":

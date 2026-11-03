@@ -7,3 +7,4 @@ void activity_close_all(void);
 void current_activity_back_pressed(void);
 gboolean current_activity_back_available(void);
 gboolean current_activity_back_key(int action);
+void activities_screen_size_changed(JNIEnv *env);

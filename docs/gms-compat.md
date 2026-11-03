@@ -67,6 +67,14 @@ packages, and no Google certificate anywhere. An installed microG is
 then also reported with its own certificate, which the client
 libraries reject.
 
+Apps that need it by default are listed in `GMS_STUB_APPS`
+(`ATLToggles.gmsStub()`); `ATL_GMS_STUB=0` still turns it off for them.
+DB Navigator is the first (2026-11-03): without the stub, the client
+library's failed location and messaging connections ended in Google's
+error "DB Navigator won't run without Google Play services, which are
+not supported by your device" (`SERVICE_INVALID`) on the phone, while
+with it (upstream's behaviour, as on 2026-10-28..30) the app ran.
+
 `ghax.jar` stays: it replaces `AdvertisingIdClient` in the app with one
 that returns a zero advertising ID and "limit ad tracking", locally.
 

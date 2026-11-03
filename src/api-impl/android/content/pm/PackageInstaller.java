@@ -113,7 +113,7 @@ public class PackageInstaller {
 	public static boolean installThroughService(File apk) {
 		String sdkInt = System.getProperty("Build.VERSION.SDK_INT");
 		String error = nativeInstallThroughService(new String[] {apk.getPath()}, sdkInt != null ? sdkInt : "",
-		                                           Display.window_width, Display.window_height);
+		                                           Display.explicitWidth(), Display.explicitHeight());
 		refreshInstalled(true);
 		if (error != null)
 			Slog.w(TAG, "install of " + apk + " through the installer service: " + error);
@@ -543,9 +543,10 @@ public class PackageInstaller {
 							File installed = new File(ATLPaths.installed_apks_dir, apk.getName());
 							boolean replacing = installed.isFile();
 							beginChange(packageName);
-							// the installed app starts with the installer's window size instead of the 960x540 default
-							List<String> command = new ArrayList<>(Arrays.asList("/usr/bin/env", "android-translation-layer", "--install",
-							                    "-w", String.valueOf(Display.window_width), "-h", String.valueOf(Display.window_height)));
+							List<String> command = new ArrayList<>(Arrays.asList("/usr/bin/env", "android-translation-layer", "--install"));
+							// an installer started with -w/-h passes them on; without, the app follows the monitor like the installer
+							if (Display.window_size_explicit)
+								command.addAll(Arrays.asList("-w", String.valueOf(Display.window_width), "-h", String.valueOf(Display.window_height)));
 							// a store started with --sdk-int passes it on to the apps it installs
 							String sdkInt = System.getProperty("Build.VERSION.SDK_INT");
 							if (sdkInt != null)
@@ -638,7 +639,7 @@ public class PackageInstaller {
 					paths[i++] = file.getPath();
 			}
 			String sdkInt = System.getProperty("Build.VERSION.SDK_INT");
-			String error = nativeInstallThroughService(paths, sdkInt != null ? sdkInt : "", Display.window_width, Display.window_height);
+			String error = nativeInstallThroughService(paths, sdkInt != null ? sdkInt : "", Display.explicitWidth(), Display.explicitHeight());
 			if (error == null)
 				return new Object[] {STATUS_SUCCESS, null};
 			if (error.equals("cancelled"))

@@ -279,6 +279,16 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 	public void onConfigurationChanged(Configuration newConfig) {
 	}
 
+	/* called from native code when the window got a new size. Android recreates an activity for it
+	 * unless the activity handles screen size changes itself; ATL does not recreate activities, so
+	 * every activity and its views get onConfigurationChanged */
+	void atlScreenSizeChanged() {
+		Configuration config = new Configuration(getResources().getConfiguration());
+		onConfigurationChanged(config);
+		if (window != null && window.getDecorView() != null)
+			window.getDecorView().dispatchConfigurationChanged(config);
+	}
+
 	public void onLowMemory() {
 	}
 

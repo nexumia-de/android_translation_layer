@@ -441,3 +441,14 @@ JNIEXPORT jboolean JNICALL Java_android_app_Activity_isTaskRoot(JNIEnv *env, job
 	// NULL means that we are currently creating the root activity, so no other activity can exist yet
 	return root_activity == NULL || (*env)->IsSameObject(env, this, root_activity);
 }
+
+/* the window was resized: every started activity gets onConfigurationChanged */
+void activities_screen_size_changed(JNIEnv *env)
+{
+	for (GList *l = activity_backlog; l != NULL; l = l->next) {
+		jobject activity = l->data;
+		(*env)->CallVoidMethod(env, activity, (*env)->GetMethodID(env, _CACHED_CLASS(Activity), "atlScreenSizeChanged", "()V"));
+		if ((*env)->ExceptionCheck(env))
+			(*env)->ExceptionDescribe(env);
+	}
+}

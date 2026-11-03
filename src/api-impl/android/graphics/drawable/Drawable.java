@@ -330,6 +330,11 @@ public class Drawable {
 				drawable.inflate(resources, parser, attrs, theme);
 				return drawable;
 			}
+			case "rotate": {
+				RotateDrawable drawable = new RotateDrawable();
+				drawable.inflate(resources, parser, attrs, theme);
+				return drawable;
+			}
 			case "inset": {
 				InsetDrawable drawable = new InsetDrawable();
 				drawable.inflate(resources, parser, attrs, theme);
