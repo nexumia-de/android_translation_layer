@@ -202,6 +202,7 @@ void remove_pointer_fast(GPtrArray *pointer_indices, struct pointer *pointer)
 }
 
 static bool action_up_already_handled = false;
+static GdkEvent *navigation_cancel_event = NULL;
 
 // TODO: find a way to reconcile this with libandroid/input.c?
 static gboolean on_pointer_event(GtkEventControllerLegacy *event_controller, GdkEvent *event, gpointer user_data)
@@ -281,7 +282,7 @@ static gboolean on_pointer_event(GtkEventControllerLegacy *event_controller, Gdk
 	pointers[id].raw_x = raw_x;
 	pointers[id].raw_y = raw_y;
 
-	if (event == canceled_event && cancel_triggerer != wrapper) {
+	if ((event == canceled_event && cancel_triggerer != wrapper) || event == navigation_cancel_event) {
 		action = ACTION_CANCEL;
 	}
 
@@ -310,6 +311,58 @@ static gboolean on_event(GtkEventControllerLegacy *event_controller, GdkEvent *e
 		default: // not a touch or mouse event, nothing to do here
 			return false;
 	}
+}
+
+/* The edge back gesture (main-executable/navigation.c) takes over a touch
+ * sequence the views have already seen: send them ACTION_CANCEL once with
+ * this event and forget the pointer, since the rest of the sequence no
+ * longer reaches them. The outermost view with its own dispatchTouchEvent
+ * (the DecorView) got the touch first and passes the cancel on in Java;
+ * without one, the views get it the GTK way, inner views first. */
+void view_cancel_touch_sequence(GtkWidget *target, GdkEvent *event)
+{
+	if (!pointer_indices)
+		return;
+	navigation_cancel_event = event;
+	GtkWidget *dispatcher = NULL;
+	for (GtkWidget *widget = target; widget; widget = gtk_widget_get_parent(widget))
+		if (WRAPPER_IS_WIDGET(widget) && WRAPPER_WIDGET(widget)->custom_dispatch_touch)
+			dispatcher = widget;
+	if (dispatcher) {
+		GtkEventController *controller = g_object_get_data(G_OBJECT(dispatcher), "on_intercept_touch_listener");
+		if (!controller)
+			controller = g_object_get_data(G_OBJECT(dispatcher), "on_touch_listener");
+		if (controller)
+			on_pointer_event(GTK_EVENT_CONTROLLER_LEGACY(controller), event, NULL);
+	}
+	/* no dispatcher, or its Java dispatch could not reach GTK children (see
+	 * view_dispatch_motionevent): the views inside it get the cancel the GTK way */
+	if (!dispatcher || synthetic_propagation_failed == event) {
+		/* like GTK's propagation: capture outer views first, so the ancestors'
+		 * disallowIntercept and intercepting state are reset, then bubble inner first */
+		GPtrArray *chain = g_ptr_array_new();
+		for (GtkWidget *widget = target; widget && widget != dispatcher; widget = gtk_widget_get_parent(widget))
+			if (WRAPPER_IS_WIDGET(widget))
+				g_ptr_array_add(chain, widget);
+		for (int i = chain->len - 1; i >= 0; i--) {
+			GtkEventController *controller = g_object_get_data(G_OBJECT(chain->pdata[i]), "on_intercept_touch_listener");
+			if (controller)
+				on_pointer_event(GTK_EVENT_CONTROLLER_LEGACY(controller), event, NULL);
+		}
+		for (guint i = 0; i < chain->len; i++) {
+			GtkEventController *controller = g_object_get_data(G_OBJECT(chain->pdata[i]), "on_touch_listener");
+			if (controller)
+				on_pointer_event(GTK_EVENT_CONTROLLER_LEGACY(controller), event, NULL);
+		}
+		g_ptr_array_free(chain, TRUE);
+	}
+	navigation_cancel_event = NULL;
+
+	uintptr_t id = (uintptr_t)gdk_event_get_event_sequence(event);
+	if (id == 0)
+		id = 1;
+	if (id < MAX_POINTERS && pointers[id].id)
+		remove_pointer_fast(pointer_indices, &pointers[id]);
 }
 
 static void on_click(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data)

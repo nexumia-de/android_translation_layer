@@ -9,6 +9,12 @@ extern "C" {
 #endif
 #undef android_content_Context_MODE_PRIVATE
 #define android_content_Context_MODE_PRIVATE 0L
+#undef android_content_Context_RECEIVER_VISIBLE_TO_INSTANT_APPS
+#define android_content_Context_RECEIVER_VISIBLE_TO_INSTANT_APPS 1L
+#undef android_content_Context_RECEIVER_EXPORTED
+#define android_content_Context_RECEIVER_EXPORTED 2L
+#undef android_content_Context_RECEIVER_NOT_EXPORTED
+#define android_content_Context_RECEIVER_NOT_EXPORTED 4L
 #undef android_content_Context_CONTEXT_INCLUDE_CODE
 #define android_content_Context_CONTEXT_INCLUDE_CODE 1L
 #undef android_content_Context_CONTEXT_IGNORE_SECURITY
@@ -62,18 +68,42 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeShareEmail
 /*
  * Class:     android_content_Context
  * Method:    nativeExportUnifiedPush
- * Signature: (Ljava/lang/String;)V
+ * Signature: (Ljava/lang/String;Z)V
  */
 JNIEXPORT void JNICALL Java_android_content_Context_nativeExportUnifiedPush
+  (JNIEnv *, jclass, jstring, jboolean);
+
+/*
+ * Class:     android_content_Context
+ * Method:    nativeHasDBusName
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_android_content_Context_nativeHasDBusName
   (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     android_content_Context
- * Method:    nativeRegisterUnifiedPush
- * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ * Method:    nativeUnifiedPushDistributor
+ * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT void JNICALL Java_android_content_Context_nativeRegisterUnifiedPush
-  (JNIEnv *, jclass, jstring, jstring);
+JNIEXPORT jstring JNICALL Java_android_content_Context_nativeUnifiedPushDistributor
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     android_content_Context
+ * Method:    nativeRegisterUnifiedPush
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_android_content_Context_nativeRegisterUnifiedPush
+  (JNIEnv *, jclass, jstring, jstring, jstring);
+
+/*
+ * Class:     android_content_Context
+ * Method:    nativeUnregisterUnifiedPush
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_android_content_Context_nativeUnregisterUnifiedPush
+  (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     android_content_Context

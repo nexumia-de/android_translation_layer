@@ -289,6 +289,7 @@ executable('android-translation-layer', [
                                         	'src/main-executable/prompt_page.c',
                                         	'src/main-executable/actions.c',
                                         	'src/main-executable/back_button.c',
+                                        	'src/main-executable/navigation.c',
                                         	'src/main-executable/bionic_compat.c',
                                         	'src/main-executable/libc_bio_path_overrides.c',
                                         	resources

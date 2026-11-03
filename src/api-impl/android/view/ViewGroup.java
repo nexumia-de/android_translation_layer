@@ -6,6 +6,7 @@ import android.annotation.UnsupportedAppUsage;
 import android.atl.GskCanvas;
 import android.atl.annotation.Export;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Rect;
@@ -157,6 +158,13 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 		return handled;
 	}
 
+	@Override
+	public void dispatchConfigurationChanged(Configuration newConfig) {
+		super.dispatchConfigurationChanged(newConfig);
+		for (View child : children.toArray(new View[0]))
+			child.dispatchConfigurationChanged(newConfig);
+	}
+
 	@Export
 	@Override
 	public boolean dispatchTouchEvent(MotionEvent event) {
@@ -246,6 +254,16 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 
 	public void removeViewAt(int index) {
 		removeView(children.get(index));
+	}
+
+	public void removeViews(int start, int count) {
+		removeViewsInLayout(start, count);
+		requestLayout();
+	}
+
+	public void removeViewsInLayout(int start, int count) {
+		for (int i = start + count - 1; i >= start; i--)
+			removeViewInternal(children.get(i));
 	}
 
 	public void removeAllViews() {
@@ -800,4 +818,8 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	public void scheduleLayoutAnimation() {}
 
 	public boolean addStatesFromChildren() { return false; }
+
+	@Deprecated
+	public void setPersistentDrawingCache(int drawingCacheToKeep) {
+	}
 }

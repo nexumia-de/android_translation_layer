@@ -133,25 +133,75 @@ public abstract class Context {
 		// first, so its Cipher wins for keystore keys; SupportedKeyClasses leaves other keys to the other providers
 		Security.insertProviderAt(provider, 1);
 
+		boolean unifiedpush = false;
 		for (PackageParser.Activity receiver : primary_application.pkg.receivers) {
 			if (receiver.intents == null)
 				continue;
 			for (PackageParser.ActivityIntentInfo intent : receiver.intents) {
-				if (intent.matchAction("org.unifiedpush.android.connector.MESSAGE")) {
-					nativeExportUnifiedPush(application_info.packageName);
-					break;
-				}
+				if (intent.matchAction("org.unifiedpush.android.connector.MESSAGE"))
+					unifiedpush = true;
 			}
 		}
+		// also answers calls that came in before, e.g. the one that D-Bus-activated the app
+		nativeExportUnifiedPush(application_info.packageName, unifiedpush);
 	}
 
 	protected static native void native_updateConfig(Configuration config);
+
+	/* called from native code when the window got a new size, after Display and sys_config */
+	private static void atlScreenSizeChanged() {
+		Resources.atlScreenSizeChanged();
+		Application application = ATLLoadedApp.getPrimaryApplication().getApplication();
+		if (application != null)
+			application.onConfigurationChanged(new Configuration(sys_config));
+	}
 	protected static native void nativeOpenFile(int fd);
 	protected static native void nativeLaunchDesktopApp(String desktopId, String action);
 	protected static native void nativeShareCopy(String text, int fd);
 	protected static native void nativeShareEmail(String text, int fd);
-	private static native void nativeExportUnifiedPush(String packageName);
-	private static native void nativeRegisterUnifiedPush(String token, String application);
+	private static native void nativeExportUnifiedPush(String packageName, boolean wanted);
+	protected static native boolean nativeHasDBusName(String name);
+	private static native String nativeUnifiedPushDistributor();
+	private static native String nativeRegisterUnifiedPush(String token, String application, String description);
+	private static native void nativeUnregisterUnifiedPush(String token);
+
+	/** Package name under which apps see the host's D-Bus UnifiedPush distributor. */
+	public static final String UNIFIEDPUSH_DBUS_DISTRIBUTOR = "org.unifiedpush.distributor.dbus";
+
+	/** Whether a UnifiedPush distributor runs on the session bus or can be started by it. */
+	public static boolean hasUnifiedPushDistributor() {
+		return nativeUnifiedPushDistributor() != null;
+	}
+
+	/* Maps the Android UnifiedPush distributor broadcasts to the D-Bus distributor.
+	 * Returns true if the intent was for it. */
+	private boolean sendUnifiedPushBroadcast(Intent intent) {
+		String action = intent.getAction();
+		if (action == null || !action.startsWith("org.unifiedpush.android.distributor."))
+			return false;
+		String pkg = intent.getPackage();
+		if (pkg != null && !UNIFIEDPUSH_DBUS_DISTRIBUTOR.equals(pkg))
+			return false; // e.g. a distributor embedded in the app itself
+		String token = intent.getStringExtra("token");
+		switch (action) {
+			case "org.unifiedpush.android.distributor.REGISTER":
+				String reason = nativeRegisterUnifiedPush(token, getPackageName(), intent.getStringExtra("message"));
+				if (reason != null) {
+					Intent failed = new Intent("org.unifiedpush.android.connector.REGISTRATION_FAILED");
+					failed.setPackage(getPackageName());
+					failed.putExtra("token", token);
+					failed.putExtra("reason", reason);
+					sendBroadcast(failed);
+				}
+				break;
+			case "org.unifiedpush.android.distributor.UNREGISTER":
+				nativeUnregisterUnifiedPush(token);
+				break;
+			default: // MESSAGE_ACK: D-Bus messages are acknowledged by the method return
+				break;
+		}
+		return true;
+	}
 	protected static native void nativeStartExternalService(Intent service);
 
 	@Export
@@ -187,11 +237,33 @@ public abstract class Context {
 
 	public abstract Object getSystemService(Class<?> serviceClass) throws InstantiationException, IllegalAccessException, InvocationTargetException;
 
-	public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
+	public static final int RECEIVER_VISIBLE_TO_INSTANT_APPS = 0x1;
+	public static final int RECEIVER_EXPORTED = 0x2;
+	public static final int RECEIVER_NOT_EXPORTED = 0x4;
+
+	public Intent registerReceiver(final BroadcastReceiver receiver, IntentFilter filter) {
+		/* ACTION_BATTERY_CHANGED is sticky: apps read the battery state from the
+		 * returned intent, often with a null receiver */
+		final Intent sticky = (filter != null && filter.hasAction(Intent.ACTION_BATTERY_CHANGED)) ? android.os.BatteryManager.getBatteryChangedIntent() : null;
 		if (receiver == null)
-			return null;
+			return sticky;
 		receiverMap.put(filter, receiver);
+		if (sticky != null) {
+			/* like Android, a new receiver also gets the sticky broadcast, after this call returns */
+			new Handler(Looper.getMainLooper()).post(new Runnable() {
+				@Override
+				public void run() {
+					if (receiverMap.containsValue(receiver))
+						receiver.onReceive(Context.this, sticky);
+				}
+			});
+			return sticky;
+		}
 		return new Intent();
+	}
+
+	public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter, int flags) {
+		return registerReceiver(receiver, filter);
 	}
 
 	public Looper getMainLooper() {
@@ -531,15 +603,36 @@ public abstract class Context {
 
 	@Export
 	public void sendBroadcast(Intent intent) {
-		if ("org.unifiedpush.android.distributor.REGISTER".equals(intent.getAction())) {
-			nativeRegisterUnifiedPush(intent.getStringExtra("token"), intent.getStringExtra("application"));
-		}
-		for (IntentFilter filter : receiverMap.keySet()) {
-			if (filter.matchAction(intent.getAction())) {
-				receiverMap.get(filter).onReceive(this, intent);
+		if (sendUnifiedPushBroadcast(intent))
+			return;
+		for (BroadcastReceiver receiver : matchingReceivers(intent))
+			receiver.onReceive(this, intent);
+		ATLLoadedApp.getPrimaryApplication().receiveBroadcast(this, intent);
+	}
+
+	/* each receiver once per broadcast, also when an app registered it several times with equal filters
+	 * (as Gadgetbridge does in onStart and onResume); Android ignores such repeated registrations */
+	private static java.util.List<BroadcastReceiver> matchingReceivers(Intent intent) {
+		java.util.List<BroadcastReceiver> result = new java.util.ArrayList<>();
+		java.util.Set<BroadcastReceiver> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+		for (Map.Entry<IntentFilter, BroadcastReceiver> entry : receiverMap.entrySet())
+			if (entry.getKey().matchAction(intent.getAction()) && seen.add(entry.getValue()))
+				result.add(entry.getValue());
+		return result;
+	}
+
+	/* ATL internal: delivers like an ordered broadcast to the registered receivers; true if one called abortBroadcast() */
+	public boolean atlSendOrderedBroadcast(Intent intent) {
+		for (BroadcastReceiver receiver : matchingReceivers(intent)) {
+			receiver.clearAbortBroadcast();
+			receiver.onReceive(this, intent);
+			if (receiver.getAbortBroadcast()) {
+				receiver.clearAbortBroadcast();
+				return true;
 			}
 		}
 		ATLLoadedApp.getPrimaryApplication().receiveBroadcast(this, intent);
+		return false;
 	}
 
 	public void sendBroadcast(Intent intent, String receiverPermission) {

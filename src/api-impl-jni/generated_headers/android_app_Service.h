@@ -9,6 +9,12 @@ extern "C" {
 #endif
 #undef android_app_Service_MODE_PRIVATE
 #define android_app_Service_MODE_PRIVATE 0L
+#undef android_app_Service_RECEIVER_VISIBLE_TO_INSTANT_APPS
+#define android_app_Service_RECEIVER_VISIBLE_TO_INSTANT_APPS 1L
+#undef android_app_Service_RECEIVER_EXPORTED
+#define android_app_Service_RECEIVER_EXPORTED 2L
+#undef android_app_Service_RECEIVER_NOT_EXPORTED
+#define android_app_Service_RECEIVER_NOT_EXPORTED 4L
 #undef android_app_Service_CONTEXT_INCLUDE_CODE
 #define android_app_Service_CONTEXT_INCLUDE_CODE 1L
 #undef android_app_Service_CONTEXT_IGNORE_SECURITY

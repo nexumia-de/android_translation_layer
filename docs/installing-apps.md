@@ -230,7 +230,18 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   exports into the local repository and installs or updates the app
   with `flatpak --user`. No root.
 - Permissions: every app gets Wayland, the GPU, IPC, audio playback and
-  feedbackd; `android.permission.INTERNET` adds `--share=network`.
+  feedbackd. Internet is asked, never granted by default
+  ([decision](hardening-roadmap.md#decision-record-where-permissions-are-shown-and-changed)):
+  for an app with `android.permission.INTERNET` the install page asks
+  "Allow internet?" with no preselected answer and Install disabled
+  until it is answered ([page](screenshots/install-ask-internet-2026-11-03.png));
+  `--network=yes|no` passes the answer to `make-app-flatpak -N`, which
+  writes it as a user override (`flatpak override --user
+  --share=network` or `--unshare=network`). Updates keep the answer and
+  do not ask again; a new install always asks, even if a removal outside
+  `--uninstall-flatpak` left an override behind, and `--uninstall-flatpak`
+  resets the app's overrides. Apps without `INTERNET` are never asked
+  and get `--unshare=network`, also when an update drops `INTERNET`.
   Everything else waits for portals and the broker (phases 3 and 4).
 - The package name is checked against Android's rules and the label is
   kept to one line, since both come from the APK and end up in the
@@ -386,10 +397,16 @@ android-translation-layer --install --sdk-int 26 -w 360 -h 720 org.fdroid.fdroid
   `Activity.getOnBackInvokedDispatcher()`. At 26 it needed
   `Context.startForegroundService` (added). `--install` keeps
   `--sdk-int` in the launcher.
-- `-w 360 -h 720`: ATL reports the launch size as the display size and
-  never updates it, and the default is 960×540, so F-Droid shows its
-  two-pane tablet layout squeezed into 360 px. Apps installed from
-  F-Droid inherit the size.
+- Window size: without `-w`/`-h` ATL starts with the monitor's size in
+  logical pixels and follows the window when the compositor resizes it
+  (Phosh maximizes it): `Display`, `Configuration` (`screenWidthDp`,
+  `screenHeightDp`, `smallestScreenWidthDp`, orientation), every
+  `Resources`' `DisplayMetrics`, and `onConfigurationChanged` for the
+  application, the activities and their views (2026-11-03). Before,
+  the default was 960×540 and never updated, so F-Droid showed its
+  two-pane tablet layout on the phone. With `-w`/`-h` the size is
+  fixed at launch as before, and only then do apps installed from a
+  store get `-w`/`-h` in their launcher.
 - F-Droid builds its compatibility flags when it updates the index; after
   changing `--sdk-int` it needs a fresh index (or new data directory).
 

@@ -80,4 +80,14 @@ public class BitmapDrawable extends Drawable {
 	}
 
 	public void setGravity(int g) {}
+
+	/* drawn at the bitmap's own size; density scaling is not done in ATL */
+	public void setTargetDensity(android.graphics.Canvas canvas) {
+	}
+
+	public void setTargetDensity(android.util.DisplayMetrics metrics) {
+	}
+
+	public void setTargetDensity(int density) {
+	}
 }
