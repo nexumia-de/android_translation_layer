@@ -12,6 +12,9 @@ sources:
   - id: im-v2
     resource: https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/main/unstable/input-method/input-method-unstable-v2.xml
     title: input-method-unstable-v2 (as in wlroots/phoc)
+  - id: systemd-dbus
+    resource: https://github.com/systemd/systemd/blob/v257/src/core/service.c
+    title: systemd, service.c (service_bus_name_owner_change, service_enter_running)
   - id: heliboard
     resource: https://f-droid.org/packages/helium314.keyboard/
     title: HeliBoard on F-Droid
@@ -79,11 +82,19 @@ built when `gtk4-layer-shell-0` is found (1.3.0 on the phone).
   keys through the virtual keyboard (default xkb keymap), the content
   type as `inputType`, the input lifecycle per field; `setSelection`
   still does nothing.
-- Switching: the compositor gives one input method per seat. With
-  Stevia running the Android keyboard gets the D-Bus name but
-  "unavailable"; it asks again every second and takes over when Stevia
-  stops (tested headless with an own Stevia). The owner's live test is
-  under Needs owner in [app status](apps.md).
+- Switching: the compositor gives one input method per seat. While
+  Stevia runs, the Android keyboard gets "unavailable"; it asks again
+  every second and takes over when Stevia stops (tested headless with an
+  own Stevia). On the phone (systemd 262, gnome-session 48) Stevia is the
+  user service `mobi.phosh.OSK.service` (`Type=dbus`,
+  `BusName=sm.puri.OSK0`, `Restart=on-failure`), pulled in with `Wants=`
+  by `gnome-session@phosh.target.d/session.conf`; only the shell is
+  `Requires=`. A `Type=dbus` service stays running while anyone owns its
+  name and is stopped when nobody does[^systemd-dbus], so the Android
+  keyboard queues for `sm.puri.OSK0` instead of replacing Stevia, and
+  the switch is `systemctl --user stop mobi.phosh.OSK.service`. The
+  owner's live test, with an automatic way back, is under Needs owner in
+  [app status](apps.md).
 
 ## Size and risks
 
