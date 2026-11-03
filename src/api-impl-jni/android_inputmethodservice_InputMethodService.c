@@ -140,11 +140,28 @@ handle_done(void *data,
 	}
 }
 
+static const struct zwp_input_method_v2_listener input_method_listener;
+
+/* The compositor gives one input method per seat: while another keyboard
+ * (Stevia) has it, this one is "unavailable". Ask again until it is free. */
+static gboolean retry_input_method(gpointer user_data)
+{
+	if (!osk.input_method && osk.input_method_manager) {
+		osk.input_method = zwp_input_method_manager_v2_get_input_method(osk.input_method_manager, osk.seat);
+		zwp_input_method_v2_add_listener(osk.input_method, &input_method_listener, &osk);
+		wl_display_flush(osk.display);
+	}
+	return G_SOURCE_REMOVE;
+}
+
 static void
 handle_unavailable(void *data,
                    struct zwp_input_method_v2 *zwp_input_method_v2)
 {
-	INFO("Input method unavailable");
+	INFO("Input method unavailable (another keyboard has it), retrying every second");
+	zwp_input_method_v2_destroy(osk.input_method);
+	osk.input_method = NULL;
+	g_timeout_add_seconds(1, retry_input_method, NULL);
 }
 
 static const struct zwp_input_method_v2_listener input_method_listener = {
