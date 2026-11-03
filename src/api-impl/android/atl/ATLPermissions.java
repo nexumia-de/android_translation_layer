@@ -80,6 +80,38 @@ public final class ATLPermissions {
 		return !ATLPaths.in_flatpak || request(BACKGROUND_LOCATION);
 	}
 
+	/* the legacy review's answers (permission -> "yes"/"no"), null for apps that ask at runtime */
+	private static java.util.Map<String, String> legacy_answers;
+
+	/* Legacy permission review (owner, 2026-11-03; Android 10+, GrapheneOS): an app made for
+	 * Android before 6 (target SDK or SDK_INT below 23) never calls requestPermissions, so before its
+	 * code runs the service shows one review of its dangerous permissions, once, each off by
+	 * default. Blocks until it is answered. */
+	public static void legacyReviewIfNeeded(int effective_sdk) {
+		if (!ATLPaths.in_flatpak || effective_sdk >= 23)
+			return;
+		String answers = nativeReview();
+		if (answers == null)
+			return;
+		java.util.Map<String, String> map = new java.util.HashMap<>();
+		for (String pair : answers.split(";")) {
+			int eq = pair.indexOf('=');
+			if (eq > 0)
+				map.put(pair.substring(0, eq), pair.substring(eq + 1));
+		}
+		legacy_answers = map;
+	}
+
+	/* for a legacy app: the review's answer as checkSelfPermission reports it, or null */
+	public static Boolean legacyAnswer(String permission) {
+		if (legacy_answers == null || !legacy_answers.containsKey(permission))
+			return null;
+		return "yes".equals(legacy_answers.get(permission));
+	}
+
+	/* "permission=yes;permission=no;...", or null when the service cannot be reached */
+	private static native String nativeReview();
+
 	/* "yes", "no", "ask", or null when the service cannot be reached */
 	private static native String nativeCall(String method, String permission);
 }

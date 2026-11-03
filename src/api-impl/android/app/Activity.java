@@ -777,6 +777,15 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 	/* the lifecycle as ATL runs it, with the pre and post callbacks around the app's methods */
 	/* true while onCreate runs */
 	private boolean creating;
+	/* between onPostResume and onPause */
+	private boolean resumed;
+	/* between onStop and onStart */
+	private boolean stopped;
+	/* counts performResume calls; the answer fields describe the last request answered with a resume */
+	private int resumeCount;
+	private int answerResumeCount = -1;
+	private int answerRequestCode;
+	private String[] answerPermissions;
 
 	@Export
 	final void performCreate(Bundle savedInstanceState) {
@@ -792,6 +801,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 
 	@Export
 	final void performStart() {
+		stopped = false;
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_STARTED, null);
 		onStart();
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_STARTED, null);
@@ -799,18 +809,21 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 
 	@Export
 	final void performResume() {
+		resumeCount++;
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_RESUMED, null);
 		onResume();
 	}
 
 	@Export
 	final void performPostResume() {
+		resumed = true;
 		onPostResume();
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_RESUMED, null);
 	}
 
 	@Export
 	final void performPause() {
+		resumed = false;
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_PAUSED, null);
 		onPause();
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_PAUSED, null);
@@ -818,6 +831,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 
 	@Export
 	final void performStop() {
+		stopped = true;
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_STOPPED, null);
 		onStop();
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_STOPPED, null);
@@ -831,6 +845,10 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 	}
 
 	public void setDisablePreviewScreenshots(boolean disable) {}
+	/* no lock screen integration */
+	public void setShowWhenLocked(boolean showWhenLocked) {}
+
+	public void setTurnScreenOn(boolean turnScreenOn) {}
 	public final View requireViewById(int id) {
 		View view = findViewById(id);
 		if (view == null)
@@ -943,7 +961,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 				new Handler(Looper.getMainLooper()).post(new Runnable() {
 					@Override
 					public void run() {
-						onRequestPermissionsResult(requestCode, permissions, grantResults);
+						deliverPermissionsResult(requestCode, permissions, grantResults);
 					}
 				});
 			}
@@ -951,6 +969,32 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 	}
 
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {}
+
+	/*
+	 * On Android the request opens the system's permission activity, so the
+	 * app is paused and resumed around the answer. Some apps rely on that,
+	 * e.g. CoMaps' splash screen only goes on in onResume.
+	 */
+	private void deliverPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+		/*
+		 * An app that asks again from onResume after a denial would loop:
+		 * the answer comes at once, so pause and resume it only once per
+		 * request, not when the same request follows the resume we caused.
+		 */
+		boolean repeated = resumeCount == answerResumeCount && requestCode == answerRequestCode && Arrays.equals(permissions, answerPermissions);
+		boolean wasResumed = resumed && !repeated;
+		if (wasResumed)
+			performPause();
+		onRequestPermissionsResult(requestCode, permissions, grantResults);
+		/* not when the answer started another activity or finished this one */
+		if (wasResumed && !resumed && !stopped && !finishing && !destroyed) {
+			performResume();
+			performPostResume();
+			answerResumeCount = resumeCount;
+			answerRequestCode = requestCode;
+			answerPermissions = permissions;
+		}
+	}
 
 	public boolean shouldShowRequestPermissionRationale(String permission) {
 		return true;

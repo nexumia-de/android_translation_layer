@@ -52,3 +52,32 @@ JNIEXPORT jstring JNICALL Java_android_atl_ATLPermissions_nativeCall(JNIEnv *env
 	g_free(answer);
 	return result;
 }
+
+JNIEXPORT jstring JNICALL Java_android_atl_ATLPermissions_nativeReview(JNIEnv *env, jclass clazz)
+{
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!bus)
+		return NULL;
+	GError *err = NULL;
+	/* waits for the user */
+	GVariant *reply = g_dbus_connection_call_sync(bus, "de.nexumia.atl.Permissions", "/de/nexumia/atl/Permissions",
+	                                              "de.nexumia.atl.Permissions", "Review", NULL, G_VARIANT_TYPE("(a{ss})"),
+	                                              G_DBUS_CALL_FLAGS_NONE, G_MAXINT, NULL, &err);
+	g_object_unref(bus);
+	if (!reply) {
+		fprintf(stderr, "ATLPermissions: Review: %s\n", err->message);
+		g_error_free(err);
+		return NULL;
+	}
+	GString *answers = g_string_new("");
+	GVariantIter *iter;
+	const char *permission, *answer;
+	g_variant_get(reply, "(a{&s&s})", &iter);
+	while (g_variant_iter_next(iter, "{&s&s}", &permission, &answer))
+		g_string_append_printf(answers, "%s%s=%s", answers->len ? ";" : "", permission, answer);
+	g_variant_iter_free(iter);
+	g_variant_unref(reply);
+	jstring result = (*env)->NewStringUTF(env, answers->str);
+	g_string_free(answers, TRUE);
+	return result;
+}

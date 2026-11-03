@@ -1885,6 +1885,10 @@ public class PackageManager {
 	public int checkPermission(String permName, String pkgName) {
 		if (permName != null && permName.endsWith(".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"))
 			return PERMISSION_GRANTED;
+		/* a legacy app's review answer, also for the portal-backed ones it never asks for */
+		Boolean legacy = android.atl.ATLPermissions.legacyAnswer(permName);
+		if (legacy != null)
+			return legacy ? PERMISSION_GRANTED : PERMISSION_DENIED;
 		/* in the app's own Flatpak: the host's installer service, which asked the user */
 		if (android.atl.ATLPermissions.BACKGROUND_LOCATION.equals(permName) && android.atl.ATLPaths.in_flatpak)
 			return android.atl.ATLPermissions.backgroundLocationReported() ? PERMISSION_GRANTED : PERMISSION_DENIED;

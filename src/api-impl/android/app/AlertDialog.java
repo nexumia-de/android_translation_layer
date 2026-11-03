@@ -19,7 +19,7 @@ public class AlertDialog extends Dialog implements DialogInterface {
 	}
 
 	public AlertDialog(Context context, int themeResId) {
-		super(context, themeResId);
+		super(context, resolveDialogTheme(themeResId));
 		Context themeless = ATLLoadedApp.getSystemApplication().createContext(null, null, 0);
 		// three buttons: positive, negative, neutral
 		buttons = new Button[] {new Button(themeless), new Button(themeless), new Button(themeless)};
@@ -27,6 +27,26 @@ public class AlertDialog extends Dialog implements DialogInterface {
 		buttons[1].setVisibility(View.GONE);
 		buttons[2].setVisibility(View.GONE);
 		nativeConstruct(nativePtr, buttons[0].widget, buttons[1].widget, buttons[2].widget);
+	}
+
+	/* like Android: the old constants THEME_TRADITIONAL (1) to THEME_DEVICE_DEFAULT_LIGHT (5), which
+	 * Google Play services' error dialogs pass, name framework themes. Taken as resource IDs they
+	 * named no theme, the dialog was not floating and its text sat in the window's top left corner. */
+	private static int resolveDialogTheme(int themeResId) {
+		switch (themeResId) {
+			case 1: /*THEME_TRADITIONAL*/
+				return com.android.internal.R.style.Theme_Dialog_Alert;
+			case 2: /*THEME_HOLO_DARK*/
+				return com.android.internal.R.style.Theme_Holo_Dialog_Alert;
+			case 3: /*THEME_HOLO_LIGHT*/
+				return com.android.internal.R.style.Theme_Holo_Light_Dialog_Alert;
+			case 4: /*THEME_DEVICE_DEFAULT_DARK*/
+				return com.android.internal.R.style.Theme_DeviceDefault_Dialog_Alert;
+			case 5: /*THEME_DEVICE_DEFAULT_LIGHT*/
+				return com.android.internal.R.style.Theme_DeviceDefault_Light_Dialog_Alert;
+			default:
+				return themeResId;
+		}
 	}
 
 	public void setMessage(CharSequence message) {

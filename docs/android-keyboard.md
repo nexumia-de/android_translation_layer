@@ -12,6 +12,9 @@ sources:
   - id: im-v2
     resource: https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/main/unstable/input-method/input-method-unstable-v2.xml
     title: input-method-unstable-v2 (as in wlroots/phoc)
+  - id: systemd-dbus
+    resource: https://github.com/systemd/systemd/blob/v257/src/core/service.c
+    title: systemd, service.c (service_bus_name_owner_change, service_enter_running)
   - id: heliboard
     resource: https://f-droid.org/packages/helium314.keyboard/
     title: HeliBoard on F-Droid
@@ -72,10 +75,26 @@ built when `gtk4-layer-shell-0` is found (1.3.0 on the phone).
 ## Status (2026-11-03)
 
 - Settings activity: runs headless ([app status](apps.md)).
-- Keyboard: under headless phoc HeliBoard's input view shows as the
-  layer-shell window over a text field, with its dictionary loaded, but
-  full screen, on the emoji page and twice too big; no text typed yet.
-  Gaps 1 and 2 above are fixed on the branch, 3 to 6 are open.
+- Keyboard: under headless phoc HeliBoard shows its letter keyboard with
+  suggestions at the bottom and types into a GTK entry, Enter included
+  ([screenshot](screenshots/heliboard-osk-typing-2026-11-03.png)).
+  All six gaps above are closed: surrounding text, UTF-8 byte counts,
+  keys through the virtual keyboard (default xkb keymap), the content
+  type as `inputType`, the input lifecycle per field; `setSelection`
+  still does nothing.
+- Switching: the compositor gives one input method per seat. While
+  Stevia runs, the Android keyboard gets "unavailable"; it asks again
+  every second and takes over when Stevia stops (tested headless with an
+  own Stevia). On the phone (systemd 262, gnome-session 48) Stevia is the
+  user service `mobi.phosh.OSK.service` (`Type=dbus`,
+  `BusName=sm.puri.OSK0`, `Restart=on-failure`), pulled in with `Wants=`
+  by `gnome-session@phosh.target.d/session.conf`; only the shell is
+  `Requires=`. A `Type=dbus` service stays running while anyone owns its
+  name and is stopped when nobody does[^systemd-dbus], so the Android
+  keyboard queues for `sm.puri.OSK0` instead of replacing Stevia, and
+  the switch is `systemctl --user stop mobi.phosh.OSK.service`. The
+  owner's live test, with an automatic way back, is under Needs owner in
+  [app status](apps.md).
 
 ## Size and risks
 

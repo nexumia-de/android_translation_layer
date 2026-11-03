@@ -130,8 +130,17 @@ public abstract class Context {
 		provider.put("KeyGenerator.HmacSHA512", "android.security.keystore.KeyGenerator$HmacSHA512");
 		provider.put("Cipher.AES/GCM/NoPadding", "android.security.keystore.AndroidKeyStoreCipher$AesGcmNoPadding");
 		provider.put("Cipher.AES/GCM/NoPadding SupportedKeyClasses", "android.security.keystore.AndroidKeyStoreSecretKey");
+		provider.put("KeyPairGenerator.RSA", "android.security.keystore.AndroidKeyStoreKeyPairGenerator$RSA");
 		// first, so its Cipher wins for keystore keys; SupportedKeyClasses leaves other keys to the other providers
 		Security.insertProviderAt(provider, 1);
+		// keystore RSA keys are software keys: Android's keystore provider for RSA
+		Provider rsa = new Provider("AndroidKeyStoreBCWorkaround", 1.0, "RSA for Android KeyStore keys") {};
+		rsa.put("Cipher.RSA/ECB/PKCS1Padding", "android.security.keystore.AndroidKeyStoreRSACipher$PKCS1Padding");
+		rsa.put("Cipher.RSA/ECB/OAEPPadding", "android.security.keystore.AndroidKeyStoreRSACipher$OAEPPadding");
+		rsa.put("Cipher.RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "android.security.keystore.AndroidKeyStoreRSACipher$OAEPWithSHA256AndMGF1Padding");
+		Security.addProvider(rsa);
+		if (Security.getProvider("AndroidOpenSSL") == null)
+			Security.addProvider(new android.security.keystore.AndroidOpenSSLProvider());
 
 		boolean unifiedpush = false;
 		for (PackageParser.Activity receiver : primary_application.pkg.receivers) {
@@ -206,7 +215,10 @@ public abstract class Context {
 
 	@Export
 	static Application createApplication(long native_window) throws Exception {
-		Application application = ATLLoadedApp.getPrimaryApplication().getApplication();
+		ATLLoadedApp loaded_app = ATLLoadedApp.getPrimaryApplication();
+		/* apps made for Android before 6 never ask: one review before their code runs */
+		android.atl.ATLPermissions.legacyReviewIfNeeded(loaded_app.effective_sdk_compat);
+		Application application = loaded_app.getApplication();
 		application.native_window = native_window;
 		this_application = application;
 		return application;
@@ -426,6 +438,19 @@ public abstract class Context {
 			prefs_dir = new File(getDataDirFile(), "shared_prefs");
 		}
 		return prefs_dir;
+	}
+
+	public File getCodeCacheDir() {
+		File dir = new File(getDataDirFile(), "code_cache");
+		if (!dir.exists() && !dir.mkdirs() && !dir.exists()) {
+			Slog.w(TAG, "Unable to create code cache directory >" + dir.getPath() + "<");
+			return null;
+		}
+		return dir;
+	}
+
+	public boolean deleteFile(String name) {
+		return new File(getFilesDir(), name).delete();
 	}
 
 	public File[] getExternalMediaDirs() {

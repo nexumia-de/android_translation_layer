@@ -124,6 +124,8 @@ monitors recordable through pipewire-pulse.
 * **Back navigation**: Besides the header bar button, a swipe from the left or right edge and the keys Escape, Alt+Left and XF86Back go back; they send `KEYCODE_BACK` like Android, so dialogs (`OnKeyListener`, cancelable) and `Activity.onKeyDown`/`onKeyUp` see it before `onBackPressed`. `ATL_NAVIGATION=buttons|gesture|both` picks the on-screen means ([back navigation](navigation.md), [decision](decisions/navigation.md)). `wl-pointer key` types keys headless.
 * **HeliBoard**: [Feasibility](android-keyboard.md) of HeliBoard as the Phosh keyboard through ATL's existing IME host (size M; risks: lock screen, memory, start time). Its settings run headless; as on-screen keyboard its input view appears under headless phoc but is not usable yet ([app status](apps.md)).
 * **GPSLogger and location**: `LocationManager` only handled one `requestLocationUpdates` variant, never stopped the portal session and its `Location` lacked most fields, so GPSLogger 138 aborted at its first fix. Registrations now follow Android (Looper, Executor, `PendingIntent`, `LocationRequest`, minimum time and distance, `removeUpdates` ends the portal session) and the fix time is right (the portal's second timestamp field is microseconds, not milliseconds). Headless with a fake location portal GPSLogger logs and uploads through its Dawarich sender ([app status](apps.md)).
+* **HeliBoard types**: Under headless phoc HeliBoard now types into a GTK entry and takes over from Stevia when it stops; a reversible phone test is under Needs owner ([keyboard](android-keyboard.md), [app status](apps.md)).
+
 ## 2026-11-03: internet asked on the install page
 
 `--install-ask --install-flatpak` asks "Allow internet?" for apps with
@@ -154,3 +156,17 @@ reached from App info. Headless (`flatpak/android-apps-test.sh`, fake
 apps, stand-in `atl-push-server`): store switched off → override
 `Installer=none`, push server set, navigation "gesture" saved and given
 to every app.
+## 2026-11-04: legacy permission review
+
+Apps with target SDK or SDK_INT below 23 get one review dialog of their
+dangerous permissions before their code runs (service method `Review`,
+GTK/Phosh access dialog with check boxes, default off, shown once).
+Headless (`flatpak/legacy-review-test.sh`, 7 checks): camera ticked →
+yes, others no, internet not listed, second call without a dialog.
+## 2026-11-04: App info from the launcher
+
+Generated launchers get the action "App Info"; ATL in the sandbox
+answers it without starting the app and calls the permission service's
+new `OpenAppInfo` (interface version 2), which opens `--app-info` for
+the caller on the host. Headless: the service part (`permissions-test.sh`,
+24 checks); the in-sandbox part needs an engine build.

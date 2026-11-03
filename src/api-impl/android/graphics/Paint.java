@@ -100,10 +100,28 @@ public class Paint {
 	public void getTextBounds(char[] text, int index, int count, Rect bounds) {
 		native_get_text_bounds(paint, new String(text, index, count), bounds);
 	}
+	/* the advance of each char, as on Android: the return value is the number of chars,
+	 * not a width (a surrogate pair gets its width on the first char, 0 on the second) */
 	public int getTextWidths(String text, int start, int end, float[] widths) {
-		Rect bounds = new Rect();
-		native_get_text_bounds(paint, text.substring(start, end), bounds);
-		return bounds.width();
+		for (int i = start; i < end; i++) {
+			int n = (Character.isHighSurrogate(text.charAt(i)) && i + 1 < end) ? 2 : 1;
+			widths[i - start] = measureText(text, i, i + n);
+			if (n == 2)
+				widths[++i - start] = 0;
+		}
+		return end - start;
+	}
+
+	public int getTextWidths(CharSequence text, int start, int end, float[] widths) {
+		return getTextWidths(text.toString(), start, end, widths);
+	}
+
+	public int getTextWidths(char[] text, int index, int count, float[] widths) {
+		return getTextWidths(new String(text, index, count), 0, count, widths);
+	}
+
+	public int getTextWidths(String text, float[] widths) {
+		return getTextWidths(text, 0, text.length(), widths);
 	}
 	public void setFilterBitmap(boolean filter) {}
 

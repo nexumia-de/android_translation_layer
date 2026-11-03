@@ -100,7 +100,12 @@ static int connect_osk_dbus_iface(GtkWidget *dialog)
 
 	owner_id = g_bus_own_name(G_BUS_TYPE_SESSION,
 	                          "sm.puri.OSK0",
-	                          G_BUS_NAME_OWNER_FLAGS_REPLACE,
+	                          /* no REPLACE: Stevia runs as a Type=dbus systemd service; systemd keeps it
+	                           * running (with the input method) as long as anyone owns the name, and
+	                           * stops it if the name is left without owner. Taking the name would
+	                           * give a keyboard without input method now, and possibly none once this
+	                           * one quits. Queue instead: the name comes when Stevia is stopped. */
+	                          G_BUS_NAME_OWNER_FLAGS_NONE,
 	                          NULL,
 	                          on_name_acquired,
 	                          NULL, NULL, NULL);

@@ -117,7 +117,8 @@ executable('atl-installer-service', ['src/installer-service/atl-installer-servic
 executable('atl-permission-service', ['src/installer-service/permissions.c', 'src/installer-service/caller.c', installer_service_resources],
            dependencies: [dependency('gio-unix-2.0')],
            install: true,
-           install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'))
+           install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
+           c_args: ['-DINSTALL_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"'])
 configure_file(input: 'src/installer-service/de.nexumia.atl.Installer.service.in',
                output: 'de.nexumia.atl.Installer.service',
                configuration: {'libexecdir': join_paths(get_option('prefix'), get_option('libexecdir'))},
@@ -293,7 +294,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                         extra_deps,
                                                                   	dependency('gtk4', version: '>=4.14'), dependency('gl'), dependency('egl'), dependency('wayland-client'), dependency('jni'),
                                                                   	dependency('libportal'), dependency('sqlite3'), dependency('libavcodec', version: '>=59'), dependency('libdrm'),
-                                                                  	dependency('gudev-1.0'), dependency('libswscale'), dependency('webkitgtk-6.0'), dependency('fontconfig'), dependency('pangoft2'), dependency('libsecret-1'),
+                                                                  	dependency('gudev-1.0'), dependency('xkbcommon'), dependency('libswscale'), dependency('webkitgtk-6.0'), dependency('fontconfig'), dependency('pangoft2'), dependency('libsecret-1'),
                                                                         libart_dep, wayland_protos_dep, upcalls_header
                                                                   ],
                                                                   link_with: [ libandroid_so ],

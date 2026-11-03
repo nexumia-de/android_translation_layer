@@ -11,6 +11,8 @@
   AccessDenied. A permission the APK does not request is always "no".
 
   Version 1: Check and Request.
+  Version 3: Review (version 2 is OpenAppInfo, #88).
+  Version 2: OpenAppInfo.
 -->
 <node>
   <interface name="de.nexumia.atl.Permissions">
@@ -30,5 +32,17 @@
       <arg direction="in" name="permission" type="s"/>
       <arg direction="out" name="answer" type="s"/>
     </method>
+
+    <!--
+      For apps made for Android before 6 (target SDK or SDK_INT below 23), which never ask:
+      once, one review of the caller's dangerous permissions, each off by default, stored like
+      the other answers. Returns the answers ("yes" or "no") of the reviewed permissions the APK
+      requests; after the review, without a dialog.
+    -->
+    <method name="Review">
+      <arg direction="out" name="answers" type="a{ss}"/>
+    </method>
+    <!-- Opens the calling app's App info on the host (the launcher's "App info" action). -->
+    <method name="OpenAppInfo"/>
   </interface>
 </node>
