@@ -51,6 +51,11 @@ char *apk_path;
 gboolean app_exit(GtkWindow *self, JNIEnv *env) // TODO: do more cleanup?
 {
 	activity_close_all();
+	/* a foreground service keeps running: keep the window hidden, to show again on the next launch */
+	if (foreground_service_running()) {
+		gtk_widget_set_visible(GTK_WIDGET(self), FALSE);
+		return true;
+	}
 	return false;
 }
 
@@ -1344,9 +1349,22 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		}
 		g_clear_object(&bus);
 		if (running) {
-			fprintf(stderr, "%s is already running (maybe without a window, for a foreground service); not starting a second instance\n",
-			        g_application_get_application_id(G_APPLICATION(app)));
-			exit(0);
+			/* hand over to it like a launcher would: Activate shows its window again (activate() below) */
+			const char *id = g_application_get_application_id(G_APPLICATION(app));
+			char *path = g_strdelimit(g_strdup_printf("/%s", id), ".", '/');
+			g_strdelimit(path, "-", '_');
+			fprintf(stderr, "%s is already running; asking it to show its window\n", id);
+			GDBusConnection *conn = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+			GVariant *ret = conn ? g_dbus_connection_call_sync(conn, id, path, "org.freedesktop.Application", "Activate",
+			                                                   g_variant_new("(a{sv})", NULL), NULL, G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL)
+			                     : NULL;
+			if (ret)
+				g_variant_unref(ret);
+			else
+				fprintf(stderr, "could not reach the running %s\n", id);
+			g_clear_object(&conn);
+			g_free(path);
+			exit(ret ? 0 : 1);
 		}
 	}
 	app_starting = TRUE;
@@ -1761,6 +1779,14 @@ static void activate(GtkApplication *app, struct jni_callback_data *d)
 	if (app_starting && !window) // D-Bus activation's own request, which started us
 		return;
 	if (window) { // this is not the first launch, but a DBus activate request to the running app
+		if (activity_backlog_empty()) { // the window was closed while a foreground service ran
+			JNIEnv *env = get_jni_env();
+			jobject activity = J__Activity__createMainActivity(env, _JSTRING(d->apk_main_activity_class), _INTPTR(window), NULL);
+			if ((*env)->ExceptionCheck(env))
+				(*env)->ExceptionDescribe(env);
+			if (activity)
+				activity_start(env, activity);
+		}
 		gtk_window_present(GTK_WINDOW(window));
 		return;
 	}

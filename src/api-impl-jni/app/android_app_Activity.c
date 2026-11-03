@@ -163,6 +163,11 @@ void current_activity_back_pressed(void)
 	}
 }
 
+gboolean activity_backlog_empty(void)
+{
+	return activity_backlog == NULL;
+}
+
 void activity_close_all(void)
 {
 	GList *activities, *l;
