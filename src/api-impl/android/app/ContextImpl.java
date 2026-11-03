@@ -218,6 +218,10 @@ public final class ContextImpl extends Context {
 				return new BatteryManager();
 			case "download":
 				return new DownloadManager();
+			case "restrictions":
+				return new RestrictionsManager();
+			case "textservices":
+				return new android.view.textservice.TextServicesManager();
 			default:
 				Slog.e(TAG, "!!!!!!! getSystemService: case >" + name + "< is not implemented yet");
 				return null;
