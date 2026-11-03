@@ -232,16 +232,20 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
 - Permissions: every app gets Wayland, the GPU, IPC, audio playback and
   feedbackd; `android.permission.INTERNET` adds `--share=network`.
   Everything else waits for portals and the broker (phases 3 and 4).
-- Microphone: the audio socket that playback needs would also let every
-  app record. Two user configuration files, no root, block that below
-  the app (templates and a headless test in `flatpak/microphone/`):
-  WirePlumber gives clients of `de.nexumia.atl.*` Flatpaks no
-  permissions on `Audio/Source*` nodes, and pipewire-pulse refuses their
-  record streams (`block-record-stream`), which also covers a sink's
-  monitor, i.e. other apps' sound. Apps answered "yes" for
-  `RECORD_AUDIO` get a later rule per app id. Both files are read when
-  the services start; writing them from the answers is the installer
-  service's job (next step).
+- Microphone: the normal pulse socket would let every app record
+  (microphone and sink monitors, i.e. other apps' sound). Apps get
+  instead only the socket of a second pipewire-pulse,
+  `atl-pulse-norecord` (`flatpak/microphone/`: a user systemd unit and a
+  drop-in for the system's `pipewire-pulse.conf`), which refuses every
+  record stream of every client. `make-app-flatpak` sets it up in the
+  user's own configuration (no root) and gives the app
+  `--filesystem=xdg-run/atl-pulse-norecord` and `PULSE_SERVER`; an app
+  the user allows to record gets the normal socket as a user override
+  (next start). Rules on client properties are not used: pulse clients
+  can rewrite them (`PULSE_PROP`, `UPDATE_CLIENT_PROPLIST`), which made
+  the first version (WirePlumber and pipewire-pulse rules on
+  `pipewire.access.portal.app_id`) bypassable. Headless check with the
+  forged-property cases: `flatpak/microphone/test.sh`.
 - The package name is checked against Android's rules and the label is
   kept to one line, since both come from the APK and end up in the
   launcher.

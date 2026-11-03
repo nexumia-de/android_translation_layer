@@ -117,6 +117,9 @@ configure_file(input: 'src/installer-service/de.nexumia.atl.Installer.service.in
 install_data('flatpak/make-app.sh', rename: 'make-app-flatpak',
              install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
              install_mode: 'rwxr-xr-x')
+# its pulse server without recording, see flatpak/microphone/
+install_data('flatpak/microphone/atl-pulse-norecord.conf', 'flatpak/microphone/atl-pulse-norecord.service',
+             install_dir: join_paths(get_option('datadir'), 'android-translation-layer', 'microphone'))
 
 #tools
 subdir('tools/jni_upcall_gen')

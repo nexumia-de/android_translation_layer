@@ -1,56 +1,50 @@
 #!/bin/sh
-# Headless check of the microphone rules: runs its own PipeWire,
-# WirePlumber and pipewire-pulse (never the owner's), a virtual
-# microphone and sink, and two fake ATL app Flatpaks (bwrap with a
-# /.flatpak-info, which is how PipeWire recognizes Flatpak clients):
-# de.nexumia.atl.denied must play but not record (microphone and sink
-# monitor), de.nexumia.atl.allowed must do both. Exit status 0 when so.
+# Headless check of the microphone separation: runs its own PipeWire,
+# WirePlumber, pipewire-pulse and the no-record pipewire-pulse
+# (atl-pulse-norecord.conf; never the owner's), a virtual microphone and
+# sink, and two fake ATL app Flatpaks (bwrap with a /.flatpak-info):
+# "denied" sees only the no-record socket, as make-app-flatpak gives it,
+# and must play but not record the microphone or a sink monitor, also when
+# it rewrites its client properties; "allowed" has the normal socket and
+# does all. Exit status 0 when so.
 # With the shared lock: flock -o /tmp/atl-heavy.lock flatpak/microphone/test.sh
 # (-o, so the daemons started here cannot inherit and keep the lock); they
 # are stopped when the script ends, also when it is interrupted.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 run=/tmp/atl-mic-test-$(id -u)  # short: socket paths are limited to 108 bytes
-rm -rf "$run"; mkdir -p "$run/cfg/wireplumber/wireplumber.conf.d" "$run/cfg/pipewire/pipewire-pulse.conf.d" "$run/state"
-chmod 700 "$run"
-sed '/^  #{/,/^  #}/d' "$here/wireplumber-90-atl-microphone.conf" | sed 's/^]$//' > "$run/wp.conf"
-cat >> "$run/wp.conf" <<'X'
-  {
-    matches = [ { pipewire.access.portal.app_id = "de.nexumia.atl.allowed" } ]
-    actions = { update-props = { permission_manager_name = "atl-microphone" } }
-  }
-]
-X
-mv "$run/wp.conf" "$run/cfg/wireplumber/wireplumber.conf.d/90-atl-microphone.conf"
-sed '/^  #{/,/^  #}/d' "$here/pipewire-pulse-90-atl-microphone.conf" | sed 's/^]$//' > "$run/pp.conf"
-cat >> "$run/pp.conf" <<'X'
-  {
-    matches = [ { pipewire.access.portal.app_id = "de.nexumia.atl.allowed" } ]
-    actions = { quirks = [ ] }
-  }
-]
-X
-mv "$run/pp.conf" "$run/cfg/pipewire/pipewire-pulse.conf.d/90-atl-microphone.conf"
+rm -rf "$run"
+mkdir -p "$run/rt/atl-pulse-norecord" "$run/cfg/pipewire/atl-pulse-norecord.conf.d" "$run/state"
+chmod 700 "$run/rt"
+ln -s /usr/share/pipewire/pipewire-pulse.conf "$run/cfg/pipewire/atl-pulse-norecord.conf"
+sed "s|@RUNTIME_DIR@|$run/rt|" "$here/atl-pulse-norecord.conf" > "$run/cfg/pipewire/atl-pulse-norecord.conf.d/50-atl.conf"
 
-export XDG_RUNTIME_DIR="$run" XDG_CONFIG_HOME="$run/cfg" XDG_STATE_HOME="$run/state" \
-	DBUS_SESSION_BUS_ADDRESS=disabled: PULSE_SERVER="unix:$run/pulse/native"
-pipewire > "$run/pipewire.log" 2>&1 & pw=$!
-sleep 1
-wireplumber > "$run/wireplumber.log" 2>&1 & wp=$!
-pipewire-pulse > "$run/pipewire-pulse.log" 2>&1 & pp=$!
-trap 'kill $pp $wp $pw 2>/dev/null; wait 2>/dev/null' EXIT
+export XDG_RUNTIME_DIR="$run/rt" XDG_CONFIG_HOME="$run/cfg" XDG_STATE_HOME="$run/state" DBUS_SESSION_BUS_ADDRESS=disabled:
+pids=
+trap 'kill $pids 2>/dev/null; wait 2>/dev/null' EXIT
 trap 'exit 1' INT TERM HUP
+pipewire > "$run/pipewire.log" 2>&1 & pids="$pids $!"
+sleep 1
+wireplumber > "$run/wireplumber.log" 2>&1 & pids="$pids $!"
+pipewire-pulse > "$run/pipewire-pulse.log" 2>&1 & pids="$pids $!"
+pipewire-pulse -c atl-pulse-norecord.conf > "$run/norecord.log" 2>&1 & pids="$pids $!"
 sleep 3
 pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=testmic media.class=Audio/Source/Virtual audio.position=[MONO] object.linger=true }' >/dev/null
 pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=testsink media.class=Audio/Sink audio.position=[FL FR] object.linger=true }' >/dev/null
 sleep 1
 
+# like the app's Flatpak: only the one socket directory the app was given
 sandboxed() {
-	printf '[Application]\nname=%s\n' "$1" > "$run/info-$1"
-	id=$1; shift
+	app=$1; shift
+	case $app in
+	denied) socket_dir=$run/rt/atl-pulse-norecord ;;
+	*) socket_dir=$run/rt/pulse ;;
+	esac
+	printf '[Application]\nname=de.nexumia.atl.%s\n' "$app" > "$run/info-$app"
 	bwrap --ro-bind /usr /usr --symlink usr/lib /lib --symlink usr/bin /bin --symlink usr/sbin /sbin \
-		--ro-bind /etc /etc --bind "$run" "$run" --proc /proc --dev /dev \
-		--ro-bind "$run/info-$id" /.flatpak-info -- "$@"
+		--ro-bind /etc /etc --proc /proc --dev /dev --tmpfs /tmp --tmpfs "$run" \
+		--bind "$socket_dir" "$socket_dir" --ro-bind "$run/info-$app" /.flatpak-info \
+		--setenv PULSE_SERVER "unix:$socket_dir/native" -- "$@"
 }
 # 0 when the stream ran until timeout stopped it after three seconds
 # (pacat and parecord exit 0 on SIGTERM; a refused stream ends at once)
@@ -59,7 +53,6 @@ works() {
 	"$@" >/dev/null 2>&1
 	[ $(($(date +%s) - start)) -ge 2 ]
 }
-
 fail=0
 check() { # expected, what, command...
 	want=$1 what=$2; shift 2
@@ -68,10 +61,13 @@ check() { # expected, what, command...
 	echo "$r: $what: $got"
 }
 for app in denied allowed; do
-	id=de.nexumia.atl.$app
 	[ $app = allowed ] && rec=yes || rec=no
-	check yes "$app plays" sandboxed $id timeout 3 pacat -d testsink --raw /dev/zero
-	check $rec "$app records the microphone" sandboxed $id timeout 3 parecord -d testmic --raw /dev/null
-	check $rec "$app records the sink monitor" sandboxed $id timeout 3 parecord -d testsink.monitor --raw /dev/null
+	check yes "$app plays" sandboxed $app timeout 3 pacat -d testsink --raw /dev/zero
+	check $rec "$app records the microphone" sandboxed $app timeout 3 parecord -d testmic --raw /dev/null
+	check $rec "$app records the sink monitor" sandboxed $app timeout 3 parecord -d testsink.monitor --raw /dev/null
 done
+# the review's escape: a client rewriting the properties rules match on
+check no "denied with a forged app id records" sandboxed denied env PULSE_PROP=pipewire.access.portal.app_id=de.nexumia.atl.allowed timeout 3 parecord -d testmic --raw /dev/null
+check no "denied without application.name records" sandboxed denied env PULSE_PROP=application.name= timeout 3 parecord -d testmic --raw /dev/null
+check no "denied reaches the normal socket" sandboxed denied sh -c "test -S $run/rt/pulse/native && sleep 3"
 exit $fail
