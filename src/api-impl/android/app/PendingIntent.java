@@ -23,6 +23,21 @@ public class PendingIntent implements Parcelable {
 		return new PendingIntent(requestCode, intent, 2);
 	}
 
+	/* Android returns the same PendingIntent for the same request code and an
+	 * Intent.filterEquals() intent, so apps can cancel or unregister with a new copy. */
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof PendingIntent))
+			return false;
+		PendingIntent other = (PendingIntent)o;
+		return type == other.type && requestCode == other.requestCode && intent.filterEquals(other.intent);
+	}
+
+	@Override
+	public int hashCode() {
+		return (type * 31 + requestCode) * 31 + intent.filterHashCode();
+	}
+
 	public IntentSender getIntentSender() {
 		return new IntentSender(this);
 	}

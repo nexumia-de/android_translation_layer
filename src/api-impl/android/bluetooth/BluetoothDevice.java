@@ -59,7 +59,11 @@ public final class BluetoothDevice implements Parcelable {
 	public static final int PHY_OPTION_S2 = 1;
 	public static final int PHY_OPTION_S8 = 2;
 	public static final int PAIRING_VARIANT_PIN = 0;
+	public static final int PAIRING_VARIANT_PASSKEY = 1;
 	public static final int PAIRING_VARIANT_PASSKEY_CONFIRMATION = 2;
+	public static final int PAIRING_VARIANT_CONSENT = 3;
+	public static final int PAIRING_VARIANT_DISPLAY_PASSKEY = 4;
+	public static final int PAIRING_VARIANT_DISPLAY_PIN = 5;
 	public static final int ADDRESS_TYPE_PUBLIC = 0;
 	public static final int ADDRESS_TYPE_RANDOM = 1;
 	public static final int ADDRESS_TYPE_UNKNOWN = 0xFFFF;
@@ -67,6 +71,8 @@ public final class BluetoothDevice implements Parcelable {
 	private final String address;
 	/* set while createBond's Pair call runs */
 	private static final java.util.Set<String> bonding = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+	/* the bond state last broadcast per address, so the bonding thread and the "Paired" signal never report the same change twice */
+	private static final java.util.Map<String, Integer> broadcastBondState = new java.util.HashMap<>();
 
 	BluetoothDevice(String address) {
 		this.address = address.toUpperCase();
@@ -198,23 +204,51 @@ public final class BluetoothDevice implements Parcelable {
 			int result = BOND_NONE;
 			try {
 				ensureKnown(TRANSPORT_AUTO);
-				BlueZ.call(120000, path, BlueZ.DEVICE, "Pair", "");
+				/* own agent for the pairing dialog; no discovery while BlueZ connects for Pair */
+				BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+				PairingAgent.acquire();
+				Discovery.pause(adapter);
+				try {
+					BlueZ.call(120000, path, BlueZ.DEVICE, "Pair", "");
+				} finally {
+					Discovery.resume(adapter);
+					PairingAgent.release();
+				}
 				result = BOND_BONDED;
 			} catch (IOException e) {
 				Slog.w(TAG, "createBond " + address + ": " + e.getMessage());
 				if (e.getMessage() != null && e.getMessage().contains("AlreadyExists"))
 					result = BOND_BONDED;
 			}
+			/* as on Android, the bonding thread reports the end of its own bond in any case; the "Paired"
+			 * signal is not broadcast for a device in bonding, so BONDED is sent exactly once */
+			sendBondState(result, BOND_BONDING);
+			/* the Pair reply can come before the "Paired" signal: keep the device marked as bonding
+			 * until BlueZ's cached state agrees, so the signal is not broadcast as a second change */
+			for (int i = 0; i < 20 && result == BOND_BONDED && !BlueZ.getBoolean(property("Paired")) && !BlueZ.getBoolean(property("Bonded")); i++)
+				android.os.SystemClock.sleep(100);
 			bonding.remove(address);
-			/* a successful Pair also changes "Paired", whose broadcast says BONDED; this one covers failures */
-			if (result != BOND_BONDED)
-				sendBondState(result, BOND_BONDING);
+			PairingAgent.pairingEnded(address);
 		}
 		}, "BluetoothDevice.createBond").start();
 		return true;
 	}
 
+	static boolean isBonding(String address) {
+		return bonding.contains(address);
+	}
+
+	/* records the state as broadcast; false if it was already the last one broadcast for this device */
+	static boolean noteBondState(String address, int state) {
+		synchronized (broadcastBondState) {
+			Integer last = broadcastBondState.put(address, state);
+			return last == null || last != state;
+		}
+	}
+
 	private void sendBondState(int state, int previous) {
+		if (!noteBondState(address, state))
+			return;
 		android.content.Intent intent = new android.content.Intent(ACTION_BOND_STATE_CHANGED);
 		intent.putExtra(EXTRA_DEVICE, this);
 		intent.putExtra(EXTRA_BOND_STATE, state);
@@ -245,12 +279,25 @@ public final class BluetoothDevice implements Parcelable {
 		}
 	}
 
+	/* answers a pending pairing request of this device (ACTION_PAIRING_REQUEST) */
 	public boolean setPairingConfirmation(boolean confirm) {
-		return false;
+		return PairingAgent.answer(address, confirm, null);
 	}
 
 	public boolean setPin(byte[] pin) {
-		return false;
+		return pin != null && PairingAgent.answer(address, true, new String(pin, java.nio.charset.StandardCharsets.UTF_8));
+	}
+
+	public boolean setPin(String pin) {
+		return pin != null && PairingAgent.answer(address, true, pin);
+	}
+
+	public boolean setPasskey(int passkey) {
+		return PairingAgent.answer(address, true, Integer.toString(passkey));
+	}
+
+	public boolean cancelPairing() {
+		return PairingAgent.answer(address, false, null);
 	}
 
 	/*
