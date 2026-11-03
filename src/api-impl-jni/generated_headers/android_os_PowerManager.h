@@ -7,6 +7,26 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_os_PowerManager_PARTIAL_WAKE_LOCK
+#define android_os_PowerManager_PARTIAL_WAKE_LOCK 1L
+#undef android_os_PowerManager_SCREEN_DIM_WAKE_LOCK
+#define android_os_PowerManager_SCREEN_DIM_WAKE_LOCK 6L
+#undef android_os_PowerManager_SCREEN_BRIGHT_WAKE_LOCK
+#define android_os_PowerManager_SCREEN_BRIGHT_WAKE_LOCK 10L
+#undef android_os_PowerManager_PROXIMITY_SCREEN_OFF_WAKE_LOCK
+#define android_os_PowerManager_PROXIMITY_SCREEN_OFF_WAKE_LOCK 32L
+#undef android_os_PowerManager_ACQUIRE_CAUSES_WAKEUP
+#define android_os_PowerManager_ACQUIRE_CAUSES_WAKEUP 268435456L
+#undef android_os_PowerManager_ON_AFTER_RELEASE
+#define android_os_PowerManager_ON_AFTER_RELEASE 536870912L
+#undef android_os_PowerManager_RELEASE_FLAG_WAIT_FOR_NO_PROXIMITY
+#define android_os_PowerManager_RELEASE_FLAG_WAIT_FOR_NO_PROXIMITY 1L
+#undef android_os_PowerManager_WAKE_LOCK_LEVEL_MASK
+#define android_os_PowerManager_WAKE_LOCK_LEVEL_MASK 65535L
+#undef android_os_PowerManager_INHIBIT_SUSPEND
+#define android_os_PowerManager_INHIBIT_SUSPEND 4L
+#undef android_os_PowerManager_INHIBIT_IDLE
+#define android_os_PowerManager_INHIBIT_IDLE 8L
 #undef android_os_PowerManager_FULL_WAKE_LOCK
 #define android_os_PowerManager_FULL_WAKE_LOCK 26L
 /*
@@ -16,6 +36,14 @@ extern "C" {
  */
 JNIEXPORT jboolean JNICALL Java_android_os_PowerManager_nativeIsScreenOn
   (JNIEnv *, jclass);
+
+/*
+ * Class:     android_os_PowerManager
+ * Method:    nativeInhibit
+ * Signature: (IZLjava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_android_os_PowerManager_nativeInhibit
+  (JNIEnv *, jclass, jint, jboolean, jstring);
 
 #ifdef __cplusplus
 }

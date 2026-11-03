@@ -44,6 +44,16 @@ public final class PowerManager {
 		private boolean refCounted = true;
 		private int count;
 		private Thread timeout;
+		private int timeoutGeneration;
+
+		/* any acquire or release replaces a pending acquire(timeout) timer */
+		private void cancelTimeoutLocked() {
+			timeoutGeneration++;
+			if (timeout != null) {
+				timeout.interrupt();
+				timeout = null;
+			}
+		}
 
 		WakeLock(int level, String tag) {
 			this.level = level;
@@ -56,6 +66,7 @@ public final class PowerManager {
 
 		public void acquire() {
 			synchronized (this) {
+				cancelTimeoutLocked();
 				if (refCounted)
 					count++;
 				if (!held) {
@@ -71,6 +82,7 @@ public final class PowerManager {
 
 		public void release(int flags) {
 			synchronized (this) {
+				cancelTimeoutLocked();
 				if (refCounted) {
 					if (count > 0)
 						count--;
@@ -88,20 +100,27 @@ public final class PowerManager {
 			return held;
 		}
 
-		public void acquire(final long timeout) {
-			acquire();
-			Thread t = new Thread(new Runnable() {
-				public void run() {
-					try {
-						Thread.sleep(timeout);
-					} catch (InterruptedException e) {
-						return;
+		public void acquire(final long timeoutMs) {
+			synchronized (this) {
+				acquire();
+				final int generation = timeoutGeneration;
+				timeout = new Thread(new Runnable() {
+					public void run() {
+						try {
+							Thread.sleep(timeoutMs);
+						} catch (InterruptedException e) {
+							return;
+						}
+						synchronized (WakeLock.this) {
+							if (generation != timeoutGeneration)
+								return;
+							release();
+						}
 					}
-					release();
-				}
-			}, "WakeLock timeout " + tag);
-			t.setDaemon(true);
-			t.start();
+				}, "WakeLock timeout " + tag);
+				timeout.setDaemon(true);
+				timeout.start();
+			}
 		}
 
 		public void setWorkSource(WorkSource ws) {}
