@@ -54,7 +54,12 @@ static void handle_notify(GDBusMessage *message)
 	jstring jsummary = _JSTRING(summary);
 	jstring jtext = _JSTRING(text);
 	jstring jcategory = hint_string(env, hints, "category");
-	J__NotificationListenerService__onNotify(env, japp_name, jdesktop_entry, replaces_id, jsummary, jtext, jcategory, urgency, resident);
+	/* this process's own notifications (GLib's fallback backend sends them on our session bus connection) */
+	GDBusConnection *own_bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	gboolean own = own_bus && !g_strcmp0(g_dbus_message_get_sender(message), g_dbus_connection_get_unique_name(own_bus));
+	if (own_bus)
+		g_object_unref(own_bus);
+	J__NotificationListenerService__onNotify(env, japp_name, jdesktop_entry, replaces_id, jsummary, jtext, jcategory, urgency, resident, own);
 	if ((*env)->ExceptionCheck(env)) {
 		(*env)->ExceptionDescribe(env);
 		(*env)->ExceptionClear(env);

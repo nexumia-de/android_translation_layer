@@ -36,6 +36,7 @@ struct prompt_page *prompt_page_new(GtkApplication *app, const char *window_titl
 	adw_status_page_set_description(ADW_STATUS_PAGE(page->status), details);
 
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 18);
+	page->box = box;
 	page->message = gtk_label_new(NULL);
 	gtk_label_set_wrap(GTK_LABEL(page->message), TRUE);
 	gtk_label_set_justify(GTK_LABEL(page->message), GTK_JUSTIFY_CENTER);
@@ -133,11 +134,13 @@ void prompt_page_set_buttons(struct prompt_page *page, const char *cancel_label,
 	data->on_action = on_action;
 	data->user_data = user_data;
 
+	page->action = NULL;
 	GtkWidget *cancel = pill_button(cancel_label);
 	g_signal_connect(cancel, "clicked", G_CALLBACK(cancel_clicked), data);
 	gtk_box_append(GTK_BOX(page->buttons), cancel);
 	if (action_label) {
 		GtkWidget *action = pill_button(action_label);
+		page->action = action;
 		gtk_widget_add_css_class(action, destructive ? "destructive-action" : "suggested-action");
 		g_signal_connect(action, "clicked", G_CALLBACK(action_clicked), data);
 		gtk_box_append(GTK_BOX(page->buttons), action);
@@ -145,6 +148,57 @@ void prompt_page_set_buttons(struct prompt_page *page, const char *cancel_label,
 		if (!destructive)
 			gtk_window_set_default_widget(page->window, action);
 	}
+}
+
+void prompt_page_add_child(struct prompt_page *page, GtkWidget *child)
+{
+	gtk_box_insert_child_after(GTK_BOX(page->box), child, page->message);
+}
+
+struct question_data {
+	void (*on_answer)(int answer, gpointer user_data);
+	gpointer user_data;
+};
+
+static void answer_toggled(GtkCheckButton *button, struct question_data *data)
+{
+	if (gtk_check_button_get_active(button))
+		data->on_answer(GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "answer")), data->user_data);
+}
+
+static GtkWidget *answer_row(const char *title, const char *subtitle, int answer, GtkCheckButton *group, struct question_data *data)
+{
+	GtkWidget *row = adw_action_row_new();
+	adw_preferences_row_set_title(ADW_PREFERENCES_ROW(row), title);
+	adw_action_row_set_subtitle(ADW_ACTION_ROW(row), subtitle);
+	GtkWidget *check = gtk_check_button_new();
+	gtk_widget_set_valign(check, GTK_ALIGN_CENTER);
+	if (group)
+		gtk_check_button_set_group(GTK_CHECK_BUTTON(check), group);
+	g_object_set_data(G_OBJECT(check), "answer", GINT_TO_POINTER(answer));
+	g_signal_connect(check, "toggled", G_CALLBACK(answer_toggled), data);
+	adw_action_row_add_prefix(ADW_ACTION_ROW(row), check);
+	adw_action_row_set_activatable_widget(ADW_ACTION_ROW(row), check);
+	return row;
+}
+
+GtkWidget *prompt_page_add_question(struct prompt_page *page, const char *title, const char *yes_title, const char *yes_subtitle,
+                                    const char *no_title, const char *no_subtitle, void (*on_answer)(int answer, gpointer user_data),
+                                    gpointer user_data)
+{
+	struct question_data *data = g_new0(struct question_data, 1);
+	data->on_answer = on_answer;
+	data->user_data = user_data;
+	GtkWidget *group = adw_preferences_group_new();
+	g_object_set_data_full(G_OBJECT(group), "question", data, g_free);
+	adw_preferences_group_set_title(ADW_PREFERENCES_GROUP(group), title);
+	GtkWidget *yes = answer_row(yes_title, yes_subtitle, 1, NULL, data);
+	GtkWidget *no = answer_row(no_title, no_subtitle, 0,
+	                           GTK_CHECK_BUTTON(adw_action_row_get_activatable_widget(ADW_ACTION_ROW(yes))), data);
+	adw_preferences_group_add(ADW_PREFERENCES_GROUP(group), yes);
+	adw_preferences_group_add(ADW_PREFERENCES_GROUP(group), no);
+	prompt_page_add_child(page, group);
+	return group;
 }
 
 void prompt_page_set_busy(struct prompt_page *page, const char *message)

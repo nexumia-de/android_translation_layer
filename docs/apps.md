@@ -23,6 +23,7 @@ follow [bringing up an app](app-bring-up.md).
 | Duolingo (`com.duolingo`, Google Play through Aurora Store) | 6.103.6 (2488), minSdk 32 | branch `claude/duolingo-sign-in-compose` | `partly` | Base APK plus `config.arm64_v8a` and `config.xxhdpi`, run with `--sdk-int 26`. Installs from Aurora Store on the phone since `--install` no longer runs app code (2026-10-31); Google Play answers "App not supported" to the agent's test Aurora, so the APK came from the owner's download. Headless (2026-10-31) it starts to its welcome screen with the owl, "Learn for free. Forever.", GET STARTED and I ALREADY HAVE AN ACCOUNT ([screenshot](screenshots/duolingo-welcome-2026-10-31.png)). The two buttons are too flat, their text is clipped and has the wrong colours. I ALREADY HAVE AN ACCOUNT opens the sign-in screen ([screenshot](screenshots/duolingo-sign-in-2026-10-31.png)); a real sign-in needs the owner's account and shows whether Play Integrity is required. Taps need a first tap on the window to focus it. Play Integrity fails (no Play Store); if the app needs it, Duolingo is out of scope. Firebase Installations answers 403 and Google Play services' Blockstore is missing; all are caught. No upstream report. | 1. Aurora stayed at "Installing", no launcher: `--install` ran the app's Application, providers and main activity: `main: do not run app code in --install`. 2. `NoSuchMethodError: Context.bindService(Intent, int, Executor, ServiceConnection)`: `api-impl: add Context.bindService with an Executor`. 3. `NotificationManager.getNotificationDelegate`, `JobInfo.Builder.setImportantWhileForeground`, `JobParameters.getNetwork`, `UsageStatsManager.getAppStandbyBucket`, `NetworkCapabilities.getLinkDownstreamBandwidthKbps`, `PreferenceManager.getDefaultSharedPreferencesName`: `api-impl: add methods Duolingo calls at start`. 4. `ArrayIndexOutOfBoundsException` in Mixpanel: `api-impl: DisplayManager.getDisplays: return the default display`. 5. "You need to use a Theme.AppCompat theme": the app's language context has its own AssetManager and `Theme.setTo` between two AssetManagers kept only the framework's entries: `api-impl: Resources.Theme.setTo: copy themes between AssetManagers`. 6. `LayoutInflater.createView` and `onCreateView` with a context (API 29): `api-impl: LayoutInflater: add createView and onCreateView with a context`. 7. WorkManager ignored all work "in non-main process": `ApplicationInfo.processName` stayed null without `android:process`: `api-impl: PackageParser: default the process name to the package name`. 8. Nothing that tracks activities saw any, `registerActivityLifecycleCallbacks` was a stub, so androidx's `ProcessLifecycleOwner` never put the app in the foreground and Duolingo's foreground startup tasks never ran: `api-impl: Application: call ActivityLifecycleCallbacks`; below API 29 `ProcessLifecycleOwner` also needs its `ReportFragment` by tag (Aurora crashed without it): `api-impl: FragmentManager: find fragments by tag`. 9. Network callbacks got no `onAvailable` at registration, default network callbacks none at all, and `NetworkCallback`/`NetworkRequest.Builder` were inner classes apps could not create: `api-impl: ConnectivityManager: report the network when a callback is registered`. 10. Then `NetworkRequest.Builder.removeCapability`, `Context.registerReceiver` with flags, `ConnectivityManager.getRestrictBackgroundStatus`, `AppOpsManager.checkOpNoThrow`, `ShortcutManager.getPinnedShortcuts`, `Context.getOpPackageName`, `StorageStatsManager` and `StorageManager.getStorageVolumes`: `api-impl: add more methods Duolingo calls at start`. 11. It still stayed on its empty splash screen with all threads idle: from API 29 androidx drives every activity's `Lifecycle` through `Activity.registerActivityLifecycleCallbacks` and its pre and post events, which was a stub, so the launch screen never got STARTED and never collected its route (found with ART method tracing, see [development environment](dev-environment.md)): `api-impl: Activity: call its own lifecycle callbacks, with the API 29 pre and post events`. 12. Then `Window.addOnFrameMetricsAvailableListener`: `api-impl: Window: accept frame metrics listeners`. 13. Its text views build fonts with the API 29 `android.graphics.fonts` classes (`Font$Builder` was missing): `api-impl: add android.graphics.fonts.Font, FontFamily and Typeface.CustomFallbackBuilder`. 14. The sign-in screen crashed on `TypedValue.isColorType`, `View.setAutofillHints` and `WindowInsets.inset`. Fixed together with the other framework methods Duolingo's own code calls, from a static list of missing references: `api-impl: WindowInsets: add the remaining inset getters and inset()`, `api-impl: add methods Duolingo's own code calls`. 15. GET STARTED aborted on `Vibrator.hasAmplitudeControl`, then `MediaPlayer.setDataSource(AssetFileDescriptor)` and `AudioManager.isHapticPlaybackSupported`; it now opens the coach screen ([screenshot](screenshots/duolingo-coach-2026-10-31.png)): `api-impl: Vibrator: add capability queries and VibrationEffect.Composition`, `api-impl: MediaPlayer: pause, stop, seek, loop, volume, release, prepared callback`. 16. The password field showed the text: `api-impl: EditText: honour inputType and the password transformation`. 17. On the phone (2026-10-31) SIGN IN, FACEBOOK and GOOGLE aborted with `NoSuchMethodError: Paint.setColor(long)`, followed by `getContentCaptureSession` and `getUniqueDrawingId`: the toast of the sign-in screen is the first Compose view, and R8 removed Compose's SDK checks because of minSdk 32, so the API 29 paths run under any `--sdk-int`: `api-impl: add the API 29 graphics and view methods Compose calls`. 18. SIGN IN then said "We're having trouble connecting to Duolingo" without sending a request: the app counts a network without `NET_CAPABILITY_NOT_SUSPENDED` as offline: `api-impl: ConnectivityManager: report the capabilities of an ordinary network`. Random data now gets the server's "Wrong username or password" ([screenshot](screenshots/duolingo-wrong-password-2026-10-31.png)), checked headless with `tools/atl-fill-text.c`. A correct login is an owner test. `RenderEffect` (blur) does nothing yet. All upstream candidates. |
 | [Gadgetbridge](https://f-droid.org/packages/nodomain.freeyourgadget.gadgetbridge/) (`nodomain.freeyourgadget.gadgetbridge`, F-Droid) | 0.95.1 (255) | branch `claude/gadgetbridge-notifications` | `partly` | Companion app for watches and bands, no Google services. ATL had no Bluetooth; [Bluetooth on BlueZ](bluetooth.md) is new. Headless (2026-11-02): welcome pages and device discovery, which found the owner's Amazfit Balance as a supported, already bonded watch ([screenshot](screenshots/gadgetbridge-discovery-2026-11-02.png)). On the owner's first phone test (2026-11-02) the pairing page hung: an activity started from `onCreate` was shown below its caller, and a page closed with back never sent `onActivityResult`; both fixed. Headless with a dummy auth key, Pair now connects to the real watch over GATT and runs Zepp OS authentication, which fails only on the dummy key. Syncing with the real key is an owner test (below). Phone notifications reach its listener when ATL runs with `ATL_ENABLE_NOTIFICATION_LISTENER=1` (headless with a test notification, 2026-11-02). F-Droid marked it incompatible because `getSystemAvailableFeatures` was empty, and its install page called it unsigned because the v3 signer (API 24+) was checked against the app's emulated API 23; both fixed. Missing: GATT server and RFCOMM for other device families ([audit](app-audit.md#gadgetbridge)) | `XmlBlock.nativeGetText` (aborted the first screen), `NotificationManager` do-not-disturb API, Bluetooth permissions granted when BlueZ has an adapter, `Intent.getShortExtra` |
 | [CoMaps](https://f-droid.org/packages/app.comaps.fdroid/) (`app.comaps.fdroid`, F-Droid) | 2026.10.05-19 (26100519) | PR #73, #70 (voice) | `partly` | Offline OSM maps and navigation, native C++ renderer on OpenGL ES 3 (`liborganicmaps.so`). Headless (2026-11-03): downloads the world overview map, then the main map screen with its buttons. The map surface now fills the screen (was a 400x400 corner plus a black box: `getSurfaceFrame` stub and offscreen EGL buffers not following resizes), but no map features are drawn yet (next step). Without `ATL_UGLY_ENABLE_LOCATION=1` it stays on the splash screen; with it, it needs `LocationManager.requestLocationUpdates(String, long, float, LocationListener, Looper)`, `addGpsStatusListener` and `registerGnssStatusCallback(Executor, ...)` from the location work (#61). Location through `LocationManager` on the location portal and GeoClue, only with `ATL_UGLY_ENABLE_LOCATION=1`. Voice guidance through speech-dispatcher (`spd-say`), not installed on the phone. Compass: the magnetometer (qmc6308) is readable but uncalibrated (about 370 µT instead of about 50), so no rotation vector is offered; needs hard-iron calibration, about 1-2 days. | `LocationManager` per-listener registrations, providers, last fix; `TextToSpeech` through speech-dispatcher; `FLAG_KEEP_SCREEN_ON`; asset `mark`/`reset` (its root certificate, then all downloads failed); `SurfaceView` 4-argument constructor (`getHolder()` was null); `SurfaceHolder.getSurfaceFrame`; offscreen EGL follows resizes; methods from its static list |
+| [GPSLogger](https://f-droid.org/packages/com.mendhak.gpslogger/) (`com.mendhak.gpslogger`, F-Droid) | 138 (138) | branch `claude/location-api` + `claude/battery-changed` | `partly` | Location tracker for the owner's Dawarich server (goal: measurements for the native Vestigia plan). Headless with `ATL_UGLY_ENABLE_LOCATION=1` and a fake location portal replaying a synthetic GPX: aborted at the first fix (`Location.setExtras` missing). After the `LocationManager` rewrite it logs every 10 s for 3 min (18 of 18 fixes, GPX file and its built-in Dawarich sender, Overland batches to a local test receiver). Open: background with the window closed, suspend (it re-arms `AlarmManager` `ELAPSED_REALTIME_WAKEUP` between fixes), Flatpak and portal permission. | `location: implement LocationManager registrations on the location portal`; Dawarich upload needs `os: sticky ACTION_BATTERY_CHANGED` (`getBatteryInfo` NPE) |
 | [Blokish](https://f-droid.org/packages/org.scoutant.blokish/) (`org.scoutant.blokish`, F-Droid) | 3.6 (24) | `01084c1c` | `partly` | Smoke test of the phone setup (2026-10-28), not a target app. Starts with the title bar and the four player colour bars at the bottom; the board (black area) is not drawn: GTK warns `Trying to measure WrapperWidget ... for width of 0, but it needs at least 252`. Not investigated further. No upstream report. [Screenshot](screenshots/blokish-2026-10-28.png). Started with `tools/headless-shot.sh -d 40 -- android-translation-layer org.scoutant.blokish_24.apk`. | Crashed at startup with `NoClassDefFoundError: android.view.animation.RotateAnimation`; fixed by `01084c1c api-impl: add RotateAnimation stub` (upstream candidate). |
 
 # Needs owner
@@ -38,6 +39,12 @@ entry: date, what, why. Remove an entry once it is done.
   pinch/drag move it. Voice guidance (#70) needs
   `sudo apk add speech-dispatcher espeak-ng`, then turn on voice in a
   route.
+
+- 2026-11-03: [Permissions decision record](hardening-roadmap.md#decision-record-where-permissions-are-shown-and-changed):
+  microphone decided (hard, through a pulse server without recording,
+  ATL's check first). Phone test once #68 is in the package: as `user`,
+  `systemctl --user status atl-pulse-norecord` (active) and, while an
+  ATL app plays sound, `pactl -s /run/user/$(id -u)/atl-pulse-norecord/native list short clients`.
 
 - 2026-10-28: Finish the apk repository in
   [nexumia-de/aports](https://github.com/nexumia-de/aports) (signing
@@ -71,31 +78,61 @@ entry: date, what, why. Remove an entry once it is done.
   and open an APK from the file manager
   ([installing apps](installing-apps.md#opening-an-apk-file)).
 
-- 2026-11-02: Gadgetbridge with the Amazfit Balance, as `user` (the
-  watch is a Zepp OS device: Gadgetbridge needs its auth key, see
-  Gadgetbridge's wiki page "Huami Server pairing"; close any other app
-  that talks to the watch first):
+- 2026-11-02: Gadgetbridge with the Amazfit Balance, after the aports
+  pin that includes ATL pull request #54 is published: `sudo apk upgrade`,
+  then as `user` (close any other app that talks to the watch first; in
+  Phosh's Bluetooth settings, "Forget" the watch if it is listed):
 
   ```sh
-  cd /home/claude/work/atl-gadgetbridge/builddir && env RUN_FROM_BUILDDIR=1 \
-    LD_LIBRARY_PATH=/home/claude/.atl-gadgetbridge/lib:/home/claude/.local/lib:/home/claude/.local/lib/art \
-    XDG_DATA_DIRS=/home/claude/.atl-gadgetbridge/share:/home/claude/.local/share:/usr/local/share:/usr/share \
-    ATL_ENABLE_NOTIFICATION_LISTENER=1 ./android-translation-layer /home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk \
+  ATL_ENABLE_NOTIFICATION_LISTENER=1 android-translation-layer \
+    /home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk \
     2>&1 | tee /tmp/gadgetbridge.log
   ```
 
-  Go through the welcome pages, "Add first device", Start discovery,
-  long-press "Amazfit Balance", enter the auth key under its settings,
-  then tap it, set "About you" or go back, and tap Pair. Report whether it shows "Connected", the battery
-  level and steps after a sync, and whether "Find device" vibrates the
-  watch. The log stays in `/tmp/gadgetbridge.log`.
-  Then lock the phone and let another app notify (a chat message, or
-  `notify-send Test Hello` in a terminal): it should appear on the watch.
-  `ATL_ENABLE_NOTIFICATION_LISTENER=1` gives Gadgetbridge every desktop
-  notification, like Android's notification access.
-  F-Droid's "incompatible" and the APK page's "unsigned" are fixed in this
-  build; in the packaged ATL only after its aports pin moves past this
-  pull request.
+  If the watch is already in Gadgetbridge's device list, remove it there
+  first. Then "+", Start discovery, long-press "Amazfit Balance", enter
+  the auth key under its settings (Gadgetbridge's wiki page "Huami Server
+  pairing"), tap it, go back from "About you", tap Pair, and in ATL's
+  "Bluetooth pairing request" dialog check that the watch shows the same
+  code and tap Pair. Report whether it shows "Connected" and the battery,
+  whether the sync button (circular arrow) fetches steps, and whether it
+  reconnects by itself after the watch was out of range or Bluetooth was
+  off and on, and after the phone was suspended. Then let another app
+  notify (`notify-send Test Hello`): it should appear on the watch. The
+  log stays in `/tmp/gadgetbridge.log`.
+
+- 2026-11-03: Gadgetbridge notification forwarding (after the aports pin
+  includes the `claude/gb-notifications` pull request), as `user` with
+  the command above and the watch connected: lock the phone, then send a
+  Chatty message to the phone and run `notify-send Test Hello`. Both
+  should appear on the watch with the sending app's name (Chats,
+  notify-send), Gadgetbridge's own "Connected" notification should not.
+  Dismiss the Chatty notification on the phone: report whether it also
+  disappears on the watch. The log stays in `/tmp/gadgetbridge.log`.
+
+- 2026-11-03: Location tracking for Dawarich (GPSLogger; pull requests
+  #61 location, #62 battery, #63 foreground services, wake locks next).
+  Three decisions, each with the agent's recommendation:
+  1. Background location (`ACCESS_BACKGROUND_LOCATION`): an app gets
+     locations while it has a window or a foreground service (shown by
+     its ongoing notification), as on Android 10+; without either only
+     if you allow it per app (default no). Recommended: yes, as proposed
+     in #58.
+  2. Suspend while tracking: Phosh cannot wake from suspend for an
+     Android alarm (that needs `CAP_WAKE_ALARM`, i.e. root), and GPSLogger
+     sleeps between fixes on `AlarmManager` wake-up alarms. Recommended:
+     while an app runs a foreground service and has a location session or
+     a wake-up alarm due within 15 minutes, ATL inhibits suspend (screen
+     off still allowed). The battery cost is measured in the phone test.
+  3. Autostart after reboot (`RECEIVE_BOOT_COMPLETED`): recommended no for
+     now; start the tracker by hand after a reboot.
+
+  Check on the phone, as `user` (prints no coordinates):
+  `/usr/libexec/geoclue-2.0/demos/where-am-i -t 60 -a 8 | grep -i -E 'accuracy|error|fail'`
+  and say whether a GNSS fix comes (accuracy under 50 m) outdoors.
+  `/etc/geoclue/geoclue.conf` has no `[xdg-desktop-portal]` section and no
+  Wi-Fi `url`, so the location portal depends on Phosh's geoclue agent and
+  on the modem GNSS (`[modem-gps]`); as `claude` geoclue timed out.
 
 # Notes
 
