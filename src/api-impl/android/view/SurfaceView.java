@@ -36,8 +36,14 @@ public class SurfaceView extends View {
 		mSurface.widget = this.widget;
 	}
 
+	/* size from the last surfaceChanged, for SurfaceHolder.getSurfaceFrame */
+	private int surfaceWidth = -1;
+	private int surfaceHeight = -1;
+
 	@Export
 	private void surfaceChanged(int format, int width, int height) {
+		surfaceWidth = width;
+		surfaceHeight = height;
 		for (SurfaceHolder.Callback c : mCallbacks) {
 			c.surfaceChanged(mSurfaceHolder, format, width, height);
 		}
@@ -228,8 +234,9 @@ public class SurfaceView extends View {
 
 		@Override
 		public Rect getSurfaceFrame() {
-			//		return mSurfaceFrame;
-			return new Rect(0, 0, 400, 400);
+			if (surfaceWidth < 0)
+				return new Rect(0, 0, getWidth(), getHeight());
+			return new Rect(0, 0, surfaceWidth, surfaceHeight);
 		}
 	};
 
