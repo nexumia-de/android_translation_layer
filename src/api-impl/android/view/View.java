@@ -2837,4 +2837,8 @@ public class View implements Drawable.Callback {
 		if (background != null && background.isStateful() && background.setState(getDrawableState()))
 			invalidate();
 	}
+
+	public boolean onHoverEvent(MotionEvent event) {
+		return false;
+	}
 }

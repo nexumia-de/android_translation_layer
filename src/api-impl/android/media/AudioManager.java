@@ -167,4 +167,6 @@ public class AudioManager {
 	public void unregisterAudioDeviceCallback(AudioDeviceCallback callback) {}
 
 	public void playSoundEffect(int effectType) {}
+
+	public void playSoundEffect(int effectType, float volume) {}
 }
