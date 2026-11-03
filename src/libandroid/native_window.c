@@ -111,22 +111,31 @@ typedef struct ANativeWindow_Buffer {
  */
 void ANativeWindow_acquire(struct ANativeWindow *native_window)
 {
-	native_window->refcount++;
+	g_atomic_int_inc(&native_window->refcount);
+}
+
+/* runs on the main thread, so it cannot race with on_resize */
+static gboolean native_window_free(gpointer data)
+{
+	struct ANativeWindow *native_window = data;
+	if (native_window->resize_handler) {
+		g_clear_signal_handler(&native_window->resize_handler, native_window->surface_view_widget);
+		g_object_unref(native_window->surface_view_widget);
+	}
+	if (native_window->wayland_display) {
+		wl_egl_window_destroy((struct wl_egl_window *)native_window->egl_window);
+		wl_surface_destroy(native_window->wayland_surface);
+	} else if (native_window->x11_display) {
+		XDestroyWindow(native_window->x11_display, native_window->egl_window);
+	}
+	free(native_window);
+	return G_SOURCE_REMOVE;
 }
 
 void ANativeWindow_release(struct ANativeWindow *native_window)
 {
-	native_window->refcount--;
-	if (native_window->refcount == 0) {
-		g_clear_signal_handler(&native_window->resize_handler, native_window->surface_view_widget);
-		if (native_window->wayland_display) {
-			wl_egl_window_destroy((struct wl_egl_window *)native_window->egl_window);
-			wl_surface_destroy(native_window->wayland_surface);
-		} else if (native_window->x11_display) {
-			XDestroyWindow(native_window->x11_display, native_window->egl_window);
-		}
-		free(native_window);
-	}
+	if (g_atomic_int_dec_and_test(&native_window->refcount))
+		g_main_context_invoke(NULL, native_window_free, native_window);
 }
 
 int32_t ANativeWindow_getWidth(struct ANativeWindow *native_window)
@@ -388,8 +397,11 @@ ANativeWindow *ANativeWindow_fromSurface(JNIEnv *env, jobject surface)
 #pragma GCC diagnostic pop
 	}
 
-	if (native_window->resize_handler == 0)
+	if (native_window->resize_handler == 0) {
+		/* kept until native_window_free, which disconnects on the main thread */
+		g_object_ref(surface_view_widget);
 		native_window->resize_handler = g_signal_connect(surface_view_widget, "resize", G_CALLBACK(on_resize), native_window);
+	}
 
 	return native_window;
 }

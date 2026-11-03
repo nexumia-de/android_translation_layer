@@ -137,6 +137,7 @@ public class Window {
 		this.params = params;
 		setLayout(params.width, params.height);
 		update_dim();
+		decorView.setKeepScreenOn((params.flags & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0);
 	}
 
 	public void takeSurface(SurfaceHolder.Callback2 callback) {}

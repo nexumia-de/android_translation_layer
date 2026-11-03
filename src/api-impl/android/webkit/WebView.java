@@ -20,9 +20,9 @@ public class WebView extends ViewGroup {
 	private WebViewClient webViewClient;
 	private final WebSettings settings = new WebSettings();
 
-	/* in CSS pixels on Android; the view height is the closest ATL knows */
+	/* the document height WebKitGTK reports, in CSS pixels as on Android */
 	public int getContentHeight() {
-		return getHeight();
+		return contentHeight;
 	}
 	private int contentHeight;
 
