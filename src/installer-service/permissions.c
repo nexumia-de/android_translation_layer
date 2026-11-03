@@ -279,13 +279,17 @@ static void dialog_answered(GObject *source, GAsyncResult *res, gpointer user_da
 	g_variant_get(reply, "(u@a{sv})", &response, NULL);
 	g_variant_unref(reply);
 	gboolean yes = response == 0;
-	/* the count as stored now, not as it was when the dialog opened */
-	int denials;
-	stored_answer(r->bus, r->app_id, r->permission, &denials);
-	store_answer(r->bus, r->app_id, r->permission, yes, yes ? 0 : denials + 1);
-	if (!strcmp(r->permission, "android.permission.RECORD_AUDIO"))
-		apply_microphone_answer(r->app_id, yes);
-	g_message("%s %s: %s", r->app_id, r->permission, yes ? "yes" : "no");
+	/* 1 is "Deny"; anything else (2: dismissed) is no answer: "no" for now, nothing stored, so it
+	 * does not count toward the two denials after which the app may not ask again */
+	if (response <= 1) {
+		/* the count as stored now, not as it was when the dialog opened */
+		int denials;
+		stored_answer(r->bus, r->app_id, r->permission, &denials);
+		store_answer(r->bus, r->app_id, r->permission, yes, yes ? 0 : denials + 1);
+		if (!strcmp(r->permission, "android.permission.RECORD_AUDIO"))
+			apply_microphone_answer(r->app_id, yes);
+	}
+	g_message("%s %s: %s (response %u)", r->app_id, r->permission, yes ? "yes" : "no", response);
 	request_answer(r, yes ? "yes" : "no");
 	request_free(r);
 }
@@ -316,9 +320,10 @@ static void handle(GDBusMethodInvocation *invocation, const char *method, GVaria
 	}
 	GDBusConnection *bus = g_dbus_method_invocation_get_connection(invocation);
 	/* like Android: what the manifest does not request is denied without asking */
+	/* background location only while the location portal grants foreground location: for Check and
+	 * Request, also after an earlier "yes" */
 	if (!app_requests(app_id, permission) ||
-	    (!strcmp(method, "Request") && !strcmp(permission, "android.permission.ACCESS_BACKGROUND_LOCATION") &&
-	     !foreground_location_granted(bus, app_id))) {
+	    (!strcmp(permission, "android.permission.ACCESS_BACKGROUND_LOCATION") && !foreground_location_granted(bus, app_id))) {
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(s)", "no"));
 		g_free(app_id);
 		return;

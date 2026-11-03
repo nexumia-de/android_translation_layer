@@ -63,6 +63,12 @@ check "  ...without a dialog" "fast" "$([ $(($(date +%s) - start)) -lt 3 ] && ec
 gdbus call --session --dest org.freedesktop.impl.portal.PermissionStore --object-path /org/freedesktop/impl/portal/PermissionStore \
 	--method org.freedesktop.impl.portal.PermissionStore.SetPermission location true location $id "['EXACT', '0']" >/dev/null
 check "background location with foreground location (Allow)" "'yes'" "$(call Request android.permission.ACCESS_BACKGROUND_LOCATION)"
+check "  ...Check says yes" "'yes'" "$(call Check android.permission.ACCESS_BACKGROUND_LOCATION)"
+# the user revokes location in GNOME Settings
+gdbus call --session --dest org.freedesktop.impl.portal.PermissionStore --object-path /org/freedesktop/impl/portal/PermissionStore \
+	--method org.freedesktop.impl.portal.PermissionStore.SetPermission location true location $id "['NONE', '0']" >/dev/null
+check "  ...Check after the portal grant was revoked" "'no'" "$(call Check android.permission.ACCESS_BACKGROUND_LOCATION)"
+check "  ...Request after the portal grant was revoked" "'no'" "$(call Request android.permission.ACCESS_BACKGROUND_LOCATION)"
 # the installer service: an app without access must not reach it, also not through the unique name
 unique=$(gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.GetNameOwner de.nexumia.atl.Installer | sed "s/[(',)]//g")
 check "installer refuses an app without access" AccessDenied "$(installer_list $T/info de.nexumia.atl.Installer)"
