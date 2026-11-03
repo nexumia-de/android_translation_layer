@@ -665,6 +665,9 @@ static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject ap
 		g_ptr_array_add(argv, g_strdup("-P"));
 		g_ptr_array_add(argv, g_strdup(permissions));
 	}
+	/* for the legacy permission review: apps made for Android before 6 */
+	g_ptr_array_add(argv, g_strdup("-T"));
+	g_ptr_array_add(argv, g_strdup_printf("%d", J__Application__get_target_sdk_version(env, application_object)));
 	char *version = jstring_dup(env, J__Application__get_version_name(env, application_object));
 	if (version && *version) {
 		g_ptr_array_add(argv, g_strdup("-V"));

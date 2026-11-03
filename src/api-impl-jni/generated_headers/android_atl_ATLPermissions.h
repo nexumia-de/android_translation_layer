@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     android_atl_ATLPermissions
+ * Method:    nativeReview
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_android_atl_ATLPermissions_nativeReview
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     android_atl_ATLPermissions
  * Method:    nativeCall
  * Signature: (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
  */
