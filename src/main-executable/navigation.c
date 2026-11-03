@@ -4,6 +4,7 @@
  * before onBackPressed. See docs/navigation.md. */
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../api-impl-jni/app/android_app_Activity.h"

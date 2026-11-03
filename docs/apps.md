@@ -86,6 +86,20 @@ entry: date, what, why. Remove an entry once it is done.
   F-Droid's "incompatible" and the APK page's "unsigned" are fixed in this
   build; in the packaged ATL only after its aports pin moves past this
   pull request.
+- 2026-11-03: [Back navigation](navigation.md) (pull request from
+  `claude/navigation`): decide the default of `ATL_NAVIGATION`
+  (`buttons`, `gesture` or `both`, proposed `both`) and whether the
+  choice later lives per app or globally in the settings app
+  ([decision](decisions/navigation.md)). Then, once the aports pin
+  includes it, as `user` on the phone with the packaged ATL:
+  `android-translation-layer <app>.apk 2>&1 | tee /tmp/nav.log` with
+  Gadgetbridge or F-Droid, open a second page, swipe from the left edge
+  about a third of the screen inwards: the app goes back; a short swipe,
+  a tap at the edge and a vertical scroll at the edge must not go back.
+  Repeat from the right edge, and with a keyboard (Escape, Alt+Left).
+  `ATL_NAVIGATION=gesture android-translation-layer ...` hides the header
+  back button, `ATL_NAVIGATION=buttons` turns the swipe off. Report what
+  went wrong; `/tmp/nav.log` shows `onBackPressed() called`.
 
 # Notes
 
