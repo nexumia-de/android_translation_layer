@@ -60,9 +60,11 @@ On the owner's phone (Fairphone 6, postmarketOS, measured 2026-11-03):
    holds a sleep inhibitor for a short window (30 s) after each wake.
    Packaged with ATL (aports); the owner enables it.
 3. **ATL apps run their due alarms in that window.** `AlarmManager`
-   schedules on the boot clock and wall clock, notices the resume
-   (logind `PrepareForSleep(false)`) and delivers every due alarm at once,
-   each under a partial wake lock limited to the window. Alarms that fall
+   schedules on the boot clock and wall clock and checks at least every
+   5 seconds (a wait's clock stops in suspend, so this is how it notices
+   the resume; logind's `PrepareForSleep` is not reachable from a Flatpak
+   sandbox), then delivers every due alarm, each under its own partial
+   wake lock of at most 10 seconds. Alarms that fall
    between windows are delivered in the next window, like Android's Doze.
 4. **The interval is a user setting** in the "Android apps" settings page:
    off, 5, 15 (default until measured) or 30 minutes. The page changes the
