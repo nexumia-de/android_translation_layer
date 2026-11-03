@@ -13,6 +13,8 @@ public class AccessibilityManager {
 
 	public boolean isEnabled() { return false; }
 
+	public void sendAccessibilityEvent(AccessibilityEvent event) {}
+
 	public List getEnabledAccessibilityServiceList(int feedbackTypeFlags) {
 		return new ArrayList<>();
 	}
