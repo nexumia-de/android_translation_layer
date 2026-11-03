@@ -151,6 +151,7 @@ public abstract class Context {
 	protected static native void nativeShareCopy(String text, int fd);
 	protected static native void nativeShareEmail(String text, int fd);
 	private static native void nativeExportUnifiedPush(String packageName);
+	protected static native boolean nativeHasDBusName(String name);
 	private static native String nativeUnifiedPushDistributor();
 	private static native String nativeRegisterUnifiedPush(String token, String application, String description);
 	private static native void nativeUnregisterUnifiedPush(String token);

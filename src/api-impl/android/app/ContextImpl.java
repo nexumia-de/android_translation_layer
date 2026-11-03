@@ -248,6 +248,35 @@ public final class ContextImpl extends Context {
 		return this.atl_loaded_app.class_loader;
 	}
 
+	/*
+	 * Cloud Messaging registrations go to an external Google Play services over D-Bus, which
+	 * talks to Google's servers. Without the app's consent (atl.google-services) or without such
+	 * a service, answer at once with SERVICE_NOT_AVAILABLE, as Google Play services does when it
+	 * cannot reach Google, instead of leaving the request without an answer.
+	 */
+	private boolean c2dmRegisterUnavailable(Intent intent) {
+		if (!"com.google.android.c2dm.intent.REGISTER".equals(intent.getAction()))
+			return false;
+		boolean allowed = checkSelfPermission(android.atl.ATLToggles.GOOGLE_SERVICES_PERMISSION) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+		if (allowed && nativeHasDBusName("com.google.android.gms"))
+			return false;
+		Slog.w(TAG, "c2dm REGISTER: " + (allowed ? "no Google Play services on the session bus" : "no consent for Google services") + ", answering SERVICE_NOT_AVAILABLE");
+		String error = "SERVICE_NOT_AVAILABLE";
+		String kid = intent.getStringExtra("kid"); // request id of the old InstanceID protocol, "|ID|<n>|"
+		if (kid != null && kid.startsWith("|ID|"))
+			error = kid + error;
+		final Intent response = new Intent("com.google.android.c2dm.intent.REGISTRATION");
+		response.setPackage(getPackageName());
+		response.putExtra("error", error);
+		new Handler(Looper.getMainLooper()).post(new Runnable() {
+			@Override
+			public void run() {
+				sendBroadcast(response);
+			}
+		});
+		return true;
+	}
+
 	public ComponentName startService(Intent intent) {
 		// One way Messenger interface for GCM. Request per intent and response per Messenger.
 		// Wrap the response part in a BroadcastReceiver for compatibility with our gcm_service
@@ -264,6 +293,8 @@ public final class ContextImpl extends Context {
 				}
 			}, new IntentFilter("com.google.android.c2dm.intent.REGISTRATION"));
 		}
+		if (c2dmRegisterUnavailable(intent))
+			return null;
 		ATLLoadedApp targetApp = this.atl_get_intent_target(intent);
 		// Cloud Messaging (c2dm) intents should always be started using DBus. Delivering them to the in process gstub is pointless
 		if (targetApp == null || (intent.getAction() != null && intent.getAction().startsWith("com.google.android.c2dm"))) {
@@ -304,7 +335,8 @@ public final class ContextImpl extends Context {
 					Intent requestIntent = new Intent("com.google.android.c2dm.intent.REGISTER");
 					requestIntent.setPackage("com.google.android.gms");
 					requestIntent.putExtras(requestMessage.getData().getBundle("data"));
-					nativeStartExternalService(requestIntent);
+					if (!c2dmRegisterUnavailable(requestIntent))
+						nativeStartExternalService(requestIntent);
 				}
 			});
 			serviceConnection.onServiceConnected(intent.getComponent(), requestMessenger.getBinder());

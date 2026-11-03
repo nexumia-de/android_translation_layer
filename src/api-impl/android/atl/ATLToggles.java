@@ -11,6 +11,14 @@ public final class ATLToggles {
 	 */
 	public static final boolean ATL_GMS_STUB = queryBooleanToggle("ATL_GMS_STUB", false);
 
+	/** ATL's permission for an app to contact Google's servers (FCM push and the like). */
+	public static final String GOOGLE_SERVICES_PERMISSION = "atl.google-services";
+	/**
+	 * Grant GOOGLE_SERVICES_PERMISSION to this app. Stand-in until the per-app consent dialog
+	 * exists; off by default.
+	 */
+	public static final boolean ATL_GOOGLE_SERVICES = queryBooleanToggle("ATL_GOOGLE_SERVICES", false);
+
 	private ATLToggles() {}
 
 	private static boolean queryBooleanToggle(String name, boolean def) {

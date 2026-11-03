@@ -1907,6 +1907,10 @@ public class PackageManager {
 			case "android.permission.BLUETOOTH_CONNECT":
 			case "android.permission.BLUETOOTH_SCAN":
 				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null ? PERMISSION_GRANTED : PERMISSION_DENIED;
+			// ATL's own consent to contact Google's servers (FCM push and the like), denied by
+			// default. Until the consent dialog exists only ATL_GOOGLE_SERVICES=1 grants it.
+			case android.atl.ATLToggles.GOOGLE_SERVICES_PERMISSION:
+				return android.atl.ATLToggles.ATL_GOOGLE_SERVICES ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			case "android.permission.REQUEST_INSTALL_PACKAGES":
 				return canRequestPackageInstalls() ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			// only tell the app that it can access location if it *actually* can

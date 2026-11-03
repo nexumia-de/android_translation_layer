@@ -218,11 +218,21 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeShareEmail(JNIEnv *env
 	g_object_unref(connection);
 }
 
-static void on_bus_acquired(GDBusConnection *connection, const char *name, gpointer user_data)
+/* The distributor calls the app's package name; own it before anyone hears of it. ATL requests
+ * the same name for the app window later, which then is a no-op. */
+static void unifiedpush_own_name(GDBusConnection *connection, const char *application)
 {
-	Connector1 *connector1 = user_data;
-	g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(connector1),
-	                                 connection, "/org/unifiedpush/Connector", NULL);
+	GError *error = NULL;
+	GVariant *ret = g_dbus_connection_call_sync(connection, "org.freedesktop.DBus", "/org/freedesktop/DBus",
+	                                            "org.freedesktop.DBus", "RequestName",
+	                                            g_variant_new("(su)", application, G_BUS_NAME_OWNER_FLAGS_NONE),
+	                                            G_VARIANT_TYPE("(u)"), G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+	if (error) {
+		printf("UnifiedPush: cannot own %s: %s\n", application, error->message);
+		g_error_free(error);
+	} else {
+		g_variant_unref(ret);
+	}
 }
 
 static gboolean on_new_endpoint(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
@@ -298,26 +308,31 @@ static gboolean on_unregistered(Connector1 *connector, GDBusMethodInvocation *in
 
 JNIEXPORT void JNICALL Java_android_content_Context_nativeExportUnifiedPush(JNIEnv *env, jclass this, jstring application_jstr)
 {
-	const char *application = (*env)->GetStringUTFChars(env, application_jstr, NULL);
-
-	Connector1 *connector1 = connector1_skeleton_new();
+	static Connector1 *connector1 = NULL;
+	if (connector1)
+		return;
+	GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!connection)
+		return;
+	connector1 = connector1_skeleton_new();
 	g_signal_connect(connector1, "handle-new-endpoint", G_CALLBACK(on_new_endpoint), NULL);
 	g_signal_connect(connector1, "handle-message", G_CALLBACK(on_message), NULL);
 	g_signal_connect(connector1, "handle-unregistered", G_CALLBACK(on_unregistered), NULL);
-	g_bus_own_name(G_BUS_TYPE_SESSION, application, G_BUS_NAME_OWNER_FLAGS_NONE,
-	               on_bus_acquired, NULL, NULL, connector1, NULL);
+	GError *error = NULL;
+	if (!g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(connector1), connection, "/org/unifiedpush/Connector", &error)) {
+		printf("UnifiedPush: cannot export the connector: %s\n", error->message);
+		g_error_free(error);
+	}
+	const char *application = (*env)->GetStringUTFChars(env, application_jstr, NULL);
+	unifiedpush_own_name(connection, application);
 	(*env)->ReleaseStringUTFChars(env, application_jstr, application);
+	g_object_unref(connection);
 }
 
-#define UNIFIEDPUSH_DISTRIBUTOR_PREFIX "org.unifiedpush.Distributor."
-
-/* The UnifiedPush D-Bus spec: distributors own a name below org.unifiedpush.Distributor.
- * Prefer one that runs, then one that D-Bus can start. ATL_UNIFIEDPUSH_DISTRIBUTOR picks one. */
-static char *unifiedpush_find_distributor(GDBusConnection *connection)
+/* First name on the session bus that is `name`, or starts with `name` if prefix is set; running
+ * names before ones D-Bus can start. */
+static char *dbus_find_name(GDBusConnection *connection, const char *name, gboolean prefix)
 {
-	const char *chosen = getenv("ATL_UNIFIEDPUSH_DISTRIBUTOR");
-	if (chosen && *chosen)
-		return g_strdup(chosen);
 	const char *methods[] = {"ListNames", "ListActivatableNames"};
 	for (int i = 0; i < 2; i++) {
 		GVariant *names = g_dbus_connection_call_sync(connection, "org.freedesktop.DBus", "/org/freedesktop/DBus",
@@ -326,12 +341,12 @@ static char *unifiedpush_find_distributor(GDBusConnection *connection)
 		if (!names)
 			continue;
 		GVariantIter *iter;
-		const char *name;
+		const char *candidate;
 		char *found = NULL;
 		g_variant_get(names, "(as)", &iter);
-		while (!found && g_variant_iter_next(iter, "&s", &name)) {
-			if (g_str_has_prefix(name, UNIFIEDPUSH_DISTRIBUTOR_PREFIX))
-				found = g_strdup(name);
+		while (!found && g_variant_iter_next(iter, "&s", &candidate)) {
+			if (prefix ? g_str_has_prefix(candidate, name) : !strcmp(candidate, name))
+				found = g_strdup(candidate);
 		}
 		g_variant_iter_free(iter);
 		g_variant_unref(names);
@@ -339,6 +354,30 @@ static char *unifiedpush_find_distributor(GDBusConnection *connection)
 			return found;
 	}
 	return NULL;
+}
+
+JNIEXPORT jboolean JNICALL Java_android_content_Context_nativeHasDBusName(JNIEnv *env, jclass this, jstring name_jstr)
+{
+	GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!connection)
+		return JNI_FALSE;
+	const char *name = (*env)->GetStringUTFChars(env, name_jstr, NULL);
+	char *found = dbus_find_name(connection, name, FALSE);
+	(*env)->ReleaseStringUTFChars(env, name_jstr, name);
+	g_object_unref(connection);
+	jboolean ret = found ? JNI_TRUE : JNI_FALSE;
+	g_free(found);
+	return ret;
+}
+
+/* The UnifiedPush D-Bus spec: distributors own a name below org.unifiedpush.Distributor.
+ * ATL_UNIFIEDPUSH_DISTRIBUTOR picks one. */
+static char *unifiedpush_find_distributor(GDBusConnection *connection)
+{
+	const char *chosen = getenv("ATL_UNIFIEDPUSH_DISTRIBUTOR");
+	if (chosen && *chosen)
+		return g_strdup(chosen);
+	return dbus_find_name(connection, "org.unifiedpush.Distributor.", TRUE);
 }
 
 JNIEXPORT jstring JNICALL Java_android_content_Context_nativeUnifiedPushDistributor(JNIEnv *env, jclass this)
@@ -374,6 +413,7 @@ JNIEXPORT jstring JNICALL Java_android_content_Context_nativeRegisterUnifiedPush
 	GError *error = NULL;
 	char *result = NULL;
 	char *reason = NULL;
+	unifiedpush_own_name(connection, application);
 	Distributor1 *distributor1 = distributor1_proxy_new_sync(connection, 0, name, "/org/unifiedpush/Distributor", NULL, &error);
 	if (distributor1)
 		distributor1_call_register_sync(distributor1, application, token, description, &result, &reason, NULL, &error);

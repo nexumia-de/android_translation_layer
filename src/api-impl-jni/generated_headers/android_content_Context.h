@@ -69,6 +69,14 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeExportUnifiedPush
 
 /*
  * Class:     android_content_Context
+ * Method:    nativeHasDBusName
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_android_content_Context_nativeHasDBusName
+  (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     android_content_Context
  * Method:    nativeUnifiedPushDistributor
  * Signature: ()Ljava/lang/String;
  */
