@@ -248,6 +248,43 @@ public final class ContextImpl extends Context {
 		return this.atl_loaded_app.class_loader;
 	}
 
+	/*
+	 * Cloud Messaging intents and services of com.google.android.gms that ATL does not run in the
+	 * app's process go to an external Google Play services over D-Bus, which talks to Google's
+	 * servers and may be started by D-Bus for the call. Without the app's consent
+	 * (atl.google-services) or without such a service, drop them; registrations get
+	 * SERVICE_NOT_AVAILABLE at once, as Google Play services answers when it cannot reach Google.
+	 * Returns true if the intent was dropped.
+	 */
+	private boolean googleServiceUnavailable(Intent intent) {
+		String action = intent.getAction();
+		String pkg = intent.getPackage();
+		if (pkg == null && intent.getComponent() != null)
+			pkg = intent.getComponent().getPackageName();
+		if (!(action != null && action.startsWith("com.google.android.c2dm")) && !"com.google.android.gms".equals(pkg))
+			return false;
+		boolean allowed = checkSelfPermission(android.atl.ATLToggles.GOOGLE_SERVICES_PERMISSION) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+		if (allowed && nativeHasDBusName("com.google.android.gms"))
+			return false;
+		Slog.w(TAG, action + " to Google Play services: " + (allowed ? "none on the session bus" : "no consent for Google services") + ", dropped");
+		if (!"com.google.android.c2dm.intent.REGISTER".equals(action) && !"com.google.android.c2dm.intent.UNREGISTER".equals(action))
+			return true;
+		String error = "SERVICE_NOT_AVAILABLE";
+		String kid = intent.getStringExtra("kid"); // request id of the old InstanceID protocol, "|ID|<n>|"
+		if (kid != null && kid.startsWith("|ID|"))
+			error = kid + error;
+		final Intent response = new Intent("com.google.android.c2dm.intent.REGISTRATION");
+		response.setPackage(getPackageName());
+		response.putExtra("error", error);
+		new Handler(Looper.getMainLooper()).post(new Runnable() {
+			@Override
+			public void run() {
+				sendBroadcast(response);
+			}
+		});
+		return true;
+	}
+
 	public ComponentName startService(Intent intent) {
 		// One way Messenger interface for GCM. Request per intent and response per Messenger.
 		// Wrap the response part in a BroadcastReceiver for compatibility with our gcm_service
@@ -256,6 +293,7 @@ public final class ContextImpl extends Context {
 			this.registerReceiver(new BroadcastReceiver() {
 				@Override
 				public void onReceive(Context context, Intent resultIntent) {
+					unregisterReceiver(this); // one reply per request
 					try {
 						messenger.send(Message.obtain(null, 0, resultIntent));
 					} catch (RemoteException e) {
@@ -268,6 +306,9 @@ public final class ContextImpl extends Context {
 		// Cloud Messaging (c2dm) intents should always be started using DBus. Delivering them to the in process gstub is pointless
 		if (targetApp == null || (intent.getAction() != null && intent.getAction().startsWith("com.google.android.c2dm"))) {
 			// External package. Try to start using DBus Action
+			// also for intents with only a component, which get their answer there
+			if (googleServiceUnavailable(intent))
+				return null;
 			if (intent.getPackage() != null)
 				nativeStartExternalService(intent);
 			return null;
@@ -288,6 +329,7 @@ public final class ContextImpl extends Context {
 					registerReceiver(new BroadcastReceiver() {
 						@Override
 						public void onReceive(Context context, Intent responseIntent) {
+							unregisterReceiver(this); // one reply per request
 							try {
 								// map response Intent to Message
 								Message responseMessage = Message.obtain(null, 0, request_id, 0);
@@ -304,7 +346,8 @@ public final class ContextImpl extends Context {
 					Intent requestIntent = new Intent("com.google.android.c2dm.intent.REGISTER");
 					requestIntent.setPackage("com.google.android.gms");
 					requestIntent.putExtras(requestMessage.getData().getBundle("data"));
-					nativeStartExternalService(requestIntent);
+					if (!googleServiceUnavailable(requestIntent))
+						nativeStartExternalService(requestIntent);
 				}
 			});
 			serviceConnection.onServiceConnected(intent.getComponent(), requestMessenger.getBinder());

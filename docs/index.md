@@ -22,6 +22,7 @@ Change history is in [log.md](log.md).
 * [App status](apps.md) - Every Android app tried with ATL, its state, the cause of failures and the fixes.
 * [App audit](app-audit.md) - Per app and feature: what works, what is stubbed or missing, what is wrong or untested, with the evidence.
 * [Google Play services compatibility](gms-compat.md) - GMS, Firebase and Play APIs in the tested apps, local or server-only, why a local GMS needs Google's certificate, and `ATL_GMS_STUB`.
+* [Push messages](push.md) - FCM, UnifiedPush or own connection per app, why FCM cannot be routed to ntfy, the UnifiedPush D-Bus bridge, Linux distributors.
 * [Bluetooth on BlueZ](bluetooth.md) - How android.bluetooth maps onto BlueZ over D-Bus: adapter, discovery, bonding, GATT client, notifications; what is not implemented and how to test.
 * [Android keyboards as the Phosh keyboard](android-keyboard.md) - Feasibility of HeliBoard as Phosh OSK through ATL's IME host: sm.puri.OSK0, input-method-v2, existing host, gaps, size M, risks.
 * [Installing apps with F-Droid and Aurora Store](installing-apps.md) - How ATL installs, lists and uninstalls APKs, also split APKs from Google Play, how to set up F-Droid and Aurora Store, and the gaps.
