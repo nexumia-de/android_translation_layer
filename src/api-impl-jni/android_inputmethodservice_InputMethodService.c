@@ -73,6 +73,7 @@ handle_activate(void *data,
 	osk.surrounding[0] = '\0';
 	osk.content_hint = 0;
 	osk.content_purpose = 0;
+	osk.compositing[0] = '\0'; /* the old field's preedit */
 	osk.pending_activate = TRUE;
 	osk.pending_deactivate = FALSE;
 }
@@ -83,6 +84,7 @@ handle_deactivate(void *data,
 {
 	osk.pending_deactivate = TRUE;
 	osk.pending_activate = FALSE;
+	osk.compositing[0] = '\0';
 }
 
 static void
@@ -148,6 +150,7 @@ static gboolean retry_input_method(gpointer user_data)
 {
 	if (!osk.input_method && osk.input_method_manager) {
 		osk.input_method = zwp_input_method_manager_v2_get_input_method(osk.input_method_manager, osk.seat);
+		osk.serial = 0; /* counts the done events of this input method object */
 		zwp_input_method_v2_add_listener(osk.input_method, &input_method_listener, &osk);
 		wl_display_flush(osk.display);
 	}
@@ -158,7 +161,10 @@ static void
 handle_unavailable(void *data,
                    struct zwp_input_method_v2 *zwp_input_method_v2)
 {
-	INFO("Input method unavailable (another keyboard has it), retrying every second");
+	static gboolean logged = FALSE;
+	if (!logged)
+		INFO("Input method unavailable (another keyboard has it), retrying every second");
+	logged = TRUE;
 	zwp_input_method_v2_destroy(osk.input_method);
 	osk.input_method = NULL;
 	g_timeout_add_seconds(1, retry_input_method, NULL);
