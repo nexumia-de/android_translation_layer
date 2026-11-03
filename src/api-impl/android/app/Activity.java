@@ -884,6 +884,8 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 				for (int i = 0; i < permissions.length; i++) {
 					if (android.atl.ATLPermissions.deniedWithoutAsking(permissions[i], permissions))
 						grantResults[i] = PackageManager.PERMISSION_DENIED;
+					else if (android.atl.ATLPermissions.BACKGROUND_LOCATION.equals(permissions[i]) && android.atl.ATLPaths.in_flatpak)
+						grantResults[i] = android.atl.ATLPermissions.backgroundLocationReported() ? PackageManager.PERMISSION_GRANTED : PackageManager.PERMISSION_DENIED;
 					else if (android.atl.ATLPermissions.decidedByService(permissions[i]))
 						grantResults[i] = android.atl.ATLPermissions.request(permissions[i]) ? PackageManager.PERMISSION_GRANTED : PackageManager.PERMISSION_DENIED;
 					else

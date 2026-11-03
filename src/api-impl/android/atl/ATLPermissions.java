@@ -60,14 +60,24 @@ public final class ATLPermissions {
 		return false;
 	}
 
-	/* Whether the app may get location updates now. The owner's decision is open; this is the
-	 * recommendation (2026-11-04): always while the app has a window or a foreground service,
-	 * otherwise only with the user's background location answer, default no. The one place to
-	 * change it. */
+	/* Background location (owner, 2026-11-03): the location portal's dialog already covers use while
+	 * the app has a window or a foreground service ("while in use"), so asking for
+	 * ACCESS_BACKGROUND_LOCATION shows nothing and reports granted unless the user said no or
+	 * foreground location is missing (the service answers "no" then). The question comes only at
+	 * real background use, in locationAllowedNow. */
+	public static boolean backgroundLocationReported() {
+		String answer = nativeCall("Check", BACKGROUND_LOCATION);
+		return "yes".equals(answer) || "ask".equals(answer);
+	}
+
+	/* Whether the app may get location updates now: always while it has a window or a foreground
+	 * service, otherwise only with the user's answer to the background question, asked here at
+	 * the first real background use (default no). Blocks while the dialog is open, so not on the
+	 * main thread. The one place to change the policy. */
 	public static boolean locationAllowedNow(boolean hasWindowOrForegroundService) {
 		if (hasWindowOrForegroundService)
 			return true;
-		return !ATLPaths.in_flatpak || check(BACKGROUND_LOCATION);
+		return !ATLPaths.in_flatpak || request(BACKGROUND_LOCATION);
 	}
 
 	/* "yes", "no", "ask", or null when the service cannot be reached */

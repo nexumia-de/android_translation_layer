@@ -264,15 +264,15 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   (`make-app-flatpak` writes the list to `/app/share/atl/permissions`)
   and stops asking after the second "no"; requests for the same
   question while its dialog is open wait for that one answer.
-  Background location follows Android 11 (split agreed with the
-  location portal work, #76): the portal decides fine and coarse
-  location, this service `ACCESS_BACKGROUND_LOCATION`; asked in the same
-  `requestPermissions` call as foreground location it is denied without
-  a dialog, and the service asks only when the location portal has a
-  grant for the app. Whether an app gets updates without a window is
-  `ATLPermissions.locationAllowedNow` (recommendation until the owner
-  decides: always with a window or foreground service, otherwise only
-  with a "yes", default no). Inside the app,
+  Background location (owner, 2026-11-03; split with the location
+  portal work, #76): the portal decides fine and coarse location, and
+  its dialog covers use while the app has a window or a foreground
+  service, so `requestPermissions` for `ACCESS_BACKGROUND_LOCATION`
+  shows no second dialog: it reports granted unless the user said no or
+  the portal has no grant (asked together with foreground location it
+  is denied, as on Android 11). The question comes only at real
+  background use (no window, no foreground service):
+  `ATLPermissions.locationAllowedNow`, which the location code calls. Inside the app,
   `checkSelfPermission` and `requestPermissions` use it
   (`android.atl.ATLPermissions`); `AudioRecord` records only after a
   "yes" (per `AudioRecord` object; without it the object is
