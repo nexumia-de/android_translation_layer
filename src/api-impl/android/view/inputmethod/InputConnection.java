@@ -217,6 +217,11 @@ public interface InputConnection {
 	 */
 	@Export
 	public boolean commitText(CharSequence text, int newCursorPosition);
+
+	/* no cursor anchor info in ATL */
+	default boolean requestCursorUpdates(int cursorUpdateMode) {
+		return false;
+	}
 	/**
 	 * Commit a completion the user has selected from the possible ones
 	 * previously reported to {@link InputMethodSession#displayCompletions
