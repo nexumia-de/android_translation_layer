@@ -1768,8 +1768,10 @@ public class View implements Drawable.Callback {
 	@Export
 	private void layoutInternal(int width, int height) {
 		in_layout = true;
-		// if the layout is triggered from a native widget, we might not have measured yet
-		if (!(parent instanceof ViewGroup) && (width != getMeasuredWidth() || height != getMeasuredHeight())) {
+		// if the layout is triggered from a native widget, we might not have measured yet;
+		// the native viewport of a ScrollView with fillViewport stretches a shorter child, so measure it with that size
+		boolean nativeParent = !(parent instanceof ViewGroup) || (parent instanceof android.widget.ScrollView && ((android.widget.ScrollView)parent).isFillViewport());
+		if (nativeParent && (width != getMeasuredWidth() || height != getMeasuredHeight())) {
 			requestLayout();
 			measure(width | MeasureSpec.EXACTLY, height | MeasureSpec.EXACTLY);
 		}

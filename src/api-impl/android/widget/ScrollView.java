@@ -1,14 +1,20 @@
 package android.widget;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
 public class ScrollView extends FrameLayout {
+	private boolean fillViewport;
+
 	public ScrollView(Context context, AttributeSet attrs) {
 		super(context, attrs);
+		TypedArray a = context.obtainStyledAttributes(attrs, com.android.internal.R.styleable.ScrollView);
+		fillViewport = a.getBoolean(com.android.internal.R.styleable.ScrollView_fillViewport, false);
+		a.recycle();
 	}
 
 	public ScrollView(Context context) {
@@ -46,9 +52,28 @@ public class ScrollView extends FrameLayout {
 			height = child.getMeasuredHeight();
 		}
 		setMeasuredDimension(resolveSize(width, widthMeasureSpec), resolveSize(height, heightMeasureSpec));
+
+		// like Android: with fillViewport a shorter child is stretched to the height of the scroll view
+		if (!fillViewport || MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED || getChildCount() == 0)
+			return;
+		View child = getChildAt(0);
+		if (child.getMeasuredHeight() < getMeasuredHeight()) {
+			int childWidthMeasureSpec = getChildMeasureSpec(widthMeasureSpec, 0, child.getLayoutParams().width);
+			int childHeightMeasureSpec = MeasureSpec.makeMeasureSpec(getMeasuredHeight(), MeasureSpec.EXACTLY);
+			child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
+		}
 	}
 
-	public void setFillViewport(boolean fillViewport) {}
+	public boolean isFillViewport() {
+		return fillViewport;
+	}
+
+	public void setFillViewport(boolean fillViewport) {
+		if (this.fillViewport != fillViewport) {
+			this.fillViewport = fillViewport;
+			requestLayout();
+		}
+	}
 
 	public boolean fullScroll(int direction) {
 		return true;
