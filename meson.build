@@ -130,6 +130,11 @@ install_data('flatpak/make-app.sh', rename: 'make-app-flatpak',
 install_data('flatpak/microphone/atl-pulse-norecord.conf', 'flatpak/microphone/atl-pulse-norecord.service',
              install_dir: join_paths(get_option('datadir'), 'android-translation-layer', 'microphone'))
 
+# the user's push server for the host's UnifiedPush distributor, see docs/push.md
+install_data('src/push/atl-push-server.sh', rename: 'atl-push-server',
+             install_dir: get_option('bindir'),
+             install_mode: 'rwxr-xr-x')
+
 #tools
 subdir('tools/jni_upcall_gen')
 

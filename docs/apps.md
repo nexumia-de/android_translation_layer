@@ -166,13 +166,13 @@ entry: date, what, why. Remove an entry once it is done.
   to get Stevia back (`phosh-osk-stevia --allow-replacement`).
 
 - 2026-11-03: Push messages ([push](push.md)). Decided: FCM through
-  Google only per app after consent (`atl.google-services`). Still
-  open: (1) where an ntfy server runs (self-hosted on a server you
-  own, reachable from the phone over HTTPS; or ntfy.sh, which sees
-  the encrypted messages' timing); (2) installing the distributor on
-  the phone: `sudo apk add kunifiedpush` (pulls Qt 6
-  and KDE Frameworks 6, about 100 MB), then set its server to the ntfy
-  URL. Without both, UnifiedPush apps (FluffyChat) get no push.
+  Google only per app after consent (`atl.google-services`); push goes
+  through KUnifiedPush's default server, KDE's
+  `https://unifiedpush.kde.org/`, each user can choose another. Nothing
+  to do on the phone: KUnifiedPush is installed and starts at the next
+  login. Only to use another server, as `user`, with an ATL build that
+  has `atl-push-server`: `atl-push-server set https://your-ntfy.example`
+  (back with `atl-push-server reset`).
 
 # Notes
 

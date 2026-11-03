@@ -1,0 +1,113 @@
+#!/bin/sh
+# atl-push-server: the push server (ntfy) that the user's UnifiedPush distributor (KUnifiedPush)
+# uses for Android apps in ATL and for native apps alike (docs/push.md).
+#
+#   atl-push-server get        print the server URL in use
+#   atl-push-server set URL    use the ntfy server at URL (http:// or https://)
+#   atl-push-server reset      back to KUnifiedPush's own default (its system setting, KDE's
+#                              https://unifiedpush.kde.org/), by removing the per-user server
+#
+# A running distributor is changed over D-Bus (org.kde.kunifiedpush.Management.setPushProvider):
+# it saves the setting itself and moves the apps' registrations to the new server, which a
+# restart after editing the file would not. Otherwise the per-user file
+# ~/.config/KDE/kunifiedpush-distributor.conf is written and read at the distributor's next start.
+# Exit status: 0 done, 1 error, 2 usage.
+set -eu
+
+SYSTEM_CONF=/etc/xdg/KDE/kunifiedpush-distributor.conf
+FALLBACK_URL=https://unifiedpush.kde.org/
+BUS_NAME=org.unifiedpush.Distributor.kde
+OBJECT=/org/unifiedpush/Distributor
+MGMT=org.kde.kunifiedpush.Management
+USER_CONF=${XDG_CONFIG_HOME:-$HOME/.config}/KDE/kunifiedpush-distributor.conf
+
+usage() {
+	echo "usage: atl-push-server get | set URL | reset" >&2
+	exit 2
+}
+
+running() {
+	gdbus call --session -d org.freedesktop.DBus -o /org/freedesktop/DBus \
+		-m org.freedesktop.DBus.NameHasOwner "$BUS_NAME" 2>/dev/null | grep -q true
+}
+
+# value of KEY in [GROUP] of an INI file, empty if missing
+ini_get() {
+	[ -r "$1" ] || return 0
+	awk -v g="[$2]" -v k="$3" '
+		/^\[/ { in_g = ($0 == g); next }
+		in_g && index($0, k "=") == 1 { print substr($0, length(k) + 2); exit }' "$1"
+}
+
+# remove KEY from [GROUP]
+ini_del() {
+	[ -e "$1" ] || return 0
+	tmp=$(mktemp "$1.XXXXXX")
+	awk -v g="[$2]" -v k="$3" '
+		/^\[/ { in_g = ($0 == g); print; next }
+		in_g && index($0, k "=") == 1 { next }
+		{ print }' "$1" >"$tmp"
+	mv "$tmp" "$1"
+}
+
+system_url() {
+	url=$(ini_get "$SYSTEM_CONF" Ntfy Url)
+	echo "${url:-$FALLBACK_URL}"
+}
+
+# set KEY=VALUE in [GROUP], keeping everything else (the distributor stores its clients there too)
+ini_set() {
+	mkdir -p "$(dirname "$1")"
+	[ -e "$1" ] || : >"$1"
+	tmp=$(mktemp "$1.XXXXXX")
+	awk -v g="[$2]" -v k="$3" -v v="$4" '
+		/^\[/ { if (in_g && !done) { print k "=" v; done = 1 } in_g = ($0 == g); seen = seen || in_g; print; next }
+		in_g && index($0, k "=") == 1 { if (!done) print k "=" v; done = 1; next }
+		{ print }
+		END { if (!done) { if (!seen) print "\n" g; print k "=" v } }' "$1" >"$tmp"
+	mv "$tmp" "$1"
+}
+
+get_url() {
+	if running; then
+		# ({'Url': <'https://ntfy.sh'>},)
+		url=$(gdbus call --session -d "$BUS_NAME" -o "$OBJECT" -m "$MGMT.pushProviderConfiguration" Ntfy 2>/dev/null |
+			sed -n "s/.*'Url': <'\([^']*\)'>.*/\1/p")
+		[ -n "$url" ] && { echo "$url"; return; }
+	fi
+	url=$(ini_get "$USER_CONF" Ntfy Url)
+	[ -n "$url" ] && echo "$url" || system_url
+}
+
+set_url() {
+	case $1 in
+	http://?* | https://?*) ;;
+	*) echo "atl-push-server: not an http(s) URL: $1" >&2; exit 1 ;;
+	esac
+	# one line of printable characters, no space, quote or backslash: it goes into an INI file and
+	# a GVariant text literal
+	if [ "$(printf '%s\n' "$1" | wc -l)" -ne 1 ] || ! printf '%s' "$1" | LC_ALL=C grep -qx '[[:graph:]]*'; then
+		echo "atl-push-server: invalid URL" >&2; exit 1
+	fi
+	case $1 in *"'"* | *'"'* | *'\'*) echo "atl-push-server: invalid URL: $1" >&2; exit 1 ;; esac
+	if running; then
+		gdbus call --session -d "$BUS_NAME" -o "$OBJECT" -m "$MGMT.setPushProvider" Ntfy "{'Url': <'$1'>}" >/dev/null
+	else
+		ini_set "$USER_CONF" PushProvider Type Ntfy
+		ini_set "$USER_CONF" Ntfy Url "$1"
+	fi
+}
+
+[ $# -ge 1 ] || usage
+case $1 in
+get) [ $# -eq 1 ] || usage; get_url ;;
+set) [ $# -eq 2 ] || usage; set_url "$2" ;;
+reset)
+	[ $# -eq 1 ] || usage
+	# a running distributor moves its apps to the default server; then the system setting applies
+	if running; then set_url "$(system_url)"; fi
+	ini_del "$USER_CONF" Ntfy Url
+	ini_del "$USER_CONF" PushProvider Type
+	;;
+*) usage ;;
+esac
