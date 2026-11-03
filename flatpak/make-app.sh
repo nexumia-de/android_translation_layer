@@ -150,12 +150,6 @@ runtime=$runtime
 command=atl-app
 EOF
 
-# the requested Android permissions, for the settings pages; location and
-# other runtime permissions are not opened here but asked through portals
-if [ -n "$permissions" ]; then
-	printf '\n[X-ATL]\nandroid-permissions=%s\n' "$(printf '%s' "$permissions" | tr -cd 'A-Za-z0-9_.;')" >> "$build/metadata"
-fi
-
 # shellcheck disable=SC2086 # $finish is a list of arguments
 flatpak build-finish "$build" --socket=wayland --device=dri --share=ipc \
 	--socket=pulseaudio --talk-name=org.sigxcpu.Feedback $finish >/dev/null

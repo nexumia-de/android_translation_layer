@@ -119,10 +119,18 @@ public class LocationManager {
 	private void add(Registration r) {
 		r.provider = normalize(r.provider);
 		boolean start;
+		boolean disabled = !enabled();
+		if (disabled && r.nullOnExpiry) { /* getCurrentLocation with location off: null at once */
+			r.cancelled = true;
+			deliverNull(r);
+			return;
+		}
 		synchronized (lock) {
 			removeLocked(r.listener, r.pendingIntent);
 			registrations.add(r);
-			start = !running && !PASSIVE_PROVIDER.equals(r.provider);
+			/* after a refusal (or without the gate on the host) never ask the portal again in
+			 * this process: apps that re-register from onProviderDisabled would loop */
+			start = !running && !disabled && !PASSIVE_PROVIDER.equals(r.provider);
 			if (start)
 				running = true;
 		}

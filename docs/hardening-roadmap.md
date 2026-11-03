@@ -485,6 +485,18 @@ below the app:
 | `RECEIVE_BOOT_COMPLETED`, autostart, background work | no background portal on Phosh: not available | - | - |
 | Normal permissions (`VIBRATE`, `WAKE_LOCK`, `ACCESS_NETWORK_STATE`, ...) | granted, like Android | - | - |
 
+Location is split between two deciders, so one request never shows two
+dialogs for the same thing: the location portal alone decides
+`ACCESS_FINE/COARSE_LOCATION` (ATL reports them granted in a Flatpak
+until the portal refused once, and asks nothing itself;
+`requestPermissions` answers them without a dialog), and the permission
+service alone decides `ACCESS_BACKGROUND_LOCATION`. As on Android 11+,
+background location should only be asked in a request of its own after
+foreground location works; asked together with FINE/COARSE it is
+answered "no" without a dialog. Coarse-only apps ask the portal for
+neighbourhood accuracy. Which permissions an app requests is the list
+`make-app-flatpak` stores in `/app/share/atl/permissions`.
+
 In ATL:
 
 - `checkSelfPermission` answers from `/.flatpak-info` (static ones),
