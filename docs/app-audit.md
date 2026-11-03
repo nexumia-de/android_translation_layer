@@ -212,7 +212,7 @@ No stub log yet.
 | Sync | `headless` | Sync button: activity, sleep and temperature fetched in 11 rounds as on Android (2026-11-02) |
 | Devices needing a GATT server on the phone | `missing` | `BluetoothManager.openGattServer` returns null |
 | Classic Bluetooth devices (RFCOMM) | `missing` | `BluetoothSocket.connect` throws |
-| Forwarding phone notifications | `headless` | With `ATL_ENABLE_NOTIFICATION_LISTENER=1`, a desktop notification sent on the test session bus reached Gadgetbridge's listener; forwarding to the watch is an owner test. By default Gadgetbridge forwards only while the screen is off, which ATL now reads from Phosh |
+| Forwarding phone notifications | `headless` | With `ATL_ENABLE_NOTIFICATION_LISTENER=1` and the watch connected (2026-11-03): a Chatty notification reached Gadgetbridge's listener under its desktop entry id with the app name as label, was not filtered (no "Not forwarding" or "Ignoring" line) and was closed again; whether the watch shows it is the owner's test. Gadgetbridge's own status notifications now carry its package name and are no longer forwarded. By default Gadgetbridge forwards only while the screen is off, which ATL reads from Phosh |
 | Calls on the watch | `missing` | No telephony state on the phone side |
 | Music control | `missing` | `MediaController$TransportControls`, `AudioManager.dispatchMediaKeyEvent` |
 | Do not disturb | `missing` | Reported as not granted, the desktop owns it |
@@ -222,3 +222,29 @@ No stub log yet.
 
 Result: the app runs and finds the watch; whether it connects and syncs is
 the owner's test.
+
+## Gadgetbridge: permissions and data sources
+
+How ATL answers each permission or special access Gadgetbridge checks
+(manifest of 0.95.1, `PackageManager.checkPermission`, 2026-11-03). Today
+`requestPermissions` answers at once with these values, without a dialog
+(phase 4 of the [hardening roadmap](hardening-roadmap.md) replaces this).
+
+| Gadgetbridge use | Permission or check | ATL today | Decision |
+|---|---|---|---|
+| Bluetooth scan, connect | `BLUETOOTH*` | granted when BlueZ has an adapter | keep; ask once per app with phase 4 |
+| Notification forwarding | notification listener access (`enabled_notification_listeners`) | only with `ATL_ENABLE_NOTIFICATION_LISTENER=1` | special access as on Android: a per-app switch, stored, env var stays as test override (phase 4) |
+| Own notifications | `POST_NOTIFICATIONS` | granted | keep |
+| Notification source names | `PackageManager.getApplicationInfo` for desktop apps | label of desktop apps that sent a notification | done (desktop entry id as package name) |
+| Do not disturb sync | `ACCESS_NOTIFICATION_POLICY` | not granted | honest "not available"; Phosh's DND is a GSettings key, mapping later (S) |
+| Weather, sunrise | `ACCESS_*_LOCATION` | only with `ATL_UGLY_ENABLE_LOCATION` | portal-backed location with a dialog (phase 4); `LocationManager` updates are stubs (M) |
+| Caller names | `READ_CONTACTS`, `ContactsContract$PhoneLookup` | denied, class missing | later: EDS address book behind the dialog (M) |
+| Calls on the watch | `READ_PHONE_STATE`, `READ_CALL_LOG`, `ANSWER_PHONE_CALLS`, `CALL_PHONE` | denied, `getCallState` stub | later: ModemManager or GNOME Calls over D-Bus (L) |
+| SMS on the watch | `RECEIVE_SMS`, `SEND_SMS`, `SmsManager` | denied, class missing | later: ModemManager messaging (L) |
+| Calendar events | `READ_CALENDAR`, `CalendarContract` | denied, classes missing | later: EDS calendars (M) |
+| Media control | `MEDIA_CONTENT_CONTROL` | denied | later: MPRIS (M) |
+| Exact alarms, overlays, battery | `SCHEDULE_EXACT_ALARM`, `SYSTEM_ALERT_WINDOW`, battery optimisation | answered as allowed | keep (no such limits on the desktop) |
+| QR code pairing for some devices | `CAMERA` | denied (not handled) | portal camera with phase 4 |
+
+Sizes: S under a day, M a few days, L a week or more. Denied permissions do
+not crash Gadgetbridge; its permissions page lists them as not granted.

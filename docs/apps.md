@@ -90,6 +90,15 @@ entry: date, what, why. Remove an entry once it is done.
   notify (`notify-send Test Hello`): it should appear on the watch. The
   log stays in `/tmp/gadgetbridge.log`.
 
+- 2026-11-03: Gadgetbridge notification forwarding (after the aports pin
+  includes the `claude/gb-notifications` pull request), as `user` with
+  the command above and the watch connected: lock the phone, then send a
+  Chatty message to the phone and run `notify-send Test Hello`. Both
+  should appear on the watch with the sending app's name (Chats,
+  notify-send), Gadgetbridge's own "Connected" notification should not.
+  Dismiss the Chatty notification on the phone: report whether it also
+  disappears on the watch. The log stays in `/tmp/gadgetbridge.log`.
+
 # Notes
 
 APKs come from F-Droid with their `.asc` signature, checked against
