@@ -10,6 +10,7 @@
 #include "../api-impl-jni/defines.h"
 #include "../api-impl-jni/util.h"
 #include "../api-impl-jni/app/android_app_Activity.h"
+#include <sys/file.h>
 #include "../api-impl-jni/content/android_content_Context.h"
 
 #include "actions.h"
@@ -1223,6 +1224,68 @@ static char *install_split_apks(GFile *dest, GFile **files, gint nfiles)
 	return g_string_free(paths, FALSE);
 }
 
+/* see the start of the app in open(): the first process to lock its data directory is the app */
+static gboolean instance_lock_take(const char *data_dir)
+{
+	g_mkdir_with_parents(data_dir, 0755);
+	char *path = g_build_filename(data_dir, ".atl-instance.lock", NULL);
+	/* "e": close on exec, so started helpers do not keep the lock; kept open for the process' lifetime */
+	FILE *file = fopen(path, "ae");
+	g_free(path);
+	if (!file)
+		return TRUE; /* cannot tell; do not block the start */
+	return flock(fileno(file), LOCK_EX | LOCK_NB) == 0;
+}
+
+/* Asks the running process of this app id to show itself, like a launcher would: Open for a
+ * URI, otherwise Activate (which starts the main activity again in a hidden window). */
+static gboolean hand_over_to_running_instance(const char *id, struct jni_callback_data *d)
+{
+	if (d->apk_main_activity_class || d->extra_string_keys)
+		fprintf(stderr, "warning: %s is already running; -l and -e are not passed on to it\n", id);
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!bus)
+		return FALSE;
+	/* the other process may still be starting and not own the name yet */
+	char *owner = NULL;
+	for (int i = 0; i < 50 && !owner; i++) {
+		GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetNameOwner",
+		                                              g_variant_new("(s)", id), G_VARIANT_TYPE("(s)"), G_DBUS_CALL_FLAGS_NONE, 1000, NULL, NULL);
+		if (reply) {
+			g_variant_get(reply, "(s)", &owner);
+			g_variant_unref(reply);
+			if (!g_strcmp0(owner, g_dbus_connection_get_unique_name(bus))) /* ourselves: no one to hand over to */
+				g_clear_pointer(&owner, g_free);
+		} else {
+			g_usleep(200 * 1000);
+		}
+	}
+	gboolean ok = FALSE;
+	if (owner) {
+		char *path = g_strdelimit(g_strdup_printf("/%s", id), ".", '/');
+		g_strdelimit(path, "-", '_');
+		fprintf(stderr, "%s is already running; asking it to show its window\n", id);
+		GVariant *ret;
+		if (uri_option && *uri_option) {
+			const char *uris[] = {uri_option, NULL};
+			ret = g_dbus_connection_call_sync(bus, owner, path, "org.freedesktop.Application", "Open",
+			                                  g_variant_new("(^asa{sv})", uris, NULL), NULL, G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL);
+		} else {
+			ret = g_dbus_connection_call_sync(bus, owner, path, "org.freedesktop.Application", "Activate",
+			                                  g_variant_new("(a{sv})", NULL), NULL, G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL);
+		}
+		ok = ret != NULL;
+		if (ret)
+			g_variant_unref(ret);
+		g_free(path);
+		g_free(owner);
+	}
+	if (!ok)
+		fprintf(stderr, "%s is already running, but could not be reached\n", id);
+	g_object_unref(bus);
+	return ok;
+}
+
 static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *hint, struct jni_callback_data *d)
 {
 	if (app_starting && !window) { // the bus name is owned early when D-Bus activated
@@ -1335,37 +1398,16 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	}
 	/* One process per app, as on Android: the app may still run without a window (a foreground
 	 * service keeps it, see Service.startForeground), and a second process would use the same
-	 * data directory. The running one owns the app id on the session bus (RequestName below). */
-	if (!d->install && strcmp(g_application_get_application_id(G_APPLICATION(app)), "com.example.demo_application")) {
-		GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
-		GVariant *reply = bus ? g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "NameHasOwner",
-		                                                    g_variant_new("(s)", g_application_get_application_id(G_APPLICATION(app))),
-		                                                    G_VARIANT_TYPE("(b)"), G_DBUS_CALL_FLAGS_NONE, 1000, NULL, NULL)
-		                        : NULL;
-		gboolean running = FALSE;
-		if (reply) {
-			g_variant_get(reply, "(b)", &running);
-			g_variant_unref(reply);
+	 * data directory. A lock on the data directory decides which process is the app; the bus
+	 * name only says where to hand over (the running one owns the app id once it started, see
+	 * RequestName below; a D-Bus activated start may already own it itself). */
+	if (!d->install && !instance_lock_take(app_data_dir)) {
+		const char *id = g_application_get_application_id(G_APPLICATION(app));
+		if (!strcmp(id, "com.example.demo_application")) {
+			fprintf(stderr, "this apk is already running; start it with --gapplication-app-id to hand over to it\n");
+			exit(1);
 		}
-		g_clear_object(&bus);
-		if (running) {
-			/* hand over to it like a launcher would: Activate shows its window again (activate() below) */
-			const char *id = g_application_get_application_id(G_APPLICATION(app));
-			char *path = g_strdelimit(g_strdup_printf("/%s", id), ".", '/');
-			g_strdelimit(path, "-", '_');
-			fprintf(stderr, "%s is already running; asking it to show its window\n", id);
-			GDBusConnection *conn = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
-			GVariant *ret = conn ? g_dbus_connection_call_sync(conn, id, path, "org.freedesktop.Application", "Activate",
-			                                                   g_variant_new("(a{sv})", NULL), NULL, G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL)
-			                     : NULL;
-			if (ret)
-				g_variant_unref(ret);
-			else
-				fprintf(stderr, "could not reach the running %s\n", id);
-			g_clear_object(&conn);
-			g_free(path);
-			exit(ret ? 0 : 1);
-		}
+		exit(hand_over_to_running_instance(id, d) ? 0 : 1);
 	}
 	app_starting = TRUE;
 
