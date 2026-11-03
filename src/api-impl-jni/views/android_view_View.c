@@ -314,18 +314,35 @@ static gboolean on_event(GtkEventControllerLegacy *event_controller, GdkEvent *e
 }
 
 /* The edge back gesture (main-executable/navigation.c) takes over a touch
- * sequence the views have already seen: send them ACTION_CANCEL with this
- * event, inner views first like the bubble phase, and forget the pointer,
- * since the rest of the sequence no longer reaches them. */
+ * sequence the views have already seen: send them ACTION_CANCEL once with
+ * this event and forget the pointer, since the rest of the sequence no
+ * longer reaches them. The outermost view with its own dispatchTouchEvent
+ * (the DecorView) got the touch first and passes the cancel on in Java;
+ * without one, the views get it the GTK way, inner views first. */
 void view_cancel_touch_sequence(GtkWidget *target, GdkEvent *event)
 {
 	if (!pointer_indices)
 		return;
 	navigation_cancel_event = event;
-	for (GtkWidget *widget = target; widget; widget = gtk_widget_get_parent(widget)) {
-		GtkEventController *controller = g_object_get_data(G_OBJECT(widget), "on_touch_listener");
-		if (controller && WRAPPER_IS_WIDGET(widget))
+	GtkWidget *dispatcher = NULL;
+	for (GtkWidget *widget = target; widget; widget = gtk_widget_get_parent(widget))
+		if (WRAPPER_IS_WIDGET(widget) && WRAPPER_WIDGET(widget)->custom_dispatch_touch)
+			dispatcher = widget;
+	if (dispatcher) {
+		GtkEventController *controller = g_object_get_data(G_OBJECT(dispatcher), "on_intercept_touch_listener");
+		if (!controller)
+			controller = g_object_get_data(G_OBJECT(dispatcher), "on_touch_listener");
+		if (controller)
 			on_pointer_event(GTK_EVENT_CONTROLLER_LEGACY(controller), event, NULL);
+	}
+	/* no dispatcher, or its Java dispatch could not reach GTK children (see
+	 * view_dispatch_motionevent): the views inside it get the cancel the GTK way */
+	if (!dispatcher || synthetic_propagation_failed == event) {
+		for (GtkWidget *widget = target; widget && widget != dispatcher; widget = gtk_widget_get_parent(widget)) {
+			GtkEventController *controller = g_object_get_data(G_OBJECT(widget), "on_touch_listener");
+			if (controller && WRAPPER_IS_WIDGET(widget))
+				on_pointer_event(GTK_EVENT_CONTROLLER_LEGACY(controller), event, NULL);
+		}
 	}
 	navigation_cancel_event = NULL;
 

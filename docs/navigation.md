@@ -40,8 +40,17 @@ and dialogs, below the header bar):
 - then it takes the touch: the app's views get `ACTION_CANCEL`
   (`view_cancel_touch_sequence()`) and GTK cancels their click and
   long-press gestures; an arrow hint follows the finger;
+- from then on the rest of that touch sequence is the swipe's alone (a
+  capture-phase controller swallows it; other fingers still reach the
+  app), and only that finger's release ends the swipe;
 - releasing after 72 px inwards goes back; the hint turns to the accent
-  colour at that point.
+  colour at that point. If the press already dismissed a dialog (a tap
+  on its scrim), the swipe does not go back a second time.
+
+The cancel goes once through the outermost view with its own
+`dispatchTouchEvent` (the DecorView), which passes it on in Java; the
+GTK path to the inner views is used only without one, or where its Java
+dispatch could not reach them.
 
 # Setting
 

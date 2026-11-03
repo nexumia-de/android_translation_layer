@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "../api-impl-jni/app/android_app_Activity.h"
+#include "../api-impl-jni/app/dialog.h"
 #include "../api-impl-jni/widgets/WrapperWidget.h"
 
 #include "navigation.h"
@@ -87,7 +88,11 @@ static struct {
 	GtkWidget *hint;
 	int side; /* 1: from the left edge, -1: from the right */
 	double start_x, start_y;
+	GtkWidget *dialog; /* the top dialog when the swipe started */
+	/* once taken: the sequence, and its surface position and offset at that moment */
 	gboolean taken;
+	GdkEventSequence *sequence;
+	double taken_x, taken_y, taken_offset_x, taken_offset_y;
 } edge;
 
 static void hint_update(double inward, double y)
@@ -123,12 +128,18 @@ static void edge_reset(void)
 	edge.hint = NULL;
 	edge.side = 0;
 	edge.taken = FALSE;
+	edge.sequence = NULL;
+	edge.dialog = NULL;
 }
 
 static void on_drag_begin(GtkGestureDrag *gesture, double x, double y, gpointer user_data)
 {
 	int width = gtk_widget_get_width(edge.content);
 
+	if (edge.taken) { /* another finger during a taken swipe */
+		gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_DENIED);
+		return;
+	}
 	edge_reset();
 	if (x < EDGE_WIDTH)
 		edge.side = 1;
@@ -142,48 +153,91 @@ static void on_drag_begin(GtkGestureDrag *gesture, double x, double y, gpointer 
 	}
 	edge.start_x = x;
 	edge.start_y = y;
+	edge.dialog = atl_dialog_get_top();
 }
 
 static void on_drag_update(GtkGestureDrag *gesture, double offset_x, double offset_y, gpointer user_data)
 {
 	double inward = offset_x * edge.side;
 
-	if (!edge.side)
+	if (!edge.side || edge.taken) /* once taken, on_taken_event follows the finger */
 		return;
-	if (!edge.taken) {
-		/* until it is clearly an inward swipe the app sees the touch, so taps and
-		 * vertical scrolls at the edge keep working */
-		if (inward < -TAKE_DISTANCE || fabs(offset_y) > MAX(TAKE_DISTANCE, inward)) {
-			edge.side = 0;
-			gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_DENIED);
-			return;
-		}
-		if (inward < TAKE_DISTANCE)
-			return;
-		GdkEventSequence *sequence = gtk_gesture_single_get_current_sequence(GTK_GESTURE_SINGLE(gesture));
-		GdkEvent *event = gtk_gesture_get_last_event(GTK_GESTURE(gesture), sequence);
-		GtkWidget *target = gtk_widget_pick(edge.content, edge.start_x, edge.start_y, GTK_PICK_DEFAULT);
-		if (event && target)
-			view_cancel_touch_sequence(target, event);
-		/* GTK cancels the views' click and long-press gestures for this sequence */
-		gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
-		edge.taken = TRUE;
+	/* until it is clearly an inward swipe the app sees the touch, so taps and
+	 * vertical scrolls at the edge keep working */
+	if (inward < -TAKE_DISTANCE || fabs(offset_y) > MAX(TAKE_DISTANCE, inward)) {
+		edge.side = 0;
+		gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_DENIED);
+		return;
 	}
+	if (inward < TAKE_DISTANCE)
+		return;
+	GdkEventSequence *sequence = gtk_gesture_single_get_current_sequence(GTK_GESTURE_SINGLE(gesture));
+	GdkEvent *event = gtk_gesture_get_last_event(GTK_GESTURE(gesture), sequence);
+	GtkWidget *target = gtk_widget_pick(edge.content, edge.start_x, edge.start_y, GTK_PICK_DEFAULT);
+	if (event && target)
+		view_cancel_touch_sequence(target, event);
+	if (event)
+		gdk_event_get_position(event, &edge.taken_x, &edge.taken_y);
+	edge.taken_offset_x = offset_x;
+	edge.taken_offset_y = offset_y;
+	edge.sequence = sequence;
+	edge.taken = TRUE;
+	/* GTK cancels the views' click and long-press gestures for this sequence */
+	gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
 	hint_update(inward, edge.start_y + offset_y);
 }
 
+/* the drag gesture also ends when a second finger comes; a taken swipe ends
+ * only with its own sequence (on_taken_event) */
 static void on_drag_end(GtkGestureDrag *gesture, double offset_x, double offset_y, gpointer user_data)
 {
-	gboolean go_back = edge.taken && offset_x * edge.side >= TRIGGER_DISTANCE;
-
-	edge_reset();
-	if (go_back)
-		back();
+	if (!edge.taken)
+		edge_reset();
 }
 
 static void on_drag_cancel(GtkGesture *gesture, GdkEventSequence *sequence, gpointer user_data)
 {
+	if (!edge.taken)
+		edge_reset();
+}
+
+/* capture phase, before the views: after the swipe took the touch, the rest of
+ * its sequence is the swipe's alone (the views already got ACTION_CANCEL);
+ * other fingers still reach the app */
+static gboolean on_taken_event(GtkEventControllerLegacy *controller, GdkEvent *event, gpointer user_data)
+{
+	if (!edge.taken || gdk_event_get_event_sequence(event) != edge.sequence)
+		return FALSE;
+
+	double x, y;
+	GdkEventType type = gdk_event_get_event_type(event);
+	switch (type) {
+		case GDK_TOUCH_UPDATE:
+		case GDK_MOTION_NOTIFY:
+		case GDK_TOUCH_END:
+		case GDK_BUTTON_RELEASE:
+			break;
+		case GDK_TOUCH_CANCEL:
+			edge_reset();
+			return TRUE;
+		default:
+			return TRUE;
+	}
+	if (!gdk_event_get_position(event, &x, &y))
+		return TRUE;
+	double offset_x = edge.taken_offset_x + x - edge.taken_x;
+	double offset_y = edge.taken_offset_y + y - edge.taken_y;
+	double inward = offset_x * edge.side;
+	if (type == GDK_TOUCH_UPDATE || type == GDK_MOTION_NOTIFY) {
+		hint_update(inward, edge.start_y + offset_y);
+		return TRUE;
+	}
+	/* a press on a dialog's scrim may have dismissed it already: that was the back */
+	gboolean go_back = inward >= TRIGGER_DISTANCE && atl_dialog_get_top() == edge.dialog;
 	edge_reset();
+	if (go_back)
+		back();
+	return TRUE;
 }
 
 void navigation_setup(GtkWindow *window, GtkWidget *back_button)
@@ -208,4 +262,9 @@ void navigation_setup(GtkWindow *window, GtkWidget *back_button)
 	g_signal_connect(drag, "drag-end", G_CALLBACK(on_drag_end), NULL);
 	g_signal_connect(drag, "cancel", G_CALLBACK(on_drag_cancel), NULL);
 	gtk_widget_add_controller(edge.content, GTK_EVENT_CONTROLLER(drag));
+	/* after the drag gesture, so it still sees its sequence end */
+	GtkEventController *taken = gtk_event_controller_legacy_new();
+	gtk_event_controller_set_propagation_phase(taken, GTK_PHASE_CAPTURE);
+	g_signal_connect(taken, "event", G_CALLBACK(on_taken_event), NULL);
+	gtk_widget_add_controller(edge.content, taken);
 }
