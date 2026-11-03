@@ -370,8 +370,10 @@ EGLBoolean bionic_eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface
 		return eglMakeCurrent(display, draw, read, context);
 	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, draw);
 	if (!native_window) {
-		forget_context(context);
-		return eglMakeCurrent(display, draw, read, context);
+		EGLBoolean ret = eglMakeCurrent(display, draw, read, context);
+		if (ret)
+			forget_context(context);
+		return ret;
 	}
 	if (!draw_surface_hashtable)
 		draw_surface_hashtable = g_hash_table_new(NULL, NULL);
@@ -523,12 +525,10 @@ EGLSurface bionic_eglGetCurrentSurface(EGLint readdraw)
 	if (getenv("ATL_DIRECT_EGL"))
 		return eglGetCurrentSurface(readdraw);
 	EGLContext current_context = eglGetCurrentContext();
-	if (readdraw == EGL_READ)
-		return g_hash_table_lookup(read_surface_hashtable, current_context);
-	else if (readdraw == EGL_DRAW)
-		return g_hash_table_lookup(draw_surface_hashtable, current_context);
-
-	return NULL;
+	GHashTable *table = readdraw == EGL_READ ? read_surface_hashtable : draw_surface_hashtable;
+	EGLSurface surface = table ? g_hash_table_lookup(table, current_context) : NULL;
+	/* contexts current on a real surface (e.g. a pbuffer) are not in the tables */
+	return surface ? surface : eglGetCurrentSurface(readdraw);
 }
 
 void bionic_glBindFramebuffer(GLenum target, GLuint framebuffer)
