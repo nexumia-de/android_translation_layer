@@ -22,7 +22,7 @@ sleep 1
 /usr/libexec/xdg-desktop-portal-gtk >$T/gtk.log 2>&1 &
 gtk=$!
 # what the service starts for OpenAppInfo: records its arguments
-printf '#!/bin/sh\necho "$@" > %s/opened\n' "$T" > $T/atl-stub; chmod +x $T/atl-stub
+printf '#!/bin/sh\necho "$@" >> %s/opened\nsleep 5\n' "$T" > $T/atl-stub; chmod +x $T/atl-stub
 ATL_BINARY=$T/atl-stub ${ATL_PERMISSION_SERVICE:-builddir/atl-permission-service} >$T/service.log 2>&1 &
 service=$!
 ATL_BINARY=/bin/false ${ATL_INSTALLER_SERVICE:-builddir/atl-installer-service} >$T/installer.log 2>&1 &
@@ -73,6 +73,8 @@ check "  ...Check after the portal grant was revoked" "'no'" "$(call Check andro
 check "  ...Request after the portal grant was revoked" "'no'" "$(call Request android.permission.ACCESS_BACKGROUND_LOCATION)"
 sandboxed $T/info gdbus call --session --dest de.nexumia.atl.Permissions --object-path /de/nexumia/atl/Permissions --method de.nexumia.atl.Permissions.OpenAppInfo >/dev/null 2>&1; sleep 1
 check "OpenAppInfo opens the caller's own App info" "--app-info org.example.test" "$(cat $T/opened 2>&1)"
+for i in 1 2 3 4 5; do sandboxed $T/info gdbus call --session --dest de.nexumia.atl.Permissions --object-path /de/nexumia/atl/Permissions --method de.nexumia.atl.Permissions.OpenAppInfo >/dev/null 2>&1; done
+check "OpenAppInfo in a loop opens one window" "1" "$(wc -l < $T/opened)"
 check "OpenAppInfo refuses a host caller" AccessDenied "$(gdbus call --session --dest de.nexumia.atl.Permissions --object-path /de/nexumia/atl/Permissions --method de.nexumia.atl.Permissions.OpenAppInfo 2>&1)"
 # the installer service: an app without access must not reach it, also not through the unique name
 unique=$(gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.GetNameOwner de.nexumia.atl.Installer | sed "s/[(',)]//g")
