@@ -99,6 +99,11 @@ install_data([
 install_data('res/desktop/com.gitlab.android_translation_layer.install.desktop',
              install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'applications'))
 
+# system timer that wakes the phone for Android alarms, see docs/decisions/wake-windows.md
+# (installed, not enabled: the owner enables it)
+install_data(['res/wake/atl-wake.timer', 'res/wake/atl-wake.service'],
+             install_dir: join_paths(get_option('prefix'), 'lib', 'systemd', 'system'))
+
 # the installer service for app stores in their own Flatpak, see docs/installing-apps.md
 installer_service_resources = gnome.compile_resources('installer-service-resources',
                                                      'src/installer-service/installer-service.gresource.xml',

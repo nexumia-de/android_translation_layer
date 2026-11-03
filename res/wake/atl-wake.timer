@@ -1,0 +1,15 @@
+# Wakes the phone from suspend at a fixed interval so Android apps run in
+# ATL can deliver their due alarms (docs/decisions/wake-windows.md).
+# The interval is a user setting; change it with a drop-in:
+#   systemctl edit atl-wake.timer   ->   [Timer] OnCalendar= / OnCalendar=*:0/5
+[Unit]
+Description=Wake window for Android apps (ATL)
+
+[Timer]
+OnCalendar=*:0/15
+WakeSystem=true
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target
