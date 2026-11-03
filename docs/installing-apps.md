@@ -232,6 +232,16 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
 - Permissions: every app gets Wayland, the GPU, IPC, audio playback and
   feedbackd; `android.permission.INTERNET` adds `--share=network`.
   Everything else waits for portals and the broker (phases 3 and 4).
+- Microphone: the audio socket that playback needs would also let every
+  app record. Two user configuration files, no root, block that below
+  the app (templates and a headless test in `flatpak/microphone/`):
+  WirePlumber gives clients of `de.nexumia.atl.*` Flatpaks no
+  permissions on `Audio/Source*` nodes, and pipewire-pulse refuses their
+  record streams (`block-record-stream`), which also covers a sink's
+  monitor, i.e. other apps' sound. Apps answered "yes" for
+  `RECORD_AUDIO` get a later rule per app id. Both files are read when
+  the services start; writing them from the answers is the installer
+  service's job (next step).
 - The package name is checked against Android's rules and the label is
   kept to one line, since both come from the APK and end up in the
   launcher.

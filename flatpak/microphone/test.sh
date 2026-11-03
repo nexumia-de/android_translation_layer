@@ -48,8 +48,13 @@ sandboxed() {
 		--ro-bind /etc /etc --bind "$run" "$run" --proc /proc --dev /dev \
 		--ro-bind "$run/info-$id" /.flatpak-info -- "$@"
 }
-# 0 when the stream worked for two seconds (timeout ends it with 124)
-works() { "$@" >/dev/null 2>&1; [ $? -eq 124 ]; }
+# 0 when the stream ran until timeout stopped it after three seconds
+# (pacat and parecord exit 0 on SIGTERM; a refused stream ends at once)
+works() {
+	start=$(date +%s)
+	"$@" >/dev/null 2>&1
+	[ $(($(date +%s) - start)) -ge 2 ]
+}
 
 fail=0
 check() { # expected, what, command...
@@ -61,8 +66,8 @@ check() { # expected, what, command...
 for app in denied allowed; do
 	id=de.nexumia.atl.$app
 	[ $app = allowed ] && rec=yes || rec=no
-	check yes "$app plays" sandboxed $id timeout 2 pacat -d testsink --raw /dev/zero
-	check $rec "$app records the microphone" sandboxed $id timeout 2 parecord -d testmic --raw /dev/null
-	check $rec "$app records the sink monitor" sandboxed $id timeout 2 parecord -d testsink.monitor --raw /dev/null
+	check yes "$app plays" sandboxed $id timeout 3 pacat -d testsink --raw /dev/zero
+	check $rec "$app records the microphone" sandboxed $id timeout 3 parecord -d testmic --raw /dev/null
+	check $rec "$app records the sink monitor" sandboxed $id timeout 3 parecord -d testsink.monitor --raw /dev/null
 done
 exit $fail
