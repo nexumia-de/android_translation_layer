@@ -238,8 +238,10 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   `--network=yes|no` passes the answer to `make-app-flatpak -N`, which
   writes it as a user override (`flatpak override --user
   --share=network` or `--unshare=network`). Updates keep the answer and
-  do not ask again; `--uninstall-flatpak` resets the app's overrides.
-  Apps without `INTERNET` are never asked and never get network.
+  do not ask again; a new install always asks, even if a removal outside
+  `--uninstall-flatpak` left an override behind, and `--uninstall-flatpak`
+  resets the app's overrides. Apps without `INTERNET` are never asked
+  and get `--unshare=network`, also when an update drops `INTERNET`.
   Everything else waits for portals and the broker (phases 3 and 4).
 - The package name is checked against Android's rules and the label is
   kept to one line, since both come from the APK and end up in the

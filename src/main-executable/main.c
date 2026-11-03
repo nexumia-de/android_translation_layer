@@ -1066,7 +1066,10 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 	/* asked once per app: an update keeps the answer, App info changes it */
 	if (d->install_flatpak && (state == INSTALL_NEW || state == INSTALL_UPDATE || state == INSTALL_REINSTALL)) {
 		char *permissions = jstring_dup(env, J__Application__get_requested_permissions(env, application_object));
-		if (permissions_contain(permissions, "android.permission.INTERNET") && flatpak_network_answer(package_name) < 0)
+		/* a new install asks even if an override was left behind by a removal outside
+		 * --uninstall-flatpak (flatpak uninstall, GNOME Software) */
+		if (permissions_contain(permissions, "android.permission.INTERNET") &&
+		    (state == INSTALL_NEW || flatpak_network_answer(package_name) < 0))
 			ask_network(r);
 		g_free(permissions);
 	}

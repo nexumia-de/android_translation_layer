@@ -163,8 +163,12 @@ if flatpak list --user --app --columns=application | grep -qxF "$id"; then
 else
 	flatpak install --user -y --noninteractive atl-local "$id//stable"
 fi
-case $network in
-yes) [ -n "$wants_network" ] && flatpak override --user --share=network "$id" ;;
-no) flatpak override --user --unshare=network "$id" ;;
-esac
+# an app that no longer requests INTERNET loses an earlier "yes"
+if [ -z "$wants_network" ]; then
+	flatpak override --user --unshare=network "$id"
+elif [ "$network" = yes ]; then
+	flatpak override --user --share=network "$id"
+elif [ "$network" = no ]; then
+	flatpak override --user --unshare=network "$id"
+fi
 echo "installed $id"
