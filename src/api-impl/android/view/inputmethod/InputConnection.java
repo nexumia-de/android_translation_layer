@@ -18,7 +18,6 @@ import android.atl.annotation.Export;
 import android.os.Bundle;
 import android.view.KeyEvent;
 
-class ExtractedText {}
 
 /**
  * The InputConnection interface is the communication channel from an

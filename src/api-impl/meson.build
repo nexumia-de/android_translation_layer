@@ -745,6 +745,7 @@ srcs = [
 	'android/view/inputmethod/CorrectionInfo.java',
 	'android/view/inputmethod/CursorAnchorInfo.java',
 	'android/view/inputmethod/EditorInfo.java',
+	'android/view/inputmethod/ExtractedText.java',
 	'android/view/inputmethod/ExtractedTextRequest.java',
 	'android/view/inputmethod/InputBinding.java',
 	'android/view/inputmethod/InputConnection.java',
