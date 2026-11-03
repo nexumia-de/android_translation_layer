@@ -62,10 +62,10 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeShareEmail
 /*
  * Class:     android_content_Context
  * Method:    nativeExportUnifiedPush
- * Signature: (Ljava/lang/String;)V
+ * Signature: (Ljava/lang/String;Z)V
  */
 JNIEXPORT void JNICALL Java_android_content_Context_nativeExportUnifiedPush
-  (JNIEnv *, jclass, jstring);
+  (JNIEnv *, jclass, jstring, jboolean);
 
 /*
  * Class:     android_content_Context

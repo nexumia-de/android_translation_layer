@@ -133,16 +133,17 @@ public abstract class Context {
 		// first, so its Cipher wins for keystore keys; SupportedKeyClasses leaves other keys to the other providers
 		Security.insertProviderAt(provider, 1);
 
+		boolean unifiedpush = false;
 		for (PackageParser.Activity receiver : primary_application.pkg.receivers) {
 			if (receiver.intents == null)
 				continue;
 			for (PackageParser.ActivityIntentInfo intent : receiver.intents) {
-				if (intent.matchAction("org.unifiedpush.android.connector.MESSAGE")) {
-					nativeExportUnifiedPush(application_info.packageName);
-					break;
-				}
+				if (intent.matchAction("org.unifiedpush.android.connector.MESSAGE"))
+					unifiedpush = true;
 			}
 		}
+		// also answers calls that came in before, e.g. the one that D-Bus-activated the app
+		nativeExportUnifiedPush(application_info.packageName, unifiedpush);
 	}
 
 	protected static native void native_updateConfig(Configuration config);
@@ -150,7 +151,7 @@ public abstract class Context {
 	protected static native void nativeLaunchDesktopApp(String desktopId, String action);
 	protected static native void nativeShareCopy(String text, int fd);
 	protected static native void nativeShareEmail(String text, int fd);
-	private static native void nativeExportUnifiedPush(String packageName);
+	private static native void nativeExportUnifiedPush(String packageName, boolean wanted);
 	protected static native boolean nativeHasDBusName(String name);
 	private static native String nativeUnifiedPushDistributor();
 	private static native String nativeRegisterUnifiedPush(String token, String application, String description);

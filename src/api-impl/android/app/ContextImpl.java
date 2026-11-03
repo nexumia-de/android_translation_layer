@@ -249,18 +249,26 @@ public final class ContextImpl extends Context {
 	}
 
 	/*
-	 * Cloud Messaging registrations go to an external Google Play services over D-Bus, which
-	 * talks to Google's servers. Without the app's consent (atl.google-services) or without such
-	 * a service, answer at once with SERVICE_NOT_AVAILABLE, as Google Play services does when it
-	 * cannot reach Google, instead of leaving the request without an answer.
+	 * Cloud Messaging intents and services of com.google.android.gms that ATL does not run in the
+	 * app's process go to an external Google Play services over D-Bus, which talks to Google's
+	 * servers and may be started by D-Bus for the call. Without the app's consent
+	 * (atl.google-services) or without such a service, drop them; registrations get
+	 * SERVICE_NOT_AVAILABLE at once, as Google Play services answers when it cannot reach Google.
+	 * Returns true if the intent was dropped.
 	 */
-	private boolean c2dmRegisterUnavailable(Intent intent) {
-		if (!"com.google.android.c2dm.intent.REGISTER".equals(intent.getAction()))
+	private boolean googleServiceUnavailable(Intent intent) {
+		String action = intent.getAction();
+		String pkg = intent.getPackage();
+		if (pkg == null && intent.getComponent() != null)
+			pkg = intent.getComponent().getPackageName();
+		if (!(action != null && action.startsWith("com.google.android.c2dm")) && !"com.google.android.gms".equals(pkg))
 			return false;
 		boolean allowed = checkSelfPermission(android.atl.ATLToggles.GOOGLE_SERVICES_PERMISSION) == android.content.pm.PackageManager.PERMISSION_GRANTED;
 		if (allowed && nativeHasDBusName("com.google.android.gms"))
 			return false;
-		Slog.w(TAG, "c2dm REGISTER: " + (allowed ? "no Google Play services on the session bus" : "no consent for Google services") + ", answering SERVICE_NOT_AVAILABLE");
+		Slog.w(TAG, action + " to Google Play services: " + (allowed ? "none on the session bus" : "no consent for Google services") + ", dropped");
+		if (!"com.google.android.c2dm.intent.REGISTER".equals(action) && !"com.google.android.c2dm.intent.UNREGISTER".equals(action))
+			return true;
 		String error = "SERVICE_NOT_AVAILABLE";
 		String kid = intent.getStringExtra("kid"); // request id of the old InstanceID protocol, "|ID|<n>|"
 		if (kid != null && kid.startsWith("|ID|"))
@@ -280,7 +288,7 @@ public final class ContextImpl extends Context {
 	public ComponentName startService(Intent intent) {
 		// One way Messenger interface for GCM. Request per intent and response per Messenger.
 		// Wrap the response part in a BroadcastReceiver for compatibility with our gcm_service
-		if ("com.google.android.c2dm.intent.REGISTER".equals(intent.getAction()) && intent.getParcelableExtra("google.messenger") instanceof Messenger) {
+		if (intent.getAction() != null && intent.getAction().startsWith("com.google.android.c2dm.intent.") && intent.getParcelableExtra("google.messenger") instanceof Messenger) {
 			final Messenger messenger = (Messenger)intent.getParcelableExtra("google.messenger");
 			this.registerReceiver(new BroadcastReceiver() {
 				@Override
@@ -293,13 +301,11 @@ public final class ContextImpl extends Context {
 				}
 			}, new IntentFilter("com.google.android.c2dm.intent.REGISTRATION"));
 		}
-		if (c2dmRegisterUnavailable(intent))
-			return null;
 		ATLLoadedApp targetApp = this.atl_get_intent_target(intent);
 		// Cloud Messaging (c2dm) intents should always be started using DBus. Delivering them to the in process gstub is pointless
 		if (targetApp == null || (intent.getAction() != null && intent.getAction().startsWith("com.google.android.c2dm"))) {
 			// External package. Try to start using DBus Action
-			if (intent.getPackage() != null)
+			if (intent.getPackage() != null && !googleServiceUnavailable(intent))
 				nativeStartExternalService(intent);
 			return null;
 		}
@@ -335,7 +341,7 @@ public final class ContextImpl extends Context {
 					Intent requestIntent = new Intent("com.google.android.c2dm.intent.REGISTER");
 					requestIntent.setPackage("com.google.android.gms");
 					requestIntent.putExtras(requestMessage.getData().getBundle("data"));
-					if (!c2dmRegisterUnavailable(requestIntent))
+					if (!googleServiceUnavailable(requestIntent))
 						nativeStartExternalService(requestIntent);
 				}
 			});

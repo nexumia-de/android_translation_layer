@@ -243,8 +243,85 @@ static void unifiedpush_own_name(GDBusConnection *connection, const char *applic
 	}
 }
 
+/*
+ * The connector object is exported before the app's bus name is owned: by main.c when D-Bus
+ * activation starts the app (the call that started it would otherwise hit no object and, sent
+ * without a reply, be lost), else when the app's Context is set up. Calls that arrive before the
+ * app can take them (Context not set up, no Application yet) wait in a queue.
+ */
+static Connector1 *connector1 = NULL;
+static gboolean connector_wanted = FALSE; /* the app has a UnifiedPush receiver */
+static gboolean connector_decided = FALSE;
+static GQueue connector_pending = G_QUEUE_INIT;
+static guint connector_drain_source = 0;
+
+static gboolean on_new_endpoint(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data);
+static gboolean on_message(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data);
+static gboolean on_unregistered(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data);
+
+static gboolean connector_app_ready(void)
+{
+	if (!connector_decided || !connector_wanted)
+		return FALSE;
+	JNIEnv *env = get_jni_env();
+	jobject context = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "this_application", "Landroid/app/Application;");
+	return context != NULL;
+}
+
+static gboolean connector_drain(gpointer user_data)
+{
+	if (connector_decided && !connector_wanted) {
+		GDBusMethodInvocation *invocation;
+		while ((invocation = g_queue_pop_head(&connector_pending)))
+			g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.UnknownObject", "this app takes no UnifiedPush messages");
+	}
+	if (!connector_app_ready())
+		return g_queue_is_empty(&connector_pending) ? (connector_drain_source = 0, G_SOURCE_REMOVE) : G_SOURCE_CONTINUE;
+	GDBusMethodInvocation *invocation;
+	while ((invocation = g_queue_pop_head(&connector_pending))) {
+		const char *method = g_dbus_method_invocation_get_method_name(invocation);
+		if (!strcmp(method, "NewEndpoint"))
+			on_new_endpoint(connector1, invocation, NULL);
+		else if (!strcmp(method, "Message"))
+			on_message(connector1, invocation, NULL);
+		else
+			on_unregistered(connector1, invocation, NULL);
+	}
+	connector_drain_source = 0;
+	return G_SOURCE_REMOVE;
+}
+
+/* Queue the call if the app cannot take it yet; TRUE if queued. */
+static gboolean connector_defer(GDBusMethodInvocation *invocation)
+{
+	if (g_queue_is_empty(&connector_pending) && connector_app_ready())
+		return FALSE;
+	g_queue_push_tail(&connector_pending, invocation);
+	if (!connector_drain_source)
+		connector_drain_source = g_timeout_add(100, connector_drain, NULL);
+	return TRUE;
+}
+
+/* Export /org/unifiedpush/Connector on the bus; for main.c before it owns the name on activation. */
+void unifiedpush_export_connector(GDBusConnection *connection)
+{
+	if (connector1 || (connector_decided && !connector_wanted))
+		return;
+	connector1 = connector1_skeleton_new();
+	g_signal_connect(connector1, "handle-new-endpoint", G_CALLBACK(on_new_endpoint), NULL);
+	g_signal_connect(connector1, "handle-message", G_CALLBACK(on_message), NULL);
+	g_signal_connect(connector1, "handle-unregistered", G_CALLBACK(on_unregistered), NULL);
+	GError *error = NULL;
+	if (!g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(connector1), connection, "/org/unifiedpush/Connector", &error)) {
+		printf("UnifiedPush: cannot export the connector: %s\n", error->message);
+		g_error_free(error);
+	}
+}
+
 static gboolean on_new_endpoint(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
 {
+	if (connector_defer(invocation))
+		return TRUE;
 	GVariant *parameters = g_dbus_method_invocation_get_parameters(invocation);
 	const char *token;
 	g_variant_get_child(parameters, 0, "s", &token);
@@ -268,6 +345,8 @@ static gboolean on_new_endpoint(Connector1 *connector, GDBusMethodInvocation *in
 
 static gboolean on_message(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
 {
+	if (connector_defer(invocation))
+		return TRUE;
 	GVariant *parameters = g_dbus_method_invocation_get_parameters(invocation);
 	const char *token;
 	g_variant_get_child(parameters, 0, "s", &token);
@@ -297,6 +376,8 @@ static gboolean on_message(Connector1 *connector, GDBusMethodInvocation *invocat
 
 static gboolean on_unregistered(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
 {
+	if (connector_defer(invocation))
+		return TRUE;
 	const char *token;
 	g_variant_get_child(g_dbus_method_invocation_get_parameters(invocation), 0, "&s", &token);
 
@@ -314,23 +395,22 @@ static gboolean on_unregistered(Connector1 *connector, GDBusMethodInvocation *in
 	return TRUE;
 }
 
-JNIEXPORT void JNICALL Java_android_content_Context_nativeExportUnifiedPush(JNIEnv *env, jclass this, jstring application_jstr)
+JNIEXPORT void JNICALL Java_android_content_Context_nativeExportUnifiedPush(JNIEnv *env, jclass this, jstring application_jstr, jboolean wanted)
 {
-	static Connector1 *connector1 = NULL;
-	if (connector1)
+	connector_decided = TRUE;
+	connector_wanted = wanted;
+	if (!wanted) {
+		if (connector1) {
+			g_dbus_interface_skeleton_unexport(G_DBUS_INTERFACE_SKELETON(connector1));
+			g_clear_object(&connector1);
+		}
+		connector_drain(NULL);
 		return;
+	}
 	GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
 	if (!connection)
 		return;
-	connector1 = connector1_skeleton_new();
-	g_signal_connect(connector1, "handle-new-endpoint", G_CALLBACK(on_new_endpoint), NULL);
-	g_signal_connect(connector1, "handle-message", G_CALLBACK(on_message), NULL);
-	g_signal_connect(connector1, "handle-unregistered", G_CALLBACK(on_unregistered), NULL);
-	GError *error = NULL;
-	if (!g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(connector1), connection, "/org/unifiedpush/Connector", &error)) {
-		printf("UnifiedPush: cannot export the connector: %s\n", error->message);
-		g_error_free(error);
-	}
+	unifiedpush_export_connector(connection);
 	const char *application = (*env)->GetStringUTFChars(env, application_jstr, NULL);
 	unifiedpush_own_name(connection, application);
 	(*env)->ReleaseStringUTFChars(env, application_jstr, application);

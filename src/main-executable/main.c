@@ -1058,6 +1058,9 @@ static gboolean dbus_activation_asks_uninstall(GApplication *app)
 	if (!bus)
 		return FALSE;
 	guint filter = g_dbus_connection_add_filter(bus, dbus_request_filter, NULL, NULL);
+	/* a UnifiedPush distributor may have started us with a call to the connector: export it before
+	 * the name is ours, the app's Context answers or drops the calls it queued */
+	unifiedpush_export_connector(bus);
 	GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
 	                                              "RequestName", g_variant_new("(su)", g_application_get_application_id(app), G_BUS_NAME_OWNER_FLAGS_NONE),
 	                                              G_VARIANT_TYPE("(u)"), 0, -1, NULL, NULL);
