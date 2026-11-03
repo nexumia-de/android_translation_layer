@@ -153,10 +153,6 @@ public final class InputMethodSubtype implements Parcelable {
 		return mSubtypeLanguageTag;
 	}
 
-	public String getLocale() {
-		return java.util.Locale.getDefault().toString();
-	}
-
 	public String getMode() {
 		return mSubtypeMode;
 	}
