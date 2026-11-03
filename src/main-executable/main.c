@@ -1676,17 +1676,27 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 		/* the D-Bus service file needs an absolute path, dbus-daemon does not search PATH */
 		GString *exec_cmd = g_string_new("/usr/bin/env ");
+		char *prgname = g_strdup(d->prgname);
 		if (getenv("RUN_FROM_BUILDDIR")) {
+			/* not `env -C`, which busybox env lacks: the build directory goes into RUN_FROM_BUILDDIR,
+			 * main() changes into it, and the program path is made absolute */
 			printf("WARNING: RUN_FROM_BUILDDIR set and --install given: using current directory in desktop entry\n");
-			g_string_append_printf(exec_cmd, "-C %s ", g_get_current_dir());
+			char *cwd = g_get_current_dir();
+			g_string_append_printf(exec_cmd, "RUN_FROM_BUILDDIR=%s ", cwd);
+			if (strchr(prgname, '/')) {
+				g_free(prgname);
+				prgname = g_canonicalize_filename(d->prgname, cwd);
+			}
+			g_free(cwd);
 		}
-		char *envs[] = {"RUN_FROM_BUILDDIR", "LD_LIBRARY_PATH", "ANDROID_APP_DATA_DIR", "ATL_UGLY_ENABLE_LOCATION", "ATL_UGLY_ENABLE_MICROPHONE", "ATL_UGLY_DISABLE_WEBVIEW", "ATL_DISABLE_WINDOW_DECORATIONS", "ATL_FORCE_FULLSCREEN", "ATL_IS_AUTOMOTIVE", "ATL_IS_TELEVISION", "ATL_IS_WATCH", "ATL_GMS_STUB"};
+		char *envs[] = {"LD_LIBRARY_PATH", "ANDROID_APP_DATA_DIR", "ATL_UGLY_ENABLE_LOCATION", "ATL_UGLY_ENABLE_MICROPHONE", "ATL_UGLY_DISABLE_WEBVIEW", "ATL_DISABLE_WINDOW_DECORATIONS", "ATL_FORCE_FULLSCREEN", "ATL_IS_AUTOMOTIVE", "ATL_IS_TELEVISION", "ATL_IS_WATCH", "ATL_GMS_STUB"};
 		for (int i = 0; i < ARRAY_SIZE(envs); i++) {
 			if (getenv(envs[i])) {
 				g_string_append_printf(exec_cmd, "%s=%s ", envs[i], getenv(envs[i]));
 			}
 		}
-		g_string_append_printf(exec_cmd, "%s ", d->prgname);
+		g_string_append_printf(exec_cmd, "%s ", prgname);
+		g_free(prgname);
 		g_string_append_printf(exec_cmd, "--gapplication-app-id %s ", package_name);
 		if (d->apk_main_activity_class)
 			g_string_append_printf(exec_cmd, "-l %s ", d->apk_main_activity_class);
@@ -1959,6 +1969,13 @@ int main(int argc, char **argv)
 {
 	GtkApplication *app;
 	int status;
+
+	/* launchers made by --install from a build directory name it here (see below) */
+	const char *builddir = getenv("RUN_FROM_BUILDDIR");
+	if (builddir && builddir[0] == '/' && chdir(builddir) < 0) {
+		fprintf(stderr, "error: cannot change to RUN_FROM_BUILDDIR %s: %s\n", builddir, strerror(errno));
+		exit(1);
+	}
 
 	pregrow_stack();
 
