@@ -286,6 +286,12 @@ static void uninstall_activated(AdwButtonRow *row, struct app_info *info)
 		gtk_window_close(info->window);
 }
 
+static void all_apps_activated(AdwActionRow *row, struct app_info *info)
+{
+	const char *argv[] = {info->prgname, "--android-apps", NULL};
+	g_spawn_async(NULL, (char **)argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL);
+}
+
 static void close_window(GtkWindow *window, struct app_info *info)
 {
 	g_application_release(G_APPLICATION(info->app));
@@ -392,6 +398,17 @@ void app_info_show(GtkApplication *app, const char *package, const char *prgname
 	g_signal_connect(more, "activated", G_CALLBACK(more_permissions_activated), info);
 	adw_preferences_group_add(ADW_PREFERENCES_GROUP(permissions), more);
 	adw_preferences_page_add(ADW_PREFERENCES_PAGE(page), ADW_PREFERENCES_GROUP(permissions));
+
+	/* the settings for all Android apps */
+	GtkWidget *all_group = adw_preferences_group_new();
+	GtkWidget *all = adw_action_row_new();
+	adw_preferences_row_set_title(ADW_PREFERENCES_ROW(all), "All Android Apps");
+	adw_action_row_set_subtitle(ADW_ACTION_ROW(all), "Navigation, push server, installed apps");
+	adw_action_row_add_suffix(ADW_ACTION_ROW(all), gtk_image_new_from_icon_name("go-next-symbolic"));
+	gtk_list_box_row_set_activatable(GTK_LIST_BOX_ROW(all), TRUE);
+	g_signal_connect(all, "activated", G_CALLBACK(all_apps_activated), info);
+	adw_preferences_group_add(ADW_PREFERENCES_GROUP(all_group), all);
+	adw_preferences_page_add(ADW_PREFERENCES_PAGE(page), ADW_PREFERENCES_GROUP(all_group));
 
 	/* storage and removal */
 	GtkWidget *actions = adw_preferences_group_new();

@@ -7,6 +7,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_location_LocationManager_ACCURACY_NEIGHBORHOOD
+#define android_location_LocationManager_ACCURACY_NEIGHBORHOOD 3L
 #undef android_location_LocationManager_ACCURACY_EXACT
 #define android_location_LocationManager_ACCURACY_EXACT 5L
 /*

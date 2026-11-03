@@ -21,18 +21,56 @@
 #define KEY_ACTION_DOWN 0
 #define KEY_ACTION_UP 1
 
+/* the "Android apps" page's choice (--android-apps), for ATL on the host; apps in their own Flatpak
+ * get it as ATL_NAVIGATION from a Flatpak override */
+static char *settings_file(void)
+{
+	return g_build_filename(g_get_user_config_dir(), "android_translation_layer", "settings.ini", NULL);
+}
+
+static char *saved_mode(void)
+{
+	char *path = settings_file();
+	GKeyFile *key_file = g_key_file_new();
+	char *mode = NULL;
+	if (g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, NULL))
+		mode = g_key_file_get_string(key_file, "navigation", "mode", NULL);
+	g_key_file_free(key_file);
+	g_free(path);
+	return mode;
+}
+
+gboolean atl_navigation_set_mode(const char *mode, GError **error)
+{
+	char *path = settings_file();
+	char *dir = g_path_get_dirname(path);
+	g_mkdir_with_parents(dir, 0755);
+	GKeyFile *key_file = g_key_file_new();
+	g_key_file_load_from_file(key_file, path, G_KEY_FILE_KEEP_COMMENTS, NULL);
+	g_key_file_set_string(key_file, "navigation", "mode", mode);
+	gboolean ok = g_key_file_save_to_file(key_file, path, error);
+	g_key_file_free(key_file);
+	g_free(dir);
+	g_free(path);
+	return ok;
+}
+
 enum atl_navigation atl_navigation_mode(void)
 {
-	/* the settings app may later back this with GSettings */
+	/* the environment first (set per app Flatpak, or by hand), then the page's setting */
+	char *saved = NULL;
 	const char *mode = getenv("ATL_NAVIGATION");
-
+	if (!mode || !*mode)
+		mode = saved = saved_mode();
+	enum atl_navigation result = ATL_NAVIGATION_BOTH;
 	if (mode && !strcmp(mode, "buttons"))
-		return ATL_NAVIGATION_BUTTONS;
-	if (mode && !strcmp(mode, "gesture"))
-		return ATL_NAVIGATION_GESTURE;
-	if (mode && *mode && strcmp(mode, "both"))
+		result = ATL_NAVIGATION_BUTTONS;
+	else if (mode && !strcmp(mode, "gesture"))
+		result = ATL_NAVIGATION_GESTURE;
+	else if (mode && *mode && strcmp(mode, "both"))
 		g_warning("ATL_NAVIGATION=%s: expected buttons, gesture or both; using both", mode);
-	return ATL_NAVIGATION_BOTH;
+	g_free(saved);
+	return result;
 }
 
 static void back(void)

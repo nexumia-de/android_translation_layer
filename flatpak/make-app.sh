@@ -210,4 +210,10 @@ elif [ "$network" = yes ]; then
 elif [ "$network" = no ]; then
 	flatpak override --user --unshare=network "$id"
 fi
+# back navigation as chosen on the "Android apps" page (android-translation-layer --android-apps)
+settings=${XDG_CONFIG_HOME:-$HOME/.config}/android_translation_layer/settings.ini
+navigation=$(sed -n '/^\[navigation\]/,/^\[/s/^mode=//p' "$settings" 2>/dev/null | head -n 1)
+case $navigation in
+buttons | gesture | both) flatpak override --user --env=ATL_NAVIGATION="$navigation" "$id" ;;
+esac
 echo "installed $id"
