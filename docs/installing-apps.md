@@ -232,6 +232,25 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
 - Permissions: every app gets Wayland, the GPU, IPC, audio playback and
   feedbackd; `android.permission.INTERNET` adds `--share=network`.
   Everything else waits for portals and the broker (phases 3 and 4).
+- Runtime permissions without a portal (contacts, calendar, SMS, call
+  log, phone state, background location, microphone, Bluetooth, body
+  sensors, activity recognition, and ATL's own `atl.google-services`):
+  every app may call `de.nexumia.atl.Permissions` (`Check`, `Request`;
+  `src/installer-service/de.nexumia.atl.Permissions.xml`), a second
+  name of the installer service. It asks with the desktop's access
+  dialog (Phosh's shell, else GTK's;
+  [contacts](screenshots/permission-dialog-2026-11-03.png),
+  [Google services](screenshots/google-services-dialog-2026-11-03.png)),
+  stores the answer in the permission store table `de.nexumia.atl`,
+  answers "no" without asking for what the APK does not request
+  (`make-app-flatpak` writes the list to `/app/share/atl/permissions`)
+  and stops asking after the second "no". Inside the app,
+  `checkSelfPermission` and `requestPermissions` use it
+  (`android.atl.ATLPermissions`); `AudioRecord` records only after a
+  "yes". A `RECORD_AUDIO` answer also rewrites the user's PipeWire
+  rules (`flatpak/microphone/`), which apply from the next start of
+  WirePlumber and pipewire-pulse. Headless check:
+  `flatpak/permissions-test.sh`.
 - The package name is checked against Android's rules and the label is
   kept to one line, since both come from the APK and end up in the
   launcher.

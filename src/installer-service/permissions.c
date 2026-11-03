@@ -8,6 +8,7 @@
 #include <gio/gdesktopappinfo.h>
 #include <gio/gio.h>
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "permissions.h"
@@ -161,6 +162,70 @@ static void store_answer(GDBusConnection *bus, const char *app_id, const char *p
 	g_free(count);
 }
 
+/* RECORD_AUDIO is also enforced in PipeWire (flatpak/microphone/): the user's WirePlumber and
+ * pipewire-pulse configuration deny recording to every ATL app except those answered "yes". Both
+ * read it when they start, so a change applies from the next start; ATL's own check covers the
+ * time until then. */
+static void write_microphone_rules(GDBusConnection *bus)
+{
+	GVariant *reply = g_dbus_connection_call_sync(bus, STORE_NAME, STORE_PATH, STORE_NAME, "Lookup",
+	                                              g_variant_new("(ss)", STORE_TABLE, "android.permission.RECORD_AUDIO"),
+	                                              G_VARIANT_TYPE("(a{sas}v)"), G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL);
+	GString *wp_allowed = g_string_new("");
+	GString *pulse_allowed = g_string_new("");
+	if (reply) {
+		GVariantIter *apps;
+		const char *app;
+		const char **value;
+		g_variant_get(reply, "(a{sas}v)", &apps, NULL);
+		while (g_variant_iter_next(apps, "{&s^a&s}", &app, &value)) {
+			if (value[0] && !strcmp(value[0], "yes") && g_str_has_prefix(app, APP_PREFIX) && !strpbrk(app, "\"\\\n")) {
+				g_string_append_printf(wp_allowed, "  {\n    matches = [ { pipewire.access.portal.app_id = \"%s\" } ]\n"
+				                                   "    actions = { update-props = { permission_manager_name = \"atl-microphone\" } }\n  }\n", app);
+				g_string_append_printf(pulse_allowed, "  {\n    matches = [ { pipewire.access.portal.app_id = \"%s\" } ]\n"
+				                                      "    actions = { quirks = [ ] }\n  }\n", app);
+			}
+			g_free(value);
+		}
+		g_variant_iter_free(apps);
+		g_variant_unref(reply);
+	}
+	char *wp = g_strdup_printf(
+	    "# written by ATL's installer service from the RECORD_AUDIO answers; see flatpak/microphone/ in ATL\n"
+	    "access.permission-managers = [\n"
+	    "  {\n    name = \"atl-no-microphone\"\n    default_permissions = \"rx\"\n"
+	    "    rules = [ { matches = [ { media.class = \"~Audio/Source.*\" } ], actions = { set-permissions = \"-\" } } ]\n  }\n"
+	    "  { name = \"atl-microphone\", default_permissions = \"rx\" }\n]\n"
+	    "access.rules = [\n"
+	    "  {\n    matches = [ { pipewire.access.portal.app_id = \"~" APP_PREFIX "*\" } ]\n"
+	    "    actions = { update-props = { permission_manager_name = \"atl-no-microphone\" } }\n  }\n%s]\n",
+	    wp_allowed->str);
+	char *pulse = g_strdup_printf(
+	    "# written by ATL's installer service from the RECORD_AUDIO answers; see flatpak/microphone/ in ATL\n"
+	    "pulse.rules = [\n"
+	    "  {\n    matches = [ { pipewire.access.portal.app_id = \"~" APP_PREFIX "*\" } ]\n"
+	    "    actions = { quirks = [ block-record-stream ] }\n  }\n%s]\n",
+	    pulse_allowed->str);
+	char *wp_dir = g_build_filename(g_get_user_config_dir(), "wireplumber", "wireplumber.conf.d", NULL);
+	char *pulse_dir = g_build_filename(g_get_user_config_dir(), "pipewire", "pipewire-pulse.conf.d", NULL);
+	char *wp_file = g_build_filename(wp_dir, "90-atl-microphone.conf", NULL);
+	char *pulse_file = g_build_filename(pulse_dir, "90-atl-microphone.conf", NULL);
+	GError *err = NULL;
+	if (g_mkdir_with_parents(wp_dir, 0755) || g_mkdir_with_parents(pulse_dir, 0755) ||
+	    !g_file_set_contents(wp_file, wp, -1, &err) || !g_file_set_contents(pulse_file, pulse, -1, &err)) {
+		g_warning("writing the microphone rules: %s", err ? err->message : "cannot create the directories");
+		g_clear_error(&err);
+	}
+	g_free(wp_file);
+	g_free(pulse_file);
+	g_free(wp_dir);
+	g_free(pulse_dir);
+	g_free(wp);
+	g_free(pulse);
+	g_string_free(wp_allowed, TRUE);
+	g_string_free(pulse_allowed, TRUE);
+}
+
 static const char *answer_text(int answer)
 {
 	return answer == 1 ? "yes" : answer == 0 ? "no" : "ask";
@@ -217,6 +282,8 @@ static void dialog_answered(GObject *source, GAsyncResult *res, gpointer user_da
 	g_variant_unref(reply);
 	gboolean yes = response == 0;
 	store_answer(r->bus, r->app_id, r->permission, yes, yes ? 0 : r->denials + 1);
+	if (!strcmp(r->permission, "android.permission.RECORD_AUDIO"))
+		write_microphone_rules(r->bus);
 	g_message("%s %s: %s", r->app_id, r->permission, yes ? "yes" : "no");
 	g_dbus_method_invocation_return_value(r->invocation, g_variant_new("(s)", yes ? "yes" : "no"));
 	request_free(r);

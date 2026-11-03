@@ -74,3 +74,13 @@
 * **Gadgetbridge sync and charts**: After pairing, Gadgetbridge aborted on `ImageView.setImageLevel` (Drawable had no levels), every sync and Find device failed with `CloneNotSupportedException` (`Intent` not cloneable), the sync button's progress bar aborted because `AnimationUtils.loadInterpolator` returned null, and the HRV page aborted because androidx GridLayout needs `android.util.LogPrinter`. All four fixed (commits in [fork-workflow](fork-workflow.md)); tested with the owner's Amazfit Balance: pairing, sync and charts work.
 * **Handoff rules**: parallel agents write findings after every step, commit WIP, use their own prefix and the build lock, and keep secrets out ([dev-environment](dev-environment.md#parallel-agents-and-handoff)); AGENTS.md only links there.
 * **GitLab mirror**: `phosh` and `master` are pushed to the owner's GitLab fork on every push ([fork-workflow](fork-workflow.md#mirror-on-gitlab)); needs a deploy key set up by the owner.
+
+## 2026-11-03: runtime permissions through the installer service
+
+`de.nexumia.atl.Permissions` asks with the desktop's access dialog and
+stores answers in the permission store (table `de.nexumia.atl`); ATL's
+`checkSelfPermission`, `requestPermissions` and `AudioRecord` use it in
+an app's Flatpak, including `atl.google-services` (warning, default
+denied). Headless with GTK's dialog: not requested → no, contacts
+allowed, Google denied, microphone allowed and written into the
+PipeWire rules. Not yet tried inside a real app Flatpak.
