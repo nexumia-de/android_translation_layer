@@ -1,9 +1,14 @@
+#define _GNU_SOURCE /* memfd_create */
 #include <jni.h>
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+#include <xkbcommon/xkbcommon.h>
 
 #include <gdk/wayland/gdkwayland.h>
 #include <gtk/gtk.h>
@@ -32,6 +37,14 @@ struct {
 	guint text_len;
 	guint cursor;
 	guint anchor;
+
+	/* double-buffered state, applied on "done" */
+	gboolean pending_activate;
+	gboolean pending_deactivate;
+	guint32 content_hint;
+	guint32 content_purpose;
+	jobject connection; /* ATLInputConnection, global ref */
+	gboolean keymap_sent;
 	guint serial;
 } osk = {0};
 
@@ -53,19 +66,23 @@ static void
 handle_activate(void *data,
                 struct zwp_input_method_v2 *zwp_input_method_v2)
 {
-	/* a new text field: the old one's surrounding text no longer applies */
+	/* a new text field: the old one's surrounding text and content type no longer apply */
 	osk.text_len = 0;
 	osk.cursor = 0;
 	osk.anchor = 0;
 	osk.surrounding[0] = '\0';
-	atlosk_set_visible(TRUE);
+	osk.content_hint = 0;
+	osk.content_purpose = 0;
+	osk.pending_activate = TRUE;
+	osk.pending_deactivate = FALSE;
 }
 
 static void
 handle_deactivate(void *data,
                   struct zwp_input_method_v2 *zwp_input_method_v2)
 {
-	atlosk_set_visible(FALSE);
+	osk.pending_deactivate = TRUE;
+	osk.pending_activate = FALSE;
 }
 
 static void
@@ -96,7 +113,8 @@ handle_content_type(void *data,
                     uint32_t hint,
                     uint32_t purpose)
 {
-	//DEBUG("\n");
+	osk.content_hint = hint;
+	osk.content_purpose = purpose;
 }
 
 static void
@@ -104,6 +122,22 @@ handle_done(void *data,
             struct zwp_input_method_v2 *zwp_input_method_v2)
 {
 	osk.serial++;
+	JNIEnv *env = get_jni_env();
+	if (osk.pending_activate) {
+		osk.pending_activate = FALSE;
+		atlosk_set_visible(TRUE);
+		if (osk.connection)
+			J__InputMethodService__ATLInputConnection__onActivate(env, osk.connection, osk.content_hint, osk.content_purpose);
+	} else if (osk.pending_deactivate) {
+		osk.pending_deactivate = FALSE;
+		atlosk_set_visible(FALSE);
+		if (osk.connection)
+			J__InputMethodService__ATLInputConnection__onDeactivate(env, osk.connection);
+	}
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+	}
 }
 
 static void
@@ -175,6 +209,7 @@ JNIEXPORT jlong JNICALL Java_android_inputmethodservice_InputMethodService_00024
 
 	osk.display = gdk_wayland_display_get_wl_display(gdk_display);
 	osk.seat = gdk_wayland_seat_get_wl_seat(gdk_seat);
+	osk.connection = _REF(this);
 	osk.registry = wl_display_get_registry(osk.display);
 	wl_registry_add_listener(osk.registry, &registry_listener, &osk);
 
@@ -285,17 +320,70 @@ JNIEXPORT jboolean JNICALL Java_android_inputmethodservice_InputMethodService_00
 	return true;
 }
 
+/* The virtual keyboard needs a keymap before its first key: the default (evdev, "us") one. */
+static void send_keymap(void)
+{
+	struct xkb_context *ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	struct xkb_keymap *keymap = ctx ? xkb_keymap_new_from_names(ctx, NULL, XKB_KEYMAP_COMPILE_NO_FLAGS) : NULL;
+	char *str = keymap ? xkb_keymap_get_as_string(keymap, XKB_KEYMAP_FORMAT_TEXT_V1) : NULL;
+	if (str) {
+		size_t size = strlen(str) + 1;
+		int fd = memfd_create("atl-osk-keymap", MFD_CLOEXEC);
+		if (fd >= 0 && write(fd, str, size) == (ssize_t)size) {
+			zwp_virtual_keyboard_v1_keymap(osk.virtual_keyboard, XKB_KEYMAP_FORMAT_TEXT_V1, fd, size);
+			osk.keymap_sent = TRUE;
+		}
+		if (fd >= 0)
+			close(fd);
+		free(str);
+	}
+	if (keymap)
+		xkb_keymap_unref(keymap);
+	if (ctx)
+		xkb_context_unref(ctx);
+}
+
+/* Android key codes the keyboard sends as keys, to evdev codes */
+static int evdev_code(long key)
+{
+	switch (key) {
+		case 66: return 28;   /* ENTER */
+		case 160: return 96;  /* NUMPAD_ENTER -> KP_ENTER */
+		case 67: return 14;   /* DEL (backspace) */
+		case 112: return 111; /* FORWARD_DEL */
+		case 61: return 15;   /* TAB */
+		case 111: return 1;   /* ESCAPE */
+		case 21: return 105;  /* DPAD_LEFT */
+		case 22: return 106;  /* DPAD_RIGHT */
+		case 19: return 103;  /* DPAD_UP */
+		case 20: return 108;  /* DPAD_DOWN */
+		case 122: return 102; /* MOVE_HOME */
+		case 123: return 107; /* MOVE_END */
+		case 92: return 104;  /* PAGE_UP */
+		case 93: return 109;  /* PAGE_DOWN */
+		case 62: return 57;   /* SPACE */
+		default: return -1;
+	}
+}
+
 JNIEXPORT jboolean JNICALL Java_android_inputmethodservice_InputMethodService_00024ATLInputConnection_nativeSendKeyEvent(JNIEnv *env, jobject this, jlong ptr, jlong time, jlong key, jlong state)
 {
-	INFO("nativeSendKeyEvent(time=%ld, key=%ld, state=%ld)\n", ptr, time, key, state);
-
-	if (key == 67 /* KEYCODE_DEL */ && state == 1 /* ACTION_UP */) {
-		if (osk.input_method) {
-			zwp_input_method_v2_delete_surrounding_text(osk.input_method, 1, 0);
-			zwp_input_method_v2_commit(osk.input_method, osk.serial);
-		}
+	int code = evdev_code(key);
+	DEBUG("key=%ld state=%ld evdev=%d\n", key, state, code);
+	if (code < 0 || !osk.virtual_keyboard)
+		return false;
+	if (!osk.keymap_sent)
+		send_keymap();
+	/* the preedit is not in the field yet: commit it first, or Enter would act on the text without it */
+	if (state == 0 && osk.input_method && osk.compositing[0]) {
+		zwp_input_method_v2_commit_string(osk.input_method, osk.compositing);
+		zwp_input_method_v2_commit(osk.input_method, osk.serial);
+		osk.compositing[0] = '\0';
 	}
-
+	/* ACTION_DOWN 0 -> pressed, ACTION_UP 1 -> released */
+	zwp_virtual_keyboard_v1_key(osk.virtual_keyboard, (uint32_t)time, code,
+	                            state == 0 ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED);
+	wl_display_flush(osk.display);
 	return true;
 }
 

@@ -2,6 +2,7 @@ package android.inputmethodservice;
 
 import android.app.Dialog;
 import android.atl.ATLKeyboardDialog;
+import android.atl.annotation.Export;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -9,6 +10,7 @@ import android.content.res.Resources;
 import android.graphics.Region;
 import android.os.IBinder;
 import android.view.KeyEvent;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
@@ -94,6 +96,26 @@ public class InputMethodService extends AbstractInputMethodService {
 			return s.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
 		}
 
+		/* input-method-v2 "activate" for a newly focused field, with its content type */
+		@Export
+		public void onActivate(int hint, int purpose) {
+			atlStartInput(editorInfoFor(hint, purpose));
+		}
+
+		@Export
+		public void onDeactivate() {
+			atlFinishInput();
+		}
+
+		/* Android's Enter of a single-line field: the key, as a hardware keyboard sends it */
+		@Override
+		public boolean performEditorAction(int actionCode) {
+			long now = android.os.SystemClock.uptimeMillis();
+			sendKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, 0));
+			sendKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, 0));
+			return true;
+		}
+
 		ATLInputConnection() {
 			super(null, false);
 			nativePtr = nativeInit();
@@ -165,6 +187,100 @@ public class InputMethodService extends AbstractInputMethodService {
 	}
 
 	private InputConnection input_connection = new ATLInputConnection();
+	private EditorInfo current_editor_info = editorInfoFor(0, 0);
+	private boolean input_started = false;
+
+	/* text-input-v3 content hints and purpose (as passed on by input-method-v2) to Android's inputType */
+	static EditorInfo editorInfoFor(int hint, int purpose) {
+		final int HINT_COMPLETION = 0x1, HINT_SPELLCHECK = 0x2, HINT_AUTO_CAPITALIZATION = 0x4,
+			  HINT_UPPERCASE = 0x10, HINT_TITLECASE = 0x20, HINT_HIDDEN_TEXT = 0x40,
+			  HINT_SENSITIVE_DATA = 0x80, HINT_MULTILINE = 0x200;
+		int type;
+		switch (purpose) {
+			case 2: /* digits */
+				type = InputType.TYPE_CLASS_NUMBER;
+				break;
+			case 9: /* pin */
+				type = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD;
+				break;
+			case 3: /* number */
+				type = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED | InputType.TYPE_NUMBER_FLAG_DECIMAL;
+				break;
+			case 4: /* phone */
+				type = InputType.TYPE_CLASS_PHONE;
+				break;
+			case 5: /* url */
+				type = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI;
+				break;
+			case 6: /* email */
+				type = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS;
+				break;
+			case 7: /* name */
+				type = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PERSON_NAME;
+				break;
+			case 8: /* password */
+				type = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD;
+				break;
+			case 10: /* date */
+				type = InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_DATE;
+				break;
+			case 11: /* time */
+				type = InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_TIME;
+				break;
+			case 12: /* datetime */
+				type = InputType.TYPE_CLASS_DATETIME;
+				break;
+			case 13: /* terminal */
+				type = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+				break;
+			default: /* normal, alpha */
+				type = InputType.TYPE_CLASS_TEXT;
+				if ((hint & HINT_HIDDEN_TEXT) != 0)
+					type |= InputType.TYPE_TEXT_VARIATION_PASSWORD;
+		}
+		if ((type & InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_TEXT) {
+			if ((hint & HINT_UPPERCASE) != 0)
+				type |= InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS;
+			else if ((hint & HINT_TITLECASE) != 0)
+				type |= InputType.TYPE_TEXT_FLAG_CAP_WORDS;
+			else if ((hint & HINT_AUTO_CAPITALIZATION) != 0)
+				type |= InputType.TYPE_TEXT_FLAG_CAP_SENTENCES;
+			if ((hint & HINT_SPELLCHECK) != 0)
+				type |= InputType.TYPE_TEXT_FLAG_AUTO_CORRECT;
+			if ((hint & HINT_COMPLETION) != 0)
+				type |= InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE;
+			if ((hint & HINT_MULTILINE) != 0)
+				type |= InputType.TYPE_TEXT_FLAG_MULTI_LINE;
+		}
+		EditorInfo info = new EditorInfo();
+		info.inputType = type;
+		/* single line: Enter is "done" (sent as the Enter key); multi-line: a new line */
+		info.imeOptions = (hint & HINT_MULTILINE) != 0 ? 0x40000000 /* IME_FLAG_NO_ENTER_ACTION */ : 6 /* IME_ACTION_DONE */;
+		if ((hint & HINT_SENSITIVE_DATA) != 0 || (hint & HINT_HIDDEN_TEXT) != 0)
+			info.imeOptions |= 0x1000000; /* IME_FLAG_NO_PERSONALIZED_LEARNING */
+		info.packageName = "";
+		return info;
+	}
+
+	/* a new text field got the focus */
+	private void atlStartInput(EditorInfo info) {
+		if (input_started) {
+			onFinishInputView(true);
+			onFinishInput();
+		}
+		current_editor_info = info;
+		onStartInput(info, false);
+		onStartInputView(info, false);
+		input_started = true;
+	}
+
+	private void atlFinishInput() {
+		if (!input_started)
+			return;
+		onFinishInputView(true);
+		onFinishInput();
+		input_started = false;
+	}
 
 	public InputMethodService() {}
 
@@ -188,7 +304,7 @@ public class InputMethodService extends AbstractInputMethodService {
 		onConfigurationChanged(getResources().getConfiguration());
 
 		onBindInput();
-		onStartInput(new EditorInfo(), false);
+		onStartInput(current_editor_info, false);
 
 		kb_box = new LinearLayout(this);
 		kb_box.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
@@ -208,7 +324,8 @@ public class InputMethodService extends AbstractInputMethodService {
 
 		onComputeInsets(new Insets());
 
-		onStartInputView(new EditorInfo(), false);
+		onStartInputView(current_editor_info, false);
+		input_started = true;
 	}
 
 	public void sendKeyChar(char c) {
@@ -263,7 +380,7 @@ public class InputMethodService extends AbstractInputMethodService {
 	}
 
 	public EditorInfo getCurrentInputEditorInfo() {
-		return new EditorInfo();
+		return current_editor_info;
 	}
 
 	public void requestHideSelf(int flags) {
