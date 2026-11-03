@@ -83,6 +83,10 @@ public class InputDevice {
 		return true;
 	}
 
+	public MotionRange getMotionRange(int axis) {
+		return new MotionRange(axis);
+	}
+
 	public MotionRange getMotionRange(int axis, int source) {
 		return new MotionRange(axis);
 	}
@@ -96,6 +100,31 @@ public class InputDevice {
 
 		public int getAxis() {
 			return this.axis;
+		}
+
+		/* MotionEvent reports pressure and size as 0 to 1; other axes have no known range */
+		public float getMin() {
+			return 0;
+		}
+
+		public float getMax() {
+			return (axis == MotionEvent.AXIS_PRESSURE || axis == MotionEvent.AXIS_SIZE) ? 1 : 0;
+		}
+
+		public float getRange() {
+			return getMax() - getMin();
+		}
+
+		public float getFlat() {
+			return 0;
+		}
+
+		public float getFuzz() {
+			return 0;
+		}
+
+		public float getResolution() {
+			return 0;
 		}
 	};
 }
