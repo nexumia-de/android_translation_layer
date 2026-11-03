@@ -157,6 +157,19 @@ JNIEXPORT jboolean JNICALL Java_android_view_inputmethod_InputMethodManager_nati
 	return gtk_im_context_activate_osk(context, NULL);
 }
 
+/* a new connection for the same view: the keyboard stays as it is (shown or
+ * dismissed); the old field's preedit is dropped, not committed into the new one */
+JNIEXPORT void JNICALL Java_android_view_inputmethod_InputMethodManager_nativeRestartInput(JNIEnv *env, jobject this, jlong context_ptr, jlong widget_ptr, jobject new_connection, jint input_type)
+{
+	GtkIMContext *context = GTK_IM_CONTEXT(_PTR(context_ptr));
+	gtk_im_context_reset(context);
+	gtk_im_context_set_client_widget(context, GTK_WIDGET(_PTR(widget_ptr)));
+	set_input_type(context, input_type);
+	if (connection)
+		_UNREF(connection);
+	connection = _REF(new_connection);
+}
+
 JNIEXPORT void JNICALL Java_android_view_inputmethod_InputMethodManager_nativeHideSoftInput(JNIEnv *env, jobject this, jlong context_ptr)
 {
 	GtkIMContext *context = GTK_IM_CONTEXT(_PTR(context_ptr));

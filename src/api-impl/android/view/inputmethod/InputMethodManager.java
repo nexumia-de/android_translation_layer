@@ -131,7 +131,7 @@ public class InputMethodManager {
 		EditorInfo outAttrs = new EditorInfo();
 		InputConnection ic = view.onCreateInputConnection(outAttrs);
 		if (ic != null) {
-			nativeShowSoftInput(im_context, view.widget, ic, outAttrs.inputType);
+			nativeRestartInput(im_context, view.widget, ic, outAttrs.inputType);
 		} else {
 			nativeHideSoftInput(im_context);
 			activeView = null;
@@ -169,4 +169,5 @@ public class InputMethodManager {
 	private static native long nativeInit();
 	private native boolean nativeShowSoftInput(long im_context, long widget, InputConnection ic, int inputType);
 	private native void nativeHideSoftInput(long im_context);
+	private native void nativeRestartInput(long im_context, long widget, InputConnection ic, int inputType);
 }
