@@ -52,6 +52,12 @@ The following environment variables are recognized by the main executable:
 
 ---
 
+`ATL_HAS_TELEPHONY` - `1` or `0`; overrides whether ATL reports a cellular modem (`android.hardware.telephony`).
+                      By default ATL asks ModemManager whether it manages a modem, once per app start: an app started
+                      before ModemManager found the modem (right after boot) sees no telephony until it is restarted.
+
+---
+
 `ATL_SKIP_NATIVES_EXTRACTION` - if set, natives will not be extracted automatically;
                                 it's already possible to replace a native lib, but removing it entirely will normally result
                                 in it getting re-extracted, which would prevent you from replacing libs with native ones

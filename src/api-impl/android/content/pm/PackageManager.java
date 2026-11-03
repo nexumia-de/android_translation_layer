@@ -2264,6 +2264,8 @@ public class PackageManager {
 			case FEATURE_BLUETOOTH:
 			case FEATURE_BLUETOOTH_LE:
 				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null;
+			case FEATURE_TELEPHONY:
+				return android.telephony.TelephonyManager.hasModem();
 			default:
 				Slog.e(TAG, "!!!!!!! hasSystemFeature: case >" + name + "< is not implemented yet");
 				return false;
