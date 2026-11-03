@@ -146,6 +146,14 @@ public abstract class Context {
 	}
 
 	protected static native void native_updateConfig(Configuration config);
+
+	/* called from native code when the window got a new size, after Display and sys_config */
+	private static void atlScreenSizeChanged() {
+		Resources.atlScreenSizeChanged();
+		Application application = ATLLoadedApp.getPrimaryApplication().getApplication();
+		if (application != null)
+			application.onConfigurationChanged(new Configuration(sys_config));
+	}
 	protected static native void nativeOpenFile(int fd);
 	protected static native void nativeLaunchDesktopApp(String desktopId, String action);
 	protected static native void nativeShareCopy(String text, int fd);

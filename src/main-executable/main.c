@@ -803,19 +803,26 @@ static void install_ask_copied(GObject *source, GAsyncResult *res, gpointer user
 		g_error_free(err);
 		return;
 	}
-	/* the installed app starts with this window size, like one an app store installs */
+	/* the installed app starts with -w/-h when this one got them, like one an app store installs */
 	char *width = g_strdup_printf("%d", r->d->window_width);
 	char *height = g_strdup_printf("%d", r->d->window_height);
 	/* an update keeps the SDK level the app ran at, e.g. the one its app store gave it */
 	char *sdk_int = r->d->sdk_int ? g_strdup(r->d->sdk_int) : r->updating ? installed_launcher_sdk_int(r->package_name) : NULL;
 	if (!sdk_int)
 		sdk_int = g_strdup(r->default_sdk_int);
-	const char *argv[] = {r->d->prgname, "--install", "-w", width, "-h", height, r->staged_apk, NULL, NULL, NULL};
-	if (sdk_int) {
-		argv[6] = "--sdk-int";
-		argv[7] = sdk_int;
-		argv[8] = r->staged_apk;
+	const char *argv[10] = {r->d->prgname, "--install"};
+	int argc = 2;
+	if (r->d->window_width && r->d->window_height) {
+		argv[argc++] = "-w";
+		argv[argc++] = width;
+		argv[argc++] = "-h";
+		argv[argc++] = height;
 	}
+	if (sdk_int) {
+		argv[argc++] = "--sdk-int";
+		argv[argc++] = sdk_int;
+	}
+	argv[argc++] = r->staged_apk;
 	printf("install: running %s --install%s%s for %s\n", r->d->prgname, sdk_int ? " --sdk-int " : "", sdk_int ? sdk_int : "", r->staged_apk);
 	GSubprocess *install = g_subprocess_newv(argv, G_SUBPROCESS_FLAGS_NONE, &err);
 	g_free(width);
@@ -1218,6 +1225,29 @@ static char *install_split_apks(GFile *dest, GFile **files, gint nfiles)
 	return g_string_free(paths, FALSE);
 }
 
+/* -w/-h, or else the size of the first monitor in logical pixels (Phosh then maximizes the window,
+ * and Display and the Configuration follow its real size, see android_content_Context.c) */
+static void get_window_size(struct jni_callback_data *d, int *width, int *height)
+{
+	*width = 960;
+	*height = 540;
+	GdkDisplay *display = gdk_display_get_default();
+	GdkMonitor *monitor = display ? g_list_model_get_item(gdk_display_get_monitors(display), 0) : NULL;
+	if (monitor) {
+		GdkRectangle geometry;
+		gdk_monitor_get_geometry(monitor, &geometry);
+		if (geometry.width > 0 && geometry.height > 0) {
+			*width = geometry.width;
+			*height = geometry.height;
+		}
+		g_object_unref(monitor);
+	}
+	if (d->window_width)
+		*width = d->window_width;
+	if (d->window_height)
+		*height = d->window_height;
+}
+
 static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *hint, struct jni_callback_data *d)
 {
 	if (app_starting && !window) { // the bus name is owned early when D-Bus activated
@@ -1364,9 +1394,12 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	free(app_lib_dir);
 
+	int window_width, window_height;
+	get_window_size(d, &window_width, &window_height);
 	jclass display_class = _CACHED_CLASS(Display);
-	_SET_STATIC_INT_FIELD(display_class, "window_width", d->window_width);
-	_SET_STATIC_INT_FIELD(display_class, "window_height", d->window_height);
+	_SET_STATIC_INT_FIELD(display_class, "window_width", window_width);
+	_SET_STATIC_INT_FIELD(display_class, "window_height", window_height);
+	(*env)->SetStaticBooleanField(env, display_class, _STATIC_FIELD_ID(display_class, "window_size_explicit", "Z"), d->window_width && d->window_height);
 
 	/* -- register our JNI library under the appropriate classloader -- */
 
@@ -1598,7 +1631,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	if (!d->apk_instrumentation_class)
 		gtk_window_set_title(GTK_WINDOW(window), package_name);
-	gtk_window_set_default_size(GTK_WINDOW(window), d->window_width, d->window_height);
+	gtk_window_set_default_size(GTK_WINDOW(window), window_width, window_height);
 	g_signal_connect(window, "close-request", G_CALLBACK(app_exit), env);
 
 	GtkWidget *header_bar = gtk_header_bar_new();
@@ -1836,8 +1869,9 @@ int main(int argc, char **argv)
 	struct jni_callback_data *callback_data = malloc(sizeof(struct jni_callback_data));
 	callback_data->apk_main_activity_class = NULL;
 	callback_data->apk_instrumentation_class = NULL;
-	callback_data->window_width = 960;
-	callback_data->window_height = 540;
+	/* 0: the size of the monitor, see get_window_size */
+	callback_data->window_width = 0;
+	callback_data->window_height = 0;
 	callback_data->install = FALSE;
 	callback_data->install_internal = FALSE;
 	callback_data->install_ask = FALSE;

@@ -6,6 +6,7 @@ import android.annotation.UnsupportedAppUsage;
 import android.atl.GskCanvas;
 import android.atl.annotation.Export;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Rect;
@@ -155,6 +156,13 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 		if (cancel)
 			event.setAction(oldAction);
 		return handled;
+	}
+
+	@Override
+	public void dispatchConfigurationChanged(Configuration newConfig) {
+		super.dispatchConfigurationChanged(newConfig);
+		for (View child : children.toArray(new View[0]))
+			child.dispatchConfigurationChanged(newConfig);
 	}
 
 	@Export
