@@ -56,6 +56,10 @@ entry: date, what, why. Remove an entry once it is done.
   `systemctl --user status atl-pulse-norecord` (active) and, while an
   ATL app plays sound, `pactl -s /run/user/$(id -u)/atl-pulse-norecord/native list short clients`.
 
+- 2026-11-03: DB Navigator covered the whole screen (edge to edge made
+  the window fullscreen). After the fix (#94) is in the aports package:
+  start DB Navigator from the app grid; Phosh's bar and ATL's title bar
+  stay and the app starts below them.
 - 2026-10-28: Finish the apk repository in
   [nexumia-de/aports](https://github.com/nexumia-de/aports) (signing
   secret in the environment `apk-signing`, merge its pull request #1;
