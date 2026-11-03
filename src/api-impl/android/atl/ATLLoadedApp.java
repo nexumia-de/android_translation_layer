@@ -331,7 +331,7 @@ public final class ATLLoadedApp {
 					if (serviceConnection != null) {
 						serviceConnection.onServiceConnected(intent.getComponent(), service.onBind(intent));
 					} else {
-						service.onStartCommand(intent, 0, 0);
+						service.onStartCommand(intent, 0, service.atl_next_start_id());
 					}
 				} catch (ReflectiveOperationException e) {
 					Slog.e(TAG, "startService: failed to start service " + className, e);
@@ -349,9 +349,18 @@ public final class ATLLoadedApp {
 		Service service = running_services.get(className);
 		if (service == null)
 			return false;
-		service.onDestroy();
 		running_services.remove(className);
+		service.atl_stopped();
+		service.onDestroy();
 		return true;
+	}
+
+	/* Service.stopSelf */
+	public void stopService(Service service) {
+		if (running_services.values().remove(service)) {
+			service.atl_stopped();
+			service.onDestroy();
+		}
 	}
 
 	public void receiveBroadcast(Context context, Intent intent) {
