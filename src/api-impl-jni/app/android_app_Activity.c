@@ -163,6 +163,11 @@ void current_activity_back_pressed(void)
 	}
 }
 
+gboolean activity_backlog_empty(void)
+{
+	return activity_backlog == NULL;
+}
+
 #define KEYCODE_BACK 4
 
 /* whether a back press would do something: a dialog shows, an activity is
