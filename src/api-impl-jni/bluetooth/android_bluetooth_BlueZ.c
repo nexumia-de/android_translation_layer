@@ -18,6 +18,7 @@
 #include "../defines.h"
 #include "../util.h"
 #include "../generated_headers/android_bluetooth_BlueZ.h"
+#include "../generated_headers/android_bluetooth_PairingAgent.h"
 
 static GDBusConnection *system_bus = NULL;
 static GMainContext *signal_context = NULL;
@@ -294,6 +295,8 @@ static void on_signal(GDBusConnection *connection, const char *sender, const cha
 		(*env)->DeleteLocalRef(env, jparameters);
 }
 
+static void export_agent(void);
+
 static gpointer signal_thread(gpointer data)
 {
 	JavaVM *vm = data;
@@ -307,6 +310,8 @@ static gpointer signal_thread(gpointer data)
 	                                   NULL, NULL, G_DBUS_SIGNAL_FLAGS_NONE, on_signal, NULL, NULL);
 	g_dbus_connection_signal_subscribe(system_bus, "org.bluez", "org.freedesktop.DBus.ObjectManager", NULL,
 	                                   NULL, NULL, G_DBUS_SIGNAL_FLAGS_NONE, on_signal, NULL, NULL);
+	/* exported here, so BlueZ's calls are dispatched on this thread's context */
+	export_agent();
 	GMainLoop *loop = g_main_loop_new(signal_context, FALSE);
 	g_main_loop_run(loop);
 	return NULL;
@@ -399,4 +404,99 @@ JNIEXPORT jobject JNICALL Java_android_bluetooth_BlueZ_nativeCall(JNIEnv *env, j
 	}
 	g_variant_unref(reply);
 	return result;
+}
+
+/* pairing agent (android.bluetooth.PairingAgent): BlueZ calls org.bluez.Agent1 methods on the signal thread,
+ * Java answers each invocation later with nativeReply, after the user decided in a dialog */
+
+static const char agent_xml[] =
+	"<node><interface name='org.bluez.Agent1'>"
+	"<method name='Release'/>"
+	"<method name='RequestPinCode'><arg type='o' direction='in'/><arg type='s' direction='out'/></method>"
+	"<method name='DisplayPinCode'><arg type='o' direction='in'/><arg type='s' direction='in'/></method>"
+	"<method name='RequestPasskey'><arg type='o' direction='in'/><arg type='u' direction='out'/></method>"
+	"<method name='DisplayPasskey'><arg type='o' direction='in'/><arg type='u' direction='in'/><arg type='q' direction='in'/></method>"
+	"<method name='RequestConfirmation'><arg type='o' direction='in'/><arg type='u' direction='in'/></method>"
+	"<method name='RequestAuthorization'><arg type='o' direction='in'/></method>"
+	"<method name='AuthorizeService'><arg type='o' direction='in'/><arg type='s' direction='in'/></method>"
+	"<method name='Cancel'/>"
+	"</interface></node>";
+
+static void agent_method_call(GDBusConnection *connection, const char *sender, const char *path, const char *interface,
+                              const char *method, GVariant *parameters, GDBusMethodInvocation *invocation, gpointer user_data)
+{
+	JNIEnv *env = get_jni_env();
+	const char *device = NULL;
+	jobject jarg = NULL;
+	if (g_variant_n_children(parameters) >= 1) {
+		GVariant *first = g_variant_get_child_value(parameters, 0);
+		if (g_variant_is_of_type(first, G_VARIANT_TYPE_OBJECT_PATH))
+			device = g_variant_get_string(first, NULL);
+		if (g_variant_n_children(parameters) >= 2) {
+			GVariant *second = g_variant_get_child_value(parameters, 1);
+			jarg = variant_to_java(env, second);
+			g_variant_unref(second);
+		}
+		g_variant_unref(first);
+	}
+	jstring jmethod = _JSTRING(method);
+	jstring jdevice = device ? _JSTRING(device) : NULL;
+	/* the invocation is owned by Java until nativeReply */
+	J__PairingAgent__onRequest(env, _INTPTR(invocation), jmethod, jdevice, jarg);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+	}
+	(*env)->DeleteLocalRef(env, jmethod);
+	if (jdevice)
+		(*env)->DeleteLocalRef(env, jdevice);
+	if (jarg)
+		(*env)->DeleteLocalRef(env, jarg);
+}
+
+static const GDBusInterfaceVTable agent_vtable = {agent_method_call, NULL, NULL};
+
+#define AGENT_PATH "/org/atl/bluetooth/agent"
+static gint agent_state = 0; /* 0 pending, 1 exported, -1 failed */
+
+static void export_agent(void)
+{
+	GError *error = NULL;
+	GDBusNodeInfo *info = g_dbus_node_info_new_for_xml(agent_xml, &error);
+	guint id = 0;
+	if (info) {
+		id = g_dbus_connection_register_object(system_bus, AGENT_PATH, info->interfaces[0], &agent_vtable, NULL, NULL, &error);
+		g_dbus_node_info_unref(info);
+	}
+	if (!id) {
+		fprintf(stderr, "BlueZ agent: %s\n", error->message);
+		g_error_free(error);
+	}
+	g_atomic_int_set(&agent_state, id ? 1 : -1);
+}
+
+JNIEXPORT jboolean JNICALL Java_android_bluetooth_PairingAgent_nativeExport(JNIEnv *env, jclass class, jstring jpath)
+{
+	/* the signal thread exports the object at AGENT_PATH right after it starts */
+	for (int i = 0; i < 100 && system_bus && g_atomic_int_get(&agent_state) == 0; i++)
+		g_usleep(10000);
+	return g_atomic_int_get(&agent_state) == 1;
+}
+
+JNIEXPORT void JNICALL Java_android_bluetooth_PairingAgent_nativeReply(JNIEnv *env, jclass class, jlong jinvocation, jstring jerror, jobject jvalue)
+{
+	GDBusMethodInvocation *invocation = _PTR(jinvocation);
+	if (jerror) {
+		const char *name = _CSTRING(jerror);
+		g_dbus_method_invocation_return_dbus_error(invocation, name, "Rejected");
+		(*env)->ReleaseStringUTFChars(env, jerror, name);
+	} else if (jvalue && is_instance(env, jvalue, "java/lang/String")) { /* RequestPinCode */
+		const char *pin = _CSTRING(jvalue);
+		g_dbus_method_invocation_return_value(invocation, g_variant_new("(s)", pin));
+		(*env)->ReleaseStringUTFChars(env, jvalue, pin);
+	} else if (jvalue) { /* RequestPasskey */
+		g_dbus_method_invocation_return_value(invocation, g_variant_new("(u)", (guint32)number_value(env, jvalue)));
+	} else {
+		g_dbus_method_invocation_return_value(invocation, NULL);
+	}
 }

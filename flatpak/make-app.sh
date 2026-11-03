@@ -16,6 +16,9 @@
 #               (x-scheme-handler/<scheme> from the APK's intent filters)
 #   -P PERMS    Android permissions the APK requests, ';'-separated;
 #               mapped to Flatpak permissions (phase 4 table)
+#   -N yes|no   internet: the user's answer for an app with android.permission.INTERNET,
+#               written as a user override (flatpak override --user); without -N an
+#               earlier answer stays, and without any answer the app has no network
 #   -f ARG      extra finish-arg, repeatable, e.g. -f --share=network
 #   -r DIR      local repository (default: ~/.local/share/android_translation_layer/flatpak-repo)
 #
@@ -27,11 +30,11 @@ set -eu
 
 base=de.nexumia.atl.BaseApp
 repo=$HOME/.local/share/android_translation_layer/flatpak-repo
-pkg= name= icon= atl_args= finish= mime_types= permissions=
+pkg= name= icon= atl_args= finish= mime_types= permissions= network=
 
 usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit "${1:-0}"; }
 
-while getopts "p:n:i:b:a:m:P:f:r:h" opt; do
+while getopts "p:n:i:b:a:m:P:N:f:r:h" opt; do
 	case $opt in
 	p) pkg=$OPTARG ;;
 	n) name=$OPTARG ;;
@@ -40,6 +43,7 @@ while getopts "p:n:i:b:a:m:P:f:r:h" opt; do
 	a) atl_args=$OPTARG ;;
 	m) mime_types=$OPTARG ;;
 	P) permissions=$OPTARG ;;
+	N) network=$OPTARG ;;
 	f) finish="$finish $OPTARG" ;;
 	r) repo=$OPTARG ;;
 	h) usage 0 ;;
@@ -48,6 +52,7 @@ while getopts "p:n:i:b:a:m:P:f:r:h" opt; do
 done
 shift $((OPTIND - 1))
 [ $# -ge 1 ] && [ -n "$pkg" ] || usage 1
+case $network in yes | no | '') ;; *) echo "-N: yes or no, not $network" >&2; exit 1 ;; esac
 # The package name, label and schemes come from the APK: check the name
 # like Android does, and keep the label to one line of a desktop file.
 if ! printf '%s\n' "$pkg" | grep -Eqx '[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+'; then
@@ -59,9 +64,12 @@ id=de.nexumia.atl.$pkg
 
 # Android permission -> Flatpak permission (docs/hardening-roadmap.md,
 # phase 4); the rest needs portals or the broker and is not granted.
+# Internet is never in the metadata: the user is asked (-N), and the
+# answer is a user override that updates keep.
+wants_network=
 for perm in $(printf '%s' "$permissions" | tr ';' ' '); do
 	case $perm in
-	android.permission.INTERNET) finish="$finish --share=network" ;;
+	android.permission.INTERNET) wants_network=1 ;;
 	# app stores: the host's installer service, which asks the user for every install
 	android.permission.REQUEST_INSTALL_PACKAGES) finish="$finish --talk-name=de.nexumia.atl.Installer" ;;
 	esac
@@ -181,5 +189,13 @@ if flatpak list --user --app --columns=application | grep -qxF "$id"; then
 	flatpak update --user -y --noninteractive "$id"
 else
 	flatpak install --user -y --noninteractive atl-local "$id//stable"
+fi
+# an app that no longer requests INTERNET loses an earlier "yes"
+if [ -z "$wants_network" ]; then
+	flatpak override --user --unshare=network "$id"
+elif [ "$network" = yes ]; then
+	flatpak override --user --share=network "$id"
+elif [ "$network" = no ]; then
+	flatpak override --user --unshare=network "$id"
 fi
 echo "installed $id"
