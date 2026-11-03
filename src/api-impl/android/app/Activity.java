@@ -771,6 +771,11 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	private boolean resumed;
 	/* between onStop and onStart */
 	private boolean stopped;
+	/* counts performResume calls; the answer fields describe the last request answered with a resume */
+	private int resumeCount;
+	private int answerResumeCount = -1;
+	private int answerRequestCode;
+	private String[] answerPermissions;
 
 	@Export
 	final void performCreate(Bundle savedInstanceState) {
@@ -794,6 +799,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 
 	@Export
 	final void performResume() {
+		resumeCount++;
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_RESUMED, null);
 		onResume();
 	}
@@ -908,7 +914,13 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 	 * e.g. CoMaps' splash screen only goes on in onResume.
 	 */
 	private void deliverPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-		boolean wasResumed = resumed;
+		/*
+		 * An app that asks again from onResume after a denial would loop:
+		 * the answer comes at once, so pause and resume it only once per
+		 * request, not when the same request follows the resume we caused.
+		 */
+		boolean repeated = resumeCount == answerResumeCount && requestCode == answerRequestCode && Arrays.equals(permissions, answerPermissions);
+		boolean wasResumed = resumed && !repeated;
 		if (wasResumed)
 			performPause();
 		onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -916,6 +928,9 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, La
 		if (wasResumed && !resumed && !stopped && !finishing && !destroyed) {
 			performResume();
 			performPostResume();
+			answerResumeCount = resumeCount;
+			answerRequestCode = requestCode;
+			answerPermissions = permissions;
 		}
 	}
 
