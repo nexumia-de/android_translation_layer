@@ -46,6 +46,30 @@ public final class ATLPermissions {
 		return "yes".equals(nativeCall("Request", permission));
 	}
 
+	public static final String BACKGROUND_LOCATION = "android.permission.ACCESS_BACKGROUND_LOCATION";
+
+	/* Android 11's rule: background location asked together with foreground location is denied
+	 * without a dialog; the app has to ask for it later, on its own, once it has foreground
+	 * location (the service checks that too) */
+	public static boolean deniedWithoutAsking(String permission, String[] requestedTogether) {
+		if (!BACKGROUND_LOCATION.equals(permission))
+			return false;
+		for (String p : requestedTogether)
+			if ("android.permission.ACCESS_FINE_LOCATION".equals(p) || "android.permission.ACCESS_COARSE_LOCATION".equals(p))
+				return true;
+		return false;
+	}
+
+	/* Whether the app may get location updates now. The owner's decision is open; this is the
+	 * recommendation (2026-11-04): always while the app has a window or a foreground service,
+	 * otherwise only with the user's background location answer, default no. The one place to
+	 * change it. */
+	public static boolean locationAllowedNow(boolean hasWindowOrForegroundService) {
+		if (hasWindowOrForegroundService)
+			return true;
+		return !ATLPaths.in_flatpak || check(BACKGROUND_LOCATION);
+	}
+
 	/* "yes", "no", "ask", or null when the service cannot be reached */
 	private static native String nativeCall(String method, String permission);
 }

@@ -197,6 +197,24 @@ static void apply_microphone_answer(const char *app_id, gboolean yes)
 	g_free(norecord);
 }
 
+/* Background location (Android 11's rule, agreed with the location portal work, #76): only for an app
+ * that already has location in the foreground, i.e. a location portal grant (xdg-desktop-portal's
+ * table "location", value [accuracy, last use]); otherwise "no" without a dialog. */
+static gboolean foreground_location_granted(GDBusConnection *bus, const char *app_id)
+{
+	GVariant *reply = g_dbus_connection_call_sync(bus, STORE_NAME, STORE_PATH, STORE_NAME, "GetPermission",
+	                                              g_variant_new("(sss)", "location", "location", app_id),
+	                                              G_VARIANT_TYPE("(as)"), G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL);
+	if (!reply)
+		return FALSE;
+	const char **value;
+	g_variant_get(reply, "(^a&s)", &value);
+	gboolean granted = value[0] && strcmp(value[0], "NONE");
+	g_free(value);
+	g_variant_unref(reply);
+	return granted;
+}
+
 static const char *answer_text(int answer)
 {
 	return answer == 1 ? "yes" : answer == 0 ? "no" : "ask";
@@ -298,7 +316,9 @@ static void handle(GDBusMethodInvocation *invocation, const char *method, GVaria
 	}
 	GDBusConnection *bus = g_dbus_method_invocation_get_connection(invocation);
 	/* like Android: what the manifest does not request is denied without asking */
-	if (!app_requests(app_id, permission)) {
+	if (!app_requests(app_id, permission) ||
+	    (!strcmp(method, "Request") && !strcmp(permission, "android.permission.ACCESS_BACKGROUND_LOCATION") &&
+	     !foreground_location_granted(bus, app_id))) {
 		g_dbus_method_invocation_return_value(invocation, g_variant_new("(s)", "no"));
 		g_free(app_id);
 		return;

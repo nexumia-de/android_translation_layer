@@ -2,8 +2,9 @@
 # Headless check of de.nexumia.atl.Permissions (src/installer-service/permissions.c) and of the
 # installer service's caller check: a fake ATL app (bwrap with a /.flatpak-info) asks; GTK's access
 # dialog answers. Run inside a display with its own session bus:
-#   tools/headless-shot.sh -d 14 -w 5 -x "tap 270 227" -x "tap 90 227" -x "tap 90 227" -x "tap 270 227" -- flatpak/permissions-test.sh
-# (Allow contacts once for two requests, Deny Google services twice, Allow microphone). Writes into a
+#   tools/headless-shot.sh -d 14 -w 5 -x "tap 270 227" -x "tap 90 227" -x "tap 90 227" -x "tap 270 227" -x "tap 270 227" -- flatpak/permissions-test.sh
+# (Allow contacts once for two requests, Deny Google services twice, Allow microphone, Allow
+# background location). Writes into a
 # temporary directory; exit status 0 when every check is ok.
 # With the shared lock use flock -o, so the daemons started here cannot inherit and keep it;
 # they are stopped when the script ends, also when it is interrupted.
@@ -11,7 +12,7 @@ T=$(mktemp -d)
 export FLATPAK_USER_DIR=$T/flatpak XDG_CONFIG_HOME=$T/config XDG_DATA_HOME=$T/data
 id=de.nexumia.atl.org.example.test
 mkdir -p $FLATPAK_USER_DIR/app/$id/current/active/files/share/atl $XDG_DATA_HOME
-printf 'android.permission.INTERNET\nandroid.permission.READ_CONTACTS\nandroid.permission.RECORD_AUDIO\n' > $FLATPAK_USER_DIR/app/$id/current/active/files/share/atl/permissions
+printf 'android.permission.INTERNET\nandroid.permission.READ_CONTACTS\nandroid.permission.RECORD_AUDIO\nandroid.permission.ACCESS_BACKGROUND_LOCATION\n' > $FLATPAK_USER_DIR/app/$id/current/active/files/share/atl/permissions
 printf '[Application]\nname=%s\n' $id > $T/info
 printf '[Application]\nname=%s\n[Session Bus Policy]\nde.nexumia.atl.Installer=talk\n' de.nexumia.atl.org.example.store > $T/store-info
 # its own permission store in $XDG_DATA_HOME, not the user's
@@ -55,6 +56,13 @@ check "Google services, not asked a third time" "'no'" "$(call Request atl.googl
 check "  ...without a dialog" "fast" "$([ $(($(date +%s) - start)) -lt 3 ] && echo fast || echo slow)"
 check "microphone allowed" "'yes'" "$(call Request android.permission.RECORD_AUDIO)"
 check "  ...normal pulse socket as override" "pulseaudio" "$(cat $FLATPAK_USER_DIR/overrides/$id 2>&1)"
+start=$(date +%s)
+check "background location without foreground location" "'no'" "$(call Request android.permission.ACCESS_BACKGROUND_LOCATION)"
+check "  ...without a dialog" "fast" "$([ $(($(date +%s) - start)) -lt 3 ] && echo fast || echo slow)"
+# what the location portal stores after "allow"
+gdbus call --session --dest org.freedesktop.impl.portal.PermissionStore --object-path /org/freedesktop/impl/portal/PermissionStore \
+	--method org.freedesktop.impl.portal.PermissionStore.SetPermission location true location $id "['EXACT', '0']" >/dev/null
+check "background location with foreground location (Allow)" "'yes'" "$(call Request android.permission.ACCESS_BACKGROUND_LOCATION)"
 # the installer service: an app without access must not reach it, also not through the unique name
 unique=$(gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.GetNameOwner de.nexumia.atl.Installer | sed "s/[(',)]//g")
 check "installer refuses an app without access" AccessDenied "$(installer_list $T/info de.nexumia.atl.Installer)"
