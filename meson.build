@@ -179,6 +179,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/app/android_app_AlertDialog.c',
                                                                   	'src/api-impl-jni/app/android_app_Dialog.c',
                                                                   	'src/api-impl-jni/app/android_app_NotificationManager.c',
+                                                                  	'src/api-impl-jni/app/android_app_Service.c',
                                                                   	'src/api-impl-jni/app/android_service_notification_NotificationListenerService.c',
                                                                   	'src/api-impl-jni/app/android_app_WallpaperManager.c',
                                                                         'src/api-impl-jni/android_inputmethodservice_InputMethodService.c',
@@ -288,6 +289,7 @@ executable('android-translation-layer', [
                                         	'src/main-executable/prompt_page.c',
                                         	'src/main-executable/actions.c',
                                         	'src/main-executable/back_button.c',
+                                        	'src/main-executable/navigation.c',
                                         	'src/main-executable/bionic_compat.c',
                                         	'src/main-executable/libc_bio_path_overrides.c',
                                         	resources

@@ -9,6 +9,11 @@ public class KeyguardManager {
 		return false;
 	}
 
+	/* the phone's lock screen belongs to Phosh; an app only runs while it is unlocked */
+	public boolean isDeviceLocked() {
+		return false;
+	}
+
 	public boolean isKeyguardSecure() {
 		return true;
 	}

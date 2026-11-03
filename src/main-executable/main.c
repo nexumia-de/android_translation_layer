@@ -14,6 +14,7 @@
 
 #include "actions.h"
 #include "back_button.h"
+#include "navigation.h"
 #include "libc_bio_path_overrides.h"
 #include "prompt_page.h"
 
@@ -26,6 +27,7 @@
 #include <stdio.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #ifndef DEFFILEMODE
 	#define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) /* 0666*/
@@ -51,6 +53,11 @@ char *apk_path;
 gboolean app_exit(GtkWindow *self, JNIEnv *env) // TODO: do more cleanup?
 {
 	activity_close_all();
+	/* a foreground service keeps running: keep the window hidden, to show again on the next launch */
+	if (foreground_service_running()) {
+		gtk_widget_set_visible(GTK_WIDGET(self), FALSE);
+		return true;
+	}
 	return false;
 }
 
@@ -323,6 +330,7 @@ struct jni_callback_data {
 	gboolean install_flatpak;
 	char *installer_name;
 	char *uninstall_flatpak;
+	char *network;
 	char *prgname;
 	char **extra_jvm_options;
 	char **extra_string_keys;
@@ -456,6 +464,40 @@ static char *flatpak_user_dir(void)
 {
 	const char *dir = g_getenv("FLATPAK_USER_DIR");
 	return dir ? g_strdup(dir) : g_build_filename(g_get_user_data_dir(), "flatpak", NULL);
+}
+
+/* the user's answer to "Allow internet?" (docs/hardening-roadmap.md, phase 4): a Flatpak user
+ * override, the file Flatseal edits too. 1 allowed, 0 denied, -1 not answered yet */
+static int flatpak_network_answer(const char *package_name)
+{
+	char *dir = flatpak_user_dir();
+	char *id = g_strconcat(FLATPAK_APP_PREFIX, package_name, NULL);
+	char *path = g_build_filename(dir, "overrides", id, NULL);
+	int answer = -1;
+	GKeyFile *key_file = g_key_file_new();
+	if (g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, NULL)) {
+		char **shared = g_key_file_get_string_list(key_file, "Context", "shared", NULL, NULL);
+		for (int i = 0; shared && shared[i]; i++) {
+			if (!strcmp(shared[i], "network"))
+				answer = 1;
+			else if (!strcmp(shared[i], "!network"))
+				answer = 0;
+		}
+		g_strfreev(shared);
+	}
+	g_key_file_free(key_file);
+	g_free(path);
+	g_free(id);
+	g_free(dir);
+	return answer;
+}
+
+static gboolean permissions_contain(const char *permissions, const char *permission)
+{
+	char **list = g_strsplit(permissions ? permissions : "", ";", -1);
+	gboolean found = g_strv_contains((const char *const *)list, permission);
+	g_strfreev(list);
+	return found;
 }
 
 /* the base apk inside the app's Flatpak, as make-app-flatpak puts it */
@@ -621,6 +663,10 @@ static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject ap
 		g_ptr_array_add(argv, g_strdup("-P"));
 		g_ptr_array_add(argv, g_strdup(permissions));
 	}
+	if (d->network) {
+		g_ptr_array_add(argv, g_strdup("-N"));
+		g_ptr_array_add(argv, g_strdup(!strcmp(d->network, "yes") ? "yes" : "no"));
+	}
 	for (int i = 0; i < nfiles; i++)
 		g_ptr_array_add(argv, g_file_get_path(files[i]));
 	g_ptr_array_add(argv, NULL);
@@ -676,6 +722,9 @@ struct install_request {
 	/* the --sdk-int for an app installed from a file, see default_sdk_int() */
 	char *default_sdk_int;
 	gboolean updating;
+	/* "Allow internet?" on the page: the question, and the answer (-1 none yet) */
+	GtkWidget *network_question;
+	int network_answer;
 	/* the data directory made for the opened file, which is not the installed app's */
 	gboolean remove_data_dir;
 };
@@ -803,19 +852,26 @@ static void install_ask_copied(GObject *source, GAsyncResult *res, gpointer user
 		g_error_free(err);
 		return;
 	}
-	/* the installed app starts with this window size, like one an app store installs */
+	/* the installed app starts with -w/-h when this one got them, like one an app store installs */
 	char *width = g_strdup_printf("%d", r->d->window_width);
 	char *height = g_strdup_printf("%d", r->d->window_height);
 	/* an update keeps the SDK level the app ran at, e.g. the one its app store gave it */
 	char *sdk_int = r->d->sdk_int ? g_strdup(r->d->sdk_int) : r->updating ? installed_launcher_sdk_int(r->package_name) : NULL;
 	if (!sdk_int)
 		sdk_int = g_strdup(r->default_sdk_int);
-	const char *argv[] = {r->d->prgname, "--install", "-w", width, "-h", height, r->staged_apk, NULL, NULL, NULL};
-	if (sdk_int) {
-		argv[6] = "--sdk-int";
-		argv[7] = sdk_int;
-		argv[8] = r->staged_apk;
+	const char *argv[10] = {r->d->prgname, "--install"};
+	int argc = 2;
+	if (r->d->window_width && r->d->window_height) {
+		argv[argc++] = "-w";
+		argv[argc++] = width;
+		argv[argc++] = "-h";
+		argv[argc++] = height;
 	}
+	if (sdk_int) {
+		argv[argc++] = "--sdk-int";
+		argv[argc++] = sdk_int;
+	}
+	argv[argc++] = r->staged_apk;
 	printf("install: running %s --install%s%s for %s\n", r->d->prgname, sdk_int ? " --sdk-int " : "", sdk_int ? sdk_int : "", r->staged_apk);
 	GSubprocess *install = g_subprocess_newv(argv, G_SUBPROCESS_FLAGS_NONE, &err);
 	g_free(width);
@@ -846,6 +902,8 @@ static void install_ask_confirmed_flatpak(struct install_request *r)
 	}
 	g_ptr_array_add(argv, g_strdup("--sdk-int"));
 	g_ptr_array_add(argv, g_strdup(r->d->sdk_int ? r->d->sdk_int : r->default_sdk_int));
+	if (r->network_answer >= 0)
+		g_ptr_array_add(argv, g_strdup(r->network_answer ? "--network=yes" : "--network=no"));
 	for (int i = 0; i < r->nfiles; i++)
 		g_ptr_array_add(argv, g_file_get_path(r->files[i]));
 	g_ptr_array_add(argv, NULL);
@@ -865,6 +923,8 @@ static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 {
 	struct install_request *r = user_data;
 	prompt_page_set_busy(page, r->updating ? "Updating…" : "Installing…");
+	if (r->network_question)
+		gtk_widget_set_sensitive(r->network_question, FALSE);
 	if (r->d->install_flatpak) {
 		install_ask_confirmed_flatpak(r);
 		return;
@@ -887,6 +947,26 @@ static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 	g_object_unref(dest);
 }
 
+static void network_answered(int answer, gpointer user_data)
+{
+	struct install_request *r = user_data;
+	r->network_answer = answer;
+	if (r->page->action)
+		gtk_widget_set_sensitive(r->page->action, TRUE);
+}
+
+/* Internet is asked, never granted by default (docs/hardening-roadmap.md, phase 4): no answer is
+ * preselected, and the action waits for one */
+static void ask_network(struct install_request *r)
+{
+	r->network_question = prompt_page_add_question(r->page, "Allow internet?",
+	                                               "Allow internet", "The app can connect to any server",
+	                                               "No internet", "The app works offline only",
+	                                               network_answered, r);
+	if (r->page->action)
+		gtk_widget_set_sensitive(r->page->action, FALSE);
+}
+
 static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv *env, jobject application_object, GFile **files,
                         int nfiles, const char *package_name, const char *app_icon_path, const char *app_data_dir_base,
                         gboolean data_dir_existed)
@@ -901,6 +981,7 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 	for (int i = 0; i < nfiles; i++)
 		r->files[i] = g_object_ref(files[i]);
 	r->nfiles = nfiles;
+	r->network_answer = -1;
 	r->app_data_dir_base = g_strdup(app_data_dir_base);
 	char *installed_data_dir = g_strdup_printf("%s/%s.apk_/", app_data_dir_base, package_name);
 	r->remove_data_dir = !data_dir_existed && strcmp(app_data_dir, installed_data_dir);
@@ -996,6 +1077,16 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 			prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_refused, NULL, r);
 			break;
 	}
+	/* asked once per app: an update keeps the answer, App info changes it */
+	if (d->install_flatpak && (state == INSTALL_NEW || state == INSTALL_UPDATE || state == INSTALL_REINSTALL)) {
+		char *permissions = jstring_dup(env, J__Application__get_requested_permissions(env, application_object));
+		/* a new install asks even if an override was left behind by a removal outside
+		 * --uninstall-flatpak (flatpak uninstall, GNOME Software) */
+		if (permissions_contain(permissions, "android.permission.INTERNET") &&
+		    (state == INSTALL_NEW || flatpak_network_answer(package_name) < 0))
+			ask_network(r);
+		g_free(permissions);
+	}
 	gtk_window_present(r->page->window);
 	/* Phosh shows the installer's name and icon for the window */
 	GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(r->page->window));
@@ -1058,6 +1149,9 @@ static gboolean dbus_activation_asks_uninstall(GApplication *app)
 	if (!bus)
 		return FALSE;
 	guint filter = g_dbus_connection_add_filter(bus, dbus_request_filter, NULL, NULL);
+	/* a UnifiedPush distributor may have started us with a call to the connector: export it before
+	 * the name is ours, the app's Context answers or drops the calls it queued */
+	unifiedpush_export_connector(bus);
 	GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
 	                                              "RequestName", g_variant_new("(su)", g_application_get_application_id(app), G_BUS_NAME_OWNER_FLAGS_NONE),
 	                                              G_VARIANT_TYPE("(u)"), 0, -1, NULL, NULL);
@@ -1218,6 +1312,105 @@ static char *install_split_apks(GFile *dest, GFile **files, gint nfiles)
 	return g_string_free(paths, FALSE);
 }
 
+/* see the start of the app in open(): the first process to lock its data directory is the app */
+static gboolean instance_lock_take(const char *data_dir)
+{
+	g_mkdir_with_parents(data_dir, 0755);
+	char *path = g_build_filename(data_dir, ".atl-instance.lock", NULL);
+	/* "e": close on exec, so started helpers do not keep the lock; kept open for the process' lifetime */
+	FILE *file = fopen(path, "ae");
+	g_free(path);
+	if (!file)
+		return TRUE; /* cannot tell; do not block the start */
+	/* not flock(): <sys/file.h> declares open() on glibc. Only "locked by another process"
+	 * means running; any other error (no lock support) must not block the start. */
+	if (lockf(fileno(file), F_TLOCK, 0) == 0)
+		return TRUE;
+	return errno != EAGAIN && errno != EACCES;
+}
+
+/* Asks the running process of this app id to show itself, like a launcher would: Open for a
+ * URI, otherwise Activate (which starts the main activity again in a hidden window). */
+static gboolean hand_over_to_running_instance(const char *id, struct jni_callback_data *d)
+{
+	if (d->apk_main_activity_class || d->extra_string_keys)
+		fprintf(stderr, "warning: %s is already running; -l and -e are not passed on to it\n", id);
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!bus)
+		return FALSE;
+	/* the other process may still be starting and not own the name yet */
+	char *owner = NULL;
+	for (int i = 0; i < 50 && !owner; i++) {
+		GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "GetNameOwner",
+		                                              g_variant_new("(s)", id), G_VARIANT_TYPE("(s)"), G_DBUS_CALL_FLAGS_NONE, 1000, NULL, NULL);
+		if (reply) {
+			g_variant_get(reply, "(s)", &owner);
+			g_variant_unref(reply);
+			if (!g_strcmp0(owner, g_dbus_connection_get_unique_name(bus))) /* ourselves: no one to hand over to */
+				g_clear_pointer(&owner, g_free);
+		} else {
+			g_usleep(200 * 1000);
+		}
+	}
+	gboolean ok = FALSE;
+	if (owner) {
+		char *path = g_strdelimit(g_strdup_printf("/%s", id), ".", '/');
+		g_strdelimit(path, "-", '_');
+		fprintf(stderr, "%s is already running; asking it to show its window\n", id);
+		GVariant *ret;
+		if (uri_option && *uri_option) {
+			const char *uris[] = {uri_option, NULL};
+			ret = g_dbus_connection_call_sync(bus, owner, path, "org.freedesktop.Application", "Open",
+			                                  g_variant_new("(^asa{sv})", uris, NULL), NULL, G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL);
+		} else {
+			ret = g_dbus_connection_call_sync(bus, owner, path, "org.freedesktop.Application", "Activate",
+			                                  g_variant_new("(a{sv})", NULL), NULL, G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL);
+		}
+		ok = ret != NULL;
+		if (ret)
+			g_variant_unref(ret);
+		g_free(path);
+		g_free(owner);
+	}
+	if (!ok)
+		fprintf(stderr, "%s is already running, but could not be reached\n", id);
+	g_object_unref(bus);
+	return ok;
+}
+
+/* -w/-h, or else the size of the built-in or smallest monitor in logical pixels (Phosh then maximizes the window,
+ * and Display and the Configuration follow its real size, see android_content_Context.c) */
+static void get_window_size(struct jni_callback_data *d, int *width, int *height)
+{
+	*width = 960;
+	*height = 540;
+	/* the built-in panel (eDP, DSI, LVDS) if there is one, else the smallest monitor: an external
+	 * display must not make the app start at its size */
+	GdkDisplay *display = gdk_display_get_default();
+	GListModel *monitors = display ? gdk_display_get_monitors(display) : NULL;
+	gboolean found_builtin = FALSE;
+	guint64 smallest_area = G_MAXUINT64;
+	for (guint i = 0; monitors && i < g_list_model_get_n_items(monitors); i++) {
+		GdkMonitor *monitor = g_list_model_get_item(monitors, i);
+		GdkRectangle geometry;
+		gdk_monitor_get_geometry(monitor, &geometry);
+		const char *connector = gdk_monitor_get_connector(monitor);
+		gboolean builtin = connector && (g_str_has_prefix(connector, "eDP") || g_str_has_prefix(connector, "DSI") || g_str_has_prefix(connector, "LVDS"));
+		guint64 area = (guint64)geometry.width * geometry.height;
+		if (geometry.width > 0 && geometry.height > 0 && !found_builtin && (builtin || area < smallest_area)) {
+			*width = geometry.width;
+			*height = geometry.height;
+			smallest_area = area;
+			found_builtin = builtin;
+		}
+		g_object_unref(monitor);
+	}
+	if (d->window_width)
+		*width = d->window_width;
+	if (d->window_height)
+		*height = d->window_height;
+}
+
 static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *hint, struct jni_callback_data *d)
 {
 	if (app_starting && !window) { // the bus name is owned early when D-Bus activated
@@ -1324,9 +1517,24 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		return;
 	}
 	if (d->dbus_activated && !d->install && uninstall_allowed && dbus_activation_asks_uninstall(G_APPLICATION(app))) {
+		unifiedpush_connector_refuse();
 		uninstall_pending = TRUE;
 		g_application_hold(G_APPLICATION(app));
 		return;
+	}
+	/* One process per app, as on Android: the app may still run without a window (a foreground
+	 * service keeps it, see Service.startForeground), and a second process would use the same
+	 * data directory. A lock on the data directory decides which process is the app; the bus
+	 * name only says where to hand over (the running one owns the app id once it started, see
+	 * RequestName below; a D-Bus activated start may already own it itself). */
+	/* not for installs: the installer service stages every apk under the same name */
+	if (!(d->install || d->install_internal || d->install_ask || d->install_flatpak) && !instance_lock_take(app_data_dir)) {
+		const char *id = g_application_get_application_id(G_APPLICATION(app));
+		if (!strcmp(id, "com.example.demo_application")) {
+			fprintf(stderr, "this apk is already running; start it with --gapplication-app-id to hand over to it\n");
+			exit(1);
+		}
+		exit(hand_over_to_running_instance(id, d) ? 0 : 1);
 	}
 	app_starting = TRUE;
 
@@ -1364,9 +1572,12 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	free(app_lib_dir);
 
+	int window_width, window_height;
+	get_window_size(d, &window_width, &window_height);
 	jclass display_class = _CACHED_CLASS(Display);
-	_SET_STATIC_INT_FIELD(display_class, "window_width", d->window_width);
-	_SET_STATIC_INT_FIELD(display_class, "window_height", d->window_height);
+	_SET_STATIC_INT_FIELD(display_class, "window_width", window_width);
+	_SET_STATIC_INT_FIELD(display_class, "window_height", window_height);
+	(*env)->SetStaticBooleanField(env, display_class, _STATIC_FIELD_ID(display_class, "window_size_explicit", "Z"), d->window_width && d->window_height);
 
 	/* -- register our JNI library under the appropriate classloader -- */
 
@@ -1447,6 +1658,9 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		J__Application__onCreate(env, application_object);
 		if ((*env)->ExceptionCheck(env))
 			(*env)->ExceptionDescribe(env);
+
+		// as on Android, a push message that started the app reaches it after Application.onCreate
+		unifiedpush_connector_drain();
 	}
 
 	if (d->apk_instrumentation_class) {
@@ -1548,17 +1762,27 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 		/* the D-Bus service file needs an absolute path, dbus-daemon does not search PATH */
 		GString *exec_cmd = g_string_new("/usr/bin/env ");
+		char *prgname = g_strdup(d->prgname);
 		if (getenv("RUN_FROM_BUILDDIR")) {
+			/* not `env -C`, which busybox env lacks: the build directory goes into RUN_FROM_BUILDDIR,
+			 * main() changes into it, and the program path is made absolute */
 			printf("WARNING: RUN_FROM_BUILDDIR set and --install given: using current directory in desktop entry\n");
-			g_string_append_printf(exec_cmd, "-C %s ", g_get_current_dir());
+			char *cwd = g_get_current_dir();
+			g_string_append_printf(exec_cmd, "RUN_FROM_BUILDDIR=%s ", cwd);
+			if (strchr(prgname, '/')) {
+				g_free(prgname);
+				prgname = g_canonicalize_filename(d->prgname, cwd);
+			}
+			g_free(cwd);
 		}
-		char *envs[] = {"RUN_FROM_BUILDDIR", "LD_LIBRARY_PATH", "ANDROID_APP_DATA_DIR", "ATL_UGLY_ENABLE_LOCATION", "ATL_UGLY_ENABLE_MICROPHONE", "ATL_UGLY_DISABLE_WEBVIEW", "ATL_DISABLE_WINDOW_DECORATIONS", "ATL_FORCE_FULLSCREEN", "ATL_IS_AUTOMOTIVE", "ATL_IS_TELEVISION", "ATL_IS_WATCH", "ATL_GMS_STUB"};
+		char *envs[] = {"LD_LIBRARY_PATH", "ANDROID_APP_DATA_DIR", "ATL_UGLY_ENABLE_LOCATION", "ATL_UGLY_ENABLE_MICROPHONE", "ATL_UGLY_DISABLE_WEBVIEW", "ATL_DISABLE_WINDOW_DECORATIONS", "ATL_FORCE_FULLSCREEN", "ATL_IS_AUTOMOTIVE", "ATL_IS_TELEVISION", "ATL_IS_WATCH", "ATL_GMS_STUB"};
 		for (int i = 0; i < ARRAY_SIZE(envs); i++) {
 			if (getenv(envs[i])) {
 				g_string_append_printf(exec_cmd, "%s=%s ", envs[i], getenv(envs[i]));
 			}
 		}
-		g_string_append_printf(exec_cmd, "%s ", d->prgname);
+		g_string_append_printf(exec_cmd, "%s ", prgname);
+		g_free(prgname);
 		g_string_append_printf(exec_cmd, "--gapplication-app-id %s ", package_name);
 		if (d->apk_main_activity_class)
 			g_string_append_printf(exec_cmd, "-l %s ", d->apk_main_activity_class);
@@ -1598,7 +1822,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	if (!d->apk_instrumentation_class)
 		gtk_window_set_title(GTK_WINDOW(window), package_name);
-	gtk_window_set_default_size(GTK_WINDOW(window), d->window_width, d->window_height);
+	gtk_window_set_default_size(GTK_WINDOW(window), window_width, window_height);
 	g_signal_connect(window, "close-request", G_CALLBACK(app_exit), env);
 
 	GtkWidget *header_bar = gtk_header_bar_new();
@@ -1606,6 +1830,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	gtk_header_bar_pack_start(GTK_HEADER_BAR(header_bar), back_button);
 	gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
+	navigation_setup(GTK_WINDOW(window), back_button);
 	GtkDropTarget *drop_target = gtk_drop_target_new(G_TYPE_STRING, GDK_ACTION_COPY);
 	g_signal_connect(drop_target, "drop", G_CALLBACK(on_drop), NULL);
 	gtk_widget_add_controller(window, GTK_EVENT_CONTROLLER(drop_target));
@@ -1682,7 +1907,15 @@ static void uninstall_flatpak_confirmed(struct prompt_page *page, gpointer user_
 	              g_spawn_check_wait_status(wait_status, &err);
 	if (!ok) {
 		fprintf(stderr, "uninstall-flatpak: %s\n", err->message);
-		g_error_free(err);
+		g_clear_error(&err);
+	} else {
+		/* the answers given for this app (internet), so a new install asks again */
+		const char *reset_argv[] = {"flatpak", "override", "--user", "--reset", id, NULL};
+		if (!g_spawn_sync(NULL, (char **)reset_argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &wait_status, &err) ||
+		    !g_spawn_check_wait_status(wait_status, &err)) {
+			fprintf(stderr, "uninstall-flatpak: resetting the overrides: %s\n", err->message);
+			g_clear_error(&err);
+		}
 	}
 	fflush(NULL);
 	_exit(ok ? 0 : 1);
@@ -1740,6 +1973,14 @@ static void activate(GtkApplication *app, struct jni_callback_data *d)
 	if (app_starting && !window) // D-Bus activation's own request, which started us
 		return;
 	if (window) { // this is not the first launch, but a DBus activate request to the running app
+		if (activity_backlog_empty()) { // the window was closed while a foreground service ran
+			JNIEnv *env = get_jni_env();
+			jobject activity = J__Activity__createMainActivity(env, _JSTRING(d->apk_main_activity_class), _INTPTR(window), NULL);
+			if ((*env)->ExceptionCheck(env))
+				(*env)->ExceptionDescribe(env);
+			if (activity)
+				activity_start(env, activity);
+		}
 		gtk_window_present(GTK_WINDOW(window));
 		return;
 	}
@@ -1768,6 +2009,7 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "install-internal",  0 , 0, G_OPTION_ARG_NONE,         &d->install_internal,          "copy an apk to _installed_apks_ but don't create a desktop entry",                             NULL            },
 		{ "install-ask",       0 , 0, G_OPTION_ARG_NONE,         &d->install_ask,               "ask before installing the given apk, like Android's package installer (for opening apk files)", NULL            },
 		{ "install-flatpak",   0 , 0, G_OPTION_ARG_NONE,         &d->install_flatpak,           "install the given apk as its own Flatpak, without running its code",                           NULL            },
+		{ "network",           0 , 0, G_OPTION_ARG_STRING,       &d->network,                   "--install-flatpak: allow internet (yes) or not (no), kept for updates; unset keeps the answer",  "yes|no"        },
 		{ "installer-name",    0 , 0, G_OPTION_ARG_STRING,       &d->installer_name,            "the app store that asks to install or uninstall (shown on the page)",                          "NAME"          },
 		{ "uninstall-flatpak", 0 , 0, G_OPTION_ARG_STRING,       &d->uninstall_flatpak,         "ask, then remove the Flatpak of an app installed with --install-flatpak and its data",         "PACKAGE"       },
 		{ "uninstall",         0 , 0, G_OPTION_ARG_NONE,         &d->uninstall,                 "remove an apk installed with --install, its data and its launcher (asks first)",                NULL            },
@@ -1822,6 +2064,13 @@ int main(int argc, char **argv)
 	GtkApplication *app;
 	int status;
 
+	/* launchers made by --install from a build directory name it here (see below) */
+	const char *builddir = getenv("RUN_FROM_BUILDDIR");
+	if (builddir && builddir[0] == '/' && chdir(builddir) < 0) {
+		fprintf(stderr, "error: cannot change to RUN_FROM_BUILDDIR %s: %s\n", builddir, strerror(errno));
+		exit(1);
+	}
+
 	pregrow_stack();
 
 	/* this has to be done in the main executable, so might as well do it here */
@@ -1836,8 +2085,9 @@ int main(int argc, char **argv)
 	struct jni_callback_data *callback_data = malloc(sizeof(struct jni_callback_data));
 	callback_data->apk_main_activity_class = NULL;
 	callback_data->apk_instrumentation_class = NULL;
-	callback_data->window_width = 960;
-	callback_data->window_height = 540;
+	/* 0: the size of the monitor, see get_window_size */
+	callback_data->window_width = 0;
+	callback_data->window_height = 0;
 	callback_data->install = FALSE;
 	callback_data->install_internal = FALSE;
 	callback_data->install_ask = FALSE;

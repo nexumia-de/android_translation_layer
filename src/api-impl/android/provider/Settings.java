@@ -31,6 +31,23 @@ public class Settings {
 						listeners.append(listeners.length() > 0 ? ":" : "").append(component.flattenToString());
 					return listeners.toString();
 				}
+				/* the input methods ATL knows are the running app's own: one an IME
+				 * app runs as (ATLKeyboardViewer) is the current one */
+				case "default_input_method":
+				case "enabled_input_methods": {
+					StringBuilder ids = new StringBuilder();
+					for (android.content.pm.PackageParser.Service s : android.atl.ATLLoadedApp.getPrimaryApplication().pkg.services) {
+						for (android.content.pm.PackageParser.ServiceIntentInfo filter : s.intents) {
+							if (filter.matchAction("android.view.InputMethod")) {
+								ids.append(ids.length() > 0 ? ":" : "").append(s.getComponentName().flattenToShortString());
+								break;
+							}
+						}
+						if (key.equals("default_input_method") && ids.length() > 0)
+							break;
+					}
+					return ids.toString();
+				}
 				default:
 					Slog.w(TAG, "!!!! getString: unknown key: >" + key + "<");
 					return "NOTICEME";

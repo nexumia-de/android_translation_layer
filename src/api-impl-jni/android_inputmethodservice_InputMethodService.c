@@ -31,6 +31,7 @@ struct {
 	char surrounding[4096];
 	guint text_len;
 	guint cursor;
+	guint anchor;
 	guint serial;
 } osk = {0};
 
@@ -52,6 +53,11 @@ static void
 handle_activate(void *data,
                 struct zwp_input_method_v2 *zwp_input_method_v2)
 {
+	/* a new text field: the old one's surrounding text no longer applies */
+	osk.text_len = 0;
+	osk.cursor = 0;
+	osk.anchor = 0;
+	osk.surrounding[0] = '\0';
 	atlosk_set_visible(TRUE);
 }
 
@@ -71,6 +77,7 @@ handle_surrounding_text(void *data,
 {
 	DEBUG("(cursor=%d, '%s')\n", cursor, text);
 	osk.cursor = cursor;
+	osk.anchor = anchor;
 	osk.text_len = strnlen(text, sizeof(osk.surrounding));
 	strncpy(osk.surrounding, text, sizeof(osk.surrounding));
 }
@@ -290,4 +297,22 @@ JNIEXPORT jboolean JNICALL Java_android_inputmethodservice_InputMethodService_00
 	}
 
 	return true;
+}
+
+JNIEXPORT jbyteArray JNICALL Java_android_inputmethodservice_InputMethodService_00024ATLInputConnection_nativeGetSurroundingText(JNIEnv *env, jobject this, jlong ptr)
+{
+	guint len = MIN(osk.text_len, sizeof(osk.surrounding) - 1);
+	jbyteArray array = (*env)->NewByteArray(env, len);
+	(*env)->SetByteArrayRegion(env, array, 0, len, (const jbyte *)osk.surrounding);
+	return array;
+}
+
+JNIEXPORT jint JNICALL Java_android_inputmethodservice_InputMethodService_00024ATLInputConnection_nativeGetSurroundingCursor(JNIEnv *env, jobject this, jlong ptr)
+{
+	return osk.cursor;
+}
+
+JNIEXPORT jint JNICALL Java_android_inputmethodservice_InputMethodService_00024ATLInputConnection_nativeGetSurroundingAnchor(JNIEnv *env, jobject this, jlong ptr)
+{
+	return osk.anchor;
 }

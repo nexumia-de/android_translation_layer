@@ -81,6 +81,11 @@ public final class ATLLoadedApp {
 		                                             ATLLoadedApp.class.getClassLoader(), pkg);
 	}
 
+	/* the primary app's package, or null while it is still loading; never loads it */
+	static synchronized String primaryPackageName() {
+		return primary_application != null ? primary_application.pkg.packageName : null;
+	}
+
 	@NonNull
 	public static synchronized ATLLoadedApp getPrimaryApplication() {
 		if (primary_application != null) {
@@ -129,7 +134,7 @@ public final class ATLLoadedApp {
 		}
 		packageParser.collectCertificates(pkg, 0);
 		// Support for MicroG and other custom GMS implementations.
-		if (ATLToggles.ATL_GMS_STUB && play_services.contains(pkg.packageName)) {
+		if (ATLToggles.gmsStub() && play_services.contains(pkg.packageName)) {
 			ATLSigHelper.addGMSSignatures(pkg);
 		}
 		pkg.applicationInfo.sourceDir = mainApk;
@@ -331,7 +336,7 @@ public final class ATLLoadedApp {
 					if (serviceConnection != null) {
 						serviceConnection.onServiceConnected(intent.getComponent(), service.onBind(intent));
 					} else {
-						service.onStartCommand(intent, 0, 0);
+						service.onStartCommand(intent, 0, service.atl_next_start_id());
 					}
 				} catch (ReflectiveOperationException e) {
 					Slog.e(TAG, "startService: failed to start service " + className, e);
@@ -342,16 +347,44 @@ public final class ATLLoadedApp {
 		return component;
 	}
 
+	/* services are created, started and destroyed on the main thread only;
+	 * stopService and stopSelf may come from any thread */
 	public boolean stopService(Intent intent) {
 		if (intent.getComponent() == null)
 			return false;
-		String className = intent.getComponent().getClassName();
-		Service service = running_services.get(className);
+		final String className = intent.getComponent().getClassName();
+		final Service service = running_services.get(className);
 		if (service == null)
 			return false;
-		service.onDestroy();
-		running_services.remove(className);
+		new Handler(Looper.getMainLooper()).post(new Runnable() {
+			@Override
+			public void run() {
+				if (running_services.get(className) == service)
+					destroyService(className, service);
+			}
+		});
 		return true;
+	}
+
+	/* Service.stopSelf */
+	public void stopService(final Service service) {
+		new Handler(Looper.getMainLooper()).post(new Runnable() {
+			@Override
+			public void run() {
+				for (java.util.Map.Entry<String, Service> e : running_services.entrySet()) {
+					if (e.getValue() == service) {
+						destroyService(e.getKey(), service);
+						return;
+					}
+				}
+			}
+		});
+	}
+
+	private void destroyService(String className, Service service) {
+		running_services.remove(className);
+		service.atl_stopped();
+		service.onDestroy();
 	}
 
 	public void receiveBroadcast(Context context, Intent intent) {

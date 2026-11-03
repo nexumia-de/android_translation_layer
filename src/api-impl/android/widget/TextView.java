@@ -727,4 +727,15 @@ public class TextView extends View {
 		}
 		return alignment;
 	}
+
+	private float text_scale_x = 1.0f;
+
+	/* stored only: the GTK label is not stretched horizontally */
+	public void setTextScaleX(float size) {
+		text_scale_x = size;
+	}
+
+	public float getTextScaleX() {
+		return text_scale_x;
+	}
 }

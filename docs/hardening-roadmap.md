@@ -67,7 +67,7 @@ date), so a new session knows where to continue.
 | 1 ATL engine as Flatpak | done: CI build on `ubuntu-24.04-arm` (`.github/workflows/engine-flatpak.yml`), published through the release `engine` and phosh-apps to `flatpak.nexumia.de`; signed install from there verified on the phone, Chooser runs on it | #27, #29 | 2026-10-30 |
 | 2 Installer and broker on the host | `--install-flatpak` (#30); installer service `de.nexumia.atl.Installer` (install, uninstall, list, launch; only for APKs requesting `REQUEST_INSTALL_PACKAGES`), `--install-ask --install-flatpak` and `--uninstall-flatpak` pages ([installing apps](installing-apps.md#app-stores-in-their-own-flatpak)); open: opening an APK file on the Flatpak path, settings page | this branch | 2026-10-30 |
 | 3 ATL inside a per-app Flatpak | vibration through feedbackd (#31); install, uninstall, installed apps and starting other apps go to the installer service; links out (OpenURI) and in (D-Bus activation) checked headless; open: network state from the portal (F-Droid's "No internet"), a real login, sensors, WebView | this branch | 2026-10-30 |
-| 4 Permissions | not started | - | - |
+| 4 Permissions | decision record and mapping (below); next: runtime prompts, App info, Android apps page | this branch | 2026-11-03 |
 | 5 Install integrity | signers verified over the whole APK (v3 with key rotation, v2, v1 of every entry; AOSP's verifier); unsigned, changed and foreign-signed APKs and downgrades refused; open: installer of record, signer changes on the update page, v4 | this branch | 2026-10-30 |
 | 6 Migration and default | not started | - | - |
 
@@ -332,33 +332,180 @@ well as before, and phase T passes.
 
 ## Phase 4 - Permissions (M)
 
-Mapping, applied by the installer and the settings page:
+### Decision Record: where permissions are shown and changed
 
-| Android | Flatpak | When it changes |
+Accepted by the owner on 2026-11-02 (places) and 2026-11-03 (internet).
+
+**Context.** Android shows one "App info" page per app with its
+permissions. On Phosh there are already GNOME Settings (Apps panel) and
+Phosh Mobile Settings; a third settings app in the app grid would split
+the same answers over three places.
+
+**Decision.** No settings app of our own in the app grid. Three places:
+
+1. **GNOME Settings → Apps** (unchanged): everything a portal backs
+   (location, camera, notifications) plus storage and default apps. It
+   finds our apps by the `X-Flatpak` key that `flatpak` writes into the
+   exported launcher and reads the answers from the xdg permission store
+   (`location`/`location`, `devices`/`camera`, `devices`/`microphone`,
+   `background`/`background`) and from
+   `org.gnome.desktop.notifications.application`; static Flatpak
+   permissions it lists read-only. ATL therefore asks through the
+   portals, so the answers land where Settings looks.
+2. **"Android apps" page**: navigation mode (`ATL_NAVIGATION`: buttons,
+   gesture or both), which apps may install others, signature checks,
+   the installed Android apps with a link to their App info. A Phosh
+   Mobile Settings plugin was the first choice, but 0.58 has no public
+   plugin API (facts below), so the page is a **window of the installer
+   service**, opened from the installer's own launcher and from App info.
+3. **App info** per app, a window of the installer service on the host
+   (never inside the sandbox, where the app could draw over it), opened
+   from the launcher action **App info** (long press) and from page 2:
+   the permissions without a portal (table below), internet, source,
+   signer and version, clear data, uninstall, and **More permissions**,
+   which opens `gnome-control-center applications <app id>`.
+
+**Internet is asked, not granted** (owner, 2026-11-03, like GrapheneOS'
+Network permission). Flatpak network access is static per app, so:
+
+- `make-app-flatpak` never writes `--share=network` into the app's
+  metadata. Apps without `android.permission.INTERNET` never get
+  network and are never asked.
+- **Install page** (the installer service's, also for installs a store
+  starts): for apps with `INTERNET` a question "Allow internet?" with
+  no preselected answer; Install stays disabled until it is answered.
+  The answer becomes a user override (`flatpak override --user
+  --share=network` or `--unshare=network`), the same file Flatseal edits.
+  Updates keep the override; uninstall resets it (`flatpak override
+  --user --reset`), since `--delete-data` is not documented to.
+- **Later**: the switch in App info writes the override and, if the app
+  runs, offers "Restart now" (`flatpak kill`, then start it again);
+  Flatpak applies static permissions only at the next start.
+- **Apps installed before this** (with `--share=network` in their
+  metadata) keep network until their next update regenerates them; the
+  update page then asks.
+- Rejected: asking at first start (the app is already running in a
+  sandbox without network and would need a restart at once), and a
+  default "yes" (what Android does, and what the owner does not want).
+
+**Own dialogs** for permissions without a portal: the app asks the
+installer service over D-Bus, the service shows the question through
+`org.freedesktop.impl.portal.Access` (on Phosh the shell's own system
+dialog, the one the location and camera portals use) and stores the
+answer in the permission store table `de.nexumia.atl` (id = Android
+permission, app = Flatpak app id, value `yes`, `no` or `ask`). The
+service identifies the caller by its sandbox, never by a parameter.
+Every generated app may talk to a second bus name of the service,
+`de.nexumia.atl.Permissions`; `de.nexumia.atl.Installer` stays limited
+to apps with `REQUEST_INSTALL_PACKAGES`.
+
+**Google services only with consent** (owner, 2026-11-03). An app
+reaches Google servers (FCM push, microG-style services) only after the
+user accepted it for that app: at the app's first request ATL shows a
+warning, "<app> wants to use Google services. This connects to Google
+servers.", with **Deny** and **Accept**; the default is denied. The
+answer is the permission `atl.google-services` (own dialog, stored like
+the others, changeable in App info). Code that talks to Google (the
+push client) checks it with `Context.checkSelfPermission("atl.google-services")`
+and asks with `Activity.requestPermissions`, or, without an activity,
+through the same service call the activity uses. Play Integrity and
+SafetyNet tokens are never faked.
+
+**GrapheneOS as the reference** (owner, 2026-11-03; grapheneos.org
+features and usage pages):
+
+| GrapheneOS feature | Here | Why |
 |---|---|---|
-| `INTERNET` (normal on Android, a switch here) | `--share=network` | next start |
-| Location | location portal | at once (portal) |
-| Camera | Camera portal (PipeWire remote limited to cameras)[^portal-camera] | at once |
-| Audio playback (no permission on Android) | audio socket (`--socket=pulseaudio`) by default; without it apps are silent (Chooser on the phone, 2026-10-29) | - |
-| Microphone | the same audio socket also allows recording; separating it is an open question | next start |
-| Notifications (API 33+) | notification portal | at once |
-| Storage, "all files" | none; file chooser and documents portals (Storage Access Framework) | - |
-| Sensors | system bus name of iio-sensor-proxy | next start |
-| Install apps | broker grant per store | at once |
-| Contacts, calendar | not implemented by ATL; denied | - |
+| Network permission, asked | adopt | install page question, Flatpak override (above) |
+| Sensors permission (accelerometer, compass, ... off unless granted) | adapt | sensors come from iio-sensor-proxy on the system bus; apps get its bus name only after "yes" in an own dialog, next start |
+| Storage Scopes | adapt | apps have no host files at all; what they open goes through the file chooser and documents portals, which is the scoped model by construction |
+| Contact Scopes | adapt | ATL has no contacts provider; once it has one, the app sees only contacts picked through a chooser, never the whole address book |
+| Sandboxed Google Play, never privileged | adapt | no Play services; Google contact only with `atl.google-services` (above), in the app's own sandbox |
+| Notification when something is denied ("X tried to use the network") | adapt | ATL inside the sandbox posts one notification per app and permission when a denied permission blocks a call (network: a failed connect without network access); tapping it opens App info |
+| Auto-revoke permissions of unused apps | adapt, later | the service knows the last start; after 90 days unused it resets own answers and the network override to "ask"; portal answers stay with GNOME Settings |
+| Per-app exploit protection toggles (hardened malloc, dynamic code loading, memory tagging) | skip for now | Flatpak gives seccomp and namespaces per app but no per-app hardened malloc or MTE switch; ART needs dynamic code (JIT, dex2oat), so a "no dynamic code" switch would break every app |
+| Hardened kernel, verified boot, OS-level hardening | skip | outside ATL (postmarketOS) |
+
+**Microphone, enforced in PipeWire** (owner, 2026-11-03). The audio
+socket stays (without it apps are silent), and recording is blocked
+below the app:
+
+- Apps get only the socket of a second pipewire-pulse,
+  `atl-pulse-norecord`, a user service that refuses every record stream
+  (microphone and sink monitors) of every client. An app answered "yes"
+  for `RECORD_AUDIO` gets the normal socket as a Flatpak user override,
+  from its next start. ATL's own `AudioRecord` check stays as the first
+  layer.
+- Rejected after a security review (2026-11-04): WirePlumber and
+  pipewire-pulse rules matching `pipewire.access.portal.app_id`. Pulse
+  clients can overwrite their properties (`PULSE_PROP`,
+  `UPDATE_CLIENT_PROPLIST`), so a denied app could pose as an allowed
+  one. Native PipeWire with a WirePlumber rule would be sound
+  (`pipewire.*` keys come from the server), but ATL's ALSA default and
+  WebKit's GStreamer output use pulse; switching both is larger. Trade-off
+  of the chosen way: one more user service, and a change applies only at
+  the app's next start.
+- Packaging: `make-app-flatpak` installs the unit and the drop-in into the
+  user's own configuration; nothing needs root.
+
+**Facts behind it** (2026-11-03, on the phone):
+
+- phosh-mobile-settings 0.58 loads GIO modules from the fixed
+  `/usr/lib/phosh-mobile-settings/plugins` (root only) for the
+  extension point `ms-device-panel`; a plugin must also say which
+  devices it supports (`ms_plugin_check_device_support`; the only one is
+  the Librem 5's). The panel classes (`MsPanel`, `MsPluginPanel`) are
+  exported by the executable but have no headers in
+  `phosh-mobile-settings-dev`, whose `libpms` refuses to compile without
+  `LIBPMS_USE_UNSTABLE_API`. Not a public, versioned API: a plugin built
+  outside the Phosh tree would break silently on any update.
+- Portal backends: the location and camera portals ask through
+  `impl.portal.Access`, which Phosh's shell implements; notifications go
+  to Phosh's backend; `Background` is `none` (no background portal), and
+  there is no microphone portal.
+
+### Mapping
+
+| Android permission | Enforced by | Asked | Shown and changed in |
+|---|---|---|---|
+| `INTERNET` | `--share=network` as user override | install page (no default) | App info; next start |
+| `ACCESS_FINE/COARSE_LOCATION` | location portal | portal dialog at first use | GNOME Settings, at once |
+| `ACCESS_BACKGROUND_LOCATION` | own answer; ATL stops updates while no window is shown otherwise | own dialog | App info |
+| `CAMERA` | camera portal (PipeWire remote with cameras only)[^portal-camera] | portal dialog | GNOME Settings, at once |
+| `RECORD_AUDIO` | ATL's capture check, then the socket: only a pulse server without recording unless the answer is yes (below); playback unaffected | own dialog | App info; next start |
+| Audio playback (no permission) | audio socket by default | - | - |
+| `POST_NOTIFICATIONS` (API 33+) | notification portal | not asked: allowed, as the portal does | GNOME Settings (switch per app) |
+| `READ_CONTACTS`, `READ_CALENDAR`, `READ/SEND_SMS`, `READ_CALL_LOG`, `READ_PHONE_STATE` | not implemented by ATL: data stays empty | own dialog, so the app sees a real answer | App info |
+| `BIND_NOTIFICATION_LISTENER_SERVICE` (special access) | own answer | App info only, like Android's special access | App info |
+| `BLUETOOTH_CONNECT/SCAN` (API 31+), `BLUETOOTH`, `BLUETOOTH_ADMIN` | `--system-talk-name=org.bluez` as user override | own dialog | App info; next start |
+| `BODY_SENSORS`, `ACTIVITY_RECOGNITION`; plain sensors (no permission) | iio-sensor-proxy (`--system-talk-name=net.hadess.SensorProxy`) for apps that use sensors | own dialog for the dangerous ones | App info; next start |
+| `READ/WRITE_EXTERNAL_STORAGE`, `READ_MEDIA_*`, `MANAGE_EXTERNAL_STORAGE` | none; file chooser and documents portals (Storage Access Framework) | granted inside the app's own storage | - |
+| `atl.google-services` (ATL's own) | own answer; the push client and other Google clients check it | own dialog with a warning, default denied | App info |
+| `REQUEST_INSTALL_PACKAGES` | `de.nexumia.atl.Installer` talk name | every install confirmed on the host | Android apps page |
+| `RECEIVE_BOOT_COMPLETED`, autostart, background work | no background portal on Phosh: not available | - | - |
+| Normal permissions (`VIBRATE`, `WAKE_LOCK`, `ACCESS_NETWORK_STATE`, ...) | granted, like Android | - | - |
+
+Location is split between two deciders, so one request never shows two
+dialogs for the same thing: the location portal alone decides
+`ACCESS_FINE/COARSE_LOCATION` (ATL reports them granted in a Flatpak
+until the portal refused once, and asks nothing itself;
+`requestPermissions` answers them without a dialog), and the permission
+service alone decides `ACCESS_BACKGROUND_LOCATION`. As on Android 11+,
+background location should only be asked in a request of its own after
+foreground location works; asked together with FINE/COARSE it is
+answered "no" without a dialog. Coarse-only apps ask the portal for
+neighbourhood accuracy. Which permissions an app requests is the list
+`make-app-flatpak` stores in `/app/share/atl/permissions`.
 
 In ATL:
 
-- `checkPermission` answers from the effective Flatpak permissions
-  (`/.flatpak-info`) and the app's recorded portal answers.
-- `requestPermissions` asks the portal for portal-backed permissions
-  (one dialog, the portal's); for static ones it shows "needs permission
-  - open settings", which calls the broker; then
-  `onRequestPermissionsResult`.
-- The install page lists the mapped permissions.
-- Launcher action **Permissions**: exported desktop actions run inside
-  the app's sandbox, so the action asks the broker over D-Bus to open the
-  settings page for the calling app.
+- `checkSelfPermission` answers from `/.flatpak-info` (static ones),
+  the permission store (portal and own answers, read through the
+  service) and the table above.
+- `requestPermissions` asks the portal or the service, then calls
+  `onRequestPermissionsResult` with the real answers; "no" twice means
+  "don't ask again", as on Android 11+.
+- Static permissions changed in App info apply at the next start.
 
 Done when: denying and granting each row works as in the table, and the
 app sees the result as on Android.
@@ -397,8 +544,6 @@ T from phase 0 on, run after each phase
 # Open questions
 
 - Engine as extension or own runtime (phase 0).
-- Whether Phosh's portal backend implements the location and camera
-  dialogs; otherwise ATL needs its own dialog before the portal call.
 - Audio playback without the microphone: PipeWire's handling of
   sandboxed clients, or a playback-only path.
 - Upstream: ATL's maintainers plan their own sandboxing (TODO in
