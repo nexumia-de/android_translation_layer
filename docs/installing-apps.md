@@ -257,6 +257,19 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   `OpenAppInfo` on the permission service, after #75), and the
   "Android apps" page that lists apps. Headless check:
   `flatpak/app-info-test.sh`.
+- "Android apps" page (`android-translation-layer --android-apps`,
+  [screenshot](screenshots/android-apps-2026-11-04.png); opened from
+  every app's App info, **All Android Apps**, since there is no third
+  settings app in the grid): back navigation (saved in
+  `~/.config/android_translation_layer/settings.ini`, which ATL on the
+  host reads, and given to every app Flatpak as `ATL_NAVIGATION` by a
+  user override; `make-app-flatpak` applies it at install), the push
+  server (`atl-push-server get|set|reset`, default KDE's), the wake
+  interval (shown; the system timer is changed by the owner until a
+  polkit helper exists, see the wake decision), signature checks (always
+  on), which app stores may install apps (the `de.nexumia.atl.Installer`
+  talk name as an override) and the installed apps with a link to their
+  App info. Headless check: `flatpak/android-apps-test.sh`.
 - Runtime permissions without a portal (contacts, calendar, SMS, call
   log, phone state, background location, microphone, Bluetooth, body
   sensors, activity recognition, and ATL's own `atl.google-services`):
