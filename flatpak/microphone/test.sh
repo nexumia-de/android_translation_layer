@@ -5,6 +5,9 @@
 # /.flatpak-info, which is how PipeWire recognizes Flatpak clients):
 # de.nexumia.atl.denied must play but not record (microphone and sink
 # monitor), de.nexumia.atl.allowed must do both. Exit status 0 when so.
+# With the shared lock: flock -o /tmp/atl-heavy.lock flatpak/microphone/test.sh
+# (-o, so the daemons started here cannot inherit and keep the lock); they
+# are stopped when the script ends, also when it is interrupted.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 run=/tmp/atl-mic-test-$(id -u)  # short: socket paths are limited to 108 bytes
@@ -35,7 +38,8 @@ pipewire > "$run/pipewire.log" 2>&1 & pw=$!
 sleep 1
 wireplumber > "$run/wireplumber.log" 2>&1 & wp=$!
 pipewire-pulse > "$run/pipewire-pulse.log" 2>&1 & pp=$!
-trap 'kill $pp $wp $pw 2>/dev/null' EXIT
+trap 'kill $pp $wp $pw 2>/dev/null; wait 2>/dev/null' EXIT
+trap 'exit 1' INT TERM HUP
 sleep 3
 pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=testmic media.class=Audio/Source/Virtual audio.position=[MONO] object.linger=true }' >/dev/null
 pw-cli create-node adapter '{ factory.name=support.null-audio-sink node.name=testsink media.class=Audio/Sink audio.position=[FL FR] object.linger=true }' >/dev/null
