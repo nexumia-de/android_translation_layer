@@ -178,7 +178,7 @@ fi
 
 # shellcheck disable=SC2086 # $finish is a list of arguments
 flatpak build-finish "$build" --socket=wayland --device=dri --share=ipc \
-	--filesystem=xdg-run/atl-pulse-norecord --env=PULSE_SERVER="unix:$norecord_dir/native" \
+	--filesystem=xdg-run/atl-pulse-norecord:ro --env=PULSE_SERVER="unix:$norecord_dir/native" \
 	--talk-name=org.sigxcpu.Feedback $finish >/dev/null
 flatpak build-export "$repo" "$build" stable >/dev/null
 flatpak remote-add --user --if-not-exists --no-gpg-verify atl-local "$repo"

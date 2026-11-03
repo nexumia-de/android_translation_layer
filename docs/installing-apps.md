@@ -248,7 +248,10 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   instead only the socket of a second pipewire-pulse,
   `atl-pulse-norecord` (`flatpak/microphone/`: a user systemd unit and a
   drop-in for the system's `pipewire-pulse.conf`), which refuses every
-  record stream of every client. `make-app-flatpak` sets it up in the
+  record stream of every client and lets no client load modules
+  (a loopback into a pipe sink, RTP or a tunnel would record on the
+  server side). The socket directory is mounted read-only, so an app
+  cannot replace the shared socket. `make-app-flatpak` sets it up in the
   user's own configuration (no root) and gives the app
   `--filesystem=xdg-run/atl-pulse-norecord` and `PULSE_SERVER`; an app
   the user allows to record gets the normal socket as a user override

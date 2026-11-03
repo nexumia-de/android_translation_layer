@@ -43,7 +43,7 @@ sandboxed() {
 	printf '[Application]\nname=de.nexumia.atl.%s\n' "$app" > "$run/info-$app"
 	bwrap --ro-bind /usr /usr --symlink usr/lib /lib --symlink usr/bin /bin --symlink usr/sbin /sbin \
 		--ro-bind /etc /etc --proc /proc --dev /dev --tmpfs /tmp --tmpfs "$run" \
-		--bind "$socket_dir" "$socket_dir" --ro-bind "$run/info-$app" /.flatpak-info \
+		--ro-bind "$socket_dir" "$socket_dir" --ro-bind "$run/info-$app" /.flatpak-info \
 		--setenv PULSE_SERVER "unix:$socket_dir/native" -- "$@"
 }
 # 0 when the stream ran until timeout stopped it after three seconds
@@ -70,4 +70,10 @@ done
 check no "denied with a forged app id records" sandboxed denied env PULSE_PROP=pipewire.access.portal.app_id=de.nexumia.atl.allowed timeout 3 parecord -d testmic --raw /dev/null
 check no "denied without application.name records" sandboxed denied env PULSE_PROP=application.name= timeout 3 parecord -d testmic --raw /dev/null
 check no "denied reaches the normal socket" sandboxed denied sh -c "test -S $run/rt/pulse/native && sleep 3"
+# server-side recording through modules (security review): must be refused
+check yes "control: allowed (normal server) loads a module" sandboxed allowed sh -c "pactl load-module module-null-sink sink_name=control >/dev/null && sleep 3"
+check no "denied loads a module" sandboxed denied sh -c "pactl load-module module-null-sink sink_name=leak >/dev/null && sleep 3"
+check no "denied records through a loopback into a pipe" sandboxed denied sh -c "pactl load-module module-loopback source=testmic sink=testsink >/dev/null && sleep 3"
+# the socket directory is read-only: an app cannot put its own socket there for other apps
+check no "denied replaces the shared socket" sandboxed denied sh -c "rm -f $run/rt/atl-pulse-norecord/native && sleep 3"
 exit $fail
