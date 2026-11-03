@@ -1,0 +1,16 @@
+# ~/.config/systemd/user/atl-pulse-norecord.service: the pulse server
+# without recording for ATL apps (atl-pulse-norecord.conf)
+[Unit]
+Description=PulseAudio server without recording for Android apps (ATL)
+Requires=pipewire.service
+After=pipewire.service
+
+[Service]
+RuntimeDirectory=atl-pulse-norecord
+# kept across restarts: running apps hold a bind mount of this directory
+RuntimeDirectoryPreserve=restart
+ExecStart=/usr/bin/pipewire-pulse -c atl-pulse-norecord.conf
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

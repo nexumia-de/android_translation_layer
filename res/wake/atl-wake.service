@@ -1,0 +1,8 @@
+# Keeps the phone awake for a short window after atl-wake.timer woke it, so
+# ATL apps (which check their alarms every few seconds) run what is due.
+[Unit]
+Description=Wake window for Android apps (ATL)
+
+[Service]
+Type=oneshot
+ExecStart=systemd-inhibit --what=sleep --mode=block --who=android-translation-layer --why="Android apps run their due alarms" sleep 30

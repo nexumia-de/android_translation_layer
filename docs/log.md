@@ -76,6 +76,49 @@
 * **Handoff rules**: parallel agents write findings after every step, commit WIP, use their own prefix and the build lock, and keep secrets out ([dev-environment](dev-environment.md#parallel-agents-and-handoff)); AGENTS.md only links there.
 * **GitLab mirror**: `phosh` and `master` are pushed to the owner's GitLab fork on every push ([fork-workflow](fork-workflow.md#mirror-on-gitlab)); needs a deploy key set up by the owner.
 
+## 2026-11-04: permission service security fixes
+
+Review findings fixed: `de.nexumia.atl.Permissions` runs as its own
+process (an app allowed to talk to it could reach the installer's
+methods through the shared connection's unique name), and the installer
+checks every caller's sandbox policy; callers are identified through the
+broker's process fd; concurrent requests share one dialog and the
+"not after the second no" count is re-read when storing; `AudioRecord`
+checks per object. `flatpak/permissions-test.sh`: 16 checks, including
+the unique-name call and two concurrent requests.
+
+## 2026-11-03: runtime permissions through the installer service
+
+`de.nexumia.atl.Permissions` asks with the desktop's access dialog and
+stores answers in the permission store (table `de.nexumia.atl`); ATL's
+`checkSelfPermission`, `requestPermissions` and `AudioRecord` use it in
+an app's Flatpak, including `atl.google-services` (warning, default
+denied). Headless with GTK's dialog: not requested → no, contacts
+allowed, Google denied, microphone allowed and written into the
+PipeWire rules. Not yet tried inside a real app Flatpak.
+## 2026-11-04: microphone: separate pulse server instead of property rules
+
+Security review: pulse clients can overwrite
+`pipewire.access.portal.app_id`, so the 2026-11-03 rules were
+bypassable (`PULSE_PROP=...`). Now apps without the microphone get only
+the socket of a second pipewire-pulse that refuses all record streams;
+matching every client with and without `application.name`. Headless:
+denied app plays, cannot record microphone or monitor, also with forged
+properties, and cannot reach the normal socket; allowed app records.
+Native PipeWire with the WirePlumber rule was the alternative: its
+`pipewire.*` keys come from the server, but ATL's ALSA default and
+WebKit's GStreamer use pulse, so it would need changes in both.
+
+## 2026-11-03: microphone blocked in PipeWire, headless
+
+WirePlumber 0.5.18 `access.rules` + `access.permission-managers` and
+pipewire-pulse `pulse.rules` (`block-record-stream`) on
+`pipewire.access.portal.app_id`, in the user's own configuration:
+a fake ATL Flatpak client (bwrap with `/.flatpak-info`) plays but cannot
+record the microphone or a sink monitor; an allowed one can
+(`flatpak/microphone/test.sh`). The WirePlumber rule alone left sink
+monitors recordable through pipewire-pulse.
+
 ## 2026-11-03
 
 * **Back navigation**: Besides the header bar button, a swipe from the left or right edge and the keys Escape, Alt+Left and XF86Back go back; they send `KEYCODE_BACK` like Android, so dialogs (`OnKeyListener`, cancelable) and `Activity.onKeyDown`/`onKeyUp` see it before `onBackPressed`. `ATL_NAVIGATION=buttons|gesture|both` picks the on-screen means ([back navigation](navigation.md), [decision](decisions/navigation.md)). `wl-pointer key` types keys headless.
@@ -88,6 +131,17 @@
 Flatpak user override, not metadata. Headless with GPSLogger: "No
 internet" → override `shared=!network`, metadata without network;
 uninstall removed the override.
+
+## 2026-11-04: App info page
+
+`--app-info <package>` shows an installed app Flatpak's version,
+Internet, permission answers, More Permissions, Clear Data and
+Uninstall. Headless (`flatpak/app-info-test.sh`, own Flatpak directory
+and permission store): Internet and microphone switched on → override
+`shared=network`, `sockets=pulseaudio`, store answer yes.
+
 * **Push messages**: Scan of the apps: DB Navigator, Post & DHL and Duolingo use only FCM, WhatsApp FCM and its own connection, FluffyChat UnifiedPush. FCM cannot be routed to ntfy; Google's servers only per app with consent (`atl.google-services`, owner decision 2026-11-03). UnifiedPush maps to the host distributor over D-Bus ([push](push.md)).
 * **UnifiedPush bridge and FCM without consent**: The connector found no distributor (null package name); ATL now reports any `org.unifiedpush.Distributor.*` on the session bus as `org.unifiedpush.distributor.dbus`, owns the app's name before registering, maps UNREGISTER, failures, message ids and Unregistered. c2dm registrations get `SERVICE_NOT_AVAILABLE` at once without `atl.google-services` ([push](push.md)).
 * **UnifiedPush on D-Bus activation**: the connector is exported before the app owns its name and takes calls in a worker thread; calls wait until `Application.onCreate` has run, so the push that started an app reaches it (checked headless). Without `atl.google-services` no c2dm intent and no external Google Play services start leaves the app ([push](push.md)).
+* **Wake windows**: the owner decided that Android apps never keep the phone awake; a system timer wakes it at a user-set interval and ATL apps run their due alarms in a short window ([decision](decisions/wake-windows.md)). Measured: the phone had not suspended in 2 days (a session inhibitor), unprivileged alarm timers get `EPERM`.
+* **Push server setting**: KUnifiedPush, now on the phone, is configured on Phosh with `atl-push-server get|set|reset` (default KUnifiedPush's own, KDE's `https://unifiedpush.kde.org/`; no published usage terms), over its D-Bus Management interface when it runs, else in the per-user file. Tested headless with a local ntfy: ATL bridge to KUnifiedPush to ntfy and back. It costs about 50 MB PSS and no measurable CPU at idle ([push](push.md)).

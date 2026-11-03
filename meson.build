@@ -99,23 +99,45 @@ install_data([
 install_data('res/desktop/com.gitlab.android_translation_layer.install.desktop',
              install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'applications'))
 
+# system timer that wakes the phone for Android alarms, see docs/decisions/wake-windows.md
+# (installed, not enabled: the owner enables it)
+install_data(['res/wake/atl-wake.timer', 'res/wake/atl-wake.service'],
+             install_dir: join_paths(get_option('prefix'), 'lib', 'systemd', 'system'))
+
 # the installer service for app stores in their own Flatpak, see docs/installing-apps.md
 installer_service_resources = gnome.compile_resources('installer-service-resources',
                                                      'src/installer-service/installer-service.gresource.xml',
                                                      source_dir: 'src/installer-service')
-executable('atl-installer-service', ['src/installer-service/atl-installer-service.c', installer_service_resources],
+executable('atl-installer-service', ['src/installer-service/atl-installer-service.c', 'src/installer-service/caller.c', installer_service_resources],
            dependencies: [dependency('gio-unix-2.0')],
            install: true,
            install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
            c_args: ['-DINSTALL_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"'])
+# runtime permissions for every app Flatpak: its own process, see permissions.c
+executable('atl-permission-service', ['src/installer-service/permissions.c', 'src/installer-service/caller.c', installer_service_resources],
+           dependencies: [dependency('gio-unix-2.0')],
+           install: true,
+           install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'))
 configure_file(input: 'src/installer-service/de.nexumia.atl.Installer.service.in',
                output: 'de.nexumia.atl.Installer.service',
+               configuration: {'libexecdir': join_paths(get_option('prefix'), get_option('libexecdir'))},
+               install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'dbus-1', 'services'))
+configure_file(input: 'src/installer-service/de.nexumia.atl.Permissions.service.in',
+               output: 'de.nexumia.atl.Permissions.service',
                configuration: {'libexecdir': join_paths(get_option('prefix'), get_option('libexecdir'))},
                install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'dbus-1', 'services'))
 
 # builds an app's own Flatpak, see --install-flatpak
 install_data('flatpak/make-app.sh', rename: 'make-app-flatpak',
              install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
+             install_mode: 'rwxr-xr-x')
+# its pulse server without recording, see flatpak/microphone/
+install_data('flatpak/microphone/atl-pulse-norecord.conf', 'flatpak/microphone/atl-pulse-norecord.service',
+             install_dir: join_paths(get_option('datadir'), 'android-translation-layer', 'microphone'))
+
+# the user's push server for the host's UnifiedPush distributor, see docs/push.md
+install_data('src/push/atl-push-server.sh', rename: 'atl-push-server',
+             install_dir: get_option('bindir'),
              install_mode: 'rwxr-xr-x')
 
 #tools
@@ -191,6 +213,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/audio/audio.c',
                                                                   	'src/api-impl-jni/com_google_android_gles_jni_GLImpl.c',
                                                                   	'src/api-impl-jni/content/android_atl_ATLMediaContentProvider.c',
+                                                                  	'src/api-impl-jni/content/android_atl_ATLPermissions.c',
                                                                   	'src/api-impl-jni/content/android_content_ClipboardManager.c',
                                                                   	'src/api-impl-jni/content/android_content_ContentResolver.c',
                                                                   	'src/api-impl-jni/content/android_content_Context.c',
@@ -287,6 +310,7 @@ resources = gnome.compile_resources('com.gitlab.android_translation_layer.androi
 executable('android-translation-layer', [
                                         	'src/main-executable/main.c',
                                         	'src/main-executable/prompt_page.c',
+                                        	'src/main-executable/app_info.c',
                                         	'src/main-executable/actions.c',
                                         	'src/main-executable/back_button.c',
                                         	'src/main-executable/navigation.c',

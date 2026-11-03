@@ -2,5 +2,6 @@
 <gresources>
   <gresource prefix="/de/nexumia/atl/Installer">
     <file>de.nexumia.atl.Installer.xml</file>
+    <file>de.nexumia.atl.Permissions.xml</file>
   </gresource>
 </gresources>
