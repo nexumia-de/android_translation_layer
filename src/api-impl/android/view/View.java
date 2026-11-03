@@ -1388,9 +1388,11 @@ public class View implements Drawable.Callback {
 	private native void nativeSetFullscreen(long widget, boolean fullscreen);
 
 	public void setSystemUiVisibility(int visibility) {
-		/* LAYOUT_FULLSCREEN mode would make the app window continue behind semi-transparent status bar.
-		   Such a mode doesn't exist on desktop Linux, so we just use normal fullscreen for both modes. */
-		nativeSetFullscreen(widget, (visibility & (View.SYSTEM_UI_FLAG_FULLSCREEN | SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)) != 0);
+		/* Only FULLSCREEN hides the status bar. LAYOUT_FULLSCREEN (edge to edge, e.g. AndroidX
+		   setDecorFitsSystemWindows(false)) only lets the app draw behind it and keep clear of it
+		   through the insets; the window already ends below Phosh's bar and reports no status bar
+		   inset, so it keeps its size. Making it fullscreen put the app over the whole screen. */
+		nativeSetFullscreen(widget, (visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) != 0);
 		system_ui_visibility = visibility;
 	}
 	public int getSystemUiVisibility() {
