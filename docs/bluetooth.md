@@ -43,8 +43,14 @@ user `claude`).
   Android. Scan filters are applied in ATL. `ScanRecord.getBytes()` is
   rebuilt from BlueZ's parsed fields, as BlueZ does not hand out the raw
   advertisement[^bluez-adapter].
-- Bonding: `createBond()` calls `Device1.Pair`. ATL registers no pairing agent,
-  so BlueZ uses the desktop's agent if one runs, else "just works" pairing.
+- Bonding: `createBond()` calls `Device1.Pair`. While it pairs or connects,
+  ATL registers its own `org.bluez.Agent1` (`PairingAgent`): a request goes
+  to the app as the ordered broadcast `ACTION_PAIRING_REQUEST` (answered with
+  `setPairingConfirmation`/`setPin`), else ATL shows an Android-like pairing
+  dialog. No desktop agent (GNOME Settings' Bluetooth panel) is needed.
+- Discovery is paused during `Connect` and `Pair`: with discovery running,
+  BlueZ aborts LE connections (`le-connection-abort-by-local`, reproduced
+  with bluetoothctl on the phone). `StopDiscovery` is retried on `InProgress`.
 - GATT client[^android-gatt][^bluez-gatt]: `connectGatt` calls
   `Device1.Connect` (or uses the existing link), `discoverServices` waits for
   `ServicesResolved` and builds the service tree from the `Gatt*1` objects,
@@ -67,7 +73,6 @@ user `claude`).
 |---|---|---|
 | GATT server (`openGattServer`) | returns null; Gadgetbridge devices that need a server on the phone fail to connect | medium: BlueZ `GattManager1` with exported objects, about 2 days |
 | RFCOMM sockets | `connect()` throws; classic devices (Pebble and other older watches) cannot connect | medium: a BlueZ `Profile1` object that receives the socket, about 1 day |
-| Pairing agent | PIN or passkey pairing only works through the desktop's agent | small |
 | Profile proxies (A2DP, headset) | `getProfileProxy` returns false | out of scope, the desktop's audio stack owns them |
 | Bearer choice | `TRANSPORT_LE` on dual-mode devices is not passed to BlueZ | small, needs BlueZ 5.80 `Bearer` interfaces |
 

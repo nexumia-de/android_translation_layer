@@ -534,12 +534,34 @@ public abstract class Context {
 		if ("org.unifiedpush.android.distributor.REGISTER".equals(intent.getAction())) {
 			nativeRegisterUnifiedPush(intent.getStringExtra("token"), intent.getStringExtra("application"));
 		}
-		for (IntentFilter filter : receiverMap.keySet()) {
-			if (filter.matchAction(intent.getAction())) {
-				receiverMap.get(filter).onReceive(this, intent);
+		for (BroadcastReceiver receiver : matchingReceivers(intent))
+			receiver.onReceive(this, intent);
+		ATLLoadedApp.getPrimaryApplication().receiveBroadcast(this, intent);
+	}
+
+	/* each receiver once per broadcast, also when an app registered it several times with equal filters
+	 * (as Gadgetbridge does in onStart and onResume); Android ignores such repeated registrations */
+	private static java.util.List<BroadcastReceiver> matchingReceivers(Intent intent) {
+		java.util.List<BroadcastReceiver> result = new java.util.ArrayList<>();
+		java.util.Set<BroadcastReceiver> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+		for (Map.Entry<IntentFilter, BroadcastReceiver> entry : receiverMap.entrySet())
+			if (entry.getKey().matchAction(intent.getAction()) && seen.add(entry.getValue()))
+				result.add(entry.getValue());
+		return result;
+	}
+
+	/* ATL internal: delivers like an ordered broadcast to the registered receivers; true if one called abortBroadcast() */
+	public boolean atlSendOrderedBroadcast(Intent intent) {
+		for (BroadcastReceiver receiver : matchingReceivers(intent)) {
+			receiver.clearAbortBroadcast();
+			receiver.onReceive(this, intent);
+			if (receiver.getAbortBroadcast()) {
+				receiver.clearAbortBroadcast();
+				return true;
 			}
 		}
 		ATLLoadedApp.getPrimaryApplication().receiveBroadcast(this, intent);
+		return false;
 	}
 
 	public void sendBroadcast(Intent intent, String receiverPermission) {
