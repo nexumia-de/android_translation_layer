@@ -58,6 +58,10 @@ public class LocationManager {
 		PendingIntent pendingIntent;
 		Executor executor;
 		Location lastDelivered;
+		/* removed by the app or expired: queued fixes are dropped */
+		boolean cancelled;
+		/* getCurrentLocation: null on timeout or refusal */
+		boolean nullOnExpiry;
 	}
 
 	private static final Object lock = new Object();
@@ -103,6 +107,27 @@ public class LocationManager {
 				running = false;
 			}
 		}
+		if (r.expireAtRealtime != Long.MAX_VALUE) {
+			final Registration reg = r;
+			new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+				@Override
+				public void run() {
+					expire(reg);
+				}
+			}, Math.max(0, r.expireAtRealtime - SystemClock.elapsedRealtime()));
+		}
+	}
+
+	/* the duration of a request ran out without (enough) fixes */
+	private static void expire(Registration r) {
+		synchronized (lock) {
+			if (!registrations.remove(r))
+				return;
+			r.cancelled = true;
+		}
+		if (r.nullOnExpiry)
+			deliverNull(r);
+		stopIfUnused();
 	}
 
 	private static boolean removeLocked(LocationListener listener, PendingIntent pendingIntent) {
@@ -111,6 +136,7 @@ public class LocationManager {
 			Registration r = registrations.get(i);
 			if ((listener != null && r.listener == listener) || (pendingIntent != null && pendingIntent.equals(r.pendingIntent))) {
 				registrations.remove(i);
+				r.cancelled = true;
 				removed = true;
 			}
 		}
@@ -253,6 +279,7 @@ public class LocationManager {
 		r.executor = executor;
 		r.maxUpdates = 1;
 		r.expireAtRealtime = SystemClock.elapsedRealtime() + 30000;
+		r.nullOnExpiry = true;
 		if (cancellationSignal != null) {
 			cancellationSignal.setOnCancelListener(new CancellationSignal.OnCancelListener() {
 				@Override
@@ -310,8 +337,7 @@ public class LocationManager {
 			for (int i = registrations.size() - 1; i >= 0; i--) {
 				Registration r = registrations.get(i);
 				if (now > r.expireAtRealtime) {
-					registrations.remove(i);
-					continue;
+					continue; /* expire() removes it and answers */
 				}
 				Location last = r.lastDelivered;
 				if (last != null) {
@@ -335,10 +361,25 @@ public class LocationManager {
 		stopIfUnused();
 	}
 
+	private static void deliverNull(final Registration r) {
+		r.executor.execute(new Runnable() {
+			@Override
+			public void run() {
+				r.listener.onLocationChanged((Location)null);
+			}
+		});
+	}
+
 	private static void deliver(final Registration r, final Location location) {
 		r.executor.execute(new Runnable() {
 			@Override
 			public void run() {
+				/* removeUpdates may have run since the fix was queued; a finished
+				 * single update is not cancelled and keeps its one fix */
+				synchronized (lock) {
+					if (r.cancelled)
+						return;
+				}
 				if (r.listener != null) {
 					r.listener.onLocationChanged(location);
 				} else {

@@ -5,6 +5,10 @@
 #include "../generated_headers/android_location_LocationManager.h"
 
 static XdpPortal *portal = NULL;
+/* main thread only. libportal's monitor_stop does nothing until the
+ * CreateSession reply arrived, so a stop that comes while starting is kept */
+static gboolean starting = FALSE;
+static gboolean stop_pending = FALSE;
 
 static void location_updated(
     XdpPortal *self,
@@ -28,8 +32,14 @@ static void location_updated(
 static void monitor_started(GObject *source, GAsyncResult *result, gpointer user_data)
 {
 	g_autoptr(GError) error = NULL;
-	if (!xdp_portal_location_monitor_start_finish(XDP_PORTAL(source), result, &error))
+	gboolean ok = xdp_portal_location_monitor_start_finish(XDP_PORTAL(source), result, &error);
+	starting = FALSE;
+	if (!ok)
 		g_warning("LocationManager: location portal refused or failed: %s", error ? error->message : "unknown");
+	if (stop_pending) {
+		stop_pending = FALSE;
+		xdp_portal_location_monitor_stop(XDP_PORTAL(source));
+	}
 }
 
 /* libportal delivers signals in the main context it was called from, so always
@@ -41,13 +51,20 @@ static gboolean start_on_main(gpointer data)
 		portal = xdp_portal_new();
 		g_signal_connect(portal, "location-updated", G_CALLBACK(location_updated), NULL);
 	}
+	if (starting) { /* start, stop, start again before the portal answered */
+		stop_pending = FALSE;
+		return G_SOURCE_REMOVE;
+	}
+	starting = TRUE;
 	xdp_portal_location_monitor_start(portal, NULL, 0, 0, accuracy, XDP_LOCATION_MONITOR_FLAG_NONE, NULL, monitor_started, NULL);
 	return G_SOURCE_REMOVE;
 }
 
 static gboolean stop_on_main(gpointer data)
 {
-	if (portal)
+	if (starting)
+		stop_pending = TRUE;
+	else if (portal)
 		xdp_portal_location_monitor_stop(portal);
 	return G_SOURCE_REMOVE;
 }
