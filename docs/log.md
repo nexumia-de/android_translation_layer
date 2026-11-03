@@ -76,6 +76,26 @@
 * **Handoff rules**: parallel agents write findings after every step, commit WIP, use their own prefix and the build lock, and keep secrets out ([dev-environment](dev-environment.md#parallel-agents-and-handoff)); AGENTS.md only links there.
 * **GitLab mirror**: `phosh` and `master` are pushed to the owner's GitLab fork on every push ([fork-workflow](fork-workflow.md#mirror-on-gitlab)); needs a deploy key set up by the owner.
 
+## 2026-11-04: permission service security fixes
+
+Review findings fixed: `de.nexumia.atl.Permissions` runs as its own
+process (an app allowed to talk to it could reach the installer's
+methods through the shared connection's unique name), and the installer
+checks every caller's sandbox policy; callers are identified through the
+broker's process fd; concurrent requests share one dialog and the
+"not after the second no" count is re-read when storing; `AudioRecord`
+checks per object. `flatpak/permissions-test.sh`: 16 checks, including
+the unique-name call and two concurrent requests.
+
+## 2026-11-03: runtime permissions through the installer service
+
+`de.nexumia.atl.Permissions` asks with the desktop's access dialog and
+stores answers in the permission store (table `de.nexumia.atl`); ATL's
+`checkSelfPermission`, `requestPermissions` and `AudioRecord` use it in
+an app's Flatpak, including `atl.google-services` (warning, default
+denied). Headless with GTK's dialog: not requested → no, contacts
+allowed, Google denied, microphone allowed and written into the
+PipeWire rules. Not yet tried inside a real app Flatpak.
 ## 2026-11-04: microphone: separate pulse server instead of property rules
 
 Security review: pulse clients can overwrite

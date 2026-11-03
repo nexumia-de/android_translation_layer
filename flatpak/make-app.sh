@@ -22,10 +22,11 @@
 #   -f ARG      extra finish-arg, repeatable, e.g. -f --share=network
 #   -r DIR      local repository (default: ~/.local/share/android_translation_layer/flatpak-repo)
 #
-# Every app gets Wayland, the GPU, IPC, feedbackd (vibration) and audio
-# playback through a pulse server that refuses recording (microphone/), plus what -P maps and -f adds. The app id is
-# de.nexumia.atl.<PACKAGE>, so it cannot collide with a real Flatpak of
-# the same name.
+# Every app gets Wayland, the GPU, IPC, feedbackd (vibration), audio
+# playback through a pulse server that refuses recording (microphone/)
+# and the installer service's runtime permissions, plus what -P maps and
+# -f adds. The app id is de.nexumia.atl.<PACKAGE>, so it cannot collide
+# with a real Flatpak of the same name.
 set -eu
 
 base=de.nexumia.atl.BaseApp
@@ -107,6 +108,11 @@ for apk in "$@"; do
 	apks="$apks /app/share/atl/apk$i.apk"
 	i=$((i + 1))
 done
+
+# the <uses-permission> list, one per line: the permission service grants only what the APK requests
+printf '%s' "$permissions" | tr ';' '\n' > "$build/files/share/atl/permissions"
+# every app may ask the permission service (atl-permission-service), which asks the user
+finish="$finish --talk-name=de.nexumia.atl.Permissions"
 
 cat > "$build/files/bin/atl-app" <<EOF
 #!/bin/sh

@@ -243,6 +243,43 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   resets the app's overrides. Apps without `INTERNET` are never asked
   and get `--unshare=network`, also when an update drops `INTERNET`.
   Everything else waits for portals and the broker (phases 3 and 4).
+- Runtime permissions without a portal (contacts, calendar, SMS, call
+  log, phone state, background location, microphone, Bluetooth, body
+  sensors, activity recognition, and ATL's own `atl.google-services`):
+  every app may call `de.nexumia.atl.Permissions` (`Check`, `Request`;
+  `src/installer-service/de.nexumia.atl.Permissions.xml`), served by its
+  own process, `atl-permission-service`: the D-Bus proxy lets an app
+  reach every name of a connection through its unique name, so sharing
+  the installer service's connection would open it to all apps. The
+  installer service also checks each caller itself: only callers whose
+  sandbox may talk to `de.nexumia.atl.Installer` (app stores), or callers
+  outside a sandbox. Both identify the caller through the broker's
+  process fd (`GetConnectionCredentials`), so a reused pid cannot pose as
+  it. It asks with the desktop's access
+  dialog (Phosh's shell, else GTK's;
+  [contacts](screenshots/permission-dialog-2026-11-03.png),
+  [Google services](screenshots/google-services-dialog-2026-11-03.png)),
+  stores the answer in the permission store table `de.nexumia.atl`,
+  answers "no" without asking for what the APK does not request
+  (`make-app-flatpak` writes the list to `/app/share/atl/permissions`)
+  and stops asking after the second "no"; requests for the same
+  question while its dialog is open wait for that one answer.
+  Background location (owner, 2026-11-03; split with the location
+  portal work, #76): the portal decides fine and coarse location, and
+  its dialog covers use while the app has a window or a foreground
+  service, so `requestPermissions` for `ACCESS_BACKGROUND_LOCATION`
+  shows no second dialog: it reports granted unless the user said no or
+  the portal has no grant (asked together with foreground location it
+  is denied, as on Android 11). The question comes only at real
+  background use (no window, no foreground service):
+  `ATLPermissions.locationAllowedNow`, which the location code calls. Inside the app,
+  `checkSelfPermission` and `requestPermissions` use it
+  (`android.atl.ATLPermissions`); `AudioRecord` records only after a
+  "yes" (per `AudioRecord` object; without it the object is
+  `STATE_UNINITIALIZED`, as on Android). A `RECORD_AUDIO` "yes" also
+  gives the app the normal pulse socket instead of the one without
+  recording (Flatpak user override, from the app's next start). Headless check:
+  `flatpak/permissions-test.sh`.
 - Microphone: the normal pulse socket would let every app record
   (microphone and sink monitors, i.e. other apps' sound). Apps get
   instead only the socket of a second pipewire-pulse,
