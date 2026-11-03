@@ -187,11 +187,33 @@ public abstract class Context {
 
 	public abstract Object getSystemService(Class<?> serviceClass) throws InstantiationException, IllegalAccessException, InvocationTargetException;
 
-	public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
+	public static final int RECEIVER_VISIBLE_TO_INSTANT_APPS = 0x1;
+	public static final int RECEIVER_EXPORTED = 0x2;
+	public static final int RECEIVER_NOT_EXPORTED = 0x4;
+
+	public Intent registerReceiver(final BroadcastReceiver receiver, IntentFilter filter) {
+		/* ACTION_BATTERY_CHANGED is sticky: apps read the battery state from the
+		 * returned intent, often with a null receiver */
+		final Intent sticky = (filter != null && filter.hasAction(Intent.ACTION_BATTERY_CHANGED)) ? android.os.BatteryManager.getBatteryChangedIntent() : null;
 		if (receiver == null)
-			return null;
+			return sticky;
 		receiverMap.put(filter, receiver);
+		if (sticky != null) {
+			/* like Android, a new receiver also gets the sticky broadcast, after this call returns */
+			new Handler(Looper.getMainLooper()).post(new Runnable() {
+				@Override
+				public void run() {
+					if (receiverMap.containsValue(receiver))
+						receiver.onReceive(Context.this, sticky);
+				}
+			});
+			return sticky;
+		}
 		return new Intent();
+	}
+
+	public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter, int flags) {
+		return registerReceiver(receiver, filter);
 	}
 
 	public Looper getMainLooper() {
