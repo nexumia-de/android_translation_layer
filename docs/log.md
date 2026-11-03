@@ -76,6 +76,8 @@
 * **Handoff rules**: parallel agents write findings after every step, commit WIP, use their own prefix and the build lock, and keep secrets out ([dev-environment](dev-environment.md#parallel-agents-and-handoff)); AGENTS.md only links there.
 * **GitLab mirror**: `phosh` and `master` are pushed to the owner's GitLab fork on every push ([fork-workflow](fork-workflow.md#mirror-on-gitlab)); needs a deploy key set up by the owner.
 
+## 2026-11-03
+* **GPSLogger and location**: `LocationManager` only handled one `requestLocationUpdates` variant, never stopped the portal session and its `Location` lacked most fields, so GPSLogger 138 aborted at its first fix. Registrations now follow Android (Looper, Executor, `PendingIntent`, `LocationRequest`, minimum time and distance, `removeUpdates` ends the portal session) and the fix time is right (the portal's second timestamp field is microseconds, not milliseconds). Headless with a fake location portal GPSLogger logs and uploads through its Dawarich sender ([app status](apps.md)).
 ## 2026-11-03: internet asked on the install page
 
 `--install-ask --install-flatpak` asks "Allow internet?" for apps with
