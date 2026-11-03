@@ -13,6 +13,7 @@
 #include "../api-impl-jni/content/android_content_Context.h"
 
 #include "actions.h"
+#include "android_apps.h"
 #include "app_info.h"
 #include "back_button.h"
 #include "navigation.h"
@@ -332,6 +333,7 @@ struct jni_callback_data {
 	char *installer_name;
 	char *uninstall_flatpak;
 	char *app_info;
+	gboolean android_apps;
 	char *network;
 	char *prgname;
 	char **extra_jvm_options;
@@ -2027,6 +2029,10 @@ static void activate(GtkApplication *app, struct jni_callback_data *d)
 		app_info_show(app, d->app_info, d->prgname);
 		return;
 	}
+	if (d->android_apps) {
+		android_apps_show(app, d->prgname);
+		return;
+	}
 	if (app_starting && !window) // D-Bus activation's own request, which started us
 		return;
 	if (window) { // this is not the first launch, but a DBus activate request to the running app
@@ -2069,6 +2075,7 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "network",           0 , 0, G_OPTION_ARG_STRING,       &d->network,                   "--install-flatpak: allow internet (yes) or not (no), kept for updates; unset keeps the answer",  "yes|no"        },
 		{ "installer-name",    0 , 0, G_OPTION_ARG_STRING,       &d->installer_name,            "the app store that asks to install or uninstall (shown on the page)",                          "NAME"          },
 		{ "uninstall-flatpak", 0 , 0, G_OPTION_ARG_STRING,       &d->uninstall_flatpak,         "ask, then remove the Flatpak of an app installed with --install-flatpak and its data",         "PACKAGE"       },
+		{ "android-apps",      0 , 0, G_OPTION_ARG_NONE,         &d->android_apps,              "show the settings for all Android apps (navigation, push server, installed apps)",            NULL            },
 		{ "app-info",          0 , 0, G_OPTION_ARG_STRING,       &d->app_info,                  "show App info of an app installed with --install-flatpak: permissions, data, uninstall",        "PACKAGE"       },
 		{ "uninstall",         0 , 0, G_OPTION_ARG_NONE,         &d->uninstall,                 "remove an apk installed with --install, its data and its launcher (asks first)",                NULL            },
 		{ "dbus-activated",    0 , G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &d->dbus_activated, "started through the launcher's D-Bus service file",                                          NULL            },

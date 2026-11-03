@@ -148,6 +148,14 @@ and permission store): Internet and microphone switched on → override
 * **Wake windows**: the owner decided that Android apps never keep the phone awake; a system timer wakes it at a user-set interval and ATL apps run their due alarms in a short window ([decision](decisions/wake-windows.md)). Measured: the phone had not suspended in 2 days (a session inhibitor), unprivileged alarm timers get `EPERM`.
 * **Push server setting**: KUnifiedPush, now on the phone, is configured on Phosh with `atl-push-server get|set|reset` (default KUnifiedPush's own, KDE's `https://unifiedpush.kde.org/`; no published usage terms), over its D-Bus Management interface when it runs, else in the per-user file. Tested headless with a local ntfy: ATL bridge to KUnifiedPush to ntfy and back. It costs about 50 MB PSS and no measurable CPU at idle ([push](push.md)).
 
+## 2026-11-04: "Android apps" page
+
+`--android-apps`: navigation, push server, wake interval (read-only),
+signature checks, installer rights per store and the installed apps;
+reached from App info. Headless (`flatpak/android-apps-test.sh`, fake
+apps, stand-in `atl-push-server`): store switched off → override
+`Installer=none`, push server set, navigation "gesture" saved and given
+to every app.
 ## 2026-11-04: legacy permission review
 
 Apps with target SDK or SDK_INT below 23 get one review dialog of their

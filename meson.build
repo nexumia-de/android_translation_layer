@@ -312,6 +312,7 @@ executable('android-translation-layer', [
                                         	'src/main-executable/main.c',
                                         	'src/main-executable/prompt_page.c',
                                         	'src/main-executable/app_info.c',
+                                        	'src/main-executable/android_apps.c',
                                         	'src/main-executable/actions.c',
                                         	'src/main-executable/back_button.c',
                                         	'src/main-executable/navigation.c',
