@@ -31,8 +31,14 @@ static void android_layout_measure(GtkLayoutManager *layout_manager, GtkWidget *
 	if (snapshot_in_progress)
 		return;
 
-	// If the parent widget is also an AndroidLayout, the measurement will already have happened in Java
-	if (!ATL_IS_ANDROID_LAYOUT(gtk_widget_get_layout_manager(gtk_widget_get_parent(gtk_widget_get_parent(widget))))) {
+	// If the parent widget is also an AndroidLayout, the measurement will already have happened in Java.
+	// The same holds for the child of a ScrollView (inside its GtkViewport): ScrollView.onMeasure measured it,
+	// with fillViewport stretched to the viewport, which a native measure with unspecified height would undo.
+	GtkWidget *parent = gtk_widget_get_parent(gtk_widget_get_parent(widget));
+	GtkWidget *scrolled_window = GTK_IS_VIEWPORT(parent) ? gtk_widget_get_parent(parent) : NULL;
+	gboolean measured_in_java = ATL_IS_ANDROID_LAYOUT(gtk_widget_get_layout_manager(parent)) ||
+	                            (scrolled_window && !g_strcmp0(gtk_widget_get_name(scrolled_window), "ScrollView"));
+	if (!measured_in_java) {
 		widthMeasureSpec = make_measure_spec(layout->width, orientation == GTK_ORIENTATION_VERTICAL ? for_size : -1);
 		heightMeasureSpec = make_measure_spec(layout->height, orientation == GTK_ORIENTATION_HORIZONTAL ? for_size : -1);
 

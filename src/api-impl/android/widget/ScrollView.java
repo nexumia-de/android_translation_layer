@@ -57,9 +57,18 @@ public class ScrollView extends FrameLayout {
 		if (!fillViewport || MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED || getChildCount() == 0)
 			return;
 		View child = getChildAt(0);
-		if (child.getMeasuredHeight() < getMeasuredHeight()) {
-			int childWidthMeasureSpec = getChildMeasureSpec(widthMeasureSpec, 0, child.getLayoutParams().width);
-			int childHeightMeasureSpec = MeasureSpec.makeMeasureSpec(getMeasuredHeight(), MeasureSpec.EXACTLY);
+		ViewGroup.LayoutParams lp = child.getLayoutParams();
+		int widthPadding = getPaddingLeft() + getPaddingRight();
+		int heightPadding = getPaddingTop() + getPaddingBottom();
+		if (lp instanceof ViewGroup.MarginLayoutParams) { // API 23 and later
+			ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams)lp;
+			widthPadding += mlp.leftMargin + mlp.rightMargin;
+			heightPadding += mlp.topMargin + mlp.bottomMargin;
+		}
+		int desiredHeight = getMeasuredHeight() - heightPadding;
+		if (child.getMeasuredHeight() < desiredHeight) {
+			int childWidthMeasureSpec = getChildMeasureSpec(widthMeasureSpec, widthPadding, lp.width);
+			int childHeightMeasureSpec = MeasureSpec.makeMeasureSpec(desiredHeight, MeasureSpec.EXACTLY);
 			child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
 		}
 	}
