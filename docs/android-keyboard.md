@@ -69,6 +69,14 @@ built when `gtk4-layer-shell-0` is found (1.3.0 on the phone).
    gets `onStartInput`/`onFinishInput` per field.
 6. `setSelection` does nothing.
 
+## Status (2026-11-03)
+
+- Settings activity: runs headless ([app status](apps.md)).
+- Keyboard: under headless phoc HeliBoard's input view shows as the
+  layer-shell window over a text field, with its dictionary loaded, but
+  full screen, on the emoji page and twice too big; no text typed yet.
+  Gaps 1 and 2 above are fixed on the branch, 3 to 6 are open.
+
 ## Size and risks
 
 Size **M**: the host exists, the work is the gaps above plus whatever
