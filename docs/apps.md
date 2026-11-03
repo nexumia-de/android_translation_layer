@@ -29,6 +29,12 @@ follow [bringing up an app](app-bring-up.md).
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
+- 2026-11-03: [Permissions decision record](hardening-roadmap.md#decision-record-where-permissions-are-shown-and-changed):
+  microphone decided (hard, through a pulse server without recording,
+  ATL's check first). Phone test once #68 is in the package: as `user`,
+  `systemctl --user status atl-pulse-norecord` (active) and, while an
+  ATL app plays sound, `pactl -s /run/user/$(id -u)/atl-pulse-norecord/native list short clients`.
+
 - 2026-10-28: Finish the apk repository in
   [nexumia-de/aports](https://github.com/nexumia-de/aports) (signing
   secret in the environment `apk-signing`, merge its pull request #1;
