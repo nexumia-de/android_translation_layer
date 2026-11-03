@@ -252,54 +252,75 @@ static void unifiedpush_own_name(GDBusConnection *connection, const char *applic
 static Connector1 *connector1 = NULL;
 static gboolean connector_wanted = FALSE; /* the app has a UnifiedPush receiver */
 static gboolean connector_decided = FALSE;
+/* Calls are taken in GDBus's worker thread, so they are queued even before the main loop runs. */
+static GMutex connector_mutex;
 static GQueue connector_pending = G_QUEUE_INIT;
-static guint connector_drain_source = 0;
+static gboolean connector_retry_scheduled = FALSE;
 
 static gboolean on_new_endpoint(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data);
 static gboolean on_message(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data);
 static gboolean on_unregistered(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data);
 
+/* main thread only */
 static gboolean connector_app_ready(void)
 {
-	if (!connector_decided || !connector_wanted)
+	if (!connector_wanted)
 		return FALSE;
 	JNIEnv *env = get_jni_env();
 	jobject context = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "this_application", "Landroid/app/Application;");
 	return context != NULL;
 }
 
+/* main thread: deliver or refuse queued calls; retry later while the app is not set up yet */
 static gboolean connector_drain(gpointer user_data)
 {
-	if (connector_decided && !connector_wanted) {
-		GDBusMethodInvocation *invocation;
-		while ((invocation = g_queue_pop_head(&connector_pending)))
-			g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.UnknownObject", "this app takes no UnifiedPush messages");
+	if (user_data)
+		connector_retry_scheduled = FALSE;
+	gboolean refuse = connector_decided && !connector_wanted;
+	if (!refuse && !connector_app_ready()) {
+		g_mutex_lock(&connector_mutex);
+		gboolean pending = !g_queue_is_empty(&connector_pending);
+		g_mutex_unlock(&connector_mutex);
+		if (pending && !connector_retry_scheduled) {
+			connector_retry_scheduled = TRUE;
+			g_timeout_add(100, connector_drain, GINT_TO_POINTER(1));
+		}
+		return G_SOURCE_REMOVE;
 	}
-	if (!connector_app_ready())
-		return g_queue_is_empty(&connector_pending) ? (connector_drain_source = 0, G_SOURCE_REMOVE) : G_SOURCE_CONTINUE;
-	GDBusMethodInvocation *invocation;
-	while ((invocation = g_queue_pop_head(&connector_pending))) {
+	for (;;) {
+		g_mutex_lock(&connector_mutex);
+		GDBusMethodInvocation *invocation = g_queue_pop_head(&connector_pending);
+		g_mutex_unlock(&connector_mutex);
+		if (!invocation)
+			break;
 		const char *method = g_dbus_method_invocation_get_method_name(invocation);
-		if (!strcmp(method, "NewEndpoint"))
+		if (refuse)
+			g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.UnknownObject", "this app takes no UnifiedPush messages");
+		else if (!strcmp(method, "NewEndpoint"))
 			on_new_endpoint(connector1, invocation, NULL);
 		else if (!strcmp(method, "Message"))
 			on_message(connector1, invocation, NULL);
 		else
 			on_unregistered(connector1, invocation, NULL);
 	}
-	connector_drain_source = 0;
 	return G_SOURCE_REMOVE;
 }
 
-/* Queue the call if the app cannot take it yet; TRUE if queued. */
-static gboolean connector_defer(GDBusMethodInvocation *invocation)
+/* GDBus worker thread */
+static gboolean on_connector_call(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
 {
-	if (g_queue_is_empty(&connector_pending) && connector_app_ready())
-		return FALSE;
-	g_queue_push_tail(&connector_pending, invocation);
-	if (!connector_drain_source)
-		connector_drain_source = g_timeout_add(100, connector_drain, NULL);
+	g_mutex_lock(&connector_mutex);
+	g_queue_push_tail(&connector_pending, invocation); /* completing it releases it */
+	g_mutex_unlock(&connector_mutex);
+	g_idle_add(connector_drain, NULL);
 	return TRUE;
+}
+
+/* Deliver queued calls now if the app can take them: main.c after Application.onCreate, as
+ * Android delivers the broadcast that started an app. */
+void unifiedpush_connector_drain(void)
+{
+	connector_drain(NULL);
 }
 
 /* Export /org/unifiedpush/Connector on the bus; for main.c before it owns the name on activation. */
@@ -308,9 +329,10 @@ void unifiedpush_export_connector(GDBusConnection *connection)
 	if (connector1 || (connector_decided && !connector_wanted))
 		return;
 	connector1 = connector1_skeleton_new();
-	g_signal_connect(connector1, "handle-new-endpoint", G_CALLBACK(on_new_endpoint), NULL);
-	g_signal_connect(connector1, "handle-message", G_CALLBACK(on_message), NULL);
-	g_signal_connect(connector1, "handle-unregistered", G_CALLBACK(on_unregistered), NULL);
+	g_dbus_interface_skeleton_set_flags(G_DBUS_INTERFACE_SKELETON(connector1), G_DBUS_INTERFACE_SKELETON_FLAGS_HANDLE_METHOD_INVOCATIONS_IN_THREAD);
+	g_signal_connect(connector1, "handle-new-endpoint", G_CALLBACK(on_connector_call), NULL);
+	g_signal_connect(connector1, "handle-message", G_CALLBACK(on_connector_call), NULL);
+	g_signal_connect(connector1, "handle-unregistered", G_CALLBACK(on_connector_call), NULL);
 	GError *error = NULL;
 	if (!g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(connector1), connection, "/org/unifiedpush/Connector", &error)) {
 		printf("UnifiedPush: cannot export the connector: %s\n", error->message);
@@ -320,8 +342,6 @@ void unifiedpush_export_connector(GDBusConnection *connection)
 
 static gboolean on_new_endpoint(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
 {
-	if (connector_defer(invocation))
-		return TRUE;
 	GVariant *parameters = g_dbus_method_invocation_get_parameters(invocation);
 	const char *token;
 	g_variant_get_child(parameters, 0, "s", &token);
@@ -345,8 +365,6 @@ static gboolean on_new_endpoint(Connector1 *connector, GDBusMethodInvocation *in
 
 static gboolean on_message(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
 {
-	if (connector_defer(invocation))
-		return TRUE;
 	GVariant *parameters = g_dbus_method_invocation_get_parameters(invocation);
 	const char *token;
 	g_variant_get_child(parameters, 0, "s", &token);
@@ -376,8 +394,6 @@ static gboolean on_message(Connector1 *connector, GDBusMethodInvocation *invocat
 
 static gboolean on_unregistered(Connector1 *connector, GDBusMethodInvocation *invocation, gpointer user_data)
 {
-	if (connector_defer(invocation))
-		return TRUE;
 	const char *token;
 	g_variant_get_child(g_dbus_method_invocation_get_parameters(invocation), 0, "&s", &token);
 

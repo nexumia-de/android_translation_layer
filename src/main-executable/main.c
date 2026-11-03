@@ -1450,6 +1450,9 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		J__Application__onCreate(env, application_object);
 		if ((*env)->ExceptionCheck(env))
 			(*env)->ExceptionDescribe(env);
+
+		// as on Android, a push message that started the app reaches it after Application.onCreate
+		unifiedpush_connector_drain();
 	}
 
 	if (d->apk_instrumentation_class) {
