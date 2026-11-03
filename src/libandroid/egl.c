@@ -168,7 +168,7 @@ EGLSurface bionic_eglCreatePbufferSurface(EGLDisplay display, EGLConfig config, 
 			size_t attrib_list_len = 0;
 			for (EGLint *attr = (EGLint *)attrib_list; *attr != EGL_NONE; attr++)
 				attrib_list_len++;
-			new_attrib_list = malloc(attrib_list_len);
+			new_attrib_list = malloc((attrib_list_len + 1) * sizeof(EGLint));
 			EGLint *new_attr_pos = new_attrib_list;
 			for (EGLint *attr = (EGLint *)attrib_list; *attr != EGL_NONE; attr += 2) {
 				if (*attr == EGL_WIDTH) {
@@ -185,6 +185,7 @@ EGLSurface bionic_eglCreatePbufferSurface(EGLDisplay display, EGLConfig config, 
 		}
 		struct wl_egl_window *egl_window = wl_egl_window_create(wayland_surface, width, height);
 		EGLSurface surface = eglCreateWindowSurface(display, config, (EGLNativeWindowType)egl_window, new_attrib_list);
+		free(new_attrib_list);
 		return surface;
 	}
 }
@@ -543,12 +544,10 @@ EGLSurface bionic_eglGetCurrentSurface(EGLint readdraw)
 	if (getenv("ATL_DIRECT_EGL"))
 		return eglGetCurrentSurface(readdraw);
 	EGLContext current_context = eglGetCurrentContext();
-	if (readdraw == EGL_READ)
-		return g_hash_table_lookup(read_surface_hashtable, current_context);
-	else if (readdraw == EGL_DRAW)
-		return g_hash_table_lookup(draw_surface_hashtable, current_context);
-
-	return NULL;
+	GHashTable *table = readdraw == EGL_READ ? read_surface_hashtable : draw_surface_hashtable;
+	EGLSurface surface = table ? g_hash_table_lookup(table, current_context) : NULL;
+	/* contexts current on a real surface (e.g. a pbuffer) never went through our tables */
+	return surface ? surface : eglGetCurrentSurface(readdraw);
 }
 
 void bionic_glBindFramebuffer(GLenum target, GLuint framebuffer)
