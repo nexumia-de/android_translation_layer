@@ -14,11 +14,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "permissions.h"
+#include "caller.h"
 
 #define BUS_NAME     "de.nexumia.atl.Installer"
-/* every app Flatpak may talk to this one; Installer only stores (make-app-flatpak) */
-#define PERMISSIONS_BUS_NAME "de.nexumia.atl.Permissions"
 #define OBJECT_PATH  "/de/nexumia/atl/Installer"
 #define APP_PREFIX   "de.nexumia.atl."
 #define IDLE_TIMEOUT 120
@@ -80,28 +78,15 @@ static char *installed_apk(const char *package)
 	return path;
 }
 
-/* the caller's Flatpak app id and the name the user knows it by; a caller outside a sandbox
+/* the name the user knows the caller by (method_call checked who it is); a caller outside a sandbox
  * could do all of this itself and gets a generic name */
 static char *caller_name(GDBusMethodInvocation *invocation)
 {
-	GDBusConnection *bus = g_dbus_method_invocation_get_connection(invocation);
-	GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
-	                                              "GetConnectionUnixProcessID",
-	                                              g_variant_new("(s)", g_dbus_method_invocation_get_sender(invocation)),
-	                                              G_VARIANT_TYPE("(u)"), G_DBUS_CALL_FLAGS_NONE, -1, NULL, NULL);
-	if (!reply)
-		return g_strdup("An app");
-	guint32 pid;
-	g_variant_get(reply, "(u)", &pid);
-	g_variant_unref(reply);
-
-	char *info_path = g_strdup_printf("/proc/%u/root/.flatpak-info", pid);
-	GKeyFile *info = g_key_file_new();
+	GKeyFile *info = NULL;
 	char *app_id = NULL;
-	if (g_key_file_load_from_file(info, info_path, G_KEY_FILE_NONE, NULL))
+	if (caller_identify(invocation, &info, NULL) && info)
 		app_id = g_key_file_get_string(info, "Application", "name", NULL);
-	g_key_file_free(info);
-	g_free(info_path);
+	g_clear_pointer(&info, g_key_file_free);
 	if (!app_id)
 		return g_strdup("An app");
 
@@ -112,6 +97,34 @@ static char *caller_name(GDBusMethodInvocation *invocation)
 	g_free(desktop_id);
 	g_free(app_id);
 	return name;
+}
+
+/* Only app stores: an app Flatpak whose sandbox may talk to this name, which make-app-flatpak grants
+ * only to APKs requesting REQUEST_INSTALL_PACKAGES (or the user by an override). The D-Bus proxy
+ * also lets an app reach this process through its unique name when it may talk to another name of
+ * it, so the check is here, not only in the proxy. Callers outside a sandbox could do all of this
+ * themselves. */
+static gboolean caller_may_install(GDBusMethodInvocation *invocation)
+{
+	GKeyFile *info = NULL;
+	GError *err = NULL;
+	if (!caller_identify(invocation, &info, &err)) {
+		g_message("refused a caller: %s", err->message);
+		g_error_free(err);
+		return FALSE;
+	}
+	if (!info)
+		return TRUE;
+	char *app_id = g_key_file_get_string(info, "Application", "name", NULL);
+	char *policy = g_key_file_get_string(info, "Session Bus Policy", BUS_NAME, NULL);
+	gboolean ok = app_id && g_str_has_prefix(app_id, APP_PREFIX) && policy &&
+	              (!strcmp(policy, "talk") || !strcmp(policy, "own"));
+	if (!ok)
+		g_message("refused %s: no %s access", app_id ? app_id : "a Flatpak", BUS_NAME);
+	g_free(policy);
+	g_free(app_id);
+	g_key_file_free(info);
+	return ok;
 }
 
 static gboolean copy_fd_to_file(int fd, const char *path, GError **error)
@@ -366,7 +379,10 @@ static void method_call(GDBusConnection *connection, const char *sender, const c
                         const char *method_name, GVariant *params, GDBusMethodInvocation *invocation, gpointer user_data)
 {
 	hold();
-	if (!strcmp(method_name, "Install"))
+	if (!caller_may_install(invocation))
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+		                                           "only app stores (REQUEST_INSTALL_PACKAGES)");
+	else if (!strcmp(method_name, "Install"))
 		handle_install(invocation, params);
 	else if (!strcmp(method_name, "Uninstall"))
 		handle_uninstall(invocation, params);
@@ -392,7 +408,6 @@ static void bus_acquired(GDBusConnection *connection, const char *name, gpointer
 	g_dbus_connection_register_object(connection, OBJECT_PATH, node->interfaces[0], &vtable, NULL, NULL, NULL);
 	g_dbus_node_info_unref(node);
 	g_bytes_unref(xml);
-	permissions_register(connection, hold, release);
 }
 
 static void name_lost(GDBusConnection *connection, const char *name, gpointer user_data)
@@ -403,9 +418,7 @@ static void name_lost(GDBusConnection *connection, const char *name, gpointer us
 int main(int argc, char **argv)
 {
 	loop = g_main_loop_new(NULL, FALSE);
-	/* one process for both names, whichever D-Bus activated it */
 	g_bus_own_name(G_BUS_TYPE_SESSION, BUS_NAME, G_BUS_NAME_OWNER_FLAGS_NONE, bus_acquired, NULL, name_lost, NULL, NULL);
-	g_bus_own_name(G_BUS_TYPE_SESSION, PERMISSIONS_BUS_NAME, G_BUS_NAME_OWNER_FLAGS_NONE, NULL, NULL, name_lost, NULL, NULL);
 	idle_source = g_timeout_add_seconds(IDLE_TIMEOUT, idle_quit, NULL);
 	g_main_loop_run(loop);
 	return 0;

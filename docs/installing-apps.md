@@ -236,20 +236,29 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   log, phone state, background location, microphone, Bluetooth, body
   sensors, activity recognition, and ATL's own `atl.google-services`):
   every app may call `de.nexumia.atl.Permissions` (`Check`, `Request`;
-  `src/installer-service/de.nexumia.atl.Permissions.xml`), a second
-  name of the installer service. It asks with the desktop's access
+  `src/installer-service/de.nexumia.atl.Permissions.xml`), served by its
+  own process, `atl-permission-service`: the D-Bus proxy lets an app
+  reach every name of a connection through its unique name, so sharing
+  the installer service's connection would open it to all apps. The
+  installer service also checks each caller itself: only callers whose
+  sandbox may talk to `de.nexumia.atl.Installer` (app stores), or callers
+  outside a sandbox. Both identify the caller through the broker's
+  process fd (`GetConnectionCredentials`), so a reused pid cannot pose as
+  it. It asks with the desktop's access
   dialog (Phosh's shell, else GTK's;
   [contacts](screenshots/permission-dialog-2026-11-03.png),
   [Google services](screenshots/google-services-dialog-2026-11-03.png)),
   stores the answer in the permission store table `de.nexumia.atl`,
   answers "no" without asking for what the APK does not request
   (`make-app-flatpak` writes the list to `/app/share/atl/permissions`)
-  and stops asking after the second "no". Inside the app,
+  and stops asking after the second "no"; requests for the same
+  question while its dialog is open wait for that one answer. Inside the app,
   `checkSelfPermission` and `requestPermissions` use it
   (`android.atl.ATLPermissions`); `AudioRecord` records only after a
-  "yes". A `RECORD_AUDIO` answer also rewrites the user's PipeWire
-  rules (`flatpak/microphone/`), which apply from the next start of
-  WirePlumber and pipewire-pulse. Headless check:
+  "yes" (per `AudioRecord` object; without it the object is
+  `STATE_UNINITIALIZED`, as on Android). A `RECORD_AUDIO` "yes" also
+  gives the app the normal pulse socket instead of the one without
+  recording (Flatpak user override, from the app's next start). Headless check:
   `flatpak/permissions-test.sh`.
 - The package name is checked against Android's rules and the label is
   kept to one line, since both come from the APK and end up in the

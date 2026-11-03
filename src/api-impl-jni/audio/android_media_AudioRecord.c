@@ -6,9 +6,9 @@
 
 #include "../generated_headers/android_media_AudioRecord.h"
 
-/* the user's RECORD_AUDIO answer (in the app's own Flatpak) or the developer variable, asked again for
- * every AudioRecord; the PipeWire rules (flatpak/microphone/) enforce it below the app too */
-static gboolean microphone_allowed;
+/* Recording needs the user's RECORD_AUDIO answer (in the app's own Flatpak) or the developer variable,
+ * asked for every AudioRecord; without it the object has no device (pcm_handle 0) and records nothing.
+ * The pulse server without recording (flatpak/microphone/) enforces it below the app too. */
 
 JNIEXPORT jlong JNICALL Java_android_media_AudioRecord_native_1constructor(JNIEnv *env, jobject this, jint streamType, jint rate, jint channel_config, jint audioFormat, jint buffer_size)
 {
@@ -18,14 +18,15 @@ JNIEXPORT jlong JNICALL Java_android_media_AudioRecord_native_1constructor(JNIEn
 	unsigned int channels_out;
 	int ret;
 
-	microphone_allowed = !!getenv("ATL_UGLY_ENABLE_MICROPHONE") || atl_permission_granted("android.permission.RECORD_AUDIO");
-	if (!microphone_allowed)
+	if (!getenv("ATL_UGLY_ENABLE_MICROPHONE") && !atl_permission_granted("android.permission.RECORD_AUDIO"))
 		return 0;
 
 	/* Open the PCM device in playback mode */
 	ret = snd_pcm_open(&pcm_handle, PCM_DEVICE, SND_PCM_STREAM_CAPTURE, 0);
-	if (ret < 0)
+	if (ret < 0) {
 		printf("ERROR: Can't open \"%s\" PCM device. %s\n", PCM_DEVICE, snd_strerror(ret));
+		return 0;
+	}
 
 	snd_pcm_hw_params_alloca(&params);
 	helper_hw_params_init(pcm_handle, params, rate, channel_config, SND_PCM_FORMAT_S16_LE, &channels);
@@ -91,30 +92,27 @@ JNIEXPORT jint JNICALL Java_android_media_AudioRecord_getMinBufferSize(JNIEnv *e
 
 JNIEXPORT void JNICALL Java_android_media_AudioRecord_native_1record(JNIEnv *env, jobject this, jlong pcm_handle_ptr)
 {
-	if (!microphone_allowed)
-		return;
-
 	snd_pcm_t *pcm_handle = _PTR(pcm_handle_ptr);
+	if (!pcm_handle) // not allowed to record
+		return;
 
 	snd_pcm_start(pcm_handle);
 }
 
 JNIEXPORT void JNICALL Java_android_media_AudioRecord_native_1stop(JNIEnv *env, jobject this, jlong pcm_handle_ptr)
 {
-	if (!microphone_allowed)
-		return;
-
 	snd_pcm_t *pcm_handle = _PTR(pcm_handle_ptr);
+	if (!pcm_handle) // not allowed to record
+		return;
 
 	snd_pcm_drain(pcm_handle);
 }
 
 JNIEXPORT jint JNICALL Java_android_media_AudioRecord_native_1read(JNIEnv *env, jobject this, jlong pcm_handle_ptr, jshortArray audio_data, jint offset_in_shorts, jint frames_to_read)
 {
-	if (!microphone_allowed)
-		return 0;
-
 	snd_pcm_t *pcm_handle = _PTR(pcm_handle_ptr);
+	if (!pcm_handle) // not allowed to record
+		return 0;
 	snd_pcm_sframes_t frames_read;
 
 	jshort *buffer = (*env)->GetShortArrayElements(env, audio_data, NULL);
@@ -137,9 +135,8 @@ JNIEXPORT jint JNICALL Java_android_media_AudioRecord_native_1read(JNIEnv *env, 
 
 JNIEXPORT void JNICALL Java_android_media_AudioRecord_native_1release(JNIEnv *env, jobject this, jlong pcm_handle_ptr)
 {
-	if (!microphone_allowed)
-		return;
-
 	snd_pcm_t *pcm_handle = _PTR(pcm_handle_ptr);
+	if (!pcm_handle) // not allowed to record
+		return;
 	snd_pcm_close(pcm_handle);
 }

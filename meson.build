@@ -103,11 +103,16 @@ install_data('res/desktop/com.gitlab.android_translation_layer.install.desktop',
 installer_service_resources = gnome.compile_resources('installer-service-resources',
                                                      'src/installer-service/installer-service.gresource.xml',
                                                      source_dir: 'src/installer-service')
-executable('atl-installer-service', ['src/installer-service/atl-installer-service.c', 'src/installer-service/permissions.c', installer_service_resources],
+executable('atl-installer-service', ['src/installer-service/atl-installer-service.c', 'src/installer-service/caller.c', installer_service_resources],
            dependencies: [dependency('gio-unix-2.0')],
            install: true,
            install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
            c_args: ['-DINSTALL_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"'])
+# runtime permissions for every app Flatpak: its own process, see permissions.c
+executable('atl-permission-service', ['src/installer-service/permissions.c', 'src/installer-service/caller.c', installer_service_resources],
+           dependencies: [dependency('gio-unix-2.0')],
+           install: true,
+           install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'))
 configure_file(input: 'src/installer-service/de.nexumia.atl.Installer.service.in',
                output: 'de.nexumia.atl.Installer.service',
                configuration: {'libexecdir': join_paths(get_option('prefix'), get_option('libexecdir'))},
