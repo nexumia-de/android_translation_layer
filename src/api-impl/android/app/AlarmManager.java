@@ -54,7 +54,6 @@ public class AlarmManager {
 	private static final Object lock = new Object();
 	private static final List<Alarm> alarms = new ArrayList<>();
 	private static Thread scheduler;
-	private static PowerManager.WakeLock deliveryWakeLock;
 	private static long publishedWakeup = -1;
 
 	private static boolean elapsed(int type) {
@@ -139,7 +138,8 @@ public class AlarmManager {
 	}
 
 	private static void deliver(final Alarm a) {
-		final PowerManager.WakeLock wakeLock = deliveryWakeLock();
+		/* one lock per delivery, so each keeps its own 10 s cap */
+		final PowerManager.WakeLock wakeLock = new PowerManager().newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AlarmManager delivery");
 		wakeLock.acquire(DELIVERY_WAKE_LOCK_MS);
 		Runnable run = new Runnable() {
 			@Override
@@ -160,14 +160,6 @@ public class AlarmManager {
 		Handler handler = a.handler != null ? a.handler : new Handler(Looper.getMainLooper());
 		if (!handler.post(run))
 			wakeLock.release();
-	}
-
-	private static PowerManager.WakeLock deliveryWakeLock() {
-		synchronized (lock) {
-			if (deliveryWakeLock == null)
-				deliveryWakeLock = new PowerManager().newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AlarmManager delivery");
-			return deliveryWakeLock;
-		}
 	}
 
 	/* --- next wake-up for the system's wake broker --- */
@@ -195,6 +187,8 @@ public class AlarmManager {
 			long wall = elapsed(a.type) ? System.currentTimeMillis() + (a.trigger - SystemClock.elapsedRealtime()) : a.trigger;
 			next = Math.min(next, wall);
 		}
+		if (next != Long.MAX_VALUE)
+			next /= 1000; /* seconds: ELAPSED_* converted to wall time jitters by milliseconds */
 		if (next == publishedWakeup)
 			return;
 		publishedWakeup = next;
@@ -208,7 +202,7 @@ public class AlarmManager {
 				file.getParentFile().mkdirs();
 				File tmp = new File(file.getPath() + ".tmp");
 				try (FileOutputStream out = new FileOutputStream(tmp)) {
-					out.write((next / 1000 + "\n").getBytes());
+					out.write((next + "\n").getBytes());
 				}
 				tmp.renameTo(file);
 			}
