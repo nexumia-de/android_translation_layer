@@ -252,10 +252,12 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   `de.nexumia.atl`; the microphone also switches the pulse socket),
   **More Permissions** (`gnome-control-center applications <id>`),
   **Clear Data** (asks, stops the app, removes `~/.var/app/<id>`) and
-  **Uninstall** (the existing page). Open: the launcher action **App
-  info**, which needs a host method the app can call (an
-  `OpenAppInfo` on the permission service, after #75), and the
-  "Android apps" page that lists apps. Headless check:
+  **Uninstall** (the existing page). The launcher's **App Info** action
+  (long press) reaches the app inside its sandbox (`DBusActivatable`,
+  `ActivateAction("app-info")`; a D-Bus activated start for it does not
+  start the app), which asks the permission service's `OpenAppInfo`
+  to open its own App info on the host. Open: the "Android apps" page
+  that lists apps. Headless check:
   `flatpak/app-info-test.sh`.
 - Runtime permissions without a portal (contacts, calendar, SMS, call
   log, phone state, background location, microphone, Bluetooth, body

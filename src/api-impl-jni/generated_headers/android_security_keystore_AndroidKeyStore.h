@@ -23,6 +23,14 @@ JNIEXPORT void JNICALL Java_android_security_keystore_AndroidKeyStore_nativeSetK
 JNIEXPORT jbyteArray JNICALL Java_android_security_keystore_AndroidKeyStore_nativeGetKey
   (JNIEnv *, jclass, jstring, jstring);
 
+/*
+ * Class:     android_security_keystore_AndroidKeyStore
+ * Method:    nativeDeleteKey
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_android_security_keystore_AndroidKeyStore_nativeDeleteKey
+  (JNIEnv *, jclass, jstring, jstring);
+
 #ifdef __cplusplus
 }
 #endif

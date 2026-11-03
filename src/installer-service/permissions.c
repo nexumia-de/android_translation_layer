@@ -379,11 +379,73 @@ static void handle(GDBusMethodInvocation *invocation, const char *method, GVaria
 	g_free(handle_path);
 }
 
+static const char *atl_binary(void)
+{
+	const char *path = g_getenv("ATL_BINARY");
+	return path ? path : INSTALL_BINDIR "/android-translation-layer";
+}
+
+/* App info windows this service started, by app id; a sandboxed app must not be able to open more
+ * than one, or open them as fast as it can call */
+static GHashTable *app_info_open;
+static GHashTable *app_info_last_call;
+#define APP_INFO_MIN_INTERVAL (2 * G_USEC_PER_SEC)
+
+static void app_info_closed(GPid pid, gint status, gpointer user_data)
+{
+	g_hash_table_remove(app_info_open, user_data);
+	g_spawn_close_pid(pid);
+	release();
+}
+
+/* the launcher's "App info" action: the caller's own App info, on the host (--app-info) */
+static void handle_open_app_info(GDBusMethodInvocation *invocation)
+{
+	char *app_id = caller_app_id(invocation);
+	if (!app_id) {
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+		                                           "only apps in their own ATL Flatpak");
+		return;
+	}
+	if (!app_info_open) {
+		app_info_open = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+		app_info_last_call = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+	}
+	gint64 now = g_get_monotonic_time();
+	gint64 last = GPOINTER_TO_SIZE(g_hash_table_lookup(app_info_last_call, app_id));
+	gboolean too_soon = last && now - last < APP_INFO_MIN_INTERVAL;
+	g_hash_table_insert(app_info_last_call, g_strdup(app_id), GSIZE_TO_POINTER((gsize)now));
+	if (too_soon || g_hash_table_contains(app_info_open, app_id)) {
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.LimitsExceeded",
+		                                           "App info is already open or was just opened");
+		g_free(app_id);
+		return;
+	}
+	const char *argv[] = {atl_binary(), "--app-info", app_id + strlen(APP_PREFIX), NULL};
+	GError *err = NULL;
+	GPid pid;
+	if (!g_spawn_async(NULL, (char **)argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD, NULL, NULL, &pid, &err)) {
+		g_dbus_method_invocation_return_gerror(invocation, err);
+		g_error_free(err);
+		g_free(app_id);
+		return;
+	}
+	char *key = g_strdup(app_id);
+	g_hash_table_add(app_info_open, key);
+	hold(); // until the window closes
+	g_child_watch_add(pid, app_info_closed, key);
+	g_dbus_method_invocation_return_value(invocation, NULL);
+	g_free(app_id);
+}
+
 static void method_call(GDBusConnection *connection, const char *sender, const char *object_path, const char *interface_name,
                         const char *method_name, GVariant *params, GDBusMethodInvocation *invocation, gpointer user_data)
 {
 	hold();
-	handle(invocation, method_name, params);
+	if (!strcmp(method_name, "OpenAppInfo"))
+		handle_open_app_info(invocation);
+	else
+		handle(invocation, method_name, params);
 	release();
 }
 

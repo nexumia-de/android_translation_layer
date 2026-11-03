@@ -12,6 +12,7 @@
 
   Version 1: Check and Request.
   Version 3: Review (version 2 is OpenAppInfo, #88).
+  Version 2: OpenAppInfo.
 -->
 <node>
   <interface name="de.nexumia.atl.Permissions">
@@ -41,5 +42,7 @@
     <method name="Review">
       <arg direction="out" name="answers" type="a{ss}"/>
     </method>
+    <!-- Opens the calling app's App info on the host (the launcher's "App info" action). -->
+    <method name="OpenAppInfo"/>
   </interface>
 </node>

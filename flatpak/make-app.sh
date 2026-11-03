@@ -157,6 +157,11 @@ $icon_line
 $mime_line
 X-Purism-FormFactor=Workstation;Mobile;
 StartupNotify=true
+Actions=app-info;
+
+[Desktop Action app-info]
+Name=App Info
+Exec=atl-app --dbus-activated
 EOF
 
 cat > "$build/metadata" <<EOF

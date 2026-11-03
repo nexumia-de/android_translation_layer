@@ -310,6 +310,24 @@ EGLSurface bionic_eglCreateWindowSurface(EGLDisplay display, EGLConfig config, s
 	return surface;
 }
 
+/* which ATL surface each context draws to and reads from (offscreen path) */
+static GHashTable *draw_surface_hashtable = NULL;
+static GHashTable *read_surface_hashtable = NULL;
+
+static gboolean surface_equal(gpointer key, gpointer value, gpointer surface)
+{
+	return value == surface;
+}
+
+/* a context made current on another surface no longer belongs to its ATL surface */
+static void forget_context(EGLContext context)
+{
+	if (draw_surface_hashtable)
+		g_hash_table_remove(draw_surface_hashtable, context);
+	if (read_surface_hashtable)
+		g_hash_table_remove(read_surface_hashtable, context);
+}
+
 EGLBoolean bionic_eglDestroySurface(EGLDisplay display, EGLSurface surface)
 {
 	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, surface);
@@ -336,14 +354,16 @@ EGLBoolean bionic_eglDestroySurface(EGLDisplay display, EGLSurface surface)
 	}
 	if (ret) {
 		g_hash_table_remove(egl_surface_hashtable, surface);
+		if (draw_surface_hashtable)
+			g_hash_table_foreach_remove(draw_surface_hashtable, surface_equal, surface);
+		if (read_surface_hashtable)
+			g_hash_table_foreach_remove(read_surface_hashtable, surface_equal, surface);
 		ANativeWindow_release(native_window);
 	}
 
 	return ret;
 }
 
-static GHashTable *draw_surface_hashtable = NULL;
-static GHashTable *read_surface_hashtable = NULL;
 
 /*
  * (Re)creates the buffer's texture at the given size. The SurfaceView can be
@@ -412,7 +432,10 @@ EGLBoolean bionic_eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface
 		return eglMakeCurrent(display, draw, read, context);
 	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, draw);
 	if (!native_window) {
-		return eglMakeCurrent(display, draw, read, context);
+		EGLBoolean ret = eglMakeCurrent(display, draw, read, context);
+		if (ret)
+			forget_context(context);
+		return ret;
 	}
 	if (!draw_surface_hashtable)
 		draw_surface_hashtable = g_hash_table_new(NULL, NULL);
