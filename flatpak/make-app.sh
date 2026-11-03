@@ -16,6 +16,7 @@
 #               (x-scheme-handler/<scheme> from the APK's intent filters)
 #   -P PERMS    Android permissions the APK requests, ';'-separated;
 #               mapped to Flatpak permissions (phase 4 table)
+#   -V VERSION  the APK's versionName, shown in App info (--app-info)
 #   -N yes|no   internet: the user's answer for an app with android.permission.INTERNET,
 #               written as a user override (flatpak override --user); without -N an
 #               earlier answer stays, and without any answer the app has no network
@@ -31,11 +32,11 @@ set -eu
 
 base=de.nexumia.atl.BaseApp
 repo=$HOME/.local/share/android_translation_layer/flatpak-repo
-pkg= name= icon= atl_args= finish= mime_types= permissions= network=
+version= pkg= name= icon= atl_args= finish= mime_types= permissions= network=
 
 usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit "${1:-0}"; }
 
-while getopts "p:n:i:b:a:m:P:N:f:r:h" opt; do
+while getopts "p:n:i:b:a:m:P:N:V:f:r:h" opt; do
 	case $opt in
 	p) pkg=$OPTARG ;;
 	n) name=$OPTARG ;;
@@ -45,6 +46,7 @@ while getopts "p:n:i:b:a:m:P:N:f:r:h" opt; do
 	m) mime_types=$OPTARG ;;
 	P) permissions=$OPTARG ;;
 	N) network=$OPTARG ;;
+	V) version=$OPTARG ;;
 	f) finish="$finish $OPTARG" ;;
 	r) repo=$OPTARG ;;
 	h) usage 0 ;;
@@ -136,6 +138,9 @@ cat > "$build/files/share/dbus-1/services/$id.service" <<EOF
 Name=$id
 Exec=/app/bin/atl-app --dbus-activated
 EOF
+
+# the APK's version for App info (--app-info); the <uses-permission> list comes with #75
+printf '%s\n' "$version" | tr -d '\000-\011\013-\037' | head -n 1 > "$build/files/share/atl/version"
 
 mkdir -p "$build/files/share/applications"
 cat > "$build/files/share/applications/$id.desktop" <<EOF

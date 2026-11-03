@@ -13,6 +13,7 @@
 #include "../api-impl-jni/content/android_content_Context.h"
 
 #include "actions.h"
+#include "app_info.h"
 #include "back_button.h"
 #include "navigation.h"
 #include "libc_bio_path_overrides.h"
@@ -330,6 +331,7 @@ struct jni_callback_data {
 	gboolean install_flatpak;
 	char *installer_name;
 	char *uninstall_flatpak;
+	char *app_info;
 	char *network;
 	char *prgname;
 	char **extra_jvm_options;
@@ -662,6 +664,13 @@ static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject ap
 	if (permissions && *permissions) {
 		g_ptr_array_add(argv, g_strdup("-P"));
 		g_ptr_array_add(argv, g_strdup(permissions));
+	}
+	char *version = jstring_dup(env, J__Application__get_version_name(env, application_object));
+	if (version && *version) {
+		g_ptr_array_add(argv, g_strdup("-V"));
+		g_ptr_array_add(argv, version);
+	} else {
+		g_free(version);
 	}
 	if (d->network) {
 		g_ptr_array_add(argv, g_strdup("-N"));
@@ -1970,6 +1979,10 @@ static void activate(GtkApplication *app, struct jni_callback_data *d)
 		ask_uninstall_flatpak(app, d);
 		return;
 	}
+	if (d->app_info) {
+		app_info_show(app, d->app_info, d->prgname);
+		return;
+	}
 	if (app_starting && !window) // D-Bus activation's own request, which started us
 		return;
 	if (window) { // this is not the first launch, but a DBus activate request to the running app
@@ -2012,6 +2025,7 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "network",           0 , 0, G_OPTION_ARG_STRING,       &d->network,                   "--install-flatpak: allow internet (yes) or not (no), kept for updates; unset keeps the answer",  "yes|no"        },
 		{ "installer-name",    0 , 0, G_OPTION_ARG_STRING,       &d->installer_name,            "the app store that asks to install or uninstall (shown on the page)",                          "NAME"          },
 		{ "uninstall-flatpak", 0 , 0, G_OPTION_ARG_STRING,       &d->uninstall_flatpak,         "ask, then remove the Flatpak of an app installed with --install-flatpak and its data",         "PACKAGE"       },
+		{ "app-info",          0 , 0, G_OPTION_ARG_STRING,       &d->app_info,                  "show App info of an app installed with --install-flatpak: permissions, data, uninstall",        "PACKAGE"       },
 		{ "uninstall",         0 , 0, G_OPTION_ARG_NONE,         &d->uninstall,                 "remove an apk installed with --install, its data and its launcher (asks first)",                NULL            },
 		{ "dbus-activated",    0 , G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &d->dbus_activated, "started through the launcher's D-Bus service file",                                          NULL            },
 		{ "extra-jvm-option", 'X', 0, G_OPTION_ARG_STRING_ARRAY, &d->extra_jvm_options,         "pass an additional option directly to art (e.g -X \"-verbose:jni\")",                          "\"OPTION\""    },

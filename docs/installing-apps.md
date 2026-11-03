@@ -243,6 +243,20 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   resets the app's overrides. Apps without `INTERNET` are never asked
   and get `--unshare=network`, also when an update drops `INTERNET`.
   Everything else waits for portals and the broker (phases 3 and 4).
+- App info (`android-translation-layer --app-info <package>`,
+  [screenshot](screenshots/app-info-2026-11-04.png)): a window on the
+  host for an app installed as its own Flatpak: name, package and
+  version (`make-app-flatpak -V` writes it), the Internet switch (the
+  Flatpak override; if the app runs, a banner offers a restart), the
+  answers of the permissions without a portal (permission store table
+  `de.nexumia.atl`; the microphone also switches the pulse socket),
+  **More Permissions** (`gnome-control-center applications <id>`),
+  **Clear Data** (asks, stops the app, removes `~/.var/app/<id>`) and
+  **Uninstall** (the existing page). Open: the launcher action **App
+  info**, which needs a host method the app can call (an
+  `OpenAppInfo` on the permission service, after #75), and the
+  "Android apps" page that lists apps. Headless check:
+  `flatpak/app-info-test.sh`.
 - Runtime permissions without a portal (contacts, calendar, SMS, call
   log, phone state, background location, microphone, Bluetooth, body
   sensors, activity recognition, and ATL's own `atl.google-services`):
