@@ -138,12 +138,23 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 		return window.findViewById(id);
 	}
 
+	private boolean created;
+	private boolean showing;
+
 	public void show() {
 		System.out.println("showing the Dialog " + this);
 		Runnable action = new Runnable() {
 			@Override
 			public void run() {
-				onCreate(null);
+				// like Android: showing a shown (or hidden) dialog only makes it visible again, onCreate runs once
+				if (showing) {
+					nativeShow(nativePtr);
+					return;
+				}
+				if (!created) {
+					created = true;
+					onCreate(null);
+				}
 				onStart();
 				// Read the size of the main window. Floating dialogs should be smaller as specified in the windowMinWidth* attributes.
 				// Non-floating are typically constructed with MATCH_PARENT layout params and thus get the exact size of the main window.
@@ -173,6 +184,7 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 				getWindow().getDecorView().internalSetDefaultMeasureSpec(widthMeasureSpec, heightMeasureSpec);
 
 				nativeShow(nativePtr);
+				showing = true;
 				if (onShowListener != null)
 					onShowListener.onShow(Dialog.this);
 			}
@@ -198,8 +210,12 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 		new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
 			@Override
 			public void run() {
+				// like Android: dismissing a dialog that is not showing does nothing
+				if (!showing)
+					return;
 				nativeClose(nativePtr);
 				onStop();
+				showing = false;
 				if (onDismissListener != null)
 					onDismissListener.onDismiss(Dialog.this);
 			}
