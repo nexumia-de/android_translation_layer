@@ -57,6 +57,28 @@ native Linux apps share the one distributor of the host:
   every app) and exports `Connector1`; `NewEndpoint`, `Message` and
   `Unregistered` become the connector broadcasts. The launcher's D-Bus
   service file lets the distributor start an app that is not running.
+  ATL owns the name and exports `Connector1` before it registers, so the
+  distributor's immediate `NewEndpoint` is not lost.
+- `ATL_UNIFIEDPUSH_DISTRIBUTOR` picks a distributor name when several
+  are installed.
+
+Tested headless on 2026-11-03 with a test APK that sends the same
+broadcasts as connector 3, a small D-Bus distributor and push server
+(scratch script of the push agent): distributor found, `Register`,
+endpoint, an HTTP push arrives as `MESSAGE` with its id, `UNREGISTER`
+gives `UNREGISTERED`. FluffyChat itself does not start in ATL yet, so
+the end-to-end test with a Matrix server is still open.
+
+## Cloud Messaging without consent
+
+With `ATL_GMS_STUB` an app's c2dm `REGISTER` goes over D-Bus to an
+external `com.google.android.gms` (upstream's GCM service, which talks
+to Google). ATL now answers it at once with `REGISTRATION` and
+`error=SERVICE_NOT_AVAILABLE`, as Google Play services does when it
+cannot reach Google, when the app lacks `atl.google-services` or no such
+service is on the session bus. Firebase then retries with backoff and the
+app carries on without push. Without `ATL_GMS_STUB` the client libraries
+already stop before that (`MISSING_INSTANCEID_SERVICE`).
 
 ## Linux distributors
 
