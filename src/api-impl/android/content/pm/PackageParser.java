@@ -3466,6 +3466,13 @@ public class PackageParser {
 			className = null;
 		}
 
+		/* for components ATL declares itself, without a manifest */
+		public Component(Package _owner, String _className) {
+			owner = _owner;
+			intents = new ArrayList<II>();
+			className = _className;
+		}
+
 		public Component(final ParsePackageItemArgs args, final PackageItemInfo outInfo) {
 			owner = args.owner;
 			intents = new ArrayList<II>(0);
@@ -3786,6 +3793,18 @@ public class PackageParser {
 			super(args, _info);
 			info = _info;
 			info.applicationInfo = args.owner.applicationInfo;
+		}
+
+		/* a service ATL declares itself, reached through the given intent action */
+		public Service(Package _owner, String _className, String action) {
+			super(_owner, _className);
+			info = new ServiceInfo();
+			info.name = _className;
+			info.packageName = _owner.packageName;
+			info.applicationInfo = _owner.applicationInfo;
+			ServiceIntentInfo intent = new ServiceIntentInfo(this);
+			intent.addAction(action);
+			intents.add(intent);
 		}
 
 		public void setPackageName(String packageName) {

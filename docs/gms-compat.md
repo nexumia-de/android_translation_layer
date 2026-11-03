@@ -140,6 +140,36 @@ seen (Duolingo's welcome screen is the same in both modes). Every new
 service in `gstub.jar` must keep this: answer or refuse, never leave a
 call without an answer.
 
+# Fused location
+
+Branch `claude/gms-location-2` (2026-11-03): `gstub.jar` declares
+`GoogleLocationManagerService`; its broker hands out
+`IGoogleLocationManagerService` and refuses every other service id at
+once. Fixes come from ATL's `LocationManager` (location portal), nothing
+leaves the phone. `ATL_GMS_DEBUG=1` logs each delivered fix.
+
+Two ATL gaps showed up on the way, both fixed in `api-impl`:
+
+- The client puts an `android.os.WorkSource` into its
+  `LocationRequest`; ATL's had no `Parcelable`.
+- Newer clients (DB Navigator 26.20) declare
+  `IFusedLocationProviderCallback.onFusedLocationProviderResult` with
+  a second argument (`ApiMetadata`) and read it as "absent" from the
+  end of the parcel, which Android's `Parcel` answers with 0. ATL's
+  threw `ParcelFormatException`; it now answers 0 and `null` like
+  Android. microG sends no `ApiMetadata` either.
+
+Headless with a fake location portal (Berlin): DB Navigator (stub on
+by default) gets fused fixes, "Stops nearby" then shows its own
+"System error / Internal error" page, not a location error (journey
+search headless also stalled before, see
+[app audit](app-audit.md#db-navigator)); without the stub it waits for
+a location for ever. Its bottom navigation does not react to headless
+taps (reached through the From field instead). Post & DHL headless stays
+on its onboarding overlay and made no location request; WhatsApp needs
+a registered account. Phone test under "Needs owner" in
+[apps.md](apps.md).
+
 # Plan: fused location and Maps
 
 All four apps reach fused location the same way: bind
