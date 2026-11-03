@@ -2210,7 +2210,17 @@ public class View implements Drawable.Callback {
 		return view;
 	}
 
-	public boolean isShown() { return true; }
+	/* visible itself and all its ancestors, as on Android */
+	public boolean isShown() {
+		View view = this;
+		while (true) {
+			if (view.visibility != VISIBLE)
+				return false;
+			if (!(view.parent instanceof View))
+				return true;
+			view = (View)view.parent;
+		}
+	}
 
 	public int getWindowVisibility() { return VISIBLE; }
 
