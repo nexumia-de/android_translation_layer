@@ -66,6 +66,8 @@ public class Window {
 		params.flags = (params.flags & ~mask) | (flags & mask);
 		if ((mask & WindowManager.LayoutParams.FLAG_DIM_BEHIND) != 0)
 			update_dim();
+		if ((mask & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0)
+			decorView.setKeepScreenOn((params.flags & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0);
 	}
 	public void clearFlags(int flags) {
 		setFlags(0, flags);
@@ -135,6 +137,7 @@ public class Window {
 		this.params = params;
 		setLayout(params.width, params.height);
 		update_dim();
+		decorView.setKeepScreenOn((params.flags & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0);
 	}
 
 	public void takeSurface(SurfaceHolder.Callback2 callback) {}
@@ -212,8 +215,13 @@ public class Window {
 
 	public void setDecorFitsSystemWindows(boolean fits) {}
 
+	private InsetsController insetsController;
+
+	/* one per window, so appearance set through it can be read back */
 	public WindowInsetsController getInsetsController() {
-		return new InsetsController();
+		if (insetsController == null)
+			insetsController = new InsetsController();
+		return insetsController;
 	}
 
 	public void setStatusBarContrastEnforced(boolean enforced) {}
