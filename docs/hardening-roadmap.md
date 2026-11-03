@@ -430,33 +430,23 @@ features and usage pages):
 socket stays (without it apps are silent), and recording is blocked
 below the app:
 
-- First layer, until PipeWire does it: ATL's capture code refuses
-  without a "yes" (native code in the app could still bypass it).
-- Second layer: WirePlumber 0.5.18 (on the phone, with PipeWire 1.6.9)
-  reads `access.permission-managers` and `access.rules` from its
-  configuration (`client/find-config-access.lua`, which runs before the
-  Flatpak rule that gives every Flatpak client `rx` on all objects).
-  `pipewire-pulse`, which a Flatpak's pulseaudio socket talks to, tags
-  each sandboxed client with `pipewire.access.portal.app_id` from its
-  `.flatpak-info`. A configuration in the user's own
-  `~/.config/wireplumber/wireplumber.conf.d/` (no root) therefore
-  can: match `pipewire.access.portal.app_id` `~de.nexumia.atl.*` →
-  a permission manager with `rx` by default and no permissions on nodes
-  with `media.class` `Audio/Source*` (and on sink monitors, which would
-  record other apps' sound); apps answered "yes" match a later rule with
-  the normal Flatpak permissions. The installer service writes that file
-  from the permission store answers.
-- Open, to verify headless with an own PipeWire and WirePlumber: the
-  permission-manager rule syntax, monitor ports, and how a change
-  applies. WirePlumber reads the file only at start, so a change needs
-  `systemctl --user restart wireplumber` (a short audio drop) or a small
-  Lua script next to the configuration that WirePlumber loads from the
-  user's data directory; the script is preferred if WirePlumber's Lua
-  can read the answers without a restart.
-- Packaging: the configuration and any script go into the user's
-  directories by the installer service; a system file in aports is
-  needed only if the user directory turns out not to be read on the
-  phone (postmarketOS starts WirePlumber as a user service, which does).
+- Apps get only the socket of a second pipewire-pulse,
+  `atl-pulse-norecord`, a user service that refuses every record stream
+  (microphone and sink monitors) of every client. An app answered "yes"
+  for `RECORD_AUDIO` gets the normal socket as a Flatpak user override,
+  from its next start. ATL's own `AudioRecord` check stays as the first
+  layer.
+- Rejected after a security review (2026-11-04): WirePlumber and
+  pipewire-pulse rules matching `pipewire.access.portal.app_id`. Pulse
+  clients can overwrite their properties (`PULSE_PROP`,
+  `UPDATE_CLIENT_PROPLIST`), so a denied app could pose as an allowed
+  one. Native PipeWire with a WirePlumber rule would be sound
+  (`pipewire.*` keys come from the server), but ATL's ALSA default and
+  WebKit's GStreamer output use pulse; switching both is larger. Trade-off
+  of the chosen way: one more user service, and a change applies only at
+  the app's next start.
+- Packaging: `make-app-flatpak` installs the unit and the drop-in into the
+  user's own configuration; nothing needs root.
 
 **Facts behind it** (2026-11-03, on the phone):
 
@@ -482,7 +472,7 @@ below the app:
 | `ACCESS_FINE/COARSE_LOCATION` | location portal | portal dialog at first use | GNOME Settings, at once |
 | `ACCESS_BACKGROUND_LOCATION` | own answer; ATL stops updates while no window is shown otherwise | own dialog | App info |
 | `CAMERA` | camera portal (PipeWire remote with cameras only)[^portal-camera] | portal dialog | GNOME Settings, at once |
-| `RECORD_AUDIO` | first ATL's capture check, then PipeWire: WirePlumber gives ATL app clients no access to capture nodes unless the answer is yes (below); playback unaffected | own dialog | App info; next start of the app's audio client |
+| `RECORD_AUDIO` | ATL's capture check, then the socket: only a pulse server without recording unless the answer is yes (below); playback unaffected | own dialog | App info; next start |
 | Audio playback (no permission) | audio socket by default | - | - |
 | `POST_NOTIFICATIONS` (API 33+) | notification portal | not asked: allowed, as the portal does | GNOME Settings (switch per app) |
 | `READ_CONTACTS`, `READ_CALENDAR`, `READ/SEND_SMS`, `READ_CALL_LOG`, `READ_PHONE_STATE` | not implemented by ATL: data stays empty | own dialog, so the app sees a real answer | App info |
