@@ -1885,6 +1885,11 @@ public class PackageManager {
 	public int checkPermission(String permName, String pkgName) {
 		if (permName != null && permName.endsWith(".DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"))
 			return PERMISSION_GRANTED;
+		/* in the app's own Flatpak: the host's installer service, which asked the user */
+		if (android.atl.ATLPermissions.BACKGROUND_LOCATION.equals(permName) && android.atl.ATLPaths.in_flatpak)
+			return android.atl.ATLPermissions.backgroundLocationReported() ? PERMISSION_GRANTED : PERMISSION_DENIED;
+		if (android.atl.ATLPermissions.decidedByService(permName))
+			return android.atl.ATLPermissions.check(permName) ? PERMISSION_GRANTED : PERMISSION_DENIED;
 
 		switch (permName) {
 			// TODO: we shouldn't just automatically grant these once we have bubblewrap set up

@@ -95,6 +95,7 @@ srcs = [
 	'android/atl/ATLLoadedApp.java',
 	'android/atl/ATLLoadedAppManager.java',
 	'android/atl/ATLMediaContentProvider.java',
+	'android/atl/ATLPermissions.java',
 	'android/atl/ATLPaths.java',
 	'android/atl/ATLProvider.java',
 	'android/atl/ATLSigHelper.java',
