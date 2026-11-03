@@ -48,6 +48,12 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 		this.context = themeResId != 0 ? new ContextThemeWrapper(context, themeResId) : context;
 		context = this.context;
 		window = new Window(context, this);
+		// like Android: a dialog made with an activity context belongs to that activity
+		Context base = context;
+		while (base instanceof android.content.ContextWrapper && !(base instanceof Activity))
+			base = ((android.content.ContextWrapper)base).getBaseContext();
+		if (base instanceof Activity)
+			ownerActivity = (Activity)base;
 		nativePtr = nativeInit(window.getDecorView().widget);
 
 		window.set_native_window(nativePtr);
@@ -96,7 +102,19 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 		nativeSetTitle(nativePtr, context.getString(titleId));
 	}
 
-	public void setOwnerActivity(Activity activity) {}
+	private Activity ownerActivity;
+
+	public final void setOwnerActivity(Activity activity) {
+		ownerActivity = activity;
+	}
+
+	public final Activity getOwnerActivity() {
+		return ownerActivity;
+	}
+
+	protected void onStart() {}
+
+	protected void onStop() {}
 
 	private boolean cancelable = true;
 
@@ -120,12 +138,24 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 		return window.findViewById(id);
 	}
 
+	private boolean created;
+	private boolean showing;
+
 	public void show() {
 		System.out.println("showing the Dialog " + this);
 		Runnable action = new Runnable() {
 			@Override
 			public void run() {
-				onCreate(null);
+				// like Android: showing a shown (or hidden) dialog only makes it visible again, onCreate runs once
+				if (showing) {
+					nativeShow(nativePtr);
+					return;
+				}
+				if (!created) {
+					created = true;
+					onCreate(null);
+				}
+				onStart();
 				// Read the size of the main window. Floating dialogs should be smaller as specified in the windowMinWidth* attributes.
 				// Non-floating are typically constructed with MATCH_PARENT layout params and thus get the exact size of the main window.
 				// Most non-floating dialogs are technically dialogs, but are expected to behave more like full size activities.
@@ -154,6 +184,7 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 				getWindow().getDecorView().internalSetDefaultMeasureSpec(widthMeasureSpec, heightMeasureSpec);
 
 				nativeShow(nativePtr);
+				showing = true;
 				if (onShowListener != null)
 					onShowListener.onShow(Dialog.this);
 			}
@@ -179,7 +210,12 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 		new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
 			@Override
 			public void run() {
+				// like Android: dismissing a dialog that is not showing does nothing
+				if (!showing)
+					return;
 				nativeClose(nativePtr);
+				onStop();
+				showing = false;
 				if (onDismissListener != null)
 					onDismissListener.onDismiss(Dialog.this);
 			}
