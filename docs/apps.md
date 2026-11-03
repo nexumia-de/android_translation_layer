@@ -30,6 +30,11 @@ follow [bringing up an app](app-bring-up.md).
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
+- 2026-11-03: Window size from the monitor (no `-w`/`-h`). After the
+  fix is in the aports package: start F-Droid from a launcher without
+  `-w`/`-h` (or run `android-translation-layer --sdk-int 26
+  <fdroid.apk>` as `user`); it should show the one-column phone layout
+  across the full width, also after rotating.
 - 2026-11-03: DB Navigator showed "won't run without Google Play
   services" (GMS stub off by default since #50). After the fix is in
   the aports package: start DB Navigator from the app grid, check that

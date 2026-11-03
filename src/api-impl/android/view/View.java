@@ -2678,6 +2678,10 @@ public class View implements Drawable.Callback {
 
 	protected void onConfigurationChanged(Configuration newConfig) {}
 
+	public void dispatchConfigurationChanged(Configuration newConfig) {
+		onConfigurationChanged(newConfig);
+	}
+
 	public boolean isDrawingCacheEnabled() { return false; }
 
 	public void setDrawingCacheEnabled(boolean enabled) {}
