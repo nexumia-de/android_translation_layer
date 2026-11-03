@@ -62,11 +62,13 @@ public class Parcel {
 			size = pos;
 	}
 
+	/* like Android, reading past the end gives 0 (and null for objects) instead of an error;
+	 * Google's client libraries rely on it for arguments added in newer versions */
 	public byte readByte() {
 		if (pos < size)
 			return data[pos++];
 		else
-			throw new ParcelFormatException("Reading past end of Parcel data");
+			return 0;
 	}
 
 	public void writeInt(int value) {
@@ -367,6 +369,8 @@ public class Parcel {
 	}
 
 	public String readString() {
+		if (dataAvail() < 2)
+			return null;
 		try {
 			int len = is.readShort();
 			if (len == -1)
