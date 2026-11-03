@@ -133,16 +133,14 @@ public abstract class Context {
 		provider.put("KeyPairGenerator.RSA", "android.security.keystore.AndroidKeyStoreKeyPairGenerator$RSA");
 		// first, so its Cipher wins for keystore keys; SupportedKeyClasses leaves other keys to the other providers
 		Security.insertProviderAt(provider, 1);
-		// keystore RSA keys are software keys; apps name these providers for RSA on Android
-		for (String name : new String[] {"AndroidKeyStoreBCWorkaround", "AndroidOpenSSL"}) {
-			if (Security.getProvider(name) != null)
-				continue;
-			Provider rsa = new Provider(name, 1.0, "RSA for Android KeyStore keys") {};
-			rsa.put("Cipher.RSA/ECB/PKCS1Padding", "android.security.keystore.AndroidKeyStoreRSACipher$PKCS1Padding");
-			rsa.put("Cipher.RSA/ECB/OAEPPadding", "android.security.keystore.AndroidKeyStoreRSACipher$OAEPPadding");
-			rsa.put("Cipher.RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "android.security.keystore.AndroidKeyStoreRSACipher$OAEPWithSHA256AndMGF1Padding");
-			Security.addProvider(rsa);
-		}
+		// keystore RSA keys are software keys: Android's keystore provider for RSA
+		Provider rsa = new Provider("AndroidKeyStoreBCWorkaround", 1.0, "RSA for Android KeyStore keys") {};
+		rsa.put("Cipher.RSA/ECB/PKCS1Padding", "android.security.keystore.AndroidKeyStoreRSACipher$PKCS1Padding");
+		rsa.put("Cipher.RSA/ECB/OAEPPadding", "android.security.keystore.AndroidKeyStoreRSACipher$OAEPPadding");
+		rsa.put("Cipher.RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "android.security.keystore.AndroidKeyStoreRSACipher$OAEPWithSHA256AndMGF1Padding");
+		Security.addProvider(rsa);
+		if (Security.getProvider("AndroidOpenSSL") == null)
+			Security.addProvider(new android.security.keystore.AndroidOpenSSLProvider());
 
 		boolean unifiedpush = false;
 		for (PackageParser.Activity receiver : primary_application.pkg.receivers) {

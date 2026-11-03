@@ -516,6 +516,7 @@ srcs = [
 	'android/security/keystore/AndroidKeyStoreKeyPairGenerator.java',
 	'android/security/keystore/AndroidKeyStoreRSACipher.java',
 	'android/security/keystore/AndroidKeyStoreSecretKey.java',
+	'android/security/keystore/AndroidOpenSSLProvider.java',
 	'android/security/keystore/KeyGenerator.java',
 	'android/security/keystore/KeyGenParameterSpec.java',
 	'android/service/media/MediaBrowserService.java',
