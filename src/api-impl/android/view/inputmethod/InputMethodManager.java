@@ -122,7 +122,21 @@ public class InputMethodManager {
 
 	public void showInputMethodAndSubtypeEnabler(String imiId) {}
 
-	public void restartInput(View view) {}
+	/* The editor's state changed (e.g. Flutter moved its one view to another
+	 * text field): as on Android, the open connection is replaced by a new
+	 * one from the view, or there is none if the view has none to give. */
+	public void restartInput(View view) {
+		if (view == null || view != activeView)
+			return;
+		EditorInfo outAttrs = new EditorInfo();
+		InputConnection ic = view.onCreateInputConnection(outAttrs);
+		if (ic != null) {
+			nativeShowSoftInput(im_context, view.widget, ic, outAttrs.inputType);
+		} else {
+			nativeHideSoftInput(im_context);
+			activeView = null;
+		}
+	}
 
 	public void updateSelection(View view, int selStart, int selEnd, int candidatesStart, int candidatesEnd) {}
 
