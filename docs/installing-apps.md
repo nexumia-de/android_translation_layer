@@ -230,7 +230,18 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   exports into the local repository and installs or updates the app
   with `flatpak --user`. No root.
 - Permissions: every app gets Wayland, the GPU, IPC, audio playback and
-  feedbackd; `android.permission.INTERNET` adds `--share=network`.
+  feedbackd. Internet is asked, never granted by default
+  ([decision](hardening-roadmap.md#decision-record-where-permissions-are-shown-and-changed)):
+  for an app with `android.permission.INTERNET` the install page asks
+  "Allow internet?" with no preselected answer and Install disabled
+  until it is answered ([page](screenshots/install-ask-internet-2026-11-03.png));
+  `--network=yes|no` passes the answer to `make-app-flatpak -N`, which
+  writes it as a user override (`flatpak override --user
+  --share=network` or `--unshare=network`). Updates keep the answer and
+  do not ask again; a new install always asks, even if a removal outside
+  `--uninstall-flatpak` left an override behind, and `--uninstall-flatpak`
+  resets the app's overrides. Apps without `INTERNET` are never asked
+  and get `--unshare=network`, also when an update drops `INTERNET`.
   Everything else waits for portals and the broker (phases 3 and 4).
 - Runtime permissions without a portal (contacts, calendar, SMS, call
   log, phone state, background location, microphone, Bluetooth, body

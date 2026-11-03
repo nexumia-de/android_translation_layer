@@ -187,11 +187,33 @@ public abstract class Context {
 
 	public abstract Object getSystemService(Class<?> serviceClass) throws InstantiationException, IllegalAccessException, InvocationTargetException;
 
-	public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
+	public static final int RECEIVER_VISIBLE_TO_INSTANT_APPS = 0x1;
+	public static final int RECEIVER_EXPORTED = 0x2;
+	public static final int RECEIVER_NOT_EXPORTED = 0x4;
+
+	public Intent registerReceiver(final BroadcastReceiver receiver, IntentFilter filter) {
+		/* ACTION_BATTERY_CHANGED is sticky: apps read the battery state from the
+		 * returned intent, often with a null receiver */
+		final Intent sticky = (filter != null && filter.hasAction(Intent.ACTION_BATTERY_CHANGED)) ? android.os.BatteryManager.getBatteryChangedIntent() : null;
 		if (receiver == null)
-			return null;
+			return sticky;
 		receiverMap.put(filter, receiver);
+		if (sticky != null) {
+			/* like Android, a new receiver also gets the sticky broadcast, after this call returns */
+			new Handler(Looper.getMainLooper()).post(new Runnable() {
+				@Override
+				public void run() {
+					if (receiverMap.containsValue(receiver))
+						receiver.onReceive(Context.this, sticky);
+				}
+			});
+			return sticky;
+		}
 		return new Intent();
+	}
+
+	public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter, int flags) {
+		return registerReceiver(receiver, filter);
 	}
 
 	public Looper getMainLooper() {
@@ -534,12 +556,34 @@ public abstract class Context {
 		if ("org.unifiedpush.android.distributor.REGISTER".equals(intent.getAction())) {
 			nativeRegisterUnifiedPush(intent.getStringExtra("token"), intent.getStringExtra("application"));
 		}
-		for (IntentFilter filter : receiverMap.keySet()) {
-			if (filter.matchAction(intent.getAction())) {
-				receiverMap.get(filter).onReceive(this, intent);
+		for (BroadcastReceiver receiver : matchingReceivers(intent))
+			receiver.onReceive(this, intent);
+		ATLLoadedApp.getPrimaryApplication().receiveBroadcast(this, intent);
+	}
+
+	/* each receiver once per broadcast, also when an app registered it several times with equal filters
+	 * (as Gadgetbridge does in onStart and onResume); Android ignores such repeated registrations */
+	private static java.util.List<BroadcastReceiver> matchingReceivers(Intent intent) {
+		java.util.List<BroadcastReceiver> result = new java.util.ArrayList<>();
+		java.util.Set<BroadcastReceiver> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+		for (Map.Entry<IntentFilter, BroadcastReceiver> entry : receiverMap.entrySet())
+			if (entry.getKey().matchAction(intent.getAction()) && seen.add(entry.getValue()))
+				result.add(entry.getValue());
+		return result;
+	}
+
+	/* ATL internal: delivers like an ordered broadcast to the registered receivers; true if one called abortBroadcast() */
+	public boolean atlSendOrderedBroadcast(Intent intent) {
+		for (BroadcastReceiver receiver : matchingReceivers(intent)) {
+			receiver.clearAbortBroadcast();
+			receiver.onReceive(this, intent);
+			if (receiver.getAbortBroadcast()) {
+				receiver.clearAbortBroadcast();
+				return true;
 			}
 		}
 		ATLLoadedApp.getPrimaryApplication().receiveBroadcast(this, intent);
+		return false;
 	}
 
 	public void sendBroadcast(Intent intent, String receiverPermission) {
