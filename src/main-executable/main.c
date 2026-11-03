@@ -10,7 +10,6 @@
 #include "../api-impl-jni/defines.h"
 #include "../api-impl-jni/util.h"
 #include "../api-impl-jni/app/android_app_Activity.h"
-#include <sys/file.h>
 #include "../api-impl-jni/content/android_content_Context.h"
 
 #include "actions.h"
@@ -27,6 +26,7 @@
 #include <stdio.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #ifndef DEFFILEMODE
 	#define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) /* 0666*/
@@ -1234,7 +1234,7 @@ static gboolean instance_lock_take(const char *data_dir)
 	g_free(path);
 	if (!file)
 		return TRUE; /* cannot tell; do not block the start */
-	return flock(fileno(file), LOCK_EX | LOCK_NB) == 0;
+	return lockf(fileno(file), F_TLOCK, 0) == 0; /* not flock(): <sys/file.h> declares open() on glibc */
 }
 
 /* Asks the running process of this app id to show itself, like a launcher would: Open for a
