@@ -18,5 +18,13 @@ public class EditorInfo {
 	public CharSequence label = null;
 	public String packageName = "com.example.FIXME";
 	public String privateImeOptions = null;
+	public String[] contentMimeTypes = null;
 	public LocaleList hintLocales = null;
+
+	/* the input method asks the connection for the text around the cursor */
+	public void setInitialSurroundingText(CharSequence sourceText) {}
+
+	public void setInitialSurroundingSubText(CharSequence subText, int subTextStart) {}
+
+	public void setStylusHandwritingEnabled(boolean enabled) {}
 }

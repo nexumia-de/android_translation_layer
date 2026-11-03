@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.view.View;
 import java.util.ArrayList;
@@ -124,6 +125,25 @@ public class InputMethodManager {
 	public void restartInput(View view) {}
 
 	public void updateSelection(View view, int selStart, int selEnd, int candidatesStart, int candidatesEnd) {}
+
+	/* an input connection is open when showSoftInput made one */
+	public boolean isAcceptingText() {
+		return activeView != null;
+	}
+
+	/* the input method gets the text through the connection (GtkIMContext
+	 * asks for the surrounding text), not these updates */
+	public void updateCursorAnchorInfo(View view, CursorAnchorInfo cursorAnchorInfo) {}
+
+	public void updateExtractedText(View view, int token, ExtractedText text) {}
+
+	public void sendAppPrivateCommand(View view, String action, Bundle data) {}
+
+	public boolean isStylusHandwritingAvailable() {
+		return false;
+	}
+
+	public void startStylusHandwriting(View view) {}
 
 	public InputMethodSubtype getCurrentInputMethodSubtype() {
 		if (current_subtype != null)
