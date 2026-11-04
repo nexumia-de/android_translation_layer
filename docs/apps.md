@@ -34,6 +34,17 @@ follow [bringing up an app](app-bring-up.md).
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
+- 2026-11-04: Updates without asking for F-Droid (pull requests #105
+  and #106). They work for apps in their own Flatpak only: F-Droid on
+  the phone was installed without a sandbox, so first install it again
+  by opening its APK (it then becomes its own Flatpak). Apps installed
+  before without a sandbox are not updated this way until the new
+  F-Droid installs them again (roadmap phase 6, migration). Then long-press F-Droid in the app grid,
+  **App Info**, turn on **Update Apps Without Asking**. F-Droid installs
+  its updates when its daily update job is due while F-Droid is open,
+  on Wi-Fi by default (F-Droid's settings, automatic updates), and a
+  notification says which app was updated.
+
 - 2026-11-03: FluffyChat on the phone, once ATL pull request #81
   and bionic_translation pull requests #3 and #4 are
   merged and their aports pins published: `sudo apk upgrade`, then as

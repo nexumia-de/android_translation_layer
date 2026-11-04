@@ -42,10 +42,18 @@ extern "C" {
 /*
  * Class:     android_content_pm_PackageInstaller
  * Method:    nativeInstallThroughService
- * Signature: ([Ljava/lang/String;Ljava/lang/String;II)Ljava/lang/String;
+ * Signature: ([Ljava/lang/String;Ljava/lang/String;IIZ)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_android_content_pm_PackageInstaller_nativeInstallThroughService
-  (JNIEnv *, jclass, jobjectArray, jstring, jint, jint);
+  (JNIEnv *, jclass, jobjectArray, jstring, jint, jint, jboolean);
+
+/*
+ * Class:     android_content_pm_PackageInstaller
+ * Method:    nativeGetInstallerThroughService
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_android_content_pm_PackageInstaller_nativeGetInstallerThroughService
+  (JNIEnv *, jclass, jstring);
 
 /*
  * Class:     android_content_pm_PackageInstaller

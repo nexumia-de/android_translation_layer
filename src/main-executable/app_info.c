@@ -2,7 +2,8 @@
  * phase 4, place 3). Runs on the host, never in the app's sandbox, so the app cannot draw over it or
  * change it. Shows what GNOME Settings does not: internet (a Flatpak user override), the answers of
  * the permissions without a portal (permission store table de.nexumia.atl), clear data and
- * uninstall; "More permissions" opens the app's page in GNOME Settings. */
+ * uninstall; "More permissions" opens the app's page in GNOME Settings. App stores get "Update apps
+ * without asking" (docs/installing-apps.md, "Updates without asking"). */
 
 #include <adwaita.h>
 #include <string.h>
@@ -13,6 +14,8 @@
 #define STORE_NAME  "org.freedesktop.impl.portal.PermissionStore"
 #define STORE_PATH  "/org/freedesktop/impl/portal/PermissionStore"
 #define STORE_TABLE "de.nexumia.atl"
+/* read by --install-ask (may_update_unattended in main.c) */
+#define UPDATE_WITHOUT_ASKING "atl.update-without-asking"
 
 struct permission_row {
 	const char *permission;
@@ -244,7 +247,7 @@ static int app_requests_bluetooth(struct app_info *info)
 	return requested;
 }
 
-static gboolean store_permission(struct app_info *info, const char *permission, gboolean yes)
+static gboolean store_answer(struct app_info *info, const char *permission, gboolean yes)
 {
 	/* "no" from here may be asked again by the app, like revoking on Android */
 	const char *value[] = {yes ? "yes" : "no", yes ? NULL : "0", NULL};
@@ -253,6 +256,7 @@ static gboolean store_permission(struct app_info *info, const char *permission, 
 	                                              g_variant_new("(sbss^as)", STORE_TABLE, TRUE, permission, info->id, value),
 	                                              NULL, G_DBUS_CALL_FLAGS_NONE, -1, NULL, &err);
 	if (!reply) {
+		adw_toast_overlay_add_toast(info->toasts, adw_toast_new("Could not save the answer"));
 		fprintf(stderr, "app-info: %s\n", err->message);
 		g_error_free(err);
 		return FALSE;
@@ -276,14 +280,23 @@ static void permission_toggled(AdwSwitchRow *row, GParamSpec *pspec, struct app_
 		g_signal_handlers_unblock_by_func(row, permission_toggled, info);
 		return;
 	}
-	if (!store_permission(info, permission, yes) ||
-	    (bluetooth && !store_permission(info, "android.permission.BLUETOOTH_SCAN", yes))) {
-		adw_toast_overlay_add_toast(info->toasts, adw_toast_new("Could not save the answer"));
+	if (!store_answer(info, permission, yes) || (bluetooth && !store_answer(info, "android.permission.BLUETOOTH_SCAN", yes)))
 		return;
-	}
 	adw_action_row_set_subtitle(ADW_ACTION_ROW(row), NULL); // answered now
 	if (microphone || bluetooth)
 		changed_static_permission(info);
+}
+
+/* -------- app stores -------- */
+
+static void update_without_asking_toggled(AdwSwitchRow *row, GParamSpec *pspec, struct app_info *info)
+{
+	gboolean yes = adw_switch_row_get_active(row);
+	if (!store_answer(info, UPDATE_WITHOUT_ASKING, yes)) {
+		g_signal_handlers_block_by_func(row, update_without_asking_toggled, info);
+		adw_switch_row_set_active(row, !yes);
+		g_signal_handlers_unblock_by_func(row, update_without_asking_toggled, info);
+	}
 }
 
 /* -------- other rows -------- */
@@ -445,6 +458,19 @@ void app_info_show(GtkApplication *app, const char *package, const char *prgname
 	g_signal_connect(more, "activated", G_CALLBACK(more_permissions_activated), info);
 	adw_preferences_group_add(ADW_PREFERENCES_GROUP(permissions), more);
 	adw_preferences_page_add(ADW_PREFERENCES_PAGE(page), ADW_PREFERENCES_GROUP(permissions));
+
+	/* app stores: updates without the install page, like Android 12+ allows the installer of record */
+	if (app_requests(info, "android.permission.REQUEST_INSTALL_PACKAGES") == 1 && info->bus) {
+		GtkWidget *store = adw_preferences_group_new();
+		adw_preferences_group_set_title(ADW_PREFERENCES_GROUP(store), "App Store");
+		GtkWidget *row = adw_switch_row_new();
+		adw_preferences_row_set_title(ADW_PREFERENCES_ROW(row), "Update Apps Without Asking");
+		adw_action_row_set_subtitle(ADW_ACTION_ROW(row), "Only apps it installed, and only updates that ask for no new permissions");
+		adw_switch_row_set_active(ADW_SWITCH_ROW(row), stored_answer(info, UPDATE_WITHOUT_ASKING) == 1);
+		g_signal_connect(row, "notify::active", G_CALLBACK(update_without_asking_toggled), info);
+		adw_preferences_group_add(ADW_PREFERENCES_GROUP(store), row);
+		adw_preferences_page_add(ADW_PREFERENCES_PAGE(page), ADW_PREFERENCES_GROUP(store));
+	}
 
 	/* the settings for all Android apps */
 	GtkWidget *all_group = adw_preferences_group_new();

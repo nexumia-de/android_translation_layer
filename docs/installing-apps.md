@@ -375,7 +375,8 @@ system asks the user:
   `de.nexumia.atl.Installer` on the session bus, exits when idle).
   Methods: `Install(ah apks, a{sv} options) → s error`,
   `Uninstall(s package) → b`, `List() → a(sh)` (package and a read-only
-  fd of its APK), `Launch(s package, s uri)`.
+  fd of its APK), `Launch(s package, s uri)`, `GetInstaller(s package)
+  → s` (version 2, see [updates without asking](#updates-without-asking)).
 - **Who may call it**: `make-app-flatpak` adds
   `--talk-name=de.nexumia.atl.Installer` only for APKs that request
   `android.permission.REQUEST_INSTALL_PACKAGES` (F-Droid, Aurora); for
@@ -386,9 +387,10 @@ system asks the user:
   host file access. The service copies them to
   `~/.cache/android_translation_layer/installer/` and runs
   `android-translation-layer --install-ask --install-flatpak
-  --installer-name <store>`: the page says "<store> wants to install
-  this app", every install and update is confirmed (no separate
-  per-store grant, which would add nothing on top), and the store hears
+  --installer-name <store> --installer-id <store package>`: the page says
+  "<store> wants to install this app", every install and update is
+  confirmed (no separate per-store grant, which would add nothing on
+  top) except the updates below, and the store hears
   "installed" as soon as it is, since it shows its own Open button. Exit
   status 2 means the user said no, 3 refused.
 - **Uninstall**: `--uninstall-flatpak <package>` asks on the host
@@ -402,6 +404,89 @@ system asks the user:
   the APK fds the service handed over (`/proc/self/fd/<n>`), refreshed
   at most every two seconds and after every change, so the rest of ATL
   reads them as outside a sandbox.
+
+## Updates without asking
+
+Android 12 and later let the app store that installed an app (the
+installer of record) update it without asking, if the store says so
+with `PackageInstaller.SessionParams.setRequireUserAction(USER_ACTION_NOT_REQUIRED)`;
+otherwise the system shows its install dialog. F-Droid 2.0.2 sets it on
+every session at SDK 31 and later
+(`SessionInstallManager.getSessionParams`), Aurora Store too. ATL does
+the same, with a switch the user turns on per store:
+
+- **Installer of record**: the service passes the caller's package
+  (from its sandbox, like its name) as `--installer-id`, which
+  `make-app-flatpak -I` writes to `/app/share/atl/installer` in the
+  app's Flatpak, on every install and update. An app installed from a
+  file has none. `PackageManager.getInstallerPackageName()` answers from
+  it inside a Flatpak (`GetInstaller`, interface version 2); F-Droid
+  uses it to tell its own apps from others.
+- **The store asks**: `setRequireUserAction` is kept in the session.
+  Stores run here with `--sdk-int 26`, below the level where F-Droid
+  and Aurora set `USER_ACTION_NOT_REQUIRED`, and running them at 31
+  would reach about 300 API gaps behind SDK checks (F-Droid crashed at
+  start on `WindowManager.getCurrentWindowMetrics`; Compose uses
+  `RenderNode` and `ImageDecoder` there). So the user's switch is the
+  consent: every session that does not set `USER_ACTION_REQUIRED`
+  becomes the option `unattended` of `Install`, which the service
+  passes on as `--unattended` only for a caller in a sandbox. An older
+  service ignores the option and asks.
+- **The user allows it**: App info of an app that requests
+  `REQUEST_INSTALL_PACKAGES` has **App Store → Update Apps Without
+  Asking**, off by default. It is the entry `atl.update-without-asking`
+  of the store's app id in the permission store table `de.nexumia.atl`,
+  which apps cannot reach (the permission service only answers its own
+  list of permissions).
+- **The host decides** (`may_update_unattended` in `main.c`): without
+  the page only if all hold, else the page is shown as before and the
+  log says why (`install: asking, no update without asking: ...`):
+  - an update to a higher version code, with the signer checked against
+    the installed APK;
+  - the installed app's installer of record is the calling store;
+  - the store's switch is on;
+  - the new APK requests no permission the installed one did not (so
+    no new Flatpak permission and no new question; internet already
+    answered);
+  - its target SDK is not lower than the installed one's.
+- **Afterwards** a notification "<App> updated" says which store
+  updated it to which version, as Android does.
+
+**F-Droid's automatic updates.** F-Droid 2.0.2 updates apps itself in
+`AppUpdateWorker`, a WorkManager job every 24 hours (flex 60 min) on
+Wi-Fi by default (setting `appAutoUpdates`: `OnlyWifi`, `Always`,
+`Never`), and `RepoUpdateWorker` updates the index every 4 hours. In
+ATL these run while F-Droid runs: WorkManager plans each job again at
+every start, and an overdue one runs right away. ATL's `JobScheduler`
+waits for the network a job requires (Wi-Fi only: an unmetered network,
+from the portal's `NetworkMonitor`). With the switch on, a due update
+job installs every update F-Droid lists without a page, and F-Droid
+and ATL each show a notification. F-Droid only offered updates for
+apps whose signer it can read: `PackageInfo.signatures` now comes from
+the APK Signature Scheme v3 or v2 block too, not only v1 (Chooser from
+F-Droid is signed with v2/v3 only, and F-Droid never listed its update).
+
+End to end on 2026-11-04, headless, F-Droid as its own Flatpak with
+`--sdk-int 26` on the engine built from this code, Chooser 1.4.11 from
+f-droid.org installed with F-Droid as installer of record, the switch
+on, F-Droid's update job made due (`last_enqueue_time` moved back in
+its `androidx.work.workdb`): F-Droid showed the update and installed
+Chooser 1.5.0 without a page.
+
+Not yet: updates while the store is closed. A store started without a
+window does not list its updates in time: F-Droid's `updateAll` takes
+the list in memory (`UpdatesManager.updates`), which in a cold start
+without its UI is filled only after an index change, and returns when
+it is empty. Work in progress on branch `claude/store-background-updates`
+(a `--background` start, a user timer `atl-store-updates.timer`, jobs
+one after another).
+
+Headless check: `flatpak/auto-update-test.sh` (fake store in bwrap,
+the service and ATL from the build directory, a fake
+`make-app-flatpak`, a notification server that records). It needs two
+APKs of one app with one signer and rising version codes; Blokish with
+its `versionCode` patched in the binary manifest and signed v1 with a
+test key (`jarsigner`) served on 2026-11-04: 19 checks, all ok.
 
 ## Interface and versions
 
@@ -423,7 +508,8 @@ can meet an old service and the other way round. Therefore:
   app does not request `REQUEST_INSTALL_PACKAGES`, or the host package
   is older than the engine) or too old;
 - version 1 is the interface as first released (#33), which had no
-  `Version` property; a service without it counts as version 1.
+  `Version` property; a service without it counts as version 1;
+  version 2 added the `Install` option `unattended` and `GetInstaller`.
 
 Checked with a C harness on a private bus (2026-10-30): with the
 current service, with a service as in #33 (no `Version`) and with none.
@@ -557,6 +643,9 @@ checked), installed like F-Droid with `--install --sdk-int 26 -w 360 -h
   art_standalone, 12 s) and in `art_standalone@nexumia` from
   nexumia-de/aports; Alpine's own `art_standalone` does not have it.
 - Installed apps show a generic icon in F-Droid.
+- `JobScheduler` checks only the network of a job; idle, charging,
+  battery and storage constraints are not checked, and a job runs only
+  while its app runs.
 - An APK installed by hand with `--install` keeps its file name, e.g.
   `com.uravgcode.chooser_26.apk`, so F-Droid does not see it as
   installed. Open the file instead (`--install-ask`, see above), which

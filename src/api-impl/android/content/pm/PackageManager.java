@@ -21,6 +21,7 @@ import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
 import android.atl.ATLLoadedApp;
 import android.atl.ATLLoadedAppManager;
+import android.atl.ATLPaths;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -2250,6 +2251,18 @@ public class PackageManager {
 	 * @return Returns true if the devices supports the feature, else
 	 * false.
 	 */
+	/* the kernel lists Bluetooth controllers in sysfs, which Flatpak sandboxes see too */
+	private static boolean hasBluetoothController() {
+		String[] controllers = new java.io.File("/sys/class/bluetooth").list();
+		if (controllers == null)
+			return false;
+		for (String controller : controllers) {
+			if (controller.startsWith("hci") && controller.indexOf(':') < 0)
+				return true;
+		}
+		return false;
+	}
+
 	public boolean hasSystemFeature(String name) {
 		switch (name) {
 			case "android.hardware.touchscreen.multitouch.distinct":
@@ -2263,7 +2276,9 @@ public class PackageManager {
 				return System.getenv("ATL_IS_WATCH") != null;
 			case FEATURE_BLUETOOTH:
 			case FEATURE_BLUETOOTH_LE:
-				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null;
+				/* a device feature, not the caller's access: an app store in a Flatpak cannot reach
+				 * BlueZ on the system bus but still has to see that the phone has Bluetooth */
+				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null || hasBluetoothController();
 			case FEATURE_TELEPHONY:
 				return android.telephony.TelephonyManager.hasModem();
 			default:
@@ -3266,6 +3281,9 @@ public class PackageManager {
 	 * @param packageName The name of the package to query
 	 */
 	public String getInstallerPackageName(String packageName) {
+		// in its own Flatpak the installer service knows the app store that installed the package
+		if (ATLPaths.in_flatpak)
+			return PackageInstaller.getInstallerOf(packageName);
 		return "com.example.installer";
 	}
 
