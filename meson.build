@@ -104,6 +104,14 @@ install_data('res/desktop/com.gitlab.android_translation_layer.install.desktop',
 install_data(['res/wake/atl-wake.timer', 'res/wake/atl-wake.service'],
              install_dir: join_paths(get_option('prefix'), 'lib', 'systemd', 'system'))
 
+# a user timer that starts the app stores allowed to update without asking in the background, see
+# docs/installing-apps.md (installed, not enabled: the user enables it)
+install_data('res/store-updates/atl-store-updates', install_dir: get_option('bindir'), install_mode: 'rwxr-xr-x')
+configure_file(input: 'res/store-updates/atl-store-updates.service', output: 'atl-store-updates.service',
+               configuration: {'bindir': join_paths(get_option('prefix'), get_option('bindir'))},
+               install_dir: join_paths(get_option('prefix'), 'lib', 'systemd', 'user'))
+install_data('res/store-updates/atl-store-updates.timer', install_dir: join_paths(get_option('prefix'), 'lib', 'systemd', 'user'))
+
 # the installer service for app stores in their own Flatpak, see docs/installing-apps.md
 installer_service_resources = gnome.compile_resources('installer-service-resources',
                                                      'src/installer-service/installer-service.gresource.xml',

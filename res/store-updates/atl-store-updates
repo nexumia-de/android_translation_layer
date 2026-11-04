@@ -1,0 +1,20 @@
+#!/bin/sh
+# Starts every Android app store that may update apps without asking (App info, "Update Apps
+# Without Asking") in the background, one after another, so its own update job runs although the
+# store is not open: Android runs it from JobScheduler at any time, ATL apps only run while
+# started (docs/installing-apps.md, "Updates in the background"). Run by atl-store-updates.timer.
+set -u
+seconds=${ATL_STORE_UPDATE_SECONDS:-600}
+apps=${FLATPAK_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/flatpak}/app
+for dir in "$apps"/de.nexumia.atl.*; do
+	[ -d "$dir" ] || continue
+	id=${dir##*/}
+	grep -qx android.permission.REQUEST_INSTALL_PACKAGES "$dir/current/active/files/share/atl/permissions" 2>/dev/null || continue
+	answer=$(gdbus call --session --dest org.freedesktop.impl.portal.PermissionStore \
+		--object-path /org/freedesktop/impl/portal/PermissionStore \
+		--method org.freedesktop.impl.portal.PermissionStore.GetPermission \
+		de.nexumia.atl atl.update-without-asking "$id" 2>/dev/null)
+	case $answer in *"'yes'"*) ;; *) continue ;; esac
+	echo "starting $id in the background for ${seconds} s"
+	flatpak run --user "$id" --background="$seconds"
+done

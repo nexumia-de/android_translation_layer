@@ -333,6 +333,7 @@ struct jni_callback_data {
 	char *installer_name;
 	char *installer_id;
 	gboolean unattended;
+	int background;
 	char *uninstall_flatpak;
 	char *app_info;
 	gboolean android_apps;
@@ -1633,6 +1634,22 @@ static void get_window_size(struct jni_callback_data *d, int *width, int *height
 		*height = d->window_height;
 }
 
+/* --background: the app ran its background work (jobs, alarms) for the time it was given. It quits
+ * unless it was opened meanwhile or still runs a foreground service (WorkManager runs long work,
+ * such as an app store's updates, as one); then it asks again a minute later. */
+static gboolean background_done(gpointer user_data)
+{
+	if (gtk_widget_get_visible(window))
+		return G_SOURCE_REMOVE;
+	if (foreground_service_running()) {
+		g_timeout_add_seconds(60, background_done, user_data);
+		return G_SOURCE_REMOVE;
+	}
+	fprintf(stderr, "background: done, quitting\n");
+	g_application_quit(G_APPLICATION(user_data));
+	return G_SOURCE_REMOVE;
+}
+
 static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *hint, struct jni_callback_data *d)
 {
 	if (app_starting && !window) { // the bus name is owned early when D-Bus activated
@@ -1764,6 +1781,9 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 			fprintf(stderr, "this apk is already running; start it with --gapplication-app-id to hand over to it\n");
 			exit(1);
 		}
+		/* the running app does its background work itself; do not bring it to the front */
+		if (d->background)
+			exit(0);
 		exit(hand_over_to_running_instance(id, d) ? 0 : 1);
 	}
 	app_starting = TRUE;
@@ -1912,8 +1932,8 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 			(*env)->ExceptionDescribe(env);
 	}
 
-	// construct main Activity
-	if (!d->apk_instrumentation_class && !installing) {
+	// construct main Activity; in the background only when the app is opened (activate())
+	if (!d->apk_instrumentation_class && !installing && !d->background) {
 		activity_object = J__Activity__createMainActivity(env, _JSTRING(d->apk_main_activity_class),
 		                                                  _INTPTR(window), (uri_option && *uri_option) ? _JSTRING(uri_option) : NULL);
 		if ((*env)->ExceptionCheck(env))
@@ -2064,7 +2084,10 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	GtkDropTarget *drop_target = gtk_drop_target_new(G_TYPE_STRING, GDK_ACTION_COPY);
 	g_signal_connect(drop_target, "drop", G_CALLBACK(on_drop), NULL);
 	gtk_widget_add_controller(window, GTK_EVENT_CONTROLLER(drop_target));
-	gtk_window_present(GTK_WINDOW(window));
+	if (d->background)
+		g_timeout_add_seconds(d->background, background_done, app);
+	else
+		gtk_window_present(GTK_WINDOW(window));
 
 	// set package name as application id for window icon on Wayland. Needs a {package_name}.desktop file defining the icon
 	const char *app_id = g_application_get_application_id(G_APPLICATION(app));
@@ -2092,7 +2115,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		g_signal_connect_after(window, "realize", G_CALLBACK(icon_override), icon_list);
 	}
 
-	if (!d->apk_instrumentation_class) {
+	if (!d->apk_instrumentation_class && !d->background) {
 		activity_start(env, activity_object);
 
 		g_timeout_add(10, G_SOURCE_FUNC(hacky_on_window_focus_changed_callback), env);
@@ -2250,6 +2273,7 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "network",           0 , 0, G_OPTION_ARG_STRING,       &d->network,                   "--install-flatpak: allow internet (yes) or not (no), kept for updates; unset keeps the answer",  "yes|no"        },
 		{ "installer-name",    0 , 0, G_OPTION_ARG_STRING,       &d->installer_name,            "the app store that asks to install or uninstall (shown on the page)",                          "NAME"          },
 		{ "installer-id",      0 , 0, G_OPTION_ARG_STRING,       &d->installer_id,              "the package name of the app store that installs, recorded as the installer",                   "PACKAGE"       },
+		{ "background",        0 , 0, G_OPTION_ARG_INT,          &d->background,                "start without a window to run the app's background work (jobs, alarms), quit after SECONDS unless opened", "SECONDS" },
 		{ "unattended",        0 , 0, G_OPTION_ARG_NONE,         &d->unattended,                "--install-ask: the app store asks to update without the page; allowed only for safe updates",  NULL            },
 		{ "uninstall-flatpak", 0 , 0, G_OPTION_ARG_STRING,       &d->uninstall_flatpak,         "ask, then remove the Flatpak of an app installed with --install-flatpak and its data",         "PACKAGE"       },
 		{ "android-apps",      0 , 0, G_OPTION_ARG_NONE,         &d->android_apps,              "show the settings for all Android apps (navigation, push server, installed apps)",            NULL            },

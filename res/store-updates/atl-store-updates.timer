@@ -1,0 +1,13 @@
+# Every 6 hours; a missed run (phone off or asleep) runs at the next chance. F-Droid's own update
+# job is due once a day, so it runs at the first start after that.
+# Turn on as the user: systemctl --user enable --now atl-store-updates.timer
+[Unit]
+Description=Updates of Android apps by their app stores (ATL)
+
+[Timer]
+OnCalendar=00/6:20
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

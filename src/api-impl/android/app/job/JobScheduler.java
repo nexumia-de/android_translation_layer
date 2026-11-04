@@ -2,6 +2,8 @@ package android.app.job;
 
 import android.atl.ATLLoadedApp;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Slog;
@@ -41,6 +43,15 @@ public class JobScheduler {
 		new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
 			@Override
 			public void run() {
+				if (pendingJobs.get(job.getId()) != job)
+					return; // cancelled meanwhile
+				/* the network a job needs, such as an app store's updates on Wi-Fi only; other
+				 * constraints (idle, charging) are left to whoever started the app in the background */
+				if (!networkSatisfied(job)) {
+					Slog.i(TAG, "job " + job.getId() + " waits for its network");
+					new Handler(Looper.getMainLooper()).postDelayed(this, NETWORK_RECHECK_MILLIS);
+					return;
+				}
 				try {
 					String className = job.getService().getClassName();
 					Class<? extends JobService> cls = context.get_atl_loaded_app()
@@ -63,6 +74,18 @@ public class JobScheduler {
 			}
 		}, job.minLatencyMillis);
 		return 1; //RESULT_SUCCESS
+	}
+
+	private static final long NETWORK_RECHECK_MILLIS = 60 * 1000;
+
+	private boolean networkSatisfied(JobInfo job) {
+		if (job.networkType == JobInfo.NETWORK_TYPE_NONE)
+			return true;
+		ConnectivityManager connectivity = new ConnectivityManager();
+		NetworkInfo network = connectivity.getActiveNetworkInfo();
+		if (network == null || !network.isConnected())
+			return false;
+		return job.networkType != JobInfo.NETWORK_TYPE_UNMETERED || !connectivity.isActiveNetworkMetered();
 	}
 
 	public void cancel(int id) {

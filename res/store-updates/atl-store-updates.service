@@ -1,0 +1,10 @@
+# Starts the Android app stores allowed to update without asking in the background, so they install
+# their updates (docs/installing-apps.md, "Updates in the background").
+[Unit]
+Description=Updates of Android apps by their app stores (ATL)
+
+[Service]
+Type=oneshot
+ExecStart=@bindir@/atl-store-updates
+Nice=10
+IOSchedulingClass=idle
