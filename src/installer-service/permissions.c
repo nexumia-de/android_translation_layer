@@ -274,7 +274,6 @@ static void request_free(struct request *r)
 	g_free(r->app_id);
 	g_free(r->permission);
 	g_clear_pointer(&r->dialog_args, g_variant_unref);
-	g_free(r->key);
 	g_free(r);
 	release();
 }
