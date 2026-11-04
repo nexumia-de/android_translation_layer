@@ -10,6 +10,7 @@ import android.atl.ATLLoadedApp;
 import android.atl.ATLLoadedAppManager;
 import android.atl.ATLPaths;
 import android.bluetooth.BluetoothManager;
+import android.companion.CompanionDeviceManager;
 import android.content.*;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInstaller;
@@ -194,6 +195,8 @@ public final class ContextImpl extends Context {
 				return new WifiManager();
 			case "bluetooth":
 				return new BluetoothManager();
+			case "companiondevice":
+				return new CompanionDeviceManager();
 			case "jobscheduler":
 				return job_scheduler;
 			case "appops":
