@@ -142,7 +142,12 @@ Opening an `.apk` in a file manager or browser asks to install it, like
 Android's package installer. `res/desktop/com.gitlab.android_translation_layer.install.desktop`
 (installed to `share/applications`, hidden from the app grid) handles
 `application/vnd.android.package-archive` with
-`android-translation-layer --install-ask -w 360 -h 720 %f`.
+`android-translation-layer --install-ask --install-flatpak -w 360 -h 720 %f`:
+the app becomes its own sandboxed Flatpak (see below), with the internet
+question and runtime permissions. Until 2026-11-04 the handler installed
+without `--install-flatpak`, unsandboxed; apps installed that way, and by a
+store that does not run in a Flatpak, stay unsandboxed until they are
+moved (roadmap phase 6).
 
 An app installed from a file gets `--sdk-int` like the apps a store
 installs: 26, or the app's own `minSdkVersion` if that is higher (an
