@@ -195,8 +195,8 @@ entry: date, what, why. Remove an entry once it is done.
   went wrong; `/tmp/nav.log` shows `onBackPressed() called`.
 
 - 2026-11-03: HeliBoard as Phosh keyboard, a live test that undoes
-  itself after 15 minutes. Needs the packaged ATL with pull request #92
-  (after its aports pin). How the keyboard is started, checked on the
+  itself after 15 minutes. Needs the packaged ATL with pull requests #92
+  and #110 (colours in dark style; after their aports pin). How the keyboard is started, checked on the
   phone: under systemd, Stevia is the user service
   `mobi.phosh.OSK.service` (package `stevia-systemd`, `Type=dbus`,
   `Restart=on-failure`), pulled in with `Wants=` by Phosh's session, so
@@ -217,11 +217,12 @@ entry: date, what, why. Remove an entry once it is done.
   3. Automatic way back first, it needs no keyboard: in 15 minutes it
      stops HeliBoard and starts Stevia again:
      `systemd-run --user --unit=heliboard-revert --on-active=15min /bin/sh -c 'systemctl --user stop heliboard-osk; systemctl --user start mobi.phosh.OSK.service'`
-  4. Switch: `systemctl --user stop mobi.phosh.OSK.service && systemd-run --user --unit=heliboard-osk android-translation-layer --sdk-int 26 -l android/atl/ATLKeyboardViewer -e kb_class=helium314.keyboard.latin.LatinIME $HOME/helium314.keyboard_4201.apk`
-     (until HeliBoard is up after some seconds there is no keyboard).
+  4. Switch: `systemctl --user stop mobi.phosh.OSK.service && systemd-run --user --unit=heliboard-osk android-translation-layer --sdk-int 30 -l android/atl/ATLKeyboardViewer -e kb_class=helium314.keyboard.latin.LatinIME $HOME/helium314.keyboard_4201.apk`
+     (until HeliBoard is up after some seconds there is no keyboard;
+     `--sdk-int 30` so that HeliBoard follows the dark style).
   5. Try: type in a text field (Chatty, the browser, a terminal),
      suggestions, backspace, Enter, an umlaut by holding `a`, a password
-     field. Save the log: `journalctl --user -u heliboard-osk > /tmp/heliboard.log`.
+     field, light and dark style (keys and labels readable). Save the log: `journalctl --user -u heliboard-osk > /tmp/heliboard.log`.
   6. Back by hand: `systemctl --user stop heliboard-osk; systemctl --user start mobi.phosh.OSK.service; systemctl --user stop heliboard-revert.timer`,
      then `gsettings set org.gnome.desktop.screensaver lock-enabled X`
      with the value noted in step 1. Without a keyboard: wait for step 3,
