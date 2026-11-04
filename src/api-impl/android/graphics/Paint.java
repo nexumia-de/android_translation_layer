@@ -37,6 +37,7 @@ public class Paint {
 	public Paint(Paint paint) {
 		this.paint = native_clone(paint.paint);
 		typeface = paint.typeface;
+		color_filter = paint.color_filter;
 	}
 
 	public void setColor(int color) {
@@ -150,12 +151,7 @@ public class Paint {
 	}
 
 	public ColorFilter setColorFilter(ColorFilter colorFilter) {
-		if (colorFilter instanceof PorterDuffColorFilter) {
-			PorterDuffColorFilter porterDuff = (PorterDuffColorFilter)colorFilter;
-			native_set_color_filter(paint, porterDuff.getMode().ordinal(), porterDuff.getColor());
-		} else {
-			native_set_color_filter(paint, -1, 0);
-		}
+		native_set_color_filter(paint, colorFilter != null ? colorFilter.toColorMatrix() : null);
 		color_filter = colorFilter;
 		return colorFilter;
 	}
@@ -392,6 +388,7 @@ public class Paint {
 		native_recycle(this.paint);
 		this.paint = native_clone(paint.paint);
 		typeface = paint.typeface;
+		color_filter = paint.color_filter;
 	}
 
 	public boolean isFilterBitmap() { return false; }
@@ -457,7 +454,7 @@ public class Paint {
 	private static native int native_get_stroke_join(long paint);
 	private static native void native_set_text_size(long paint, float size);
 	private static native float native_get_text_size(long paint);
-	private static native void native_set_color_filter(long paint, int mode, int color);
+	private static native void native_set_color_filter(long paint, float[] matrix);
 	private static native void native_get_text_bounds(long paint, String text, Rect bounds);
 	private static native void native_set_text_align(long paint, int align);
 	private static native float native_get_font_metrics(long paint, FontMetrics metrics);
