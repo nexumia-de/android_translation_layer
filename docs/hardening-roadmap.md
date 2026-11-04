@@ -501,7 +501,7 @@ below the app:
 | `POST_NOTIFICATIONS` (API 33+) | notification portal | not asked: allowed, as the portal does | GNOME Settings (switch per app) |
 | `READ_CONTACTS`, `READ_CALENDAR`, `READ/SEND_SMS`, `READ_CALL_LOG`, `READ_PHONE_STATE` | not implemented by ATL: data stays empty | own dialog, so the app sees a real answer | App info |
 | `BIND_NOTIFICATION_LISTENER_SERVICE` (special access) | own answer | App info only, like Android's special access | App info |
-| `BLUETOOTH_CONNECT/SCAN` (API 31+), `BLUETOOTH`, `BLUETOOTH_ADMIN` | `--system-talk-name=org.bluez` as user override | own dialog | App info; next start |
+| `BLUETOOTH_CONNECT/SCAN` (API 31+), `BLUETOOTH`, `BLUETOOTH_ADMIN` | `--system-talk-name=org.bluez` as user override (`--system-no-talk-name` otherwise; apps without a Bluetooth permission never get it) | install page "Allow Bluetooth?" (no default, like internet: a static Flatpak permission, and Android grants it at install before API 31); the service's dialog for an API 31+ request also opens or closes it | App info (one Bluetooth switch); next start |
 | `BODY_SENSORS`, `ACTIVITY_RECOGNITION`; plain sensors (no permission) | iio-sensor-proxy (`--system-talk-name=net.hadess.SensorProxy`) for apps that use sensors | own dialog for the dangerous ones | App info; next start |
 | `READ/WRITE_EXTERNAL_STORAGE`, `READ_MEDIA_*`, `MANAGE_EXTERNAL_STORAGE` | none; file chooser and documents portals (Storage Access Framework) | granted inside the app's own storage | - |
 | `atl.google-services` (ATL's own) | own answer; the push client and other Google clients check it | own dialog with a warning, default denied | App info |
