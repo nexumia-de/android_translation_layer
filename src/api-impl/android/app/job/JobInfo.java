@@ -20,6 +20,7 @@ public class JobInfo {
 	boolean running;
 	long minLatencyMillis;
 	int networkType;
+	boolean waitedForOthers;
 
 	public JobInfo() {}
 

@@ -56,6 +56,9 @@ public class JobScheduler {
 				 * app scheduled them, like Android's maintenance windows. An app store's index
 				 * update then finishes before its app updates read the list it made (F-Droid). */
 				if (BACKGROUND && anotherJobRunning(job)) {
+					if (!job.waitedForOthers)
+						Slog.i(TAG, "job " + job.getId() + " waits for the running job");
+					job.waitedForOthers = true;
 					new Handler(Looper.getMainLooper()).postDelayed(this, SERIAL_RECHECK_MILLIS);
 					return;
 				}
@@ -72,6 +75,7 @@ public class JobScheduler {
 						service.onCreate();
 						runningServices.put(cls, service);
 					}
+					Slog.i(TAG, "starting job " + job.getId());
 					job.running = true;
 					boolean result = runningServices.get(cls).onStartJob(new JobParameters(job));
 					Slog.i(TAG, "onStartJob() returned " + result);
