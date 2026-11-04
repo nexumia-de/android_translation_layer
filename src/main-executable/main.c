@@ -335,6 +335,7 @@ struct jni_callback_data {
 	char *app_info;
 	gboolean android_apps;
 	char *network;
+	char *bluetooth;
 	char *prgname;
 	char **extra_jvm_options;
 	char **extra_string_keys;
@@ -488,6 +489,28 @@ static int flatpak_network_answer(const char *package_name)
 				answer = 0;
 		}
 		g_strfreev(shared);
+	}
+	g_key_file_free(key_file);
+	g_free(path);
+	g_free(id);
+	g_free(dir);
+	return answer;
+}
+
+/* the user's answer to "Allow Bluetooth?": the override's system bus policy for BlueZ.
+ * 1 allowed, 0 denied, -1 not answered yet */
+static int flatpak_bluetooth_answer(const char *package_name)
+{
+	char *dir = flatpak_user_dir();
+	char *id = g_strconcat(FLATPAK_APP_PREFIX, package_name, NULL);
+	char *path = g_build_filename(dir, "overrides", id, NULL);
+	int answer = -1;
+	GKeyFile *key_file = g_key_file_new();
+	if (g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, NULL)) {
+		char *policy = g_key_file_get_string(key_file, "System Bus Policy", "org.bluez", NULL);
+		if (policy)
+			answer = !strcmp(policy, "talk") ? 1 : !strcmp(policy, "none") ? 0 : -1;
+		g_free(policy);
 	}
 	g_key_file_free(key_file);
 	g_free(path);
@@ -681,6 +704,10 @@ static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject ap
 		g_ptr_array_add(argv, g_strdup("-N"));
 		g_ptr_array_add(argv, g_strdup(!strcmp(d->network, "yes") ? "yes" : "no"));
 	}
+	if (d->bluetooth) {
+		g_ptr_array_add(argv, g_strdup("-B"));
+		g_ptr_array_add(argv, g_strdup(!strcmp(d->bluetooth, "yes") ? "yes" : "no"));
+	}
 	for (int i = 0; i < nfiles; i++)
 		g_ptr_array_add(argv, g_file_get_path(files[i]));
 	g_ptr_array_add(argv, NULL);
@@ -739,6 +766,9 @@ struct install_request {
 	/* "Allow internet?" on the page: the question, and the answer (-1 none yet) */
 	GtkWidget *network_question;
 	int network_answer;
+	/* "Allow Bluetooth?" the same way */
+	GtkWidget *bluetooth_question;
+	int bluetooth_answer;
 	/* the data directory made for the opened file, which is not the installed app's */
 	gboolean remove_data_dir;
 };
@@ -918,6 +948,8 @@ static void install_ask_confirmed_flatpak(struct install_request *r)
 	g_ptr_array_add(argv, g_strdup(r->d->sdk_int ? r->d->sdk_int : r->default_sdk_int));
 	if (r->network_answer >= 0)
 		g_ptr_array_add(argv, g_strdup(r->network_answer ? "--network=yes" : "--network=no"));
+	if (r->bluetooth_answer >= 0)
+		g_ptr_array_add(argv, g_strdup(r->bluetooth_answer ? "--bluetooth=yes" : "--bluetooth=no"));
 	for (int i = 0; i < r->nfiles; i++)
 		g_ptr_array_add(argv, g_file_get_path(r->files[i]));
 	g_ptr_array_add(argv, NULL);
@@ -939,6 +971,8 @@ static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 	prompt_page_set_busy(page, r->updating ? "Updating…" : "Installing…");
 	if (r->network_question)
 		gtk_widget_set_sensitive(r->network_question, FALSE);
+	if (r->bluetooth_question)
+		gtk_widget_set_sensitive(r->bluetooth_question, FALSE);
 	if (r->d->install_flatpak) {
 		install_ask_confirmed_flatpak(r);
 		return;
@@ -961,12 +995,38 @@ static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 	g_object_unref(dest);
 }
 
+/* the action waits until every question on the page has an answer */
+static void update_install_action(struct install_request *r)
+{
+	gboolean answered = (!r->network_question || r->network_answer >= 0) &&
+	                    (!r->bluetooth_question || r->bluetooth_answer >= 0);
+	if (r->page->action)
+		gtk_widget_set_sensitive(r->page->action, answered);
+}
+
 static void network_answered(int answer, gpointer user_data)
 {
 	struct install_request *r = user_data;
 	r->network_answer = answer;
-	if (r->page->action)
-		gtk_widget_set_sensitive(r->page->action, TRUE);
+	update_install_action(r);
+}
+
+static void bluetooth_answered(int answer, gpointer user_data)
+{
+	struct install_request *r = user_data;
+	r->bluetooth_answer = answer;
+	update_install_action(r);
+}
+
+/* Bluetooth (BlueZ on the system bus) is a static Flatpak permission like the network, so it is
+ * asked here, before the first start; Android grants it at install for apps made before Android 12 */
+static void ask_bluetooth(struct install_request *r)
+{
+	r->bluetooth_question = prompt_page_add_question(r->page, "Allow Bluetooth?",
+	                                                 "Allow Bluetooth", "The app can find and connect to devices like watches",
+	                                                 "No Bluetooth", "The app cannot use Bluetooth",
+	                                                 bluetooth_answered, r);
+	update_install_action(r);
 }
 
 /* Internet is asked, never granted by default (docs/hardening-roadmap.md, phase 4): no answer is
@@ -977,8 +1037,7 @@ static void ask_network(struct install_request *r)
 	                                               "Allow internet", "The app can connect to any server",
 	                                               "No internet", "The app works offline only",
 	                                               network_answered, r);
-	if (r->page->action)
-		gtk_widget_set_sensitive(r->page->action, FALSE);
+	update_install_action(r);
 }
 
 static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv *env, jobject application_object, GFile **files,
@@ -996,6 +1055,7 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 		r->files[i] = g_object_ref(files[i]);
 	r->nfiles = nfiles;
 	r->network_answer = -1;
+	r->bluetooth_answer = -1;
 	r->app_data_dir_base = g_strdup(app_data_dir_base);
 	char *installed_data_dir = g_strdup_printf("%s/%s.apk_/", app_data_dir_base, package_name);
 	r->remove_data_dir = !data_dir_existed && strcmp(app_data_dir, installed_data_dir);
@@ -1099,6 +1159,12 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 		if (permissions_contain(permissions, "android.permission.INTERNET") &&
 		    (state == INSTALL_NEW || flatpak_network_answer(package_name) < 0))
 			ask_network(r);
+		if ((permissions_contain(permissions, "android.permission.BLUETOOTH") ||
+		     permissions_contain(permissions, "android.permission.BLUETOOTH_ADMIN") ||
+		     permissions_contain(permissions, "android.permission.BLUETOOTH_CONNECT") ||
+		     permissions_contain(permissions, "android.permission.BLUETOOTH_SCAN")) &&
+		    (state == INSTALL_NEW || flatpak_bluetooth_answer(package_name) < 0))
+			ask_bluetooth(r);
 		g_free(permissions);
 	}
 	gtk_window_present(r->page->window);
@@ -1964,7 +2030,7 @@ static void uninstall_flatpak_confirmed(struct prompt_page *page, gpointer user_
 		fprintf(stderr, "uninstall-flatpak: %s\n", err->message);
 		g_clear_error(&err);
 	} else {
-		/* the answers given for this app (internet), so a new install asks again */
+		/* the answers given for this app (internet, Bluetooth), so a new install asks again */
 		const char *reset_argv[] = {"flatpak", "override", "--user", "--reset", id, NULL};
 		if (!g_spawn_sync(NULL, (char **)reset_argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &wait_status, &err) ||
 		    !g_spawn_check_wait_status(wait_status, &err)) {
@@ -2072,6 +2138,7 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "install-internal",  0 , 0, G_OPTION_ARG_NONE,         &d->install_internal,          "copy an apk to _installed_apks_ but don't create a desktop entry",                             NULL            },
 		{ "install-ask",       0 , 0, G_OPTION_ARG_NONE,         &d->install_ask,               "ask before installing the given apk, like Android's package installer (for opening apk files)", NULL            },
 		{ "install-flatpak",   0 , 0, G_OPTION_ARG_NONE,         &d->install_flatpak,           "install the given apk as its own Flatpak, without running its code",                           NULL            },
+		{ "bluetooth",         0 , 0, G_OPTION_ARG_STRING,       &d->bluetooth,                 "--install-flatpak: allow Bluetooth (yes) or not (no), kept for updates; unset keeps the answer", "yes|no"        },
 		{ "network",           0 , 0, G_OPTION_ARG_STRING,       &d->network,                   "--install-flatpak: allow internet (yes) or not (no), kept for updates; unset keeps the answer",  "yes|no"        },
 		{ "installer-name",    0 , 0, G_OPTION_ARG_STRING,       &d->installer_name,            "the app store that asks to install or uninstall (shown on the page)",                          "NAME"          },
 		{ "uninstall-flatpak", 0 , 0, G_OPTION_ARG_STRING,       &d->uninstall_flatpak,         "ask, then remove the Flatpak of an app installed with --install-flatpak and its data",         "PACKAGE"       },
