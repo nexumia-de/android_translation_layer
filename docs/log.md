@@ -200,4 +200,14 @@ done yet.
 'appstream2/aarch64' in remote atl-local". `make-app-flatpak` exported
 apps without appstream data; it now runs `flatpak build-update-repo`
 after each export ([development environment](dev-environment.md#app-flatpaks)).
+## 2026-11-04: Bluetooth asked on first use, not at install
+
+The install page asked "Allow Bluetooth?" for every app with a Bluetooth
+permission, F-Droid included, which uses it only to swap apps nearby. It
+is now asked when an app first uses Bluetooth; "Allow" opens BlueZ in
+the sandbox and restarts the app once ([installing apps](installing-apps.md)).
+The permission service freed each request's key twice and crashed after
+every answer (D-Bus started it again for the next question). Headless:
+`flatpak/bluetooth-test.sh` (10 checks), `flatpak/permissions-test.sh`
+(24 checks).
 
