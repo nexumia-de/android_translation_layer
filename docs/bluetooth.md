@@ -74,6 +74,7 @@ user `claude`).
 | GATT server (`openGattServer`) | returns null; Gadgetbridge devices that need a server on the phone fail to connect | medium: BlueZ `GattManager1` with exported objects, about 2 days |
 | RFCOMM sockets | `connect()` throws; classic devices (Pebble and other older watches) cannot connect | medium: a BlueZ `Profile1` object that receives the socket, about 1 day |
 | Profile proxies (A2DP, headset) | `getProfileProxy` returns false | out of scope, the desktop's audio stack owns them |
+| Bluetooth inside an app's own Flatpak | the sandbox has no system bus, so BlueZ is unreachable: a sandboxed Gadgetbridge finds no adapter. The feature `android.hardware.bluetooth` is still reported (from `/sys/class/bluetooth`), so stores in a Flatpak list Bluetooth apps as compatible (2026-11-04) | small-medium: `--system-talk-name=org.bluez` as user override after the app's own permission dialog ([roadmap](hardening-roadmap.md#mapping)), plus a check that the pairing agent works through the proxy |
 | Bearer choice | `TRANSPORT_LE` on dual-mode devices is not passed to BlueZ | small, needs BlueZ 5.80 `Bearer` interfaces |
 
 # Testing
