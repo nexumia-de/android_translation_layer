@@ -194,3 +194,10 @@ waits for a job's network (Wi-Fi-only updates). End to end headless:
 F-Droid in its own Flatpak updated Chooser 1.4.11 to 1.5.0 by its own
 update job, without a page. Updates while the store is closed are not
 done yet.
+## 2026-11-04: atl-local gets appstream branches
+
+`flatpak update --user` failed on the owner's phone: "No such ref
+'appstream2/aarch64' in remote atl-local". `make-app-flatpak` exported
+apps without appstream data; it now runs `flatpak build-update-repo`
+after each export ([development environment](dev-environment.md#app-flatpaks)).
+

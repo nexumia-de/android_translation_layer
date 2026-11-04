@@ -213,6 +213,9 @@ flatpak build-finish "$build" --socket=wayland --device=dri --share=ipc \
 	--filesystem=xdg-run/atl-pulse-norecord:ro --env=PULSE_SERVER="unix:$norecord_dir/native" \
 	--talk-name=org.sigxcpu.Feedback $finish >/dev/null
 flatpak build-export "$repo" "$build" stable >/dev/null
+# the appstream branches: without them "flatpak update" fails on the remote
+# ("No such ref 'appstream2/aarch64' in remote atl-local")
+flatpak build-update-repo "$repo" >/dev/null
 flatpak remote-add --user --if-not-exists --no-gpg-verify atl-local "$repo"
 flatpak remote-modify --user --url="file://$repo" atl-local
 # not "flatpak info": Flatpak 1.18.4 aborts in it for apps from atl-local (exit status 134), which
