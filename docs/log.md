@@ -170,3 +170,16 @@ answers it without starting the app and calls the permission service's
 new `OpenAppInfo` (interface version 2), which opens `--app-info` for
 the caller on the host. Headless: the service part (`permissions-test.sh`,
 24 checks); the in-sandbox part needs an engine build.
+
+## 2026-11-04: updates without asking
+
+App stores in their own Flatpak may update the apps they installed
+without the install page, as on Android 12+, once **Update Apps Without
+Asking** is on in the store's App info, and only for updates that ask
+for nothing new ([installing apps](installing-apps.md#updates-without-asking)).
+The installer of record is kept in each app Flatpak,
+`setRequireUserAction` reaches the host, `getInstallerPackageName`
+answers from the record (installer interface version 2), a notification
+tells about each such update. The main program's option struct is
+zeroed before parsing (a new field made `--install-flatpak` crash).
+Headless (`flatpak/auto-update-test.sh`, 19 checks, all ok).
