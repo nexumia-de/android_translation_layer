@@ -2147,7 +2147,8 @@ int main(int argc, char **argv)
 
 	libc_bio_set_apply_path_overrides_func(apply_path_overrides);
 
-	struct jni_callback_data *callback_data = malloc(sizeof(struct jni_callback_data));
+	/* zeroed: only some options are set below, the others stay unset unless given */
+	struct jni_callback_data *callback_data = calloc(1, sizeof(struct jni_callback_data));
 	callback_data->apk_main_activity_class = NULL;
 	callback_data->apk_instrumentation_class = NULL;
 	/* 0: the size of the monitor, see get_window_size */
