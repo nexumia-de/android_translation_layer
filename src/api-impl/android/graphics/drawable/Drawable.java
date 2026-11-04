@@ -46,6 +46,15 @@ public class Drawable {
 
 	private Callback callback = null;
 
+	/* Color filter and tint. Kept per drawable, so every drawable behaves as if mutated. */
+	private ColorFilter mColorFilter;
+	private ColorStateList mTintList;
+	private PorterDuff.Mode mTintMode = DEFAULT_TINT_MODE;
+	private PorterDuffColorFilter mTintFilter;
+	/* paintable is a native filter paintable (see setFilteredPaintable) */
+	private boolean mFilteredPaintable;
+	private boolean mInSetTintMode;
+
 	public Drawable() {
 		this.paintable = native_constructor();
 	}
@@ -153,7 +162,8 @@ public class Drawable {
 	}
 
 	public void invalidateSelf() {
-		native_invalidate(paintable);
+		if (paintable != 0)
+			native_invalidate(paintable);
 
 		/* this shouldn't ever be needed with Gtk, but let's play it safe for now */
 		if (this.callback != null) {
@@ -190,7 +200,9 @@ public class Drawable {
 
 	private int mLevel = 0;
 
-	public void clearColorFilter() {}
+	public void clearColorFilter() {
+		setColorFilter(null);
+	}
 
 	public final int getLevel() {
 		return mLevel;
@@ -211,9 +223,58 @@ public class Drawable {
 	public void setColorFilter(int color, PorterDuff.Mode mode) {
 		setColorFilter(new PorterDuffColorFilter(color, mode));
 	}
-	public void setColorFilter(ColorFilter filter) {}
+	public void setColorFilter(ColorFilter filter) {
+		if (mColorFilter != filter) {
+			mColorFilter = filter;
+			colorFilterChanged();
+		}
+	}
 
-	public ColorFilter getColorFilter() { return null; }
+	public ColorFilter getColorFilter() {
+		return mColorFilter;
+	}
+
+	/**
+	 * Draws the child paintable through this drawable's color filter or tint. For drawables
+	 * whose paintable is drawn natively (bitmaps, nine-patches).
+	 */
+	void setFilteredPaintable(long child) {
+		if (child == 0) {
+			setPaintable(0);
+			mFilteredPaintable = false;
+			return;
+		}
+		long filtered = native_filter_paintable_new(child);
+		setPaintable(filtered);
+		native_unref(filtered);
+		mFilteredPaintable = true;
+		applyColorFilter(getEffectiveColorFilter());
+	}
+
+	/* the color filter wins over the tint, as in AOSP */
+	ColorFilter getEffectiveColorFilter() {
+		return mColorFilter != null ? mColorFilter : mTintFilter;
+	}
+
+	/* called when the effective color filter changed */
+	void applyColorFilter(ColorFilter filter) {
+		if (mFilteredPaintable)
+			native_set_color_filter(paintable, filter != null ? filter.toColorMatrix() : null);
+	}
+
+	private void colorFilterChanged() {
+		applyColorFilter(getEffectiveColorFilter());
+		invalidateSelf();
+	}
+
+	private boolean updateTint() {
+		PorterDuffColorFilter tintFilter = updateTintFilter(mTintFilter, mTintList, mTintMode);
+		if (tintFilter == mTintFilter)
+			return false;
+		mTintFilter = tintFilter;
+		colorFilterChanged();
+		return true;
+	}
 
 	public Drawable mutate() {
 		return this;
@@ -225,7 +286,10 @@ public class Drawable {
 	@Export
 	public int getIntrinsicHeight() { return -1; }
 
-	public void setTintList(ColorStateList tint) {}
+	public void setTintList(ColorStateList tint) {
+		mTintList = tint;
+		updateTint();
+	}
 
 	public void setTint(int tint) {
 		setTintList(ColorStateList.valueOf(tint));
@@ -251,7 +315,6 @@ public class Drawable {
 
 	/* Copyright (C) 2006 The Android Open Source Project */
 	PorterDuffColorFilter updateTintFilter(PorterDuffColorFilter tintFilter, ColorStateList tint, PorterDuff.Mode tintMode) {
-		System.out.println("updateTintFilter(" + tintFilter + ", " + tint + ", " + tintMode + ")");
 		if (tint == null || tintMode == null) {
 			return null;
 		}
@@ -263,10 +326,37 @@ public class Drawable {
 	}
 
 	public boolean isStateful() {
-		return false;
+		return mTintList != null && mTintList.isStateful();
 	}
 
-	public void setTintMode(PorterDuff.Mode tintMode) {}
+	/* As in AOSP, setTintMode and setTintBlendMode call each other, so a subclass may override
+	 * either. Without an override the second call stores the mode. */
+	public void setTintMode(PorterDuff.Mode tintMode) {
+		if (mInSetTintMode) {
+			mTintMode = tintMode;
+			updateTint();
+			return;
+		}
+		mInSetTintMode = true;
+		try {
+			setTintBlendMode(blendModeFromPorterDuff(tintMode));
+		} finally {
+			mInSetTintMode = false;
+		}
+	}
+
+	private static BlendMode blendModeFromPorterDuff(PorterDuff.Mode mode) {
+		if (mode == null)
+			return null;
+		switch (mode) {
+			case ADD:
+				return BlendMode.PLUS;
+			case MULTIPLY:
+				return BlendMode.MODULATE;
+			default:
+				return BlendMode.valueOf(mode.name());
+		}
+	}
 
 	public boolean isProjected() { return false; }
 
@@ -385,7 +475,7 @@ public class Drawable {
 	}
 
 	protected boolean onStateChange(int[] stateSet) {
-		return false;
+		return mTintList != null && mTintList.isStateful() && updateTint();
 	}
 
 	public void setAlpha(int alpha) {}
@@ -497,7 +587,9 @@ public class Drawable {
 		return false;
 	}
 
-	public void setTintBlendMode(BlendMode blendMode) {}
+	public void setTintBlendMode(BlendMode blendMode) {
+		setTintMode(BlendMode.blendModeToPorterDuffMode(blendMode));
+	}
 
 	public boolean canApplyTheme() {
 		return false;
@@ -533,4 +625,6 @@ public class Drawable {
 	protected native void native_draw(long paintable, long snapshot, int width, int height);
 	protected native void native_ref(long paintable);
 	protected native void native_unref(long paintable);
+	private static native long native_filter_paintable_new(long child);
+	private static native void native_set_color_filter(long paintable, float[] matrix);
 }

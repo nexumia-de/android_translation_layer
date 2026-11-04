@@ -25,13 +25,32 @@ public class BitmapDrawable extends Drawable {
 	public BitmapDrawable(Resources res, Bitmap bitmap) {
 		this.bitmap = bitmap;
 		if (bitmap != null)
-			setPaintable(bitmap.getTexture());
+			setFilteredPaintable(bitmap.getTexture());
 	}
 
 	public BitmapDrawable(Bitmap bitmap) {
-		this.bitmap = bitmap;
-		if (bitmap != null)
-			setPaintable(bitmap.getTexture());
+		this(null, bitmap);
+	}
+
+	/* a new drawable for the same bitmap, with its own color filter and tint */
+	@Override
+	public ConstantState getConstantState() {
+		return new ConstantState() {
+			@Override
+			public Drawable newDrawable() {
+				return new BitmapDrawable(null, bitmap);
+			}
+
+			@Override
+			public Drawable newDrawable(Resources res) {
+				return new BitmapDrawable(res, bitmap);
+			}
+
+			@Override
+			public int getChangingConfigurations() {
+				return 0;
+			}
+		};
 	}
 
 	public Bitmap getBitmap() {
@@ -56,7 +75,7 @@ public class BitmapDrawable extends Drawable {
 		a.recycle();
 		if (bitmap == null)
 			throw new XmlPullParserException("<bitmap> needs a valid `src' attribute");
-		setPaintable(bitmap.getTexture());
+		setFilteredPaintable(bitmap.getTexture());
 	}
 
 	@Override

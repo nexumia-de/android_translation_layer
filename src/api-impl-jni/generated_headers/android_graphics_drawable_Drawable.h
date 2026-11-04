@@ -55,6 +55,22 @@ JNIEXPORT void JNICALL Java_android_graphics_drawable_Drawable_native_1ref
 JNIEXPORT void JNICALL Java_android_graphics_drawable_Drawable_native_1unref
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     android_graphics_drawable_Drawable
+ * Method:    native_filter_paintable_new
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_android_graphics_drawable_Drawable_native_1filter_1paintable_1new
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     android_graphics_drawable_Drawable
+ * Method:    native_set_color_filter
+ * Signature: (J[F)V
+ */
+JNIEXPORT void JNICALL Java_android_graphics_drawable_Drawable_native_1set_1color_1filter
+  (JNIEnv *, jclass, jlong, jfloatArray);
+
 #ifdef __cplusplus
 }
 #endif
