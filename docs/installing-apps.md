@@ -415,10 +415,16 @@ the same, with a switch the user turns on per store:
   file has none. `PackageManager.getInstallerPackageName()` answers from
   it inside a Flatpak (`GetInstaller`, interface version 2); F-Droid
   uses it to tell its own apps from others.
-- **The store asks**: `setRequireUserAction` is kept in the session;
-  `USER_ACTION_NOT_REQUIRED` becomes the option `unattended` of
-  `Install`, which the service passes on as `--unattended` only for a
-  caller in a sandbox. An older service ignores the option and asks.
+- **The store asks**: `setRequireUserAction` is kept in the session.
+  Stores run here with `--sdk-int 26`, below the level where F-Droid
+  and Aurora set `USER_ACTION_NOT_REQUIRED`, and running them at 31
+  would reach about 300 API gaps behind SDK checks (F-Droid crashed at
+  start on `WindowManager.getCurrentWindowMetrics`; Compose uses
+  `RenderNode` and `ImageDecoder` there). So the user's switch is the
+  consent: every session that does not set `USER_ACTION_REQUIRED`
+  becomes the option `unattended` of `Install`, which the service
+  passes on as `--unattended` only for a caller in a sandbox. An older
+  service ignores the option and asks.
 - **The user allows it**: App info of an app that requests
   `REQUEST_INSTALL_PACKAGES` has **App Store → Update Apps Without
   Asking**, off by default. It is the entry `atl.update-without-asking`
@@ -439,10 +445,34 @@ the same, with a switch the user turns on per store:
 - **Afterwards** a notification "<App> updated" says which store
   updated it to which version, as Android does.
 
-Not done yet: stores run with `--sdk-int 26`, where F-Droid and Aurora
-never ask for an update without the user, and they only check for
-updates while open. Reporting SDK 31 to the installer API and a timer
-on the host that starts the stores' update checks are the next step.
+**F-Droid's automatic updates.** F-Droid 2.0.2 updates apps itself in
+`AppUpdateWorker`, a WorkManager job every 24 hours (flex 60 min) on
+Wi-Fi by default (setting `appAutoUpdates`: `OnlyWifi`, `Always`,
+`Never`), and `RepoUpdateWorker` updates the index every 4 hours. In
+ATL these run while F-Droid runs: WorkManager plans each job again at
+every start, and an overdue one runs right away. ATL's `JobScheduler`
+waits for the network a job requires (Wi-Fi only: an unmetered network,
+from the portal's `NetworkMonitor`). With the switch on, a due update
+job installs every update F-Droid lists without a page, and F-Droid
+and ATL each show a notification. F-Droid only offered updates for
+apps whose signer it can read: `PackageInfo.signatures` now comes from
+the APK Signature Scheme v3 or v2 block too, not only v1 (Chooser from
+F-Droid is signed with v2/v3 only, and F-Droid never listed its update).
+
+End to end on 2026-11-04, headless, F-Droid as its own Flatpak with
+`--sdk-int 26` on the engine built from this code, Chooser 1.4.11 from
+f-droid.org installed with F-Droid as installer of record, the switch
+on, F-Droid's update job made due (`last_enqueue_time` moved back in
+its `androidx.work.workdb`): F-Droid showed the update and installed
+Chooser 1.5.0 without a page.
+
+Not yet: updates while the store is closed. A store started without a
+window does not list its updates in time: F-Droid's `updateAll` takes
+the list in memory (`UpdatesManager.updates`), which in a cold start
+without its UI is filled only after an index change, and returns when
+it is empty. Work in progress on branch `claude/store-background-updates`
+(a `--background` start, a user timer `atl-store-updates.timer`, jobs
+one after another).
 
 Headless check: `flatpak/auto-update-test.sh` (fake store in bwrap,
 the service and ATL from the build directory, a fake
@@ -606,6 +636,9 @@ checked), installed like F-Droid with `--install --sdk-int 26 -w 360 -h
   art_standalone, 12 s) and in `art_standalone@nexumia` from
   nexumia-de/aports; Alpine's own `art_standalone` does not have it.
 - Installed apps show a generic icon in F-Droid.
+- `JobScheduler` checks only the network of a job; idle, charging,
+  battery and storage constraints are not checked, and a job runs only
+  while its app runs.
 - An APK installed by hand with `--install` keeps its file name, e.g.
   `com.uravgcode.chooser_26.apk`, so F-Droid does not see it as
   installed. Open the file instead (`--install-ask`, see above), which
