@@ -32,8 +32,8 @@ static const struct permission_row permission_rows[] = {
 	{"android.permission.SEND_SMS", "Send text messages"},
 	{"android.permission.READ_CALL_LOG", "Call log"},
 	{"android.permission.READ_PHONE_STATE", "Phone state"},
-	{"android.permission.BLUETOOTH_CONNECT", "Bluetooth devices"},
-	{"android.permission.BLUETOOTH_SCAN", "Find Bluetooth devices"},
+	/* one switch for both Bluetooth permissions and the app's access to BlueZ, which cannot be split */
+	{"android.permission.BLUETOOTH_CONNECT", "Bluetooth"},
 	{"android.permission.BODY_SENSORS", "Body sensors"},
 	{"android.permission.ACTIVITY_RECOGNITION", "Physical activity"},
 	{"atl.google-services", "Google services"},
@@ -217,6 +217,36 @@ static gboolean apply_microphone(struct app_info *info, gboolean yes)
 	return ok;
 }
 
+/* Bluetooth is also enforced by the app's sandbox (BlueZ on the system bus), the override
+ * make-app-flatpak writes for the install page's answer */
+static gboolean is_bluetooth(const char *permission)
+{
+	return !strcmp(permission, "android.permission.BLUETOOTH_CONNECT");
+}
+
+static gboolean apply_bluetooth(struct app_info *info, gboolean yes)
+{
+	const char *argv[] = {"flatpak", "override", "--user", yes ? "--system-talk-name=org.bluez" : "--system-no-talk-name=org.bluez",
+	                      info->id, NULL};
+	return run(argv);
+}
+
+/* the app asks with BLUETOOTH_CONNECT or BLUETOOTH_SCAN, made before Android 12 with BLUETOOTH */
+static int app_requests_bluetooth(struct app_info *info)
+{
+	const char *permissions[] = {"android.permission.BLUETOOTH", "android.permission.BLUETOOTH_ADMIN",
+	                             "android.permission.BLUETOOTH_CONNECT", "android.permission.BLUETOOTH_SCAN"};
+	int requested = 0;
+	for (gsize i = 0; i < G_N_ELEMENTS(permissions); i++) {
+		int r = app_requests(info, permissions[i]);
+		if (r > 0)
+			return 1;
+		if (r < 0)
+			requested = -1;
+	}
+	return requested;
+}
+
 static gboolean store_answer(struct app_info *info, const char *permission, gboolean yes)
 {
 	/* "no" from here may be asked again by the app, like revoking on Android */
@@ -240,18 +270,20 @@ static void permission_toggled(AdwSwitchRow *row, GParamSpec *pspec, struct app_
 	const char *permission = g_object_get_data(G_OBJECT(row), "permission");
 	gboolean yes = adw_switch_row_get_active(row);
 	gboolean microphone = !strcmp(permission, "android.permission.RECORD_AUDIO");
-	/* the socket first: the stored answer must never claim less than the app can do */
-	if (microphone && !apply_microphone(info, yes)) {
-		adw_toast_overlay_add_toast(info->toasts, adw_toast_new("Could not change the microphone"));
+	gboolean bluetooth = is_bluetooth(permission);
+	/* the sandbox first: the stored answer must never claim less than the app can do */
+	if ((microphone && !apply_microphone(info, yes)) || (bluetooth && !apply_bluetooth(info, yes))) {
+		adw_toast_overlay_add_toast(info->toasts, adw_toast_new(microphone ? "Could not change the microphone"
+		                                                                   : "Could not change Bluetooth"));
 		g_signal_handlers_block_by_func(row, permission_toggled, info);
 		adw_switch_row_set_active(row, !yes);
 		g_signal_handlers_unblock_by_func(row, permission_toggled, info);
 		return;
 	}
-	if (!store_answer(info, permission, yes))
+	if (!store_answer(info, permission, yes) || (bluetooth && !store_answer(info, "android.permission.BLUETOOTH_SCAN", yes)))
 		return;
 	adw_action_row_set_subtitle(ADW_ACTION_ROW(row), NULL); // answered now
-	if (microphone)
+	if (microphone || bluetooth)
 		changed_static_permission(info);
 }
 
@@ -398,9 +430,15 @@ void app_info_show(GtkApplication *app, const char *package, const char *prgname
 		adw_preferences_group_add(ADW_PREFERENCES_GROUP(permissions), row);
 	}
 	for (gsize i = 0; i < G_N_ELEMENTS(permission_rows); i++) {
-		int answer = info->bus ? stored_answer(info, permission_rows[i].permission) : -1;
+		const char *permission = permission_rows[i].permission;
+		int answer = info->bus ? stored_answer(info, permission) : -1;
+		int requested = app_requests(info, permission);
+		if (is_bluetooth(permission)) {
+			int scan = info->bus ? stored_answer(info, "android.permission.BLUETOOTH_SCAN") : -1;
+			answer = answer == 1 || scan == 1 ? 1 : MAX(answer, scan);
+			requested = app_requests_bluetooth(info);
+		}
 		/* the ones the app requests, and Google services once the app asked for them */
-		int requested = app_requests(info, permission_rows[i].permission);
 		if (requested == 0 || (requested < 0 && answer < 0) ||
 		    (!strcmp(permission_rows[i].permission, "atl.google-services") && answer < 0))
 			continue;

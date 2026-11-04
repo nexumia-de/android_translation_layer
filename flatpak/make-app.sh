@@ -20,6 +20,9 @@
 #   -N yes|no   internet: the user's answer for an app with android.permission.INTERNET,
 #               written as a user override (flatpak override --user); without -N an
 #               earlier answer stays, and without any answer the app has no network
+#   -B yes|no   Bluetooth: the user's answer for an app with a Bluetooth permission
+#               (BlueZ on the system bus), a user override like -N; also stored as the
+#               answer to BLUETOOTH_CONNECT and BLUETOOTH_SCAN in the permission store
 #   -T SDK      the APK's target SDK (the permission service reviews apps below 23)
 #   -I PACKAGE  the app store that installs it (installer of record); none for a file
 #   -f ARG      extra finish-arg, repeatable, e.g. -f --share=network
@@ -34,11 +37,11 @@ set -eu
 
 base=de.nexumia.atl.BaseApp
 repo=$HOME/.local/share/android_translation_layer/flatpak-repo
-version= target_sdk= installer= pkg= name= icon= atl_args= finish= mime_types= permissions= network=
+version= target_sdk= installer= pkg= name= icon= atl_args= finish= mime_types= permissions= network= bluetooth=
 
 usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit "${1:-0}"; }
 
-while getopts "p:n:i:b:a:m:P:N:V:f:r:hT:I:" opt; do
+while getopts "p:n:i:b:a:m:P:N:B:V:f:r:hT:I:" opt; do
 	case $opt in
 	p) pkg=$OPTARG ;;
 	n) name=$OPTARG ;;
@@ -49,6 +52,7 @@ while getopts "p:n:i:b:a:m:P:N:V:f:r:hT:I:" opt; do
 	P) permissions=$OPTARG ;;
 	T) target_sdk=$OPTARG ;;
 	N) network=$OPTARG ;;
+	B) bluetooth=$OPTARG ;;
 	V) version=$OPTARG ;;
 	I) installer=$OPTARG ;;
 	f) finish="$finish $OPTARG" ;;
@@ -60,6 +64,7 @@ done
 shift $((OPTIND - 1))
 [ $# -ge 1 ] && [ -n "$pkg" ] || usage 1
 case $network in yes | no | '') ;; *) echo "-N: yes or no, not $network" >&2; exit 1 ;; esac
+case $bluetooth in yes | no | '') ;; *) echo "-B: yes or no, not $bluetooth" >&2; exit 1 ;; esac
 # The package name, label and schemes come from the APK: check the name
 # like Android does, and keep the label to one line of a desktop file.
 if ! printf '%s\n' "$pkg" | grep -Eqx '[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+'; then
@@ -73,13 +78,15 @@ id=de.nexumia.atl.$pkg
 # phase 4); the rest needs portals or the broker and is not granted.
 # Internet is never in the metadata: the user is asked (-N), and the
 # answer is a user override that updates keep.
-wants_network=
+wants_network= wants_bluetooth=
 for perm in $(printf '%s' "$permissions" | tr ';' ' '); do
 	case $perm in
 	# network (asked separately), and the host's UnifiedPush distributor for push messages (docs/push.md)
 	android.permission.INTERNET) wants_network=1; finish="$finish --talk-name=org.unifiedpush.Distributor.*" ;;
 	# app stores: the host's installer service, which asks the user (for updates without asking only if allowed in App info)
 	android.permission.REQUEST_INSTALL_PACKAGES) finish="$finish --talk-name=de.nexumia.atl.Installer" ;;
+	# BlueZ on the system bus (asked separately, like the network)
+	android.permission.BLUETOOTH | android.permission.BLUETOOTH_ADMIN | android.permission.BLUETOOTH_CONNECT | android.permission.BLUETOOTH_SCAN) wants_bluetooth=1 ;;
 	esac
 done
 
@@ -222,6 +229,26 @@ elif [ "$network" = yes ]; then
 	flatpak override --user --share=network "$id"
 elif [ "$network" = no ]; then
 	flatpak override --user --unshare=network "$id"
+fi
+# Bluetooth the same way; the permission service and App info read the answer from the permission
+# store (BLUETOOTH_CONNECT, BLUETOOTH_SCAN) and write this override when it changes
+store_bluetooth() {
+	for perm in android.permission.BLUETOOTH_CONNECT android.permission.BLUETOOTH_SCAN; do
+		gdbus call --session --dest org.freedesktop.impl.portal.PermissionStore \
+			--object-path /org/freedesktop/impl/portal/PermissionStore \
+			--method org.freedesktop.impl.portal.PermissionStore.SetPermission \
+			de.nexumia.atl true "$perm" "$id" "$1" >/dev/null ||
+			echo "warning: could not store the Bluetooth answer" >&2
+	done
+}
+if [ -z "$wants_bluetooth" ]; then
+	flatpak override --user --system-no-talk-name=org.bluez "$id"
+elif [ "$bluetooth" = yes ]; then
+	flatpak override --user --system-talk-name=org.bluez "$id"
+	store_bluetooth "['yes']"
+elif [ "$bluetooth" = no ]; then
+	flatpak override --user --system-no-talk-name=org.bluez "$id"
+	store_bluetooth "['no', '1']"
 fi
 # back navigation as chosen on the "Android apps" page (android-translation-layer --android-apps)
 settings=${XDG_CONFIG_HOME:-$HOME/.config}/android_translation_layer/settings.ini

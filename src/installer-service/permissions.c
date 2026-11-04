@@ -197,6 +197,32 @@ static void apply_microphone_answer(const char *app_id, gboolean yes)
 	g_free(norecord);
 }
 
+/* Bluetooth is also enforced by the app's sandbox: BlueZ on the system bus only with a Flatpak user
+ * override (make-app-flatpak writes it for the install page's answer). Either Bluetooth permission
+ * allowed opens it, since BlueZ cannot be split; it closes when neither is. Applies from the app's
+ * next start. */
+static gboolean is_bluetooth(const char *permission)
+{
+	return !strcmp(permission, "android.permission.BLUETOOTH_CONNECT") || !strcmp(permission, "android.permission.BLUETOOTH_SCAN");
+}
+
+static void apply_bluetooth_answer(GDBusConnection *bus, const char *app_id)
+{
+	int denials;
+	gboolean yes = stored_answer(bus, app_id, "android.permission.BLUETOOTH_CONNECT", &denials) == 1 ||
+	               stored_answer(bus, app_id, "android.permission.BLUETOOTH_SCAN", &denials) == 1;
+	const char *argv[] = {"flatpak", "override", "--user", yes ? "--system-talk-name=org.bluez" : "--system-no-talk-name=org.bluez",
+	                      app_id, NULL};
+	int wait_status;
+	GError *err = NULL;
+	if (!g_spawn_sync(NULL, (char **)argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL, NULL, NULL, NULL, NULL,
+	                  &wait_status, &err) ||
+	    !g_spawn_check_wait_status(wait_status, &err)) {
+		g_warning("Bluetooth override for %s: %s", app_id, err->message);
+		g_error_free(err);
+	}
+}
+
 /* Background location (Android 11's rule, agreed with the location portal work, #76): only for an app
  * that already has location in the foreground, i.e. a location portal grant (xdg-desktop-portal's
  * table "location", value [accuracy, last use]); otherwise "no" without a dialog. */
@@ -289,6 +315,8 @@ static void dialog_answered(GObject *source, GAsyncResult *res, gpointer user_da
 		store_answer(r->bus, r->app_id, r->permission, yes, yes ? 0 : denials + 1);
 		if (!strcmp(r->permission, "android.permission.RECORD_AUDIO"))
 			apply_microphone_answer(r->app_id, yes);
+		else if (is_bluetooth(r->permission))
+			apply_bluetooth_answer(r->bus, r->app_id);
 	}
 	g_message("%s %s: %s (response %u)", r->app_id, r->permission, yes ? "yes" : "no", response);
 	request_answer(r, yes ? "yes" : "no");
