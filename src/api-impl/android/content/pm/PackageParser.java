@@ -35,6 +35,9 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Slog;
 import android.util.TypedValue;
+import android.util.apk.ApkSignatureSchemeV2Verifier;
+import android.util.apk.ApkSignatureSchemeV3Verifier;
+import android.util.apk.SignatureNotFoundException;
 import com.android.internal.util.XmlUtils;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -47,6 +50,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
@@ -611,8 +615,48 @@ public class PackageParser {
 		}
 	}
 
+	/* The signer from the APK Signature Scheme v3 or v2 block, as Android reads it before v1; without
+	 * verifying the digests (installed APKs were verified at install, android.atl.ApkSigners).
+	 * APKs for minSdk 24 and later are often signed with v2/v3 only (F-Droid's Chooser), and without
+	 * this they had no signer, so an app store saw no signer to compare its update with. */
+	private static Certificate[] signerWithoutVerification(String apkPath) {
+		try {
+			return ApkSignatureSchemeV3Verifier.unsafeGetCertsWithoutVerification(apkPath).certs;
+		} catch (SignatureNotFoundException e) {
+			// not signed with v3
+		} catch (Exception e) {
+			Slog.w(TAG, apkPath + ": unreadable APK Signature Scheme v3 block: " + e);
+			return null;
+		}
+		try {
+			X509Certificate[][] signers = ApkSignatureSchemeV2Verifier.unsafeGetCertsWithoutVerification(apkPath);
+			return signers.length > 0 ? signers[0] : null;
+		} catch (SignatureNotFoundException e) {
+			return null; // v1 only
+		} catch (Exception e) {
+			Slog.w(TAG, apkPath + ": unreadable APK Signature Scheme v2 block: " + e);
+			return null;
+		}
+	}
+
 	public boolean collectCertificates(Package pkg, int flags) {
 		pkg.mSignatures = null;
+
+		Certificate[] signer = signerWithoutVerification(mArchiveSourcePath);
+		if (signer != null && signer.length > 0) {
+			try {
+				pkg.mSignatures = new Signature[signer.length];
+				pkg.mSigningKeys = new HashSet<PublicKey>();
+				for (int i = 0; i < signer.length; i++) {
+					pkg.mSignatures[i] = new Signature(signer[i].getEncoded());
+					pkg.mSigningKeys.add(signer[i].getPublicKey());
+				}
+				return true;
+			} catch (CertificateEncodingException e) {
+				Slog.w(TAG, mArchiveSourcePath + ": " + e);
+				pkg.mSignatures = null;
+			}
+		}
 
 		WeakReference<byte[]> readBufferRef;
 		byte[] readBuffer = null;
