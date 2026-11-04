@@ -1818,6 +1818,16 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	dl_parse_library_path(ld_path, ":");
 	g_free(ld_path);
 
+	/* --background: JobScheduler runs the app's jobs one after another (android.app.job.JobScheduler) */
+	if (d->background) {
+		GStrvBuilder *options = g_strv_builder_new();
+		if (d->extra_jvm_options)
+			g_strv_builder_addv(options, (const char **)d->extra_jvm_options);
+		g_strv_builder_add(options, "-Datl.background=true");
+		g_strfreev(d->extra_jvm_options);
+		d->extra_jvm_options = g_strv_builder_end(options);
+		g_strv_builder_unref(options);
+	}
 	JNIEnv *env = create_vm(api_impl_jar, apk_classpath, framework_res_apk, test_runner_jar, api_impl_natives_dir, app_lib_dir, d->sdk_int, d->extra_jvm_options);
 
 	free(app_lib_dir);

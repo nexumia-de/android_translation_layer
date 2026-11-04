@@ -52,6 +52,13 @@ public class JobScheduler {
 					new Handler(Looper.getMainLooper()).postDelayed(this, NETWORK_RECHECK_MILLIS);
 					return;
 				}
+				/* started in the background (--background): one job after another, in the order the
+				 * app scheduled them, like Android's maintenance windows. An app store's index
+				 * update then finishes before its app updates read the list it made (F-Droid). */
+				if (BACKGROUND && anotherJobRunning(job)) {
+					new Handler(Looper.getMainLooper()).postDelayed(this, SERIAL_RECHECK_MILLIS);
+					return;
+				}
 				try {
 					String className = job.getService().getClassName();
 					Class<? extends JobService> cls = context.get_atl_loaded_app()
@@ -77,6 +84,15 @@ public class JobScheduler {
 	}
 
 	private static final long NETWORK_RECHECK_MILLIS = 60 * 1000;
+	private static final long SERIAL_RECHECK_MILLIS = 2 * 1000;
+	private static final boolean BACKGROUND = Boolean.getBoolean("atl.background");
+
+	private static boolean anotherJobRunning(JobInfo job) {
+		for (JobInfo other : pendingJobs.values())
+			if (other != job && other.running)
+				return true;
+		return false;
+	}
 
 	private boolean networkSatisfied(JobInfo job) {
 		if (job.networkType == JobInfo.NETWORK_TYPE_NONE)
