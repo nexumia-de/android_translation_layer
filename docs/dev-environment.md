@@ -357,7 +357,9 @@ root):
   50 SDK and `org.freedesktop.Sdk.Extension.openjdk17//25.08` to build
   the engine, and upstream's `io.gitlab.android_translation_layer.BaseApp`
   pinned to commit `86e04253` (2026-09-13, the last one on GNOME 50;
-  newer ones need GNOME 51, a 416 MB download).
+  newer ones need GNOME 51, a 416 MB download), masked with `flatpak
+  mask --user`. A plain `flatpak update --user` still installs GNOME 51
+  next to it (2026-11-04); update single refs instead.
 - `flatpak/de.nexumia.atl.BaseApp.yml` builds the engine from this
   checkout and the dependency forks with `flatpak-builder` (system
   package `flatpak-builder`). Keep the state and build directories on
@@ -385,7 +387,12 @@ root):
 - `flatpak/make-app.sh -p <package> -n <name> <apk>` generates
   `de.nexumia.atl.<package>` from an APK, exports it into
   `~/.local/share/android_translation_layer/flatpak-repo` (user remote
-  `atl-local`, unsigned) and installs or updates it. `-b` picks another
+  `atl-local`, unsigned) and installs or updates it, and runs `flatpak
+  build-update-repo` so the repository has appstream branches (without
+  them `flatpak update --user` fails with "No such ref
+  'appstream2/aarch64' in remote atl-local"; a repository from before
+  2026-11-04 needs one `flatpak build-update-repo
+  ~/.local/share/android_translation_layer/flatpak-repo`). `-b` picks another
   base app, `-f` adds permissions.
 - `dbus-run-session -- flatpak/escape-test.sh <app id>` tries each escape
   from inside the app's sandbox and fails if one works. Its controls (the
