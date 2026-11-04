@@ -499,28 +499,6 @@ static int flatpak_network_answer(const char *package_name)
 	return answer;
 }
 
-/* the user's answer to "Allow Bluetooth?": the override's system bus policy for BlueZ.
- * 1 allowed, 0 denied, -1 not answered yet */
-static int flatpak_bluetooth_answer(const char *package_name)
-{
-	char *dir = flatpak_user_dir();
-	char *id = g_strconcat(FLATPAK_APP_PREFIX, package_name, NULL);
-	char *path = g_build_filename(dir, "overrides", id, NULL);
-	int answer = -1;
-	GKeyFile *key_file = g_key_file_new();
-	if (g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, NULL)) {
-		char *policy = g_key_file_get_string(key_file, "System Bus Policy", "org.bluez", NULL);
-		if (policy)
-			answer = !strcmp(policy, "talk") ? 1 : !strcmp(policy, "none") ? 0 : -1;
-		g_free(policy);
-	}
-	g_key_file_free(key_file);
-	g_free(path);
-	g_free(id);
-	g_free(dir);
-	return answer;
-}
-
 static gboolean permissions_contain(const char *permissions, const char *permission)
 {
 	char **list = g_strsplit(permissions ? permissions : "", ";", -1);
@@ -793,9 +771,6 @@ struct install_request {
 	/* "Allow internet?" on the page: the question, and the answer (-1 none yet) */
 	GtkWidget *network_question;
 	int network_answer;
-	/* "Allow Bluetooth?" the same way */
-	GtkWidget *bluetooth_question;
-	int bluetooth_answer;
 	/* the data directory made for the opened file, which is not the installed app's */
 	gboolean remove_data_dir;
 	/* an update without the page (may_update_unattended), told by a notification */
@@ -1013,8 +988,6 @@ static void install_ask_confirmed_flatpak(struct install_request *r)
 	g_ptr_array_add(argv, g_strdup(r->d->sdk_int ? r->d->sdk_int : r->default_sdk_int));
 	if (r->network_answer >= 0)
 		g_ptr_array_add(argv, g_strdup(r->network_answer ? "--network=yes" : "--network=no"));
-	if (r->bluetooth_answer >= 0)
-		g_ptr_array_add(argv, g_strdup(r->bluetooth_answer ? "--bluetooth=yes" : "--bluetooth=no"));
 	if (r->d->installer_id) {
 		g_ptr_array_add(argv, g_strdup("--installer-id"));
 		g_ptr_array_add(argv, g_strdup(r->d->installer_id));
@@ -1040,8 +1013,6 @@ static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 	prompt_page_set_busy(page, r->updating ? "Updating…" : "Installing…");
 	if (r->network_question)
 		gtk_widget_set_sensitive(r->network_question, FALSE);
-	if (r->bluetooth_question)
-		gtk_widget_set_sensitive(r->bluetooth_question, FALSE);
 	if (r->d->install_flatpak) {
 		install_ask_confirmed_flatpak(r);
 		return;
@@ -1067,8 +1038,7 @@ static void install_ask_confirmed(struct prompt_page *page, gpointer user_data)
 /* the action waits until every question on the page has an answer */
 static void update_install_action(struct install_request *r)
 {
-	gboolean answered = (!r->network_question || r->network_answer >= 0) &&
-	                    (!r->bluetooth_question || r->bluetooth_answer >= 0);
+	gboolean answered = !r->network_question || r->network_answer >= 0;
 	if (r->page->action)
 		gtk_widget_set_sensitive(r->page->action, answered);
 }
@@ -1077,24 +1047,6 @@ static void network_answered(int answer, gpointer user_data)
 {
 	struct install_request *r = user_data;
 	r->network_answer = answer;
-	update_install_action(r);
-}
-
-static void bluetooth_answered(int answer, gpointer user_data)
-{
-	struct install_request *r = user_data;
-	r->bluetooth_answer = answer;
-	update_install_action(r);
-}
-
-/* Bluetooth (BlueZ on the system bus) is a static Flatpak permission like the network, so it is
- * asked here, before the first start; Android grants it at install for apps made before Android 12 */
-static void ask_bluetooth(struct install_request *r)
-{
-	r->bluetooth_question = prompt_page_add_question(r->page, "Allow Bluetooth?",
-	                                                 "Allow Bluetooth", "The app can find and connect to devices like watches",
-	                                                 "No Bluetooth", "The app cannot use Bluetooth",
-	                                                 bluetooth_answered, r);
 	update_install_action(r);
 }
 
@@ -1166,8 +1118,8 @@ static gboolean may_update_unattended(struct install_request *r, JNIEnv *env, jo
 		reason = "not an update of a verified installed app";
 		goto out;
 	}
-	if (r->network_question || r->bluetooth_question) {
-		reason = "internet or Bluetooth not answered yet";
+	if (r->network_question) {
+		reason = "internet not answered yet";
 		goto out;
 	}
 	installer = flatpak_installed_line(r->package_name, "installer");
@@ -1223,7 +1175,6 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 		r->files[i] = g_object_ref(files[i]);
 	r->nfiles = nfiles;
 	r->network_answer = -1;
-	r->bluetooth_answer = -1;
 	r->app_data_dir_base = g_strdup(app_data_dir_base);
 	char *installed_data_dir = g_strdup_printf("%s/%s.apk_/", app_data_dir_base, package_name);
 	r->remove_data_dir = !data_dir_existed && strcmp(app_data_dir, installed_data_dir);
@@ -1327,12 +1278,6 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 		if (permissions_contain(permissions, "android.permission.INTERNET") &&
 		    (state == INSTALL_NEW || flatpak_network_answer(package_name) < 0))
 			ask_network(r);
-		if ((permissions_contain(permissions, "android.permission.BLUETOOTH") ||
-		     permissions_contain(permissions, "android.permission.BLUETOOTH_ADMIN") ||
-		     permissions_contain(permissions, "android.permission.BLUETOOTH_CONNECT") ||
-		     permissions_contain(permissions, "android.permission.BLUETOOTH_SCAN")) &&
-		    (state == INSTALL_NEW || flatpak_bluetooth_answer(package_name) < 0))
-			ask_bluetooth(r);
 		g_free(permissions);
 	}
 	if (may_update_unattended(r, env, application_object, state)) {

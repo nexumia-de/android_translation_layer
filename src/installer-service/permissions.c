@@ -117,6 +117,11 @@ static gboolean app_requests(const char *app_id, const char *permission)
 	if (g_file_get_contents(path, &contents, NULL, NULL)) {
 		char **lines = g_strsplit(contents, "\n", -1);
 		found = g_strv_contains((const char *const *)lines, permission);
+		/* apps made before Android 12 request Bluetooth with BLUETOOTH; ATL asks for it as
+		 * BLUETOOTH_CONNECT when they first use it (android.bluetooth.BluetoothAdapter) */
+		if (!found && !strcmp(permission, "android.permission.BLUETOOTH_CONNECT"))
+			found = g_strv_contains((const char *const *)lines, "android.permission.BLUETOOTH") ||
+			        g_strv_contains((const char *const *)lines, "android.permission.BLUETOOTH_ADMIN");
 		g_strfreev(lines);
 	}
 	g_free(contents);
@@ -198,19 +203,36 @@ static void apply_microphone_answer(const char *app_id, gboolean yes)
 }
 
 /* Bluetooth is also enforced by the app's sandbox: BlueZ on the system bus only with a Flatpak user
- * override (make-app-flatpak writes it for the install page's answer). Either Bluetooth permission
- * allowed opens it, since BlueZ cannot be split; it closes when neither is. Applies from the app's
- * next start. */
+ * override. Either Bluetooth permission allowed opens it, since BlueZ cannot be split; it closes when
+ * neither is. Flatpak applies it when the app starts, so an app that just got it restarts once
+ * (restart_app). Asked when the app asks, like Android, not at install: most apps that request
+ * Bluetooth use it for a side feature or never (F-Droid's nearby swap). */
 static gboolean is_bluetooth(const char *permission)
 {
 	return !strcmp(permission, "android.permission.BLUETOOTH_CONNECT") || !strcmp(permission, "android.permission.BLUETOOTH_SCAN");
 }
 
-static void apply_bluetooth_answer(GDBusConnection *bus, const char *app_id)
+static gboolean bluetooth_allowed(GDBusConnection *bus, const char *app_id)
 {
 	int denials;
-	gboolean yes = stored_answer(bus, app_id, "android.permission.BLUETOOTH_CONNECT", &denials) == 1 ||
-	               stored_answer(bus, app_id, "android.permission.BLUETOOTH_SCAN", &denials) == 1;
+	return stored_answer(bus, app_id, "android.permission.BLUETOOTH_CONNECT", &denials) == 1 ||
+	       stored_answer(bus, app_id, "android.permission.BLUETOOTH_SCAN", &denials) == 1;
+}
+
+/* after the app got its answer: Flatpak only applies the new sandbox when the app starts again */
+static void restart_app(const char *app_id)
+{
+	const char *argv[] = {"sh", "-c", "sleep 1; flatpak kill \"$1\"; sleep 2; exec flatpak run --user \"$1\"", "sh", app_id, NULL};
+	GError *err = NULL;
+	if (!g_spawn_async(NULL, (char **)argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL, NULL, NULL, NULL, &err)) {
+		g_warning("restarting %s: %s", app_id, err->message);
+		g_error_free(err);
+	}
+}
+
+static void apply_bluetooth_answer(GDBusConnection *bus, const char *app_id)
+{
+	gboolean yes = bluetooth_allowed(bus, app_id);
 	const char *argv[] = {"flatpak", "override", "--user", yes ? "--system-talk-name=org.bluez" : "--system-no-talk-name=org.bluez",
 	                      app_id, NULL};
 	int wait_status;
@@ -305,20 +327,26 @@ static void dialog_answered(GObject *source, GAsyncResult *res, gpointer user_da
 	g_variant_get(reply, "(u@a{sv})", &response, NULL);
 	g_variant_unref(reply);
 	gboolean yes = response == 0;
+	gboolean restart = FALSE;
 	/* 1 is "Deny"; anything else (2: dismissed) is no answer: "no" for now, nothing stored, so it
 	 * does not count toward the two denials after which the app may not ask again */
 	if (response <= 1) {
 		/* the count as stored now, not as it was when the dialog opened */
 		int denials;
 		stored_answer(r->bus, r->app_id, r->permission, &denials);
+		gboolean bluetooth_was_open = is_bluetooth(r->permission) && bluetooth_allowed(r->bus, r->app_id);
 		store_answer(r->bus, r->app_id, r->permission, yes, yes ? 0 : denials + 1);
 		if (!strcmp(r->permission, "android.permission.RECORD_AUDIO"))
 			apply_microphone_answer(r->app_id, yes);
-		else if (is_bluetooth(r->permission))
+		else if (is_bluetooth(r->permission)) {
 			apply_bluetooth_answer(r->bus, r->app_id);
+			restart = yes && !bluetooth_was_open;
+		}
 	}
-	g_message("%s %s: %s (response %u)", r->app_id, r->permission, yes ? "yes" : "no", response);
+	g_message("%s %s: %s (response %u)%s", r->app_id, r->permission, yes ? "yes" : "no", response, restart ? ", restarting it" : "");
 	request_answer(r, yes ? "yes" : "no");
+	if (restart)
+		restart_app(r->app_id);
 	request_free(r);
 }
 
@@ -398,7 +426,11 @@ static void handle(GDBusMethodInvocation *invocation, const char *method, GVaria
 	r->bus = g_object_ref(bus);
 	r->app_id = app_id;
 	r->permission = g_strdup(permission);
-	r->dialog_args = g_variant_ref_sink(g_variant_new("(osssssa{sv})", handle_path, app_id, "", title, "", q->body, &options));
+	char *body = is_bluetooth(permission) && !bluetooth_allowed(bus, app_id)
+	                 ? g_strconcat(q->body, " The app restarts once to use it.", NULL)
+	                 : g_strdup(q->body);
+	r->dialog_args = g_variant_ref_sink(g_variant_new("(osssssa{sv})", handle_path, app_id, "", title, "", body, &options));
+	g_free(body);
 	hold();
 	ask_backend(r);
 	g_free(title);
