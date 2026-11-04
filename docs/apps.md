@@ -37,8 +37,9 @@ entry: date, what, why. Remove an entry once it is done.
 - 2026-11-04: Updates without asking for F-Droid (pull requests #105
   and #106). They work for apps in their own Flatpak only: F-Droid on
   the phone was installed without a sandbox, so first install it again
-  by opening its APK (it then becomes its own Flatpak; its apps follow
-  when F-Droid installs them). Then long-press F-Droid in the app grid,
+  by opening its APK (it then becomes its own Flatpak). Apps installed
+  before without a sandbox are not updated this way until the new
+  F-Droid installs them again (roadmap phase 6, migration). Then long-press F-Droid in the app grid,
   **App Info**, turn on **Update Apps Without Asking**. F-Droid installs
   its updates when its daily update job is due while F-Droid is open,
   on Wi-Fi by default (F-Droid's settings, automatic updates), and a
