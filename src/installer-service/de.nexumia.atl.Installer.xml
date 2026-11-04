@@ -12,6 +12,7 @@
 
   Version 1: the interface as first released (android_translation_layer #33, which
   had no Version property; a service without it is version 1).
+  Version 2: the Install option unattended, GetInstaller.
 -->
 <node>
   <interface name="de.nexumia.atl.Installer">
@@ -20,7 +21,10 @@
     <!--
       Installs or updates the apps in the given APKs, the base APK first, split APKs
       after it, after asking the user on the host. options: sdk-int (s), width (i),
-      height (i). error is empty on success, else "cancelled" (the user said no),
+      height (i), unattended (b, since version 2: the store asks for no user action;
+      the host updates without asking only when the user allowed it for this store and
+      the update is safe, see docs/installing-apps.md, "Updates without asking").
+      error is empty on success, else "cancelled" (the user said no),
       "refused: ..." (not signed, signed by someone else, or a downgrade) or another
       error.
     -->
@@ -39,6 +43,15 @@
     <!-- The installed apps and a read-only file descriptor of each one's base APK. -->
     <method name="List">
       <arg direction="out" name="packages" type="a(sh)"/>
+    </method>
+
+    <!--
+      Since version 2: the package name of the app store that installed the package,
+      empty if it was installed from a file or is unknown.
+    -->
+    <method name="GetInstaller">
+      <arg direction="in" name="package" type="s"/>
+      <arg direction="out" name="installer" type="s"/>
     </method>
 
     <!-- Starts an installed app, with a URI unless it is empty. -->

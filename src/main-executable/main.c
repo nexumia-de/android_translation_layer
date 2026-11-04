@@ -331,6 +331,8 @@ struct jni_callback_data {
 	gboolean install_ask;
 	gboolean install_flatpak;
 	char *installer_name;
+	char *installer_id;
+	gboolean unattended;
 	char *uninstall_flatpak;
 	char *app_info;
 	gboolean android_apps;
@@ -504,15 +506,35 @@ static gboolean permissions_contain(const char *permissions, const char *permiss
 	return found;
 }
 
-/* the base apk inside the app's Flatpak, as make-app-flatpak puts it */
-static char *flatpak_installed_apk(const char *package_name)
+/* a file make-app-flatpak put into the app's Flatpak */
+static char *flatpak_installed_file(const char *package_name, const char *name)
 {
 	char *dir = flatpak_user_dir();
 	char *id = g_strconcat(FLATPAK_APP_PREFIX, package_name, NULL);
-	char *path = g_build_filename(dir, "app", id, "current", "active", "files", "share", "atl", "apk0.apk", NULL);
+	char *path = g_build_filename(dir, "app", id, "current", "active", "files", "share", "atl", name, NULL);
 	g_free(id);
 	g_free(dir);
 	return path;
+}
+
+/* the base apk inside the app's Flatpak */
+static char *flatpak_installed_apk(const char *package_name)
+{
+	return flatpak_installed_file(package_name, "apk0.apk");
+}
+
+/* the first line of a file make-app-flatpak put into the app's Flatpak, NULL if there is none */
+static char *flatpak_installed_line(const char *package_name, const char *name)
+{
+	char *path = flatpak_installed_file(package_name, name);
+	char *contents = NULL;
+	if (g_file_get_contents(path, &contents, NULL, NULL)) {
+		char *newline = strchr(contents, '\n');
+		if (newline)
+			*newline = '\0';
+	}
+	g_free(path);
+	return contents;
 }
 
 /* the launcher icon: the apk's own file, or the adaptive or vector Drawable rendered into an SVG */
@@ -681,6 +703,11 @@ static void install_flatpak(struct jni_callback_data *d, JNIEnv *env, jobject ap
 		g_ptr_array_add(argv, g_strdup("-N"));
 		g_ptr_array_add(argv, g_strdup(!strcmp(d->network, "yes") ? "yes" : "no"));
 	}
+	/* the installer of record; an install from a file has none */
+	if (d->installer_id) {
+		g_ptr_array_add(argv, g_strdup("-I"));
+		g_ptr_array_add(argv, g_strdup(d->installer_id));
+	}
 	for (int i = 0; i < nfiles; i++)
 		g_ptr_array_add(argv, g_file_get_path(files[i]));
 	g_ptr_array_add(argv, NULL);
@@ -741,6 +768,10 @@ struct install_request {
 	int network_answer;
 	/* the data directory made for the opened file, which is not the installed app's */
 	gboolean remove_data_dir;
+	/* an update without the page (may_update_unattended), told by a notification */
+	gboolean unattended;
+	char *label;
+	char *version;
 };
 
 static void install_ask_exit(struct install_request *r, int status)
@@ -812,8 +843,40 @@ static void install_ask_open(struct prompt_page *page, gpointer user_data)
 static void install_ask_show_failure(struct install_request *r, const char *reason)
 {
 	fprintf(stderr, "install: %s\n", reason);
+	/* no page to show it on; the app store hears that it failed */
+	if (r->unattended)
+		install_ask_exit(r, 1);
 	prompt_page_set_message(r->page, "The app could not be installed.");
 	prompt_page_set_buttons(r->page, "_Close", NULL, FALSE, install_ask_failed, NULL, r);
+}
+
+/* like Android after an update without asking: a notification says what changed */
+static void notify_updated(struct install_request *r)
+{
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!bus)
+		return;
+	const char *store = r->d->installer_name ? r->d->installer_name : "An app store";
+	char *summary = g_strdup_printf("%s updated", r->label);
+	char *body = r->version ? g_strdup_printf("%s updated it to version %s.", store, r->version) : g_strdup_printf("%s updated it.", store);
+	GVariantBuilder hints;
+	g_variant_builder_init(&hints, G_VARIANT_TYPE("a{sv}"));
+	g_variant_builder_add(&hints, "{sv}", "desktop-entry", g_variant_new_string(INSTALL_ASK_DESKTOP_ID));
+	GError *err = NULL;
+	GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.Notifications", "/org/freedesktop/Notifications",
+	                                              "org.freedesktop.Notifications", "Notify",
+	                                              g_variant_new("(susssasa{sv}i)", "Android apps", 0, "system-software-update",
+	                                                            summary, body, NULL, &hints, -1),
+	                                              G_VARIANT_TYPE("(u)"), G_DBUS_CALL_FLAGS_NONE, 5000, NULL, &err);
+	if (reply) {
+		g_variant_unref(reply);
+	} else {
+		fprintf(stderr, "install: no notification: %s\n", err->message);
+		g_error_free(err);
+	}
+	g_free(summary);
+	g_free(body);
+	g_object_unref(bus);
 }
 
 static void install_ask_installed(GObject *source, GAsyncResult *res, gpointer user_data)
@@ -825,6 +888,8 @@ static void install_ask_installed(GObject *source, GAsyncResult *res, gpointer u
 		g_error_free(err);
 		return;
 	}
+	if (r->unattended)
+		notify_updated(r);
 	/* an app store asked through the installer service: it shows its own Open button */
 	if (r->d->installer_name)
 		install_ask_exit(r, 0);
@@ -918,6 +983,10 @@ static void install_ask_confirmed_flatpak(struct install_request *r)
 	g_ptr_array_add(argv, g_strdup(r->d->sdk_int ? r->d->sdk_int : r->default_sdk_int));
 	if (r->network_answer >= 0)
 		g_ptr_array_add(argv, g_strdup(r->network_answer ? "--network=yes" : "--network=no"));
+	if (r->d->installer_id) {
+		g_ptr_array_add(argv, g_strdup("--installer-id"));
+		g_ptr_array_add(argv, g_strdup(r->d->installer_id));
+	}
 	for (int i = 0; i < r->nfiles; i++)
 		g_ptr_array_add(argv, g_file_get_path(r->files[i]));
 	g_ptr_array_add(argv, NULL);
@@ -979,6 +1048,105 @@ static void ask_network(struct install_request *r)
 	                                               network_answered, r);
 	if (r->page->action)
 		gtk_widget_set_sensitive(r->page->action, FALSE);
+}
+
+#define UPDATE_WITHOUT_ASKING "atl.update-without-asking"
+
+/* the user's switch "Update apps without asking" in the app store's App info (src/main-executable/app_info.c):
+ * an entry in the permission store table the permission service uses, which apps cannot reach */
+static gboolean store_may_update_without_asking(const char *installer_id)
+{
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, NULL);
+	if (!bus)
+		return FALSE;
+	char *app_id = g_strconcat(FLATPAK_APP_PREFIX, installer_id, NULL);
+	GVariant *reply = g_dbus_connection_call_sync(bus, "org.freedesktop.impl.portal.PermissionStore",
+	                                              "/org/freedesktop/impl/portal/PermissionStore",
+	                                              "org.freedesktop.impl.portal.PermissionStore", "GetPermission",
+	                                              g_variant_new("(sss)", "de.nexumia.atl", UPDATE_WITHOUT_ASKING, app_id),
+	                                              G_VARIANT_TYPE("(as)"), G_DBUS_CALL_FLAGS_NONE, 5000, NULL, NULL);
+	gboolean yes = FALSE;
+	if (reply) {
+		const char **value;
+		g_variant_get(reply, "(^a&s)", &value);
+		yes = value[0] && !strcmp(value[0], "yes");
+		g_free(value);
+		g_variant_unref(reply);
+	}
+	g_free(app_id);
+	g_object_unref(bus);
+	return yes;
+}
+
+/* every permission the new apk requests was requested by the installed one: the update gets no
+ * Flatpak permission and no question the installed app did not have */
+static gboolean permissions_subset(const char *requested, const char *installed)
+{
+	char **new_list = g_strsplit(requested ? requested : "", ";", -1);
+	char **old_list = g_strsplit(installed ? installed : "", "\n", -1);
+	gboolean subset = TRUE;
+	for (int i = 0; new_list[i] && subset; i++)
+		subset = !*new_list[i] || g_strv_contains((const char *const *)old_list, new_list[i]);
+	g_strfreev(new_list);
+	g_strfreev(old_list);
+	return subset;
+}
+
+/* An app store asked for no user action (PackageInstaller.SessionParams.setRequireUserAction).
+ * Like Android 12+, only an update by the store that installed the app; on top, the user allowed
+ * it for this store, and the update asks for nothing new (docs/installing-apps.md, "Updates
+ * without asking"). Prints why not. */
+static gboolean may_update_unattended(struct install_request *r, JNIEnv *env, jobject application_object, enum install_state state)
+{
+	struct jni_callback_data *d = r->d;
+	const char *reason = NULL;
+	char *installer = NULL, *permissions = NULL, *installed_permissions = NULL, *installed_target = NULL;
+	if (!d->unattended || !d->install_flatpak || !d->installer_id)
+		return FALSE;
+	if (state != INSTALL_UPDATE || !J__Application__get_install_signers_checked(env, application_object)) {
+		reason = "not an update of a verified installed app";
+		goto out;
+	}
+	if (r->network_question) {
+		reason = "internet not answered yet";
+		goto out;
+	}
+	installer = flatpak_installed_line(r->package_name, "installer");
+	if (!installer || strcmp(installer, d->installer_id)) {
+		reason = "installed by someone else";
+		goto out;
+	}
+	if (!store_may_update_without_asking(d->installer_id)) {
+		reason = "not allowed for this app store";
+		goto out;
+	}
+	permissions = jstring_dup(env, J__Application__get_requested_permissions(env, application_object));
+	char *path = flatpak_installed_file(r->package_name, "permissions");
+	gboolean have_list = g_file_get_contents(path, &installed_permissions, NULL, NULL);
+	g_free(path);
+	if (!have_list || !permissions_subset(permissions, installed_permissions)) {
+		reason = "new permissions";
+		goto out;
+	}
+	installed_target = flatpak_installed_line(r->package_name, "target-sdk");
+	if (!installed_target || J__Application__get_target_sdk_version(env, application_object) < atoi(installed_target)) {
+		reason = "lower target SDK";
+		goto out;
+	}
+out:
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		reason = "error";
+	}
+	if (reason)
+		printf("install: asking, no update without asking: %s\n", reason);
+	else
+		printf("install: updating without asking\n");
+	g_free(installer);
+	g_free(permissions);
+	g_free(installed_permissions);
+	g_free(installed_target);
+	return !reason;
 }
 
 static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv *env, jobject application_object, GFile **files,
@@ -1100,6 +1268,13 @@ static void ask_install(GtkApplication *app, struct jni_callback_data *d, JNIEnv
 		    (state == INSTALL_NEW || flatpak_network_answer(package_name) < 0))
 			ask_network(r);
 		g_free(permissions);
+	}
+	if (may_update_unattended(r, env, application_object, state)) {
+		r->unattended = TRUE;
+		r->label = g_strdup(label && *label ? label : package_name);
+		r->version = g_strdup(version);
+		install_ask_confirmed(r->page, r);
+		return;
 	}
 	gtk_window_present(r->page->window);
 	/* Phosh shows the installer's name and icon for the window */
@@ -2074,6 +2249,8 @@ void init_cmd_parameters(GApplication *app, struct jni_callback_data *d)
 		{ "install-flatpak",   0 , 0, G_OPTION_ARG_NONE,         &d->install_flatpak,           "install the given apk as its own Flatpak, without running its code",                           NULL            },
 		{ "network",           0 , 0, G_OPTION_ARG_STRING,       &d->network,                   "--install-flatpak: allow internet (yes) or not (no), kept for updates; unset keeps the answer",  "yes|no"        },
 		{ "installer-name",    0 , 0, G_OPTION_ARG_STRING,       &d->installer_name,            "the app store that asks to install or uninstall (shown on the page)",                          "NAME"          },
+		{ "installer-id",      0 , 0, G_OPTION_ARG_STRING,       &d->installer_id,              "the package name of the app store that installs, recorded as the installer",                   "PACKAGE"       },
+		{ "unattended",        0 , 0, G_OPTION_ARG_NONE,         &d->unattended,                "--install-ask: the app store asks to update without the page; allowed only for safe updates",  NULL            },
 		{ "uninstall-flatpak", 0 , 0, G_OPTION_ARG_STRING,       &d->uninstall_flatpak,         "ask, then remove the Flatpak of an app installed with --install-flatpak and its data",         "PACKAGE"       },
 		{ "android-apps",      0 , 0, G_OPTION_ARG_NONE,         &d->android_apps,              "show the settings for all Android apps (navigation, push server, installed apps)",            NULL            },
 		{ "app-info",          0 , 0, G_OPTION_ARG_STRING,       &d->app_info,                  "show App info of an app installed with --install-flatpak: permissions, data, uninstall",        "PACKAGE"       },
@@ -2147,7 +2324,8 @@ int main(int argc, char **argv)
 
 	libc_bio_set_apply_path_overrides_func(apply_path_overrides);
 
-	struct jni_callback_data *callback_data = malloc(sizeof(struct jni_callback_data));
+	/* zeroed: only some options are set below, the others stay unset unless given */
+	struct jni_callback_data *callback_data = calloc(1, sizeof(struct jni_callback_data));
 	callback_data->apk_main_activity_class = NULL;
 	callback_data->apk_instrumentation_class = NULL;
 	/* 0: the size of the monitor, see get_window_size */

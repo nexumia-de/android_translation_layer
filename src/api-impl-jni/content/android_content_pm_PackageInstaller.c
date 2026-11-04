@@ -21,17 +21,18 @@
  * the service comes with the host package and is updated separately from this engine */
 #define SERVICE_MIN_VERSION 1
 
+static guint32 service_version = 0;
+
 static gboolean check_service_version(GDBusConnection *bus, GError **error)
 {
-	static guint32 version = 0;
-	G_LOCK_DEFINE_STATIC(version);
-	G_LOCK(version);
-	if (version) {
-		G_UNLOCK(version);
-		return version >= SERVICE_MIN_VERSION ? TRUE : (g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
-		                                                        "the installer service on the host is too old (interface %u, "
-		                                                        "need %u): update android-translation-layer",
-		                                                        version, SERVICE_MIN_VERSION), FALSE);
+	G_LOCK_DEFINE_STATIC(service_version);
+	G_LOCK(service_version);
+	if (service_version) {
+		G_UNLOCK(service_version);
+		return service_version >= SERVICE_MIN_VERSION ? TRUE : (g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+		                                                                "the installer service on the host is too old (interface %u, "
+		                                                                "need %u): update android-translation-layer",
+		                                                                service_version, SERVICE_MIN_VERSION), FALSE);
 	}
 	GError *err = NULL;
 	GVariant *reply = g_dbus_connection_call_sync(bus, SERVICE_NAME, SERVICE_PATH, "org.freedesktop.DBus.Properties", "Get",
@@ -40,7 +41,7 @@ static gboolean check_service_version(GDBusConnection *bus, GError **error)
 	if (reply) {
 		GVariant *value;
 		g_variant_get(reply, "(v)", &value);
-		version = g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32) ? g_variant_get_uint32(value) : 1;
+		service_version = g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32) ? g_variant_get_uint32(value) : 1;
 		g_variant_unref(value);
 		g_variant_unref(reply);
 	} else if (g_error_matches(err, G_DBUS_ERROR, G_DBUS_ERROR_SERVICE_UNKNOWN) ||
@@ -50,13 +51,13 @@ static gboolean check_service_version(GDBusConnection *bus, GError **error)
 		            "the installer service is not reachable: this app does not request REQUEST_INSTALL_PACKAGES, "
 		            "or the host's android-translation-layer is older than this engine");
 		g_error_free(err);
-		G_UNLOCK(version);
+		G_UNLOCK(service_version);
 		return FALSE;
 	} else {
-		version = 1; // the first service had no Version property
+		service_version = 1; // the first service had no Version property
 		g_error_free(err);
 	}
-	G_UNLOCK(version);
+	G_UNLOCK(service_version);
 	return check_service_version(bus, error);
 }
 
@@ -79,7 +80,8 @@ static GVariant *call_service(const char *method, GVariant *args, const char *re
 }
 
 JNIEXPORT jstring JNICALL Java_android_content_pm_PackageInstaller_nativeInstallThroughService(JNIEnv *env, jclass class, jobjectArray apks,
-                                                                                              jstring sdk_int_jstr, jint width, jint height)
+                                                                                              jstring sdk_int_jstr, jint width, jint height,
+                                                                                              jboolean unattended)
 {
 	GUnixFDList *fds = g_unix_fd_list_new();
 	GVariantBuilder handles;
@@ -105,6 +107,9 @@ JNIEXPORT jstring JNICALL Java_android_content_pm_PackageInstaller_nativeInstall
 	(*env)->ReleaseStringUTFChars(env, sdk_int_jstr, sdk_int);
 	g_variant_builder_add(&options, "{sv}", "width", g_variant_new_int32(width));
 	g_variant_builder_add(&options, "{sv}", "height", g_variant_new_int32(height));
+	/* since version 2; older services ignore it and ask */
+	if (unattended)
+		g_variant_builder_add(&options, "{sv}", "unattended", g_variant_new_boolean(TRUE));
 
 	GError *err = NULL;
 	GVariant *reply = call_service("Install", g_variant_new("(aha{sv})", &handles, &options), "(s)", fds, NULL, &err);
@@ -117,6 +122,35 @@ JNIEXPORT jstring JNICALL Java_android_content_pm_PackageInstaller_nativeInstall
 	const char *error;
 	g_variant_get(reply, "(&s)", &error);
 	jstring result = *error ? _JSTRING(error) : NULL;
+	g_variant_unref(reply);
+	return result;
+}
+
+JNIEXPORT jstring JNICALL Java_android_content_pm_PackageInstaller_nativeGetInstallerThroughService(JNIEnv *env, jclass class, jstring package_jstr)
+{
+	GError *err = NULL;
+	GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &err);
+	/* GetInstaller came with version 2 of the service */
+	if (!bus || !check_service_version(bus, &err) || service_version < 2) {
+		if (err) {
+			fprintf(stderr, "installer of a package through the installer service: %s\n", err->message);
+			g_error_free(err);
+		}
+		g_clear_object(&bus);
+		return NULL;
+	}
+	g_object_unref(bus);
+	const char *package = (*env)->GetStringUTFChars(env, package_jstr, NULL);
+	GVariant *reply = call_service("GetInstaller", g_variant_new("(s)", package), "(s)", NULL, NULL, &err);
+	(*env)->ReleaseStringUTFChars(env, package_jstr, package);
+	if (!reply) {
+		fprintf(stderr, "installer of a package through the installer service: %s\n", err->message);
+		g_error_free(err);
+		return NULL;
+	}
+	const char *installer;
+	g_variant_get(reply, "(&s)", &installer);
+	jstring result = *installer ? _JSTRING(installer) : NULL;
 	g_variant_unref(reply);
 	return result;
 }

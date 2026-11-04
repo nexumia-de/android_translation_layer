@@ -82,6 +82,7 @@ public class Application extends ContextWrapper {
 	static final int INSTALL_CONFLICT = 4;
 	static final int INSTALL_INVALID = 5;
 	private String installed_version_name;
+	private boolean install_signers_checked;
 
 	@Export
 	String get_version_name() {
@@ -103,6 +104,12 @@ public class Application extends ContextWrapper {
 		return installed_version_name;
 	}
 
+	/* the last get_install_state_for compared the signers of both apks (a broken install skips it) */
+	@Export
+	boolean get_install_signers_checked() {
+		return install_signers_checked;
+	}
+
 	@Export
 	int get_install_state() {
 		return get_install_state_for(new File(ATLPaths.installed_apks_dir, this.get_atl_loaded_app().pkg.packageName + ".apk").getPath());
@@ -113,6 +120,7 @@ public class Application extends ContextWrapper {
 	 * app's apk, in _installed_apks_ or in its Flatpak */
 	@Export
 	int get_install_state_for(String installed_apk) {
+		install_signers_checked = false;
 		PackageParser.Package pkg = this.get_atl_loaded_app().pkg;
 		ApkSigners opened_signers = ApkSigners.verify(pkg.applicationInfo.sourceDir);
 		if (opened_signers == null)
@@ -127,6 +135,7 @@ public class Application extends ContextWrapper {
 		ApkSigners installed_signers = ApkSigners.verify(installed_apk);
 		if (installed_signers == null || !opened_signers.canUpdate(installed_signers))
 			return INSTALL_CONFLICT;
+		install_signers_checked = true;
 		PackageParser.Package opened = parse(new File(pkg.applicationInfo.sourceDir));
 		if (opened == null)
 			return INSTALL_INVALID;

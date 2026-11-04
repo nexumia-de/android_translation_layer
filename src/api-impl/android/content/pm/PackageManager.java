@@ -21,6 +21,7 @@ import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
 import android.atl.ATLLoadedApp;
 import android.atl.ATLLoadedAppManager;
+import android.atl.ATLPaths;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -3266,6 +3267,9 @@ public class PackageManager {
 	 * @param packageName The name of the package to query
 	 */
 	public String getInstallerPackageName(String packageName) {
+		// in its own Flatpak the installer service knows the app store that installed the package
+		if (ATLPaths.in_flatpak)
+			return PackageInstaller.getInstallerOf(packageName);
 		return "com.example.installer";
 	}
 
