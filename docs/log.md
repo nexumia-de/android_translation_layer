@@ -183,3 +183,14 @@ answers from the record (installer interface version 2), a notification
 tells about each such update. The main program's option struct is
 zeroed before parsing (a new field made `--install-flatpak` crash).
 Headless (`flatpak/auto-update-test.sh`, 19 checks, all ok).
+## 2026-11-04: F-Droid updates apps without asking
+
+With **Update Apps Without Asking** on, the switch is the consent:
+stores run at SDK 26, below the level where they ask for no user action
+themselves ([installing apps](installing-apps.md#updates-without-asking)).
+`PackageInfo.signatures` comes from the v3/v2 signing block too, so
+F-Droid lists updates for apps signed with v2/v3 only; `JobScheduler`
+waits for a job's network (Wi-Fi-only updates). End to end headless:
+F-Droid in its own Flatpak updated Chooser 1.4.11 to 1.5.0 by its own
+update job, without a page. Updates while the store is closed are not
+done yet.

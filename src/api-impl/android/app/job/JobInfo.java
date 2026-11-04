@@ -5,6 +5,11 @@ import android.net.Uri;
 import android.os.PersistableBundle;
 
 public class JobInfo {
+	public static final int NETWORK_TYPE_NONE = 0;
+	public static final int NETWORK_TYPE_ANY = 1;
+	public static final int NETWORK_TYPE_UNMETERED = 2;
+	public static final int NETWORK_TYPE_NOT_ROAMING = 3;
+	public static final int NETWORK_TYPE_CELLULAR = 4;
 
 	private ComponentName service;
 	long initialBackoffMillis;
@@ -14,6 +19,7 @@ public class JobInfo {
 	private int id;
 	boolean running;
 	long minLatencyMillis;
+	int networkType;
 
 	public JobInfo() {}
 
@@ -40,6 +46,8 @@ public class JobInfo {
 		     + ", backoffPolicy=" + backoffPolicy
 		     + ", extras=" + extras
 		     + ", periodicMillis=" + periodicMillis
+		     + ", minLatencyMillis=" + minLatencyMillis
+		     + ", networkType=" + networkType
 		     + ", id=" + id
 		     + '}';
 	}
@@ -84,6 +92,7 @@ public class JobInfo {
 		}
 
 		public Builder setRequiredNetworkType(int networkType) {
+			jobInfo.networkType = networkType;
 			return this;
 		}
 

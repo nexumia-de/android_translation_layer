@@ -85,9 +85,9 @@ public class PackageInstaller {
 	private static final ArrayList<SessionCallback> callbacks = new ArrayList<>();
 	private static final Random random = new Random();
 
-	/* null on success, else "cancelled", "conflict: ..." or another error; unattended: the store asked
-	 * for no user action (SessionParams.setRequireUserAction), which the host grants only for some
-	 * updates (docs/installing-apps.md, "Updates without asking") */
+	/* null on success, else "cancelled", "conflict: ..." or another error; unattended: the store did
+	 * not require user action (SessionParams.setRequireUserAction), which the host grants only for
+	 * some updates (docs/installing-apps.md, "Updates without asking") */
 	static native String nativeInstallThroughService(String[] apks, String sdkInt, int width, int height, boolean unattended);
 	/* the app store that installed the package, null if none or unknown */
 	static native String nativeGetInstallerThroughService(String packageName);
@@ -650,7 +650,10 @@ public class PackageInstaller {
 					paths[i++] = file.getPath();
 			}
 			String sdkInt = System.getProperty("Build.VERSION.SDK_INT");
-			boolean unattended = params.requireUserAction == SessionParams.USER_ACTION_NOT_REQUIRED;
+			/* Android 12+ needs USER_ACTION_NOT_REQUIRED from the store; stores run here with --sdk-int 26,
+			 * below the level where they set it, so the user's switch for the store is the consent and
+			 * only an explicit USER_ACTION_REQUIRED keeps the page (docs/installing-apps.md) */
+			boolean unattended = params.requireUserAction != SessionParams.USER_ACTION_REQUIRED;
 			String error = nativeInstallThroughService(paths, sdkInt != null ? sdkInt : "", Display.explicitWidth(), Display.explicitHeight(),
 			                                           unattended);
 			if (error == null)
