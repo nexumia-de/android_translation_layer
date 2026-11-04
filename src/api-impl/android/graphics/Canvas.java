@@ -480,6 +480,10 @@ public class Canvas {
 	}
 
 	public void getMatrix(Matrix matrix) {
+		if (bitmap == null) { // AOSP resets the matrix in setBitmap
+			matrix.reset();
+			return;
+		}
 		synchronized (bitmap) {
 			gsk_canvas.snapshot = bitmap.getSnapshot();
 			gsk_canvas.getMatrix(matrix);
@@ -527,6 +531,10 @@ public class Canvas {
 	}
 
 	public void setMatrix(Matrix matrix) {
+		if (bitmap == null)
+			return;
+		if (matrix == null)
+			matrix = new Matrix();
 		Matrix transform = getMatrix();
 		if (transform.isIdentity()) {
 			transform = matrix;
