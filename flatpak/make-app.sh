@@ -21,6 +21,7 @@
 #               written as a user override (flatpak override --user); without -N an
 #               earlier answer stays, and without any answer the app has no network
 #   -T SDK      the APK's target SDK (the permission service reviews apps below 23)
+#   -I PACKAGE  the app store that installs it (installer of record); none for a file
 #   -f ARG      extra finish-arg, repeatable, e.g. -f --share=network
 #   -r DIR      local repository (default: ~/.local/share/android_translation_layer/flatpak-repo)
 #
@@ -33,11 +34,11 @@ set -eu
 
 base=de.nexumia.atl.BaseApp
 repo=$HOME/.local/share/android_translation_layer/flatpak-repo
-version= target_sdk= pkg= name= icon= atl_args= finish= mime_types= permissions= network=
+version= target_sdk= installer= pkg= name= icon= atl_args= finish= mime_types= permissions= network=
 
 usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit "${1:-0}"; }
 
-while getopts "p:n:i:b:a:m:P:N:V:f:r:hT:" opt; do
+while getopts "p:n:i:b:a:m:P:N:V:f:r:hT:I:" opt; do
 	case $opt in
 	p) pkg=$OPTARG ;;
 	n) name=$OPTARG ;;
@@ -49,6 +50,7 @@ while getopts "p:n:i:b:a:m:P:N:V:f:r:hT:" opt; do
 	T) target_sdk=$OPTARG ;;
 	N) network=$OPTARG ;;
 	V) version=$OPTARG ;;
+	I) installer=$OPTARG ;;
 	f) finish="$finish $OPTARG" ;;
 	r) repo=$OPTARG ;;
 	h) usage 0 ;;
@@ -76,7 +78,7 @@ for perm in $(printf '%s' "$permissions" | tr ';' ' '); do
 	case $perm in
 	# network (asked separately), and the host's UnifiedPush distributor for push messages (docs/push.md)
 	android.permission.INTERNET) wants_network=1; finish="$finish --talk-name=org.unifiedpush.Distributor.*" ;;
-	# app stores: the host's installer service, which asks the user for every install
+	# app stores: the host's installer service, which asks the user (for updates without asking only if allowed in App info)
 	android.permission.REQUEST_INSTALL_PACKAGES) finish="$finish --talk-name=de.nexumia.atl.Installer" ;;
 	esac
 done
@@ -117,6 +119,8 @@ done
 printf '%s' "$permissions" | tr ';' '\n' > "$build/files/share/atl/permissions"
 # the target SDK, for the legacy permission review
 printf '%s\n' "$target_sdk" | tr -cd '0-9\n' > "$build/files/share/atl/target-sdk"
+# the installer of record: the only app store that may update it without asking (--install-ask --unattended)
+printf '%s\n' "$installer" | tr -cd 'A-Za-z0-9_.\n' > "$build/files/share/atl/installer"
 # every app may ask the permission service (atl-permission-service), which asks the user
 finish="$finish --talk-name=de.nexumia.atl.Permissions"
 

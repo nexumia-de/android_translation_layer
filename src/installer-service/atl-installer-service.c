@@ -22,7 +22,7 @@
 #define IDLE_TIMEOUT 120
 
 /* the interface, with its rules for changes: de.nexumia.atl.Installer.xml */
-#define INTERFACE_VERSION 1
+#define INTERFACE_VERSION 2
 
 static GMainLoop *loop;
 static guint idle_source;
@@ -67,15 +67,21 @@ static char *flatpak_user_dir(void)
 	return dir ? g_strdup(dir) : g_build_filename(g_get_user_data_dir(), "flatpak", NULL);
 }
 
-/* the base APK inside an installed app Flatpak */
-static char *installed_apk(const char *package)
+/* a file make-app-flatpak put into an installed app Flatpak */
+static char *installed_file(const char *package, const char *name)
 {
 	char *flatpak = flatpak_user_dir();
 	char *id = g_strconcat(APP_PREFIX, package, NULL);
-	char *path = g_build_filename(flatpak, "app", id, "current", "active", "files", "share", "atl", "apk0.apk", NULL);
+	char *path = g_build_filename(flatpak, "app", id, "current", "active", "files", "share", "atl", name, NULL);
 	g_free(id);
 	g_free(flatpak);
 	return path;
+}
+
+/* the base APK inside an installed app Flatpak */
+static char *installed_apk(const char *package)
+{
+	return installed_file(package, "apk0.apk");
 }
 
 /* the name the user knows the caller by (method_call checked who it is); a caller outside a sandbox
@@ -97,6 +103,21 @@ static char *caller_name(GDBusMethodInvocation *invocation)
 	g_free(desktop_id);
 	g_free(app_id);
 	return name;
+}
+
+/* the caller's package name when it is an app in its own Flatpak, else NULL */
+static char *caller_package(GDBusMethodInvocation *invocation)
+{
+	GKeyFile *info = NULL;
+	char *app_id = NULL;
+	if (caller_identify(invocation, &info, NULL) && info)
+		app_id = g_key_file_get_string(info, "Application", "name", NULL);
+	g_clear_pointer(&info, g_key_file_free);
+	char *package = app_id && g_str_has_prefix(app_id, APP_PREFIX) && valid_package_name(app_id + strlen(APP_PREFIX))
+	                    ? g_strdup(app_id + strlen(APP_PREFIX))
+	                    : NULL;
+	g_free(app_id);
+	return package;
 }
 
 /* Only app stores: an app Flatpak whose sandbox may talk to this name, which make-app-flatpak grants
@@ -221,6 +242,16 @@ static void handle_install(GDBusMethodInvocation *invocation, GVariant *params)
 	g_ptr_array_add(argv, g_strdup("--install-flatpak"));
 	g_ptr_array_add(argv, g_strdup("--installer-name"));
 	g_ptr_array_add(argv, caller_name(invocation));
+	/* the installer of record, and whether the store asked for no user action: --install-ask decides
+	 * whether it may update without asking (docs/installing-apps.md, "Updates without asking") */
+	char *installer = caller_package(invocation);
+	if (installer) {
+		g_ptr_array_add(argv, g_strdup("--installer-id"));
+		g_ptr_array_add(argv, installer);
+		gboolean unattended;
+		if (g_variant_lookup(options, "unattended", "b", &unattended) && unattended)
+			g_ptr_array_add(argv, g_strdup("--unattended"));
+	}
 	const char *sdk_int;
 	if (g_variant_lookup(options, "sdk-int", "&s", &sdk_int) && *sdk_int && strspn(sdk_int, "0123456789") == strlen(sdk_int)) {
 		g_ptr_array_add(argv, g_strdup("--sdk-int"));
@@ -349,6 +380,24 @@ static void handle_list(GDBusMethodInvocation *invocation)
 	g_object_unref(fds);
 }
 
+/* the installer of record make-app-flatpak wrote; empty for an app installed from a file */
+static void handle_get_installer(GDBusMethodInvocation *invocation, GVariant *params)
+{
+	const char *package;
+	g_variant_get(params, "(&s)", &package);
+	char *installer = NULL;
+	if (valid_package_name(package)) {
+		char *path = installed_file(package, "installer");
+		if (g_file_get_contents(path, &installer, NULL, NULL))
+			g_strstrip(installer);
+		g_free(path);
+	}
+	if (installer && !valid_package_name(installer))
+		g_clear_pointer(&installer, g_free);
+	g_dbus_method_invocation_return_value(invocation, g_variant_new("(s)", installer ? installer : ""));
+	g_free(installer);
+}
+
 static void handle_launch(GDBusMethodInvocation *invocation, GVariant *params)
 {
 	const char *package, *uri;
@@ -390,6 +439,8 @@ static void method_call(GDBusConnection *connection, const char *sender, const c
 		handle_list(invocation);
 	else if (!strcmp(method_name, "Launch"))
 		handle_launch(invocation, params);
+	else if (!strcmp(method_name, "GetInstaller"))
+		handle_get_installer(invocation, params);
 	release();
 }
 

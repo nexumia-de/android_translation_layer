@@ -85,8 +85,12 @@ public class PackageInstaller {
 	private static final ArrayList<SessionCallback> callbacks = new ArrayList<>();
 	private static final Random random = new Random();
 
-	/* null on success, else "cancelled", "conflict: ..." or another error */
-	static native String nativeInstallThroughService(String[] apks, String sdkInt, int width, int height);
+	/* null on success, else "cancelled", "conflict: ..." or another error; unattended: the store asked
+	 * for no user action (SessionParams.setRequireUserAction), which the host grants only for some
+	 * updates (docs/installing-apps.md, "Updates without asking") */
+	static native String nativeInstallThroughService(String[] apks, String sdkInt, int width, int height, boolean unattended);
+	/* the app store that installed the package, null if none or unknown */
+	static native String nativeGetInstallerThroughService(String packageName);
 	static native boolean nativeUninstallThroughService(String packageName);
 	public static native void nativeLaunchThroughService(String packageName, String uri);
 	private static native void nativeRefreshInstalledThroughService(String dir);
@@ -113,11 +117,18 @@ public class PackageInstaller {
 	public static boolean installThroughService(File apk) {
 		String sdkInt = System.getProperty("Build.VERSION.SDK_INT");
 		String error = nativeInstallThroughService(new String[] {apk.getPath()}, sdkInt != null ? sdkInt : "",
-		                                           Display.explicitWidth(), Display.explicitHeight());
+		                                           Display.explicitWidth(), Display.explicitHeight(), false);
 		refreshInstalled(true);
 		if (error != null)
 			Slog.w(TAG, "install of " + apk + " through the installer service: " + error);
 		return error == null;
+	}
+
+	/* in a Flatpak: the app store that installed the package, from the installer service */
+	public static String getInstallerOf(String packageName) {
+		if (!ATLPaths.in_flatpak)
+			return null;
+		return nativeGetInstallerThroughService(packageName);
 	}
 
 	public static void refreshInstalled(boolean force) {
@@ -639,7 +650,9 @@ public class PackageInstaller {
 					paths[i++] = file.getPath();
 			}
 			String sdkInt = System.getProperty("Build.VERSION.SDK_INT");
-			String error = nativeInstallThroughService(paths, sdkInt != null ? sdkInt : "", Display.explicitWidth(), Display.explicitHeight());
+			boolean unattended = params.requireUserAction == SessionParams.USER_ACTION_NOT_REQUIRED;
+			String error = nativeInstallThroughService(paths, sdkInt != null ? sdkInt : "", Display.explicitWidth(), Display.explicitHeight(),
+			                                           unattended);
 			if (error == null)
 				return new Object[] {STATUS_SUCCESS, null};
 			if (error.equals("cancelled"))
@@ -676,6 +689,7 @@ public class PackageInstaller {
 		String appLabel;
 		Bitmap appIcon;
 		long sizeBytes = -1;
+		int requireUserAction = USER_ACTION_UNSPECIFIED;
 
 		public SessionParams(int mode) {
 			this.mode = mode;
@@ -703,7 +717,9 @@ public class PackageInstaller {
 
 		public void setInstallScenario(int installScenario) {}
 
-		public void setRequireUserAction(int requireUserAction) {}
+		public void setRequireUserAction(int requireUserAction) {
+			this.requireUserAction = requireUserAction;
+		}
 
 		public void setPackageSource(int packageSource) {}
 
