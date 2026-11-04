@@ -103,6 +103,14 @@ public class PorterDuffColorFilter extends ColorFilter {
 		// native_instance = native_CreatePorterDuffFilter(mColor, mMode.nativeInt);
 	}
 
+	/**
+	 * @hide
+	 */
+	@Override
+	public float[] toColorMatrix() {
+		return porterDuffMatrix(mColor, mMode);
+	}
+
 	@Override
 	public boolean equals(Object object) {
 		if (this == object) {

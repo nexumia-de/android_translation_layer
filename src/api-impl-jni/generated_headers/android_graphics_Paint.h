@@ -180,10 +180,10 @@ JNIEXPORT jfloat JNICALL Java_android_graphics_Paint_native_1get_1text_1size
 /*
  * Class:     android_graphics_Paint
  * Method:    native_set_color_filter
- * Signature: (JII)V
+ * Signature: (J[F)V
  */
 JNIEXPORT void JNICALL Java_android_graphics_Paint_native_1set_1color_1filter
-  (JNIEnv *, jclass, jlong, jint, jint);
+  (JNIEnv *, jclass, jlong, jfloatArray);
 
 /*
  * Class:     android_graphics_Paint

@@ -56,6 +56,16 @@ public final class BlendModeColorFilter extends ColorFilter {
 		return mMode;
 	}
 
+	/**
+	 * BlendModes with a PorterDuff equivalent; MODULATE is PorterDuff's MULTIPLY.
+	 *
+	 * @hide
+	 */
+	@Override
+	public float[] toColorMatrix() {
+		return porterDuffMatrix(mColor, BlendMode.blendModeToPorterDuffMode(mMode));
+	}
+
 	//@Override
 	long createNativeInstance() {
 		return native_CreateBlendModeFilter(mColor, mMode.getXfermode().porterDuffMode);

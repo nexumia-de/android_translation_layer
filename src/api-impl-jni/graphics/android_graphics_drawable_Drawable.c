@@ -1,7 +1,8 @@
-#include <gdk/gdk.h>
+#include <gtk/gtk.h>
 
 #include "../defines.h"
 #include "../util.h"
+#include "ColorFilter.h"
 #include "../generated_headers/android_graphics_drawable_Drawable.h"
 
 JNIEXPORT jlong JNICALL Java_android_graphics_drawable_Drawable_native_1paintable_1from_1path(JNIEnv *env, jclass class, jstring pathStr)
@@ -110,4 +111,78 @@ JNIEXPORT void JNICALL Java_android_graphics_drawable_Drawable_native_1ref(JNIEn
 JNIEXPORT void JNICALL Java_android_graphics_drawable_Drawable_native_1unref(JNIEnv *env, jobject this, jlong paintable_ptr)
 {
 	g_object_unref(G_OBJECT(_PTR(paintable_ptr)));
+}
+
+/* A paintable that draws a child paintable (a bitmap or nine-patch) through a color filter */
+struct _FilterPaintable {
+	GObject parent_instance;
+	GdkPaintable *child;
+	graphene_matrix_t color_matrix;
+	graphene_vec4_t color_offset;
+	bool use_color_filter;
+};
+G_DECLARE_FINAL_TYPE(FilterPaintable, filter_paintable, FILTER, PAINTABLE, GObject)
+
+static void filter_paintable_snapshot(GdkPaintable *gdk_paintable, GdkSnapshot *snapshot, double width, double height)
+{
+	FilterPaintable *paintable = FILTER_PAINTABLE(gdk_paintable);
+	if (paintable->use_color_filter)
+		gtk_snapshot_push_color_matrix(snapshot, &paintable->color_matrix, &paintable->color_offset);
+	gdk_paintable_snapshot(paintable->child, snapshot, width, height);
+	if (paintable->use_color_filter)
+		gtk_snapshot_pop(snapshot);
+}
+
+static double filter_paintable_get_intrinsic_aspect_ratio(GdkPaintable *gdk_paintable)
+{
+	return gdk_paintable_get_intrinsic_aspect_ratio(FILTER_PAINTABLE(gdk_paintable)->child);
+}
+
+static int filter_paintable_get_intrinsic_width(GdkPaintable *gdk_paintable)
+{
+	return gdk_paintable_get_intrinsic_width(FILTER_PAINTABLE(gdk_paintable)->child);
+}
+
+static int filter_paintable_get_intrinsic_height(GdkPaintable *gdk_paintable)
+{
+	return gdk_paintable_get_intrinsic_height(FILTER_PAINTABLE(gdk_paintable)->child);
+}
+
+static void filter_paintable_init(FilterPaintable *paintable)
+{
+}
+
+static void filter_paintable_paintable_init(GdkPaintableInterface *iface)
+{
+	iface->snapshot = filter_paintable_snapshot;
+	iface->get_intrinsic_aspect_ratio = filter_paintable_get_intrinsic_aspect_ratio;
+	iface->get_intrinsic_width = filter_paintable_get_intrinsic_width;
+	iface->get_intrinsic_height = filter_paintable_get_intrinsic_height;
+}
+
+G_DEFINE_TYPE_WITH_CODE(FilterPaintable, filter_paintable, G_TYPE_OBJECT,
+                        G_IMPLEMENT_INTERFACE(GDK_TYPE_PAINTABLE, filter_paintable_paintable_init))
+
+static void filter_paintable_dispose(GObject *object)
+{
+	g_clear_object(&FILTER_PAINTABLE(object)->child);
+	G_OBJECT_CLASS(filter_paintable_parent_class)->dispose(object);
+}
+
+static void filter_paintable_class_init(FilterPaintableClass *class)
+{
+	G_OBJECT_CLASS(class)->dispose = filter_paintable_dispose;
+}
+
+JNIEXPORT jlong JNICALL Java_android_graphics_drawable_Drawable_native_1filter_1paintable_1new(JNIEnv *env, jclass class, jlong child_ptr)
+{
+	FilterPaintable *paintable = g_object_new(filter_paintable_get_type(), NULL);
+	paintable->child = g_object_ref(GDK_PAINTABLE(_PTR(child_ptr)));
+	return _INTPTR(paintable);
+}
+
+JNIEXPORT void JNICALL Java_android_graphics_drawable_Drawable_native_1set_1color_1filter(JNIEnv *env, jclass class, jlong paintable_ptr, jfloatArray matrix)
+{
+	FilterPaintable *paintable = FILTER_PAINTABLE(_PTR(paintable_ptr));
+	paintable->use_color_filter = color_filter_from_java(env, matrix, &paintable->color_matrix, &paintable->color_offset);
 }
