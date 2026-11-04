@@ -3,6 +3,8 @@ package android.bluetooth;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.atl.ATLPaths;
+import android.atl.ATLPermissions;
 import android.content.Context;
 import android.util.Slog;
 import java.io.IOException;
@@ -61,17 +63,34 @@ public final class BluetoothAdapter {
 		this.path = path;
 	}
 
+	private static boolean askedForBluetooth;
+
 	/* null when there is no system bus, no BlueZ or no adapter, like a device without Bluetooth */
 	public static synchronized BluetoothAdapter getDefaultAdapter() {
 		if (defaultAdapter == null) {
-			if (!BlueZ.init())
+			if (!BlueZ.init()) {
+				askOnFirstUse();
 				return null;
+			}
 			String path = BlueZ.adapterPath();
 			if (path == null)
 				return null;
 			defaultAdapter = new BluetoothAdapter(path);
 		}
 		return defaultAdapter;
+	}
+
+	/* In its own Flatpak an app reaches BlueZ only after the user allowed Bluetooth: asked here, when
+	 * the app first uses it, at any SDK level (apps run at SDK 26, where Android grants Bluetooth at
+	 * install). The permission service asks, opens the sandbox and restarts the app; until then
+	 * there is no adapter. Asked at most once per start, and after two "no"s not again (Android 11's
+	 * rule, kept by the service); App info changes the answer (docs/bluetooth.md). */
+	private static void askOnFirstUse() {
+		if (!ATLPaths.in_flatpak || askedForBluetooth)
+			return;
+		askedForBluetooth = true;
+		if (ATLPermissions.request("android.permission.BLUETOOTH_CONNECT"))
+			Slog.i(TAG, "Bluetooth allowed; the app restarts to reach BlueZ");
 	}
 
 	public static boolean checkBluetoothAddress(String address) {

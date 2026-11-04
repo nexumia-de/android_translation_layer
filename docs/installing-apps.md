@@ -247,13 +247,19 @@ android-translation-layer --install-flatpak [-w 360 -h 720] [--sdk-int N] [-l AC
   `--uninstall-flatpak` left an override behind, and `--uninstall-flatpak`
   resets the app's overrides. Apps without `INTERNET` are never asked
   and get `--unshare=network`, also when an update drops `INTERNET`.
-  Bluetooth is asked the same way for an app with a Bluetooth permission
-  ("Allow Bluetooth?", 2026-11-04): `--bluetooth=yes|no` passes the answer
-  to `make-app-flatpak -B`, which writes `--system-talk-name=org.bluez` or
-  `--system-no-talk-name=org.bluez` as a user override and stores it as the
-  answer to `BLUETOOTH_CONNECT` and `BLUETOOTH_SCAN`; App info has one
-  Bluetooth switch for both. Without the override the sandbox has no system
-  bus, so BlueZ is unreachable.
+  Bluetooth is not asked at install (it was for a few hours on
+  2026-11-04: F-Droid asked for it, which it uses only to swap apps
+  nearby). It is asked when the app first uses it: with BlueZ out of
+  reach, `BluetoothAdapter.getDefaultAdapter()` asks the permission
+  service for `BLUETOOTH_CONNECT` (also for apps made before Android 12
+  that only request `BLUETOOTH`, as apps run at SDK 26 never ask
+  themselves). "Allow" writes `--system-talk-name=org.bluez` as a user
+  override and restarts the app once, since Flatpak applies the sandbox
+  at start; the dialog says so. App info has one Bluetooth switch for
+  `BLUETOOTH_CONNECT` and `BLUETOOTH_SCAN`. `--bluetooth=yes|no` for
+  `--install-flatpak` (`make-app-flatpak -B`) stays for scripts. Without
+  the override the sandbox has no system bus, so BlueZ is unreachable.
+  Headless check: `flatpak/bluetooth-test.sh`.
   Everything else waits for portals and the broker (phases 3 and 4).
 - App info (`android-translation-layer --app-info <package>`,
   [screenshot](screenshots/app-info-2026-11-04.png)): a window on the
