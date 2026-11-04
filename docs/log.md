@@ -201,3 +201,18 @@ done yet.
 apps without appstream data; it now runs `flatpak build-update-repo`
 after each export ([development environment](dev-environment.md#app-flatpaks)).
 
+## 2026-11-04: HeliBoard colours (colour filters and tints)
+
+On the phone in dark style HeliBoard's key area was a white surface
+with white labels. HeliBoard colours its views after inflation with
+`BlendModeColorFilter` (MODULATE) and multiplying tints; ATL dropped
+nearly all of it. Colour filters of every kind now become a colour
+matrix (Paint, a native filter paintable for bitmaps and nine-patches,
+the filtered colour of a `ColorDrawable` background); `DrawableContainer`
+passes filter, tint, state and level on; drawables from the resource
+cache are separate objects; `ImageView` applies its colour filter and
+image tint. A long press no longer aborts when it ends. Light and dark
+tested headless with `--sdk-int` 26 and 30; F-Droid, Gadgetbridge and
+Chooser compared with `phosh` ([app status](apps.md),
+[keyboard](android-keyboard.md)).
+

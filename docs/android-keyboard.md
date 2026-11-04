@@ -82,6 +82,12 @@ built when `gtk4-layer-shell-0` is found (1.3.0 on the phone).
   keys through the virtual keyboard (default xkb keymap), the content
   type as `inputType`, the input lifecycle per field; `setSelection`
   still does nothing.
+- Colours (2026-11-04): HeliBoard colours its keyboard with colour
+  filters and tints after inflation; ATL now applies them, so light and
+  dark style both look like HeliBoard
+  ([dark](screenshots/heliboard-osk-dark-2026-11-04.png)). HeliBoard
+  follows the system's dark style only with `--sdk-int` 29 or higher;
+  the phone test uses `--sdk-int 30`.
 - Switching: the compositor gives one input method per seat. While
   Stevia runs, the Android keyboard gets "unavailable"; it asks again
   every second and takes over when Stevia stops (tested headless with an
