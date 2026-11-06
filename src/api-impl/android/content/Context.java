@@ -132,6 +132,7 @@ public abstract class Context {
 		provider.put("Cipher.AES/GCM/NoPadding", "android.security.keystore.AndroidKeyStoreCipher$AesGcmNoPadding");
 		provider.put("Cipher.AES/GCM/NoPadding SupportedKeyClasses", "android.security.keystore.AndroidKeyStoreSecretKey");
 		provider.put("KeyPairGenerator.RSA", "android.security.keystore.AndroidKeyStoreKeyPairGenerator$RSA");
+		provider.put("KeyPairGenerator.EC", "android.security.keystore.AndroidKeyStoreKeyPairGenerator$EC");
 		// first, so its Cipher wins for keystore keys; SupportedKeyClasses leaves other keys to the other providers
 		Security.insertProviderAt(provider, 1);
 		// keystore RSA keys are software keys: Android's keystore provider for RSA

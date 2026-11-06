@@ -5,7 +5,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 
-/* Holds the public key of an RSA key pair. Android would make a self-signed
+/* Holds the public key of an RSA or EC key pair. Android would make a self-signed
  * X.509 certificate; apps use it to get the public key. getEncoded returns
  * the key's X.509 SubjectPublicKeyInfo, not a certificate. */
 public class AndroidKeyStoreCertificate extends Certificate {
