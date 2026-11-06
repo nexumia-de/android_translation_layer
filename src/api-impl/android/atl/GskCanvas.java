@@ -132,7 +132,19 @@ public class GskCanvas extends RecordingCanvas {
 		// TODO: implement xfermode using gtk_snapshot_push_composite in GTK >= 4.22
 		if (paint != null && paint.getXfermode() != null)
 			return;
+		if (hasGradient(paint)) {
+			Path path = new Path();
+			path.addRect(left, top, right, bottom, Path.Direction.CW);
+			drawPath(path, paint);
+			return;
+		}
 		native_drawRect(snapshot, left, top, right, bottom, paint != null ? paint.paint : default_paint.paint);
+	}
+
+	/* the native rect calls only use the paint's colour; gradients go through drawPath */
+	private static boolean hasGradient(Paint paint) {
+		Shader shader = paint != null ? paint.getShader() : null;
+		return shader != null && shader.getGradient(new float[4]) != Shader.GRADIENT_NONE;
 	}
 
 	@Override
@@ -158,6 +170,12 @@ public class GskCanvas extends RecordingCanvas {
 
 	@Override
 	public void drawRoundRect(float left, float top, float right, float bottom, float rx, float ry, Paint paint) {
+		if (hasGradient(paint)) {
+			Path path = new Path();
+			path.addRoundRect(left, top, right, bottom, rx, ry, Path.Direction.CW);
+			drawPath(path, paint);
+			return;
+		}
 		native_drawRoundRect(snapshot, left, top, right, bottom, rx, ry, paint != null ? paint.paint : default_paint.paint);
 	}
 

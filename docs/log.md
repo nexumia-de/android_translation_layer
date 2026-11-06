@@ -226,3 +226,8 @@ tested headless with `--sdk-int` 26 and 30; F-Droid, Gadgetbridge and
 Chooser compared with `phosh` ([app status](apps.md),
 [keyboard](android-keyboard.md)).
 
+## 2026-11-06: DB Navigator pages on the first tap, shadows
+
+* **First tap on Compose screens**: on a newly shown Compose screen (Legal notice, Licences) the first tap did nothing. ATL sent hover events (from GTK crossings and the headless mouse) straight into a press, without Android's `ACTION_HOVER_EXIT`, and with raw = local coordinates and time 0. Hovering now ends before a press, there is no hover during a press or from touch screens, and hover events get window coordinates and a real time. Ruled out on the way: `isInTouchMode()` (still false) and hidden views in the touch hit test ([app status](apps.md)).
+* **Gradient rectangles**: `GskCanvas.drawRect` and `drawRoundRect` ignored shaders, so DB Navigator's drop shadows were black bars; they now go through `drawPath` with GSK gradients ([app status](apps.md)).
+
