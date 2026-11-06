@@ -1,6 +1,7 @@
 package android.security.keystore;
 
 import java.math.BigInteger;
+import java.security.spec.AlgorithmParameterSpec;
 import java.util.Date;
 import javax.security.auth.x500.X500Principal;
 
@@ -12,6 +13,8 @@ public class KeyGenParameterSpec {
 	private String[] blockModes;
 	private String[] encryptionPaddings;
 	private boolean userAuthenticationRequired;
+	private AlgorithmParameterSpec algorithmParameterSpec;
+	private byte[] attestationChallenge;
 
 	public static class Builder {
 		private KeyGenParameterSpec spec = new KeyGenParameterSpec();
@@ -38,6 +41,18 @@ public class KeyGenParameterSpec {
 
 		public Builder setUserAuthenticationRequired(boolean userAuthenticationRequired) {
 			spec.userAuthenticationRequired = userAuthenticationRequired;
+			return this;
+		}
+
+		public Builder setAlgorithmParameterSpec(AlgorithmParameterSpec params) {
+			spec.algorithmParameterSpec = params;
+			return this;
+		}
+
+		/* keys are made in software, so there is no attestation: the
+		 * certificate chain never has the attestation extension */
+		public Builder setAttestationChallenge(byte[] attestationChallenge) {
+			spec.attestationChallenge = attestationChallenge;
 			return this;
 		}
 
@@ -114,6 +129,14 @@ public class KeyGenParameterSpec {
 
 	public boolean isUserAuthenticationRequired() {
 		return userAuthenticationRequired;
+	}
+
+	public AlgorithmParameterSpec getAlgorithmParameterSpec() {
+		return algorithmParameterSpec;
+	}
+
+	public byte[] getAttestationChallenge() {
+		return attestationChallenge;
 	}
 
 	public String getKeystoreAlias() {

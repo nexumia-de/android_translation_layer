@@ -39,8 +39,8 @@ public class AndroidKeyStore extends KeyStoreSpi {
 	}
 
 	/* An entry is the algorithm name and the key: the encoded secret key, or
-	 * for "RSA" the PKCS#8 private key (with its length) and the X.509
-	 * public key. */
+	 * for a key pair ("RSA" or "EC") the PKCS#8 private key (with its
+	 * length) and the X.509 public key. */
 	private static byte[][] readEntry(String alias) {
 		byte[] data = nativeGetKey(packageName(), alias);
 		if (data == null)
@@ -53,8 +53,8 @@ public class AndroidKeyStore extends KeyStoreSpi {
 		return new byte[][] {algorithmBytes, keyBytes};
 	}
 
-	static void setKeyPair(String alias, KeyPair pair) {
-		byte[] algorithm = "RSA".getBytes(StandardCharsets.UTF_8);
+	static void setKeyPair(String alias, String keyAlgorithm, KeyPair pair) {
+		byte[] algorithm = keyAlgorithm.getBytes(StandardCharsets.UTF_8);
 		byte[] privateKey = pair.getPrivate().getEncoded();
 		byte[] publicKey = pair.getPublic().getEncoded();
 		ByteBuffer buffer = ByteBuffer.allocate(4 + algorithm.length + 4 + privateKey.length + publicKey.length);
@@ -66,10 +66,13 @@ public class AndroidKeyStore extends KeyStoreSpi {
 		nativeSetKey(packageName(), alias, buffer.array());
 	}
 
-	/* the private and the public key of an RSA entry, or null */
+	/* the private and the public key of an RSA or EC entry, or null */
 	private static Key[] getKeyPair(String alias) throws NoSuchAlgorithmException, UnrecoverableKeyException {
 		byte[][] entry = readEntry(alias);
-		if (entry == null || !"RSA".equals(new String(entry[0], StandardCharsets.UTF_8)))
+		if (entry == null)
+			return null;
+		String algorithm = new String(entry[0], StandardCharsets.UTF_8);
+		if (!"RSA".equals(algorithm) && !"EC".equals(algorithm))
 			return null;
 		ByteBuffer buffer = ByteBuffer.wrap(entry[1]);
 		byte[] privateKey = new byte[buffer.getInt()];
@@ -77,7 +80,7 @@ public class AndroidKeyStore extends KeyStoreSpi {
 		byte[] publicKey = new byte[buffer.remaining()];
 		buffer.get(publicKey);
 		try {
-			KeyFactory factory = KeyFactory.getInstance("RSA");
+			KeyFactory factory = KeyFactory.getInstance(algorithm);
 			return new Key[] {factory.generatePrivate(new PKCS8EncodedKeySpec(privateKey)),
 			                  factory.generatePublic(new X509EncodedKeySpec(publicKey))};
 		} catch (InvalidKeySpecException e) {
