@@ -31,6 +31,14 @@ JNIEXPORT jboolean JNICALL Java_android_view_inputmethod_InputMethodManager_nati
 JNIEXPORT void JNICALL Java_android_view_inputmethod_InputMethodManager_nativeHideSoftInput
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     android_view_inputmethod_InputMethodManager
+ * Method:    nativeRestartInput
+ * Signature: (JJLandroid/view/inputmethod/InputConnection;I)V
+ */
+JNIEXPORT void JNICALL Java_android_view_inputmethod_InputMethodManager_nativeRestartInput
+  (JNIEnv *, jobject, jlong, jlong, jobject, jint);
+
 #ifdef __cplusplus
 }
 #endif

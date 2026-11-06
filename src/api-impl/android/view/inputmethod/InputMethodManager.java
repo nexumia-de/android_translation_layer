@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.view.View;
 import java.util.ArrayList;
@@ -121,9 +122,42 @@ public class InputMethodManager {
 
 	public void showInputMethodAndSubtypeEnabler(String imiId) {}
 
-	public void restartInput(View view) {}
+	/* The editor's state changed (e.g. Flutter moved its one view to another
+	 * text field): as on Android, the open connection is replaced by a new
+	 * one from the view, or there is none if the view has none to give. */
+	public void restartInput(View view) {
+		if (view == null || view != activeView)
+			return;
+		EditorInfo outAttrs = new EditorInfo();
+		InputConnection ic = view.onCreateInputConnection(outAttrs);
+		if (ic != null) {
+			nativeRestartInput(im_context, view.widget, ic, outAttrs.inputType);
+		} else {
+			nativeHideSoftInput(im_context);
+			activeView = null;
+		}
+	}
 
 	public void updateSelection(View view, int selStart, int selEnd, int candidatesStart, int candidatesEnd) {}
+
+	/* an input connection is open when showSoftInput made one */
+	public boolean isAcceptingText() {
+		return activeView != null;
+	}
+
+	/* the input method gets the text through the connection (GtkIMContext
+	 * asks for the surrounding text), not these updates */
+	public void updateCursorAnchorInfo(View view, CursorAnchorInfo cursorAnchorInfo) {}
+
+	public void updateExtractedText(View view, int token, ExtractedText text) {}
+
+	public void sendAppPrivateCommand(View view, String action, Bundle data) {}
+
+	public boolean isStylusHandwritingAvailable() {
+		return false;
+	}
+
+	public void startStylusHandwriting(View view) {}
 
 	public InputMethodSubtype getCurrentInputMethodSubtype() {
 		if (current_subtype != null)
@@ -135,4 +169,5 @@ public class InputMethodManager {
 	private static native long nativeInit();
 	private native boolean nativeShowSoftInput(long im_context, long widget, InputConnection ic, int inputType);
 	private native void nativeHideSoftInput(long im_context);
+	private native void nativeRestartInput(long im_context, long widget, InputConnection ic, int inputType);
 }
