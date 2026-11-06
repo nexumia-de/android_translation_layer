@@ -163,13 +163,69 @@ static bool call_ontouch_callback(WrapperWidget *wrapper, int action, struct poi
 	return ret;
 }
 
-static void call_hover_callback(jobject this, int action, float x, float y, float raw_x, float raw_y)
+/* hover events get the same raw (window) coordinates and time base as touch
+ * events; Compose takes raw minus local as the view's position in the window */
+static void call_hover_callback(GtkWidget *widget, jobject this, int action, float x, float y)
 {
 	JNIEnv *env = get_jni_env();
-	jobject motion_event = J_new__MotionEvent__single(env, SOURCE_CLASS_POINTER, action, 0, x, y, x, y);
+	double raw_x = x;
+	double raw_y = y;
+	GtkWidget *window = GTK_WIDGET(gtk_widget_get_native(widget));
+	graphene_point_t p;
+	if (window && gtk_widget_compute_point(widget, window, &GRAPHENE_POINT_INIT(x, y), &p)) {
+		double off_x;
+		double off_y;
+		gtk_native_get_surface_transform(GTK_NATIVE(window), &off_x, &off_y);
+		raw_x = p.x + off_x;
+		raw_y = p.y + off_y;
+	}
+	jobject motion_event = J_new__MotionEvent__single(env, SOURCE_CLASS_POINTER, action, g_get_monotonic_time() / 1000, x, y, raw_x, raw_y);
 	J__View__dispatchHoverEvent(env, this, motion_event);
 	if ((*env)->ExceptionCheck(env))
 		(*env)->ExceptionDescribe(env);
+}
+
+/* Views hovered since the last press. Android ends hovering with
+ * ACTION_HOVER_EXIT before a button goes down, sends no hover events while
+ * it is down, and touches never hover. Compose dropped the first tap on a
+ * new screen when a hover went straight into a press. */
+static GPtrArray *hovered_wrappers = NULL;
+
+static bool hover_ignored(GtkEventControllerMotion *controller)
+{
+	GdkDevice *device = gtk_event_controller_get_current_event_device(GTK_EVENT_CONTROLLER(controller));
+	if (device && gdk_device_get_source(device) == GDK_SOURCE_TOUCHSCREEN)
+		return true;
+	return pointer_indices && pointer_indices->len;
+}
+
+static void hover_move(WrapperWidget *wrapper, float x, float y)
+{
+	if (!hovered_wrappers)
+		hovered_wrappers = g_ptr_array_new_with_free_func(g_object_unref);
+	wrapper->hover_x = x;
+	wrapper->hover_y = y;
+	if (!g_ptr_array_find(hovered_wrappers, wrapper, NULL)) {
+		g_ptr_array_add(hovered_wrappers, g_object_ref(wrapper));
+		call_hover_callback(GTK_WIDGET(wrapper), wrapper->jobj, ACTION_HOVER_ENTER, x, y);
+	} else {
+		call_hover_callback(GTK_WIDGET(wrapper), wrapper->jobj, ACTION_HOVER_MOVE, x, y);
+	}
+}
+
+static void hover_end(WrapperWidget *wrapper)
+{
+	guint index;
+	if (!hovered_wrappers || !g_ptr_array_find(hovered_wrappers, wrapper, &index))
+		return;
+	call_hover_callback(GTK_WIDGET(wrapper), wrapper->jobj, ACTION_HOVER_EXIT, wrapper->hover_x, wrapper->hover_y);
+	g_ptr_array_remove_index_fast(hovered_wrappers, index);
+}
+
+static void hover_end_all(void)
+{
+	while (hovered_wrappers && hovered_wrappers->len)
+		hover_end(g_ptr_array_index(hovered_wrappers, hovered_wrappers->len - 1));
 }
 
 static void transform_coords_to_widget_relative(GtkWidget *widget, double *x, double *y)
@@ -269,6 +325,9 @@ static gboolean on_pointer_event(GtkEventControllerLegacy *event_controller, Gdk
 	x = raw_x, y = raw_y;
 	transform_coords_to_widget_relative(widget, &x, &y);
 
+	if ((event_type == GDK_BUTTON_PRESS || event_type == GDK_TOUCH_BEGIN) && pointer_indices->len == 0)
+		hover_end_all();
+
 	if (!pointers[id].id) {
 		/* if this is a new sequence, add a slot for it */
 		g_ptr_array_add(pointer_indices, &pointers[id]);
@@ -289,10 +348,6 @@ static gboolean on_pointer_event(GtkEventControllerLegacy *event_controller, Gdk
 	gboolean ret = call_ontouch_callback(wrapper, action, pointers, pointer_indices, phase, timestamp, event);
 	if (event_type == GDK_BUTTON_RELEASE || event_type == GDK_TOUCH_END) {
 		remove_pointer_fast(pointer_indices, &pointers[id]);
-	}
-	if (pointer_indices->len == 0 && wrapper->hover_exit_pending) {
-		wrapper->hover_exit_pending = FALSE;
-		call_hover_callback(wrapper->jobj, ACTION_HOVER_EXIT, x, y, raw_x, raw_y);
 	}
 	return ret;
 }
@@ -435,40 +490,26 @@ static gboolean scroll_cb(GtkEventControllerScroll *controller, gdouble dx, gdou
 
 	// HACK: replay last hover event to work around scrolling issues in composeUI apps
 	if (wrapper->hover_x && wrapper->hover_y)
-		call_hover_callback(this, ACTION_HOVER_MOVE, wrapper->hover_x, wrapper->hover_y, wrapper->hover_x, wrapper->hover_y);
+		hover_move(wrapper, wrapper->hover_x, wrapper->hover_y);
 
 	return ret;
 }
 
 static void hover_enter_cb(GtkEventControllerMotion *controller, double x, double y, WrapperWidget *wrapper)
 {
-	double raw_x;
-	double raw_y;
-	GdkEvent *event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
-	gdk_event_get_position(event, &raw_x, &raw_y);
-	wrapper->hover_exit_pending = FALSE;
-	wrapper->hover_x = x;
-	wrapper->hover_y = y;
-	call_hover_callback(wrapper->jobj, ACTION_HOVER_ENTER, x, y, raw_x, raw_y);
+	if (!hover_ignored(controller))
+		hover_move(wrapper, x, y);
 }
 
 static void hover_leave_cb(GtkEventControllerMotion *controller, WrapperWidget *wrapper)
 {
-	if (pointer_indices->len) // composeUI apps don't like ACTION_HOVER_EXIT events while a pointer is down
-		wrapper->hover_exit_pending = TRUE;
-	else
-		call_hover_callback(wrapper->jobj, ACTION_HOVER_EXIT, 0, 0, 0, 0);
+	hover_end(wrapper);
 }
 
 static void hover_motion_cb(GtkEventControllerMotion *controller, double x, double y, WrapperWidget *wrapper)
 {
-	double raw_x;
-	double raw_y;
-	GdkEvent *event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
-	gdk_event_get_position(event, &raw_x, &raw_y);
-	wrapper->hover_x = x;
-	wrapper->hover_y = y;
-	call_hover_callback(wrapper->jobj, ACTION_HOVER_MOVE, x, y, raw_x, raw_y);
+	if (!hover_ignored(controller))
+		hover_move(wrapper, x, y);
 }
 
 void _setOnTouchListener(JNIEnv *env, jobject this, GtkWidget *widget)
