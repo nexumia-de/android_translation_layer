@@ -299,4 +299,27 @@ public class Notification implements Parcelable {
 
 		public InboxStyle addLine(CharSequence line) { return this; }
 	}
+
+	public static class BigPictureStyle extends Style {
+
+		public BigPictureStyle() {}
+
+		public BigPictureStyle(Notification.Builder builder) {}
+
+		public BigPictureStyle setBigContentTitle(CharSequence title) { return this; }
+
+		public BigPictureStyle setSummaryText(CharSequence summaryText) { return this; }
+
+		public BigPictureStyle setContentDescription(CharSequence contentDescription) { return this; }
+
+		public BigPictureStyle bigPicture(Bitmap b) { return this; }
+
+		public BigPictureStyle bigPicture(Icon icon) { return this; }
+
+		public BigPictureStyle showBigPictureWhenCollapsed(boolean show) { return this; }
+
+		public BigPictureStyle bigLargeIcon(Bitmap b) { return this; }
+
+		public BigPictureStyle bigLargeIcon(Icon icon) { return this; }
+	}
 }
