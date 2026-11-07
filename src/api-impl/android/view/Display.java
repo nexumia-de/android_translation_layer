@@ -82,6 +82,22 @@ public final class Display {
 		rect.set(0, 0, getWidth(), getHeight());
 	}
 
+	public RoundedCorner getRoundedCorner(int position) {
+		return null;
+	}
+
+	public static final int STATE_UNKNOWN = 0;
+	public static final int STATE_OFF = 1;
+	public static final int STATE_ON = 2;
+
+	public int getState() {
+		return STATE_ON;
+	}
+
+	public boolean isHdr() {
+		return false;
+	}
+
 	public DisplayCutout getCutout() {
 		return DisplayCutout.NO_CUTOUT;
 	}

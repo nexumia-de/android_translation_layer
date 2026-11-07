@@ -27,6 +27,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
 import android.os.Vibrator;
@@ -38,6 +39,8 @@ import android.util.Slog;
 import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.WindowInsets;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.animation.Animation;
 import android.view.autofill.AutofillValue;
 import android.view.autofill.AutofillId;
@@ -81,6 +84,12 @@ public class View implements Drawable.Callback {
 	 * @hide
 	 */
 	public static final String DEBUG_LAYOUT_PROPERTY = "debug.layout";
+
+	public static final int AUTOFILL_TYPE_NONE = 0;
+	public static final int AUTOFILL_TYPE_TEXT = 1;
+	public static final int AUTOFILL_TYPE_TOGGLE = 2;
+	public static final int AUTOFILL_TYPE_LIST = 3;
+	public static final int AUTOFILL_TYPE_DATE = 4;
 
 	/**
 	 * Used to mark a View that has no ID.
@@ -2086,6 +2095,45 @@ public class View implements Drawable.Callback {
 	}
 
 	public static class BaseSavedState extends AbsSavedState {
+		public BaseSavedState(Parcelable superState) {
+			super(superState);
+		}
+
+		public BaseSavedState(Parcel source) {
+			super(source);
+		}
+
+		public BaseSavedState(Parcel source, ClassLoader loader) {
+			super(source, loader);
+		}
+
+		public static final Parcelable.Creator<BaseSavedState> CREATOR = new Parcelable.ClassLoaderCreator<BaseSavedState>() {
+			@Override
+			public BaseSavedState createFromParcel(Parcel in) {
+				return new BaseSavedState(in);
+			}
+
+			@Override
+			public BaseSavedState createFromParcel(Parcel in, ClassLoader loader) {
+				return new BaseSavedState(in, loader);
+			}
+
+			@Override
+			public BaseSavedState[] newArray(int size) {
+				return new BaseSavedState[size];
+			}
+		};
+	}
+
+	/* ATL does not save the view hierarchy yet (saveHierarchyState is empty), but subclasses
+	 * call these through super and wrap the result */
+	protected Parcelable onSaveInstanceState() {
+		return AbsSavedState.EMPTY_STATE;
+	}
+
+	protected void onRestoreInstanceState(Parcelable state) {
+		if (state != null && !(state instanceof AbsSavedState))
+			throw new IllegalArgumentException("Wrong state class, expecting View State but received " + state.getClass().toString() + " instead.");
 	}
 
 	public void clearFocus() {}
@@ -2659,7 +2707,7 @@ public class View implements Drawable.Callback {
 		return view;
 	}
 	public float getTransitionAlpha() {
-		return 1.0f;
+		return transitionAlpha;
 	}
 
 	public void onWindowFocusChanged(boolean hasFocus) {}
@@ -2822,6 +2870,144 @@ public class View implements Drawable.Callback {
 	public void setViewTranslationCallback(ViewTranslationCallback callback) {}
 	public void clearViewTranslationCallback() {}
 	public void transformMatrixToGlobal(Matrix matrix) {}
+
+	/* views are not transformed relative to their parent here, as in transformMatrixToGlobal */
+	public void transformMatrixToLocal(Matrix matrix) {}
+
+	public void setAnimationMatrix(Matrix matrix) {}
+
+	public final int getMeasuredHeightAndState() {
+		return measuredHeight;
+	}
+
+	public void setLeftTopRightBottom(int left, int top, int right, int bottom) {
+		layout(left, top, right, bottom);
+	}
+
+	/* transition alpha and visibility multiply with the view's own on Android; ATL has only
+	 * the view's own, so these stand in for them */
+	private float transitionAlpha = 1.0f;
+
+	public void setTransitionAlpha(float alpha) {
+		transitionAlpha = alpha;
+	}
+
+	public void setTransitionVisibility(int visibility) {
+		setVisibility(visibility);
+	}
+
+	protected void onWindowVisibilityChanged(int visibility) {}
+
+	public void drawableHotspotChanged(float x, float y) {}
+
+	protected void onOverScrolled(int scrollX, int scrollY, boolean clampedX, boolean clampedY) {}
+
+	public boolean isOpaque() {
+		return false;
+	}
+
+	protected boolean verifyDrawable(Drawable who) {
+		return who == getBackground();
+	}
+
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		return false;
+	}
+
+	public void addFocusables(ArrayList<View> views, int direction, int focusableMode) {
+		if (isFocusable())
+			views.add(this);
+	}
+
+	protected boolean fitSystemWindows(Rect insets) {
+		return false;
+	}
+
+	public WindowInsets dispatchApplyWindowInsets(WindowInsets insets) {
+		return onApplyWindowInsets(insets);
+	}
+
+	/* shadows are not drawn (see setElevation), so their colours are only kept */
+	private int outlineAmbientShadowColor = 0xFF000000;
+	private int outlineSpotShadowColor = 0xFF000000;
+
+	public void setOutlineAmbientShadowColor(int color) {
+		outlineAmbientShadowColor = color;
+	}
+
+	public int getOutlineAmbientShadowColor() {
+		return outlineAmbientShadowColor;
+	}
+
+	public void setOutlineSpotShadowColor(int color) {
+		outlineSpotShadowColor = color;
+	}
+
+	public int getOutlineSpotShadowColor() {
+		return outlineSpotShadowColor;
+	}
+
+	/* render effects (blur, colour filters) are not drawn */
+	public void setRenderEffect(android.graphics.RenderEffect renderEffect) {}
+
+	public void setImportantForContentCapture(int mode) {}
+
+	public String[] getReceiveContentMimeTypes() {
+		return null;
+	}
+
+	/* there is no screen reader, so the accessibility state is only kept for apps that read it back */
+	private CharSequence stateDescription;
+	private boolean screenReaderFocusable;
+
+	public void setStateDescription(CharSequence stateDescription) {
+		this.stateDescription = stateDescription;
+	}
+
+	public CharSequence getStateDescription() {
+		return stateDescription;
+	}
+
+	public void setScreenReaderFocusable(boolean screenReaderFocusable) {
+		this.screenReaderFocusable = screenReaderFocusable;
+	}
+
+	public boolean isScreenReaderFocusable() {
+		return screenReaderFocusable;
+	}
+
+	public boolean isAccessibilityHeading() {
+		return false;
+	}
+
+	public CharSequence getAccessibilityPaneTitle() {
+		return null;
+	}
+
+	public CharSequence getAccessibilityClassName() {
+		return View.class.getName();
+	}
+
+	public ViewParent getParentForAccessibility() {
+		return getParent();
+	}
+
+	public AccessibilityNodeInfo createAccessibilityNodeInfo() {
+		return null;
+	}
+
+	public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {}
+
+	public void onInitializeAccessibilityEvent(AccessibilityEvent event) {}
+
+	public void onPopulateAccessibilityEvent(AccessibilityEvent event) {}
+
+	public boolean dispatchPopulateAccessibilityEvent(AccessibilityEvent event) {
+		onPopulateAccessibilityEvent(event);
+		return false;
+	}
+
+	public void sendAccessibilityEventUnchecked(AccessibilityEvent event) {}
 	/* the "show layout bounds" developer option, off as on Android; Compose draws red
 	 * bounds around every layout node while this is true */
 	public boolean isShowingLayoutBounds() {

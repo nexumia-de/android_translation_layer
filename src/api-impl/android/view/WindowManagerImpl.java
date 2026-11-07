@@ -85,6 +85,17 @@ public class WindowManagerImpl implements WindowManager, ViewManager {
 		return new android.view.Display();
 	}
 
+	/* an app has one window, which fills the display */
+	public WindowMetrics getCurrentWindowMetrics() {
+		Rect bounds = new Rect();
+		getDefaultDisplay().getRectSize(bounds);
+		return new WindowMetrics(bounds, new WindowInsets());
+	}
+
+	public WindowMetrics getMaximumWindowMetrics() {
+		return getCurrentWindowMetrics();
+	}
+
 	@Override
 	public void addView(View view, android.view.ViewGroup.LayoutParams params) {
 		Slog.v(TAG, "addView(" + view + ", " + params + ") called");

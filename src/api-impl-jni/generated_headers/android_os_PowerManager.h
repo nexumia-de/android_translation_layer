@@ -29,6 +29,8 @@ extern "C" {
 #define android_os_PowerManager_INHIBIT_IDLE 8L
 #undef android_os_PowerManager_FULL_WAKE_LOCK
 #define android_os_PowerManager_FULL_WAKE_LOCK 26L
+#undef android_os_PowerManager_THERMAL_STATUS_NONE
+#define android_os_PowerManager_THERMAL_STATUS_NONE 0L
 /*
  * Class:     android_os_PowerManager
  * Method:    nativeIsScreenOn
