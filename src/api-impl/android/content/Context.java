@@ -580,6 +580,16 @@ public abstract class Context {
 	@Export
 	public abstract void startActivity(Intent intent);
 
+	/* the last intent ends up on top, as on Android */
+	public void startActivities(Intent[] intents) {
+		startActivities(intents, null);
+	}
+
+	public void startActivities(Intent[] intents, Bundle options) {
+		for (Intent intent : intents)
+			startActivity(intent, options);
+	}
+
 	public void startActivity(Intent intent, Bundle options) {
 		startActivity(intent);
 	}
