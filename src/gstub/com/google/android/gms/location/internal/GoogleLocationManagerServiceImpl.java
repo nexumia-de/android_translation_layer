@@ -20,8 +20,8 @@ import java.util.ArrayList;
  * Fused location for the GMS client library, on ATL's LocationManager, like
  * microG's. The broker answers the client's getService; the location binder
  * implements the methods the client uses when the service names no features:
- * getLastLocation, getLocationAvailabilityWithPackage and
- * updateLocationRequest. Parcelables of the client library are SafeParcels,
+ * getLastLocation, getLocationAvailabilityWithPackage,
+ * updateLocationRequest and SettingsClient's checkLocationSettings. Parcelables of the client library are SafeParcels,
  * read and written here by hand.
  */
 public class GoogleLocationManagerServiceImpl extends Service {
@@ -39,6 +39,9 @@ public class GoogleLocationManagerServiceImpl extends Service {
 	private static final int GET_LAST_LOCATION_WITH_PACKAGE = 21;
 	private static final int GET_LOCATION_AVAILABILITY = 34;
 	private static final int UPDATE_LOCATION_REQUEST = 59;
+	private static final int REQUEST_LOCATION_SETTINGS_DIALOG = 63;
+	static final String SETTINGS_CALLBACKS = "com.google.android.gms.location.internal.ISettingsCallbacks";
+	private static final int SETTINGS_CHANGE_UNAVAILABLE = 8502;
 
 	private static final int SAFE_PARCEL_MAGIC = 0x4f45;
 	private static final int PRIORITY_HIGH_ACCURACY = 100;
@@ -101,6 +104,11 @@ public class GoogleLocationManagerServiceImpl extends Service {
 					reply.writeNoException();
 					reply.writeInt(1);
 					writeAvailability(reply, locationAllowed());
+					return true;
+				case REQUEST_LOCATION_SETTINGS_DIALOG:
+					checkLocationSettings(data);
+					if (reply != null)
+						reply.writeNoException();
 					return true;
 				case UPDATE_LOCATION_REQUEST:
 					updateLocationRequest(data);
@@ -209,6 +217,36 @@ public class GoogleLocationManagerServiceImpl extends Service {
 			endWrite(p, start);
 			transact(fusedCallback, 1, p);
 		}
+	}
+
+	/* SettingsClient: satisfied while the location portal may be asked, there is no settings
+	 * dialog to offer otherwise */
+	private void checkLocationSettings(Parcel data) {
+		if (data.readInt() != 0)
+			data.setDataPosition(beginRead(data)); /* LocationSettingsRequest, not needed */
+		IBinder callbacks = data.readStrongBinder();
+		if (callbacks == null)
+			return;
+		boolean usable = locationAllowed();
+		Parcel p = Parcel.obtain();
+		p.writeInterfaceToken(SETTINGS_CALLBACKS);
+		p.writeInt(1);
+		int start = beginWrite(p);
+		int f = beginField(p, 1);
+		writeStatus(p, usable ? 0 : SETTINGS_CHANGE_UNAVAILABLE);
+		endField(p, f);
+		f = beginField(p, 2); /* LocationSettingsStates: GPS present and usable, no network location or BLE */
+		int states = beginWrite(p);
+		writeIntField(p, 1, usable ? 1 : 0);
+		writeIntField(p, 2, 0);
+		writeIntField(p, 3, 0);
+		writeIntField(p, 4, 1);
+		writeIntField(p, 5, 0);
+		writeIntField(p, 6, 0);
+		endWrite(p, states);
+		endField(p, f);
+		endWrite(p, start);
+		transact(callbacks, 1, p);
 	}
 
 	private static Request find(IBinder key) {
