@@ -35,18 +35,14 @@ follow [bringing up an app](app-bring-up.md).
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
-- 2026-11-07: DB Navigator Nearby and fused location are on the local
-  branch `claude/db-map-journeys` of the user `claude2` (no GitHub
-  login): push it and open the pull request. For the crash after
+- 2026-11-07: DB Navigator: for the crash after
   accepting the map and in Journeys after the login, a log is needed:
   start DB Navigator from a terminal as in its launcher
   (`grep -h ^Exec ~/.local/share/applications/*hafas*.desktop`) with
   `2>&1 | tee /tmp/db.log`, reproduce, then `chmod 644 /tmp/db.log`.
 
-- 2026-11-06: DB Navigator first-tap and black-bar fixes are on the local
-  branch `claude/db-first-tap-gradient-rects` of the user `claude2`,
-  which has no GitHub login: push it and open the pull request (or log
-  `claude2` in with `gh auth login`). Once in the aports package: open
+- 2026-11-06: DB Navigator first-tap and black-bar fixes (pull request
+  #112, merged). Once in the aports package: open
   Profile > Legal notice > Licences with one tap, and check that
   Settings shows no black bars.
 
