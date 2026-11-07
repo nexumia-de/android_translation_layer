@@ -2822,8 +2822,10 @@ public class View implements Drawable.Callback {
 	public void setViewTranslationCallback(ViewTranslationCallback callback) {}
 	public void clearViewTranslationCallback() {}
 	public void transformMatrixToGlobal(Matrix matrix) {}
+	/* the "show layout bounds" developer option, off as on Android; Compose draws red
+	 * bounds around every layout node while this is true */
 	public boolean isShowingLayoutBounds() {
-		return true;
+		return false;
 	}
 
 	public boolean callOnClick() {
