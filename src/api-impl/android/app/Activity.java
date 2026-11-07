@@ -307,6 +307,10 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 		setContentView(view);
 	}
 
+	public void addContentView(View view, ViewGroup.LayoutParams layoutParams) {
+		window.addContentView(view, layoutParams);
+	}
+
 	public void setContentView(View view) {
 		window.setContentView(view);
 		onContentChanged();

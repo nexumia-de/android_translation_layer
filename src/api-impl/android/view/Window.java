@@ -97,6 +97,11 @@ public class Window {
 		decorView.addView(view);
 	}
 
+	/* next to the content view, on top of it */
+	public void addContentView(View view, ViewGroup.LayoutParams params) {
+		decorView.addView(view, params);
+	}
+
 	public View getDecorView() {
 		return decorView;
 	}
