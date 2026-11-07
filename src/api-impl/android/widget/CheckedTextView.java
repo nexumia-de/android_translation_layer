@@ -14,7 +14,22 @@ public class CheckedTextView extends TextView {
 		super(context, attributeSet);
 	}
 
-	public void setChecked(boolean checked) {}
+	private boolean checked;
+
+	public void setChecked(boolean checked) {
+		if (this.checked != checked) {
+			this.checked = checked;
+			refreshDrawableState();
+		}
+	}
+
+	public boolean isChecked() {
+		return checked;
+	}
+
+	public void toggle() {
+		setChecked(!checked);
+	}
 
 	public void setCheckMarkDrawable(Drawable d) {}
 }

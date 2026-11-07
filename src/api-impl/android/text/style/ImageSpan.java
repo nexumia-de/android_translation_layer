@@ -6,9 +6,17 @@ import android.graphics.drawable.Drawable;
 
 public class ImageSpan extends DynamicDrawableSpan {
 
-	public ImageSpan(Context context, int resId) {}
-
 	private Drawable drawable;
+
+	public ImageSpan(Context context, int resId) {
+		this(context, resId, ALIGN_BOTTOM);
+	}
+
+	public ImageSpan(Context context, int resId, int verticalAlignment) {
+		drawable = context.getDrawable(resId);
+		if (drawable != null)
+			drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
+	}
 
 	public ImageSpan(Drawable d) {
 		drawable = d;
