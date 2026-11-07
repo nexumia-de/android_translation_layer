@@ -319,6 +319,30 @@ public final class Trace {
 	}
 
 	/**
+	 * Writes a trace message to indicate that a given section of code has begun. Must be
+	 * followed by a call to {@link #endAsyncSection(String, int)} with the same name and cookie.
+	 * Unlike {@link #beginSection(String)}, the section may begin and end on different threads.
+	 */
+	public static void beginAsyncSection(String methodName, int cookie) {
+		asyncTraceBegin(TRACE_TAG_APP, methodName, cookie);
+	}
+
+	/**
+	 * Writes a trace message to indicate that the async section with this name and cookie
+	 * has ended.
+	 */
+	public static void endAsyncSection(String methodName, int cookie) {
+		asyncTraceEnd(TRACE_TAG_APP, methodName, cookie);
+	}
+
+	/**
+	 * Writes the value of a counter to the trace (the native side takes an int).
+	 */
+	public static void setCounter(String counterName, long counterValue) {
+		traceCounter(TRACE_TAG_APP, counterName, (int)Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, counterValue)));
+	}
+
+	/**
 	 * Checks whether or not tracing is currently enabled. This is useful to avoid intermediate
 	 * string creation for trace sections that require formatting. It is not necessary
 	 * to guard all Trace method calls as they internally already check this. However it is

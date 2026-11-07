@@ -632,6 +632,7 @@ srcs = [
 	'android/util/Base64DataException.java',
 	'android/util/Base64InputStream.java',
 	'android/util/Base64OutputStream.java',
+	'android/util/CloseGuard.java',
 	'android/util/ContainerHelpers.java',
 	'android/util/DecompiledXmlResourceParser.java',
 	'android/util/DisplayMetrics.java',
