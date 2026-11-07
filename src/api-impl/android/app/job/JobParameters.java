@@ -15,6 +15,23 @@ public class JobParameters implements Parcelable {
 		this.jobInfo = jobInfo;
 	}
 
+	public static final int STOP_REASON_UNDEFINED = 0;
+
+	public int getJobId() {
+		return jobInfo.getId();
+	}
+
+	public int getStopReason() {
+		return STOP_REASON_UNDEFINED;
+	}
+
+	/* JobScheduler.enqueue does not keep work items, so there is never work to hand out */
+	public JobWorkItem dequeueWork() {
+		return null;
+	}
+
+	public void completeWork(JobWorkItem work) {}
+
 	public PersistableBundle getExtras() {
 		return jobInfo.getExtras();
 	}
