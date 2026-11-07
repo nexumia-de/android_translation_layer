@@ -108,6 +108,10 @@ public class WindowInsets {
 		return null;
 	}
 
+	public RoundedCorner getRoundedCorner(int position) {
+		return null;
+	}
+
 	public DisplayCutout getDisplayCutout() {
 		return null;
 	}

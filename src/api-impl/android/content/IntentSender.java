@@ -20,6 +20,10 @@ public class IntentSender {
 			onFinished.onSendFinished(this, intent, code, null, null);
 	}
 
+	public String getTargetPackage() {
+		return getCreatorPackage();
+	}
+
 	public String getCreatorPackage() {
 		return pendingIntent.getCreatorPackage();
 	}

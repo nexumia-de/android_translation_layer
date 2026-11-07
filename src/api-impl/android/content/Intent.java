@@ -953,6 +953,10 @@ public class Intent implements Parcelable, Cloneable {
 		return extras.getIntArray(name);
 	}
 
+	public double getDoubleExtra(String name, double def) {
+		return extras.getDouble(name, def);
+	}
+
 	public float getFloatExtra(String name, float def) {
 		return extras.getFloat(name, def);
 	}

@@ -31,6 +31,20 @@ public class JobScheduler {
 		return new ArrayList<>(pendingJobs.values());
 	};
 
+	public JobInfo getPendingJob(int jobId) {
+		return pendingJobs.get(jobId);
+	}
+
+	/* namespaces (API 34) only separate job ids; the app's jobs share one map here */
+	public JobScheduler forNamespace(String namespace) {
+		return this;
+	}
+
+	public void cancelAll() {
+		for (Integer id : new ArrayList<>(pendingJobs.keySet()))
+			cancel(id);
+	}
+
 	public int enqueue(JobInfo job, JobWorkItem work) {
 		return 1; //RESULT_SUCCESS
 	}

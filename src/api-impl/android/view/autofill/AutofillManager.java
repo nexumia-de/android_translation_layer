@@ -18,4 +18,31 @@ public class AutofillManager {
 	public void notifyValueChanged(View view, int id, AutofillValue value) {}
 
 	public void notifyViewExited(View view, int id) {}
+
+	/* ATL has no autofill service, so nothing is ever filled or saved */
+	public boolean isEnabled() {
+		return false;
+	}
+
+	public boolean isAutofillSupported() {
+		return false;
+	}
+
+	public void notifyViewEntered(View view) {}
+
+	public void notifyViewExited(View view) {}
+
+	public void notifyValueChanged(View view) {}
+
+	public void notifyViewVisibilityChanged(View view, boolean isVisible) {}
+
+	public void notifyViewVisibilityChanged(View view, int virtualId, boolean isVisible) {}
+
+	public void requestAutofill(View view) {}
+
+	public void requestAutofill(View view, int virtualId, Rect absBounds) {}
+
+	public void commit() {}
+
+	public void cancel() {}
 }

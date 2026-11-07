@@ -34,8 +34,22 @@ public abstract class Service extends ContextWrapper {
 
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		System.out.println("Service.onStartCommand(" + intent + ", " + flags + ", " + startId + ") called");
+		onStart(intent, startId);
 		return 0;
 	}
+
+	@Deprecated
+	public void onStart(Intent intent, int startId) {}
+
+	public boolean onUnbind(Intent intent) {
+		return false;
+	}
+
+	public void onRebind(Intent intent) {}
+
+	public void onTaskRemoved(Intent rootIntent) {}
+
+	public void onTrimMemory(int level) {}
 
 	/* A foreground service keeps the process running after its last window
 	 * closed, like on Android, where only background services are stopped. */

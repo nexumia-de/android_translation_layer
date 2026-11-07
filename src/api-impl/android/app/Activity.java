@@ -31,6 +31,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -272,6 +273,22 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 		return;
 	}
 
+	/* ATL never recreates an activity, so there is no saved state to restore */
+	protected void onRestoreInstanceState(Bundle savedInstanceState) {}
+
+	public void onAttachedToWindow() {}
+
+	public void onDetachedFromWindow() {}
+
+	@Deprecated
+	public void onAttachFragment(Fragment fragment) {}
+
+	/* touches go from GTK to the views directly; this is only reached when an app calls it */
+	public boolean dispatchTouchEvent(MotionEvent ev) {
+		View decor = getWindow().getDecorView();
+		return decor != null && decor.dispatchTouchEvent(ev);
+	}
+
 	protected void onSaveInstanceState(Bundle outState) {
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_SAVE_INSTANCE_STATE, outState);
 	}
@@ -309,6 +326,11 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 
 	public void setContentView(View view) {
 		window.setContentView(view);
+		onContentChanged();
+	}
+
+	public void addContentView(View view, ViewGroup.LayoutParams params) {
+		window.addContentView(view, params);
 		onContentChanged();
 	}
 

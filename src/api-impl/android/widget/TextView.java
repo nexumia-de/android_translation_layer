@@ -527,7 +527,61 @@ public class TextView extends View {
 
 	public void setLinkTextColor(int color) {}
 
-	public void setCustomSelectionActionModeCallback(ActionMode.Callback actionModeCallback) {}
+	private ActionMode.Callback customSelectionActionModeCallback;
+
+	/* GTK shows its own selection menu, so the callback is only kept */
+	public void setCustomSelectionActionModeCallback(ActionMode.Callback actionModeCallback) {
+		customSelectionActionModeCallback = actionModeCallback;
+	}
+
+	public ActionMode.Callback getCustomSelectionActionModeCallback() {
+		return customSelectionActionModeCallback;
+	}
+
+	/* the text is edited by GTK, which batches on its own */
+	public void beginBatchEdit() {}
+
+	public void endBatchEdit() {}
+
+	protected void onSelectionChanged(int selStart, int selEnd) {}
+
+	protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {}
+
+	public boolean isHorizontallyScrollable() {
+		return getHorizontallyScrolling();
+	}
+
+	public ColorStateList getHintTextColors() {
+		return hintColors;
+	}
+
+	/* line height, baselines and ems are layout hints GTK's label does not take */
+	public void setLineHeight(int unit, float lineHeight) {}
+
+	public void setFirstBaselineToTopHeight(int firstBaselineToTopHeight) {}
+
+	public void setLastBaselineToBottomHeight(int lastBaselineToBottomHeight) {}
+
+	public void setMaxEms(int maxEms) {}
+
+	public void setMinEms(int minEms) {}
+
+	public void setPrivateImeOptions(String type) {}
+
+	public boolean setFontVariationSettings(String fontVariationSettings) {
+		return false;
+	}
+
+	public void setCompoundDrawableTintMode(android.graphics.PorterDuff.Mode tintMode) {}
+
+	public void setTextLocales(LocaleList locales) {
+		if (locales != null && locales.size() > 0)
+			setTextLocale(locales.get(0));
+	}
+
+	public int getAutoSizeTextType() {
+		return 0; // AUTO_SIZE_TEXT_TYPE_NONE
+	}
 
 	public int getExtendedPaddingTop() { return 0; }
 

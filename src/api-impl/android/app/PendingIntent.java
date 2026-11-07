@@ -91,6 +91,10 @@ public class PendingIntent implements Parcelable {
 	public class CanceledException extends Exception {
 	}
 
+	public String getTargetPackage() {
+		return getCreatorPackage();
+	}
+
 	public String getCreatorPackage() {
 		return ATLLoadedApp.getPrimaryApplication().pkg.packageName;
 	}
