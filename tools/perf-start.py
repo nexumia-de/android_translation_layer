@@ -4,10 +4,13 @@
 Usage: perf-start.py RESULT_FILE COMMAND [ARGS...]
 
 Runs COMMAND with WAYLAND_DEBUG=client, reads its output line by line, and
-appends one tab-separated line to RESULT_FILE: the time from the exec to
-the first wl_surface.commit that carries a buffer (the first frame the
-compositor can show), to the tenth such commit (the window is drawing
-steadily), and the number of frames in the first 10 seconds. The app's
+appends one tab-separated line to RESULT_FILE: date, the time from the
+exec to the first wl_surface.commit that carries a buffer (the first frame
+the compositor can show), to the tenth such commit (the window is drawing
+steadily), the number of frames in the first 10 seconds, the time to the
+first xdg_toplevel.configure, the command, and the time to the first
+Wayland message at all (GTK is initialised; everything before it is ART
+and ATL starting up). The app's
 output, without the Wayland debug lines, goes on to stdout.
 
 libwayland 1.24 prints its timestamps as UTC time of day with microseconds
@@ -52,6 +55,7 @@ def main():
     attached = set()          # surfaces that got a buffer since their last commit
     commits = []              # ms since t0 of each commit with a buffer
     first_window = None       # first xdg_toplevel/configure
+    first_wayland = None      # first Wayland message at all: GTK is up
     written = False
 
     def ms_since_start(sec, ms):
@@ -82,7 +86,7 @@ def main():
         tenth = commits[9] if len(commits) >= 10 else -1
         in10s = sum(1 for c in commits if c <= 10000)
         with open(result_file, "a") as f:
-            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}\t{first}\t{tenth}\t{in10s}\t{first_window if first_window is not None else -1}\t{' '.join(cmd)}\n")
+            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')}\t{first}\t{tenth}\t{in10s}\t{first_window if first_window is not None else -1}\t{' '.join(cmd)}\t{first_wayland if first_wayland is not None else -1}\n")
 
     deadline = None
     for raw in proc.stdout:
@@ -93,6 +97,8 @@ def main():
             sys.stdout.flush()
             continue
         t, outgoing, iface, oid, event, args = parsed
+        if first_wayland is None:
+            first_wayland = t
         if iface == "wl_surface" and event == "attach" and outgoing and not args.startswith("nil"):
             attached.add(oid)
         elif iface == "wl_surface" and event == "commit" and outgoing and oid in attached:
