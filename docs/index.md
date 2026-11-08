@@ -15,7 +15,7 @@ Change history is in [log.md](log.md).
 * [Fork workflow](fork-workflow.md) - Branches, updating from upstream, how fixes go upstream as GitLab merge requests, and the fixes not yet upstream.
 * [Development environment](dev-environment.md) - The owner's phone as test device: separate user, build into `~/.local`, headless test display, required hosts.
 * [Back navigation](navigation.md) - Header bar button, edge swipe and Escape/Alt+Left as Android back (KEYCODE_BACK), the ATL_NAVIGATION setting, headless tests with wl-pointer key.
-* [Base cost of ATL apps](performance.md) - Plan to lower memory and idle cost of every ATL app (Gadgetbridge first): measures, order of work, unverified hypotheses.
+* [Base cost of ATL apps](performance.md) - Plan to lower memory and idle cost of every ATL app (Gadgetbridge first): measures, order of work, and the code analysis of the base cost (boot image relocation, WebKit, two GPU stacks, framework outside the boot image, timer-driven frames, CheckJNI, bitmaps) with what apps can share in per-app Flatpaks.
 
 # Apps
 
