@@ -566,3 +566,79 @@ are:
 
 **Size.** None here; the per-app parts are the apps' own, as on
 Android.
+
+## Can ATL apps share memory, and what it means for the Flatpak plan
+
+Android shares between apps by **forking**: the zygote has the runtime,
+the relocated boot image, the preloaded framework classes and the
+graphics libraries in memory, and every app starts as a copy-on-write
+child of it. ATL has no zygote, and the per-app Flatpak plan in the
+[hardening roadmap](hardening-roadmap.md) rules one out: a fork cannot
+cross a sandbox boundary, each `flatpak run` is a fresh `bwrap`
+process, and a long-lived zygote process on the host would be exactly
+the shared trust domain the plan removes. So **sharing by fork is not
+available**; it should not be planned for, in Flatpak or outside it.
+
+What remains is **sharing through the page cache**: two processes that
+map the same file read-only, or private but unwritten, use the same
+physical pages. That covers, if the items above are fixed:
+
+| Memory | Today | Shareable | Condition |
+|---|---|---|---|
+| Boot image `boot.art` (32 MB) | private per process (item 1) | yes | `-Xnorelocate`; the same image file for all apps |
+| Compiled code `boot.oat`, `api-impl` oat, the app's oat | file-backed, shared | yes | already so |
+| Shared libraries (GTK, WebKit, Mesa, ART, ATL) | file-backed, shared with every process that maps the same file | yes | same files: on the host with every GTK app, in Flatpak only with apps on the same runtime and engine |
+| Framework class metadata (part of the 42 MB) | private per process (item 4) | yes, if in the boot image | item 4 |
+| Java heap, the app's class metadata, JIT code, GTK and Mesa private state, thread stacks, GPU buffers | private | no | per app on Android too |
+
+The private part that no fix removes is the **per-app floor**:
+estimated from the code at 100 to 130 MB PSS for a small app after
+items 1 to 7, down from 185 MB (the measurements will replace this
+estimate). An app that runs all the time costs at least that; two
+apps at once cost twice that minus nothing, since what they share is
+already counted once in PSS.
+
+For the Flatpak plan this means:
+
+1. **The engine must carry the shared files**, and the apps must use
+   them unchanged. The engine already ships a precompiled boot image
+   and `api-impl.odex` (`flatpak/de.nexumia.atl.BaseApp.yml:192-224`).
+   Generated apps copy the engine's `/app`; OSTree stores identical
+   files once, so every app maps the same inode and the pages are
+   shared. An extension or a runtime would give the same; a per-app
+   copy on plain disk would not. Keep this property when the engine
+   shipping is decided (roadmap, open question "extension or own
+   runtime").
+2. **Relocation must be off** (item 1), otherwise the shared image is
+   copied privately in every sandbox and the sharing is lost exactly
+   where it matters most.
+3. **The app's own dex2oat stays per app** in
+   `~/.var/app/<id>/cache/art`; that is correct, it is the app's code.
+4. **Library pages are shared only within the runtime.** Flatpak apps on
+   `org.gnome.Platform` do not share GTK, Mesa or WebKit pages with the
+   host's Phosh and its apps; ATL apps share them with each other and
+   with other Flatpaks on the same runtime. The first ATL Flatpak on a
+   phone therefore costs the runtime's library pages once more than the
+   host build does; the second is cheaper. Items 2 and 3 reduce what is
+   mapped at all, which helps in both worlds.
+5. **Per-app process overhead of Flatpak itself**: `bwrap` and
+   `xdg-dbus-proxy` per app, a few MB each, plus the portal's work. It
+   is small next to the floor but belongs in the before-and-after
+   measurement of phase 6 (a Chooser Flatpak against the host Chooser,
+   same scripts).
+6. **Memory pressure handling** is absent in both worlds: Android frees
+   cached apps and tells apps to trim; ATL apps keep everything. For
+   apps that run all the time, a trim path (drop GTK's texture cache,
+   ART `trim`, release bitmaps) on the low-memory signal is a later
+   item, after the floor is lower.
+
+The order to fix, by gain per effort: 1 (S, biggest), 6 (S, CPU), 3
+(S, choice of stack), 2 (S-M), 5 (M, CPU and battery), 4 (M), 7 (M),
+9 (S-M, first start), 8 (nothing unless the thread names say so).
+Each fix is measured with the baseline scripts before the next one
+starts, as [the order of work](#order-of-work) says.
+
+[^gtk-renderer]: GTK 4.20.0, gsk/gskrenderer.c
+[^gtk-dmabuf]: GTK 4.20.0, gdk/gdkdisplay.c
+[^gtk-gpu-cache]: GTK 4.20.0, gsk/gpu/gskgpudevice.c and gskgpurenderer.c
+[^alpine-mesa]: Alpine aports, main/mesa/APKBUILD
