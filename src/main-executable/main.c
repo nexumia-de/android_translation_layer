@@ -100,7 +100,7 @@ JNIEnv *create_vm(char *api_impl_jar, char *apk_classpath, char *framework_res_a
 	JNIEnv *env;
 	JavaVMInitArgs args = {
 		.version = JNI_VERSION_1_6,
-		.nOptions = 5,
+		.nOptions = 6,
 	};
 	JavaVMOption *options;
 
@@ -131,6 +131,12 @@ JNIEnv *create_vm(char *api_impl_jar, char *apk_classpath, char *framework_res_a
 	options[2].optionString = construct_classpath("-Datl.app.class.path=", (char *[]){apk_classpath}, 1);
 	options[3].optionString = construct_classpath("-Datl.app.library.path=", (char *[]){api_impl_natives_dir, app_lib_dir}, 2);
 	options[4].optionString = "-Xcheck:jni";
+	/* map the boot image at the address it was compiled for: its pages then
+	 * stay clean, file-backed and shared between ATL processes instead of
+	 * being patched into a private copy in every process (Android's zygote
+	 * shares one relocated copy instead); ATL_RELOCATE_BOOT_IMAGE=1 restores
+	 * ART's default */
+	options[5].optionString = getenv("ATL_RELOCATE_BOOT_IMAGE") ? "-Xrelocate" : "-Xnorelocate";
 	if (jdwp_port) {
 		strncat(jdwp_option_string, jdwp_port, 5); // 5 chars is enough for a port number, and won't overflow our array
 		options[option_counter++].optionString = "-XjdwpProvider:internal";

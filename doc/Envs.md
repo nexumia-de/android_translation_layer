@@ -75,3 +75,7 @@ The following environment variables are recognized by the main executable:
 ---
 
 `ATL_VALIDATE_CERTS` - if set, the signing certificate of the APK file will be validated on startup. This adds a few extra seconds to the startup time for large APKs.
+
+---
+
+`ATL_RELOCATE_BOOT_IMAGE` - if set, ART relocates the boot image to a random address in every process (ART's default) instead of mapping it at the address it was compiled for. Relocation makes almost every page of the image a private copy, so it costs about 30 MB per app.
