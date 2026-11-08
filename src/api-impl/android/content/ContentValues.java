@@ -197,6 +197,33 @@ public final class ContentValues {
 		mValues.put(key, null);
 	}
 
+	/** {@hide} */
+	public void putObject(String key, Object value) {
+		if (value == null) {
+			putNull(key);
+		} else if (value instanceof String) {
+			put(key, (String)value);
+		} else if (value instanceof Byte) {
+			put(key, (Byte)value);
+		} else if (value instanceof Short) {
+			put(key, (Short)value);
+		} else if (value instanceof Integer) {
+			put(key, (Integer)value);
+		} else if (value instanceof Long) {
+			put(key, (Long)value);
+		} else if (value instanceof Float) {
+			put(key, (Float)value);
+		} else if (value instanceof Double) {
+			put(key, (Double)value);
+		} else if (value instanceof Boolean) {
+			put(key, (Boolean)value);
+		} else if (value instanceof byte[]) {
+			put(key, (byte[])value);
+		} else {
+			throw new IllegalArgumentException("Unsupported type " + value.getClass());
+		}
+	}
+
 	/**
 	 * Returns the number of values.
 	 *
@@ -232,6 +259,10 @@ public final class ContentValues {
 		return mValues.containsKey(key);
 	}
 
+	public boolean isEmpty() {
+		return mValues.isEmpty();
+	}
+
 	/**
 	 * Gets a value. Valid value types are {@link String}, {@link Boolean}, and
 	 * {@link Number} implementations.
@@ -239,15 +270,6 @@ public final class ContentValues {
 	 * @param key the value to get
 	 * @return the data for the value
 	 */
-	public boolean isEmpty() {
-		return mValues.isEmpty();
-	}
-
-	/* package: ContentProviderOperation stores values of any type */
-	void putObjectInternal(String key, Object value) {
-		mValues.put(key, value);
-	}
-
 	public Object get(String key) {
 		return mValues.get(key);
 	}

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /*
  * Bitmap is implemented as GdkTexture or GtkSnapshot. It can only be one of the two at a time.
@@ -51,6 +52,8 @@ public final class Bitmap implements Parcelable {
 	long bytes = 0; // used by native function AndroidBitmap_lockPixels()
 	private boolean recycled = false;
 	boolean mutable = true;
+	private static final AtomicInteger nextGenerationId = new AtomicInteger(1);
+	private int generationId = nextGenerationId.getAndIncrement();
 
 	Bitmap(long texture) {
 		this(native_get_width(texture), native_get_height(texture), Config.ARGB_8888);
@@ -129,6 +132,7 @@ public final class Bitmap implements Parcelable {
 	}
 
 	synchronized long getSnapshot() {
+		notifyPixelsChanged();
 		if (snapshot == 0) {
 			snapshot = native_create_snapshot(texture);
 			texture = 0;
@@ -141,6 +145,7 @@ public final class Bitmap implements Parcelable {
 			native_recycle(texture, snapshot);
 			snapshot = native_erase_color(color, width, height);
 			texture = 0;
+			notifyPixelsChanged();
 		} else {
 			Paint paint = new Paint();
 			paint.setColor(color);
@@ -154,6 +159,7 @@ public final class Bitmap implements Parcelable {
 		texture = 0;
 		snapshot = 0;
 		recycled = true;
+		notifyPixelsChanged();
 	}
 
 	public int getRowBytes() {
@@ -175,6 +181,15 @@ public final class Bitmap implements Parcelable {
 		src.texture = 0;
 		src.snapshot = 0;
 		src.recycled = true;
+		notifyPixelsChanged();
+	}
+
+	public int getGenerationId() {
+		return generationId;
+	}
+
+	private void notifyPixelsChanged() {
+		generationId = nextGenerationId.getAndIncrement();
 	}
 
 	public int getAllocationByteCount() {
