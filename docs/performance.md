@@ -453,3 +453,39 @@ time, and the `graphics` category of `smaps-start.tsv` (CPU mappings
 of GPU buffers), before and after. A quick upper bound of what bitmaps
 cost: `grep -c 'Using renderer' app.log` against the number of
 bitmaps the app creates (ATL could log it under `ATL_DEBUG`).
+## 8. 105 threads: mostly the app's and ATL's Java threads
+
+**Cause.** The code accounts for about a dozen threads before the app
+runs: ART's main thread, `Signal Catcher`, the four libcore daemons
+(`ReferenceQueueDaemon`, `FinalizerDaemon`, `FinalizerWatchdogDaemon`,
+`HeapTaskDaemon`, `libcore/libart/src/main/java/java/lang/Daemons.java:43-46`),
+one JIT worker (`art/runtime/jit/jit.cc:702`) and a runtime pool of
+`min(cores, 4)` workers with 64 KB stacks (`art/runtime/runtime.cc:1006-1015`);
+GLib adds `gmain` and `gdbus`, Mesa a few driver queues. Every Java
+thread gets its requested size plus 1 MB of stack
+(`FixStackSize`, `art/runtime/thread.cc:670-680`), as on Android; only
+touched pages count, so the 16 MB for 105 stacks is about 150 KB each.
+The rest, some 90 threads, come from the app (Compose and Kotlin
+coroutine dispatchers, which open up to 64 I/O threads on demand) and
+from ATL's framework classes when the app uses them (`AsyncTask` pool
+of `cores + 1`, `src/api-impl/android/os/AsyncTask.java:180-199`;
+executors per GATT connection, `src/api-impl/android/bluetooth/BluetoothGatt.java:91-100`).
+Interpreted code uses more native stack than compiled code (each Java
+frame is a `ShadowFrame` plus the interpreter's own frame), so threads
+running the JIT's not-yet-compiled methods touch more pages early on.
+
+**Android.** The same threads exist; a Java thread costs the same
+there. Android has fewer only where the zygote preloads work that ATL
+does at start, and the kernel's `CONFIG_ANON_VMA_NAME` would at least
+let smaps name them.
+
+**Expected gain.** Small. Fewer or thinner threads in ATL's own
+classes would save a few MB at most; the app's threads are the app's.
+Listed because the count looked alarming, not because it pays.
+
+**Size.** S for anything found in ATL's classes (lazy executors).
+
+**Verify.** `threads-start.tsv` of the baseline names every thread
+(`comm`); group them by name (`Thread-N`, `DefaultDispatcher-worker`,
+`pool-N-thread-M`, ART names, `gmain`, Mesa names) to see whose they
+are, and compare Chooser with HeliBoard.
