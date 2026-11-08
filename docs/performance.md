@@ -130,3 +130,56 @@ Two hypotheses from above are wrong, one is harmless:
   only until the window has a width, then removes itself
   (`src/main-executable/main.c:174-182`).
 
+
+## 1. The boot image is relocated privately in every process
+
+**Cause.** ART maps the boot image (`boot.art`, the pre-initialised
+classes and objects of the boot class path) read-write and private at a
+random address and then rewrites every pointer in it. Relocation is on
+by default (`kDefaultMustRelocate = true`,
+`art/runtime/runtime_globals.h:83`, `art/runtime/runtime_options.def:93`);
+ATL passes nothing against it (`src/main-executable/main.c:97-156`). The
+loader reserves a random address (`ART_BASE_ADDRESS + random delta`,
+`art/runtime/gc/space/image_space.cc:1875`), maps the file there with
+`PROT_READ | PROT_WRITE, MAP_PRIVATE`
+(`art/runtime/gc/space/image_space.cc:936-946`) and, because the address
+differs from the one the image was compiled for, patches all objects,
+methods and tables in place (`MaybeRelocateSpaces` and
+`DoRelocateSpaces`, `art/runtime/gc/space/image_space.cc:1721-1740`,
+`1567-1583`). Almost every page of the image holds a pointer, so almost
+every page becomes a private copy: the 32 MB measured as `art-image`
+private. They are anonymous memory to the kernel, cannot be dropped
+under pressure (only swapped), and are not shared between two ATL
+processes even though both read the same file.
+
+**Android.** The zygote loads and relocates the image once at boot and
+every app process is a fork of it, so the relocated pages are shared
+copy-on-write by all apps; the few an app writes become private. ATL
+has no zygote: every app relocates its own copy.
+
+**Expected gain.** Without relocation the image is mapped at its
+compiled address and the patch pass is skipped (`diff` is 0,
+`art/runtime/gc/space/image_space.cc:1729-1732`). Untouched pages stay
+file-backed, clean and shared through the page cache by every ATL
+process of the same user (or the same engine in Flatpak): around 25 to
+30 of the 32 MB per app, plus the time the patch pass takes at start
+(tens to a few hundred ms on the phone). What stays private is what the
+runtime writes into the image at run time (class status, dex caches,
+intern table), a few MB on Android.
+
+**Size.** S. One runtime option, `-Xnorelocate`, in `create_vm`
+(`src/main-executable/main.c:133`), with a fallback if the compiled
+address is taken (ART then fails to load the image; the random
+`--base` chosen when the image was generated,
+`art/runtime/gc/space/image_space.cc:166-168`, lies in the low 2 GB,
+which nothing else in an ATL process uses). The trade is address space
+randomisation of the image, which Android also gives up per boot. A
+second step for later is to generate the image once per installation
+instead of once per user (item 9).
+
+**Verify.** `tools/perf-run.sh -i 0 -- -X -Xnorelocate <Chooser arguments>`
+against the baseline: `art-image` PSS and USS in `smaps-start.tsv`
+should drop by most of the 32 MB, `start.tsv` should show a shorter
+time to the first frame, and in a pair run (`-2`) both processes should
+share the `boot.art` pages (`shared_kb` of `art-image`). If ART logs
+`Failed to map image` the address was taken and the fallback is needed.
