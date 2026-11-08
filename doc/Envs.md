@@ -75,3 +75,7 @@ The following environment variables are recognized by the main executable:
 ---
 
 `ATL_VALIDATE_CERTS` - if set, the signing certificate of the APK file will be validated on startup. This adds a few extra seconds to the startup time for large APKs.
+
+---
+
+`ATL_FRAME_TIMER` - if set, the main thread's `Choreographer` runs frames on a 10 ms timer as before, instead of following GTK's frame clock (display rate while the window is shown, no frames while it is covered).

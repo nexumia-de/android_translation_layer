@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.atl.annotation.Export;
 //import android.os.SystemProperties;
 import android.util.Log;
 /**
@@ -133,8 +134,14 @@ public final class Choreographer {
 	 */
 	public static final int CALLBACK_TRAVERSAL = 2;
 	private static final int CALLBACK_LAST = CALLBACK_TRAVERSAL;
+	// The main thread's instance, whose frames follow GTK's frame clock.
+	private static Choreographer sMainInstance;
+	private final boolean mUseFrameClock;
 	private Choreographer(Looper looper) {
 		mLooper = looper;
+		mUseFrameClock = looper == Looper.getMainLooper();
+		if (mUseFrameClock)
+			sMainInstance = this;
 		mHandler = new FrameHandler(looper);
 		mLastFrameTimeNanos = Long.MIN_VALUE;
 		mFrameIntervalNanos = (long)(1000000000 / getRefreshRate());
@@ -403,6 +410,11 @@ public final class Choreographer {
 	private void scheduleFrameLocked(long now) {
 		if (!mFrameScheduled) {
 			mFrameScheduled = true;
+			// On the main thread the next tick of GTK's frame clock runs the
+			// frame, so nothing runs while the window is not drawn; the timer
+			// below is the fallback before the window is shown.
+			if (mUseFrameClock && native_requestFrame())
+				return;
 			final long nextFrameTime = Math.max(
 			    mLastFrameTimeNanos / NANOS_PER_MS + sFrameDelay, now);
 			if (DEBUG) {
@@ -548,6 +560,21 @@ public final class Choreographer {
 		 */
 		public void doFrame(long frameTimeNanos);
 	}
+	/* Called by the tick of GTK's frame clock on the main thread; returns
+	 * whether the Choreographer wants the next frame too. */
+	@Export
+	private static boolean internalOnFrameClock(long frameTimeNanos) {
+		Choreographer choreographer = sMainInstance;
+		if (choreographer == null)
+			return false;
+		// not later than now: the timer fallback uses System.nanoTime(), and a
+		// frame time going backwards would skip the frame
+		choreographer.doFrame(Math.min(frameTimeNanos, System.nanoTime()), 0);
+		synchronized (choreographer.mLock) {
+			return choreographer.mFrameScheduled;
+		}
+	}
+	private static native boolean native_requestFrame();
 	private final class FrameHandler extends Handler {
 		public FrameHandler(Looper looper) {
 			super(looper);
