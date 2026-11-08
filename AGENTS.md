@@ -1,4 +1,4 @@
-@../phosh-toolkit/AGENTS.md
+@../phosh-toolkit/agents/core.md
 
 # Android Translation Layer (Phosh fork)
 
@@ -18,15 +18,7 @@ Upstream's own documentation is in `doc/`.
   a commit that touches only upstream files, so it can be cherry-picked
   onto a branch from `master` for a GitLab merge request.
 
-## Which shared rules apply
-
-ATL is a third-party runtime, not a Phosh app. Of the shared rules in
-../phosh-toolkit/AGENTS.md these do **not** apply here: app id and
-metadata, metainfo and desktop file checks, Flatpak workflow, changelog
-fragments and `release.toml`, REUSE compliance, the toolkit's UI and
-design guidelines for upstream code, and the GitHub milestone layout.
-Everything else applies: English, knowledge in `docs/`, network rules,
-pull requests and CI.
+## Upstream style
 
 Upstream code follows upstream's rules instead: `doc/CodeStyle.md`, the
 clang-format check of their CI, and their commit message style
