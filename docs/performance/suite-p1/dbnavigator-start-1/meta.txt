@@ -1,0 +1,18 @@
+date: 2026-11-08T13:26:02+01:00
+atl_commit: cbd9da5e (2026-11-08)
+atl_binary: Nov 8 11:34
+kernel: 7.3.0
+cpu_governor: schedutil
+settle: 25 idle: 0 interval: 60 cover: 0
+command: android-translation-layer -w 360 -h 720 --sdk-int 26 /home/claude/work/apks/de.hafas.android.db_240000860/base.apk /home/claude/work/apks/de.hafas.android.db_240000860/config.arm64_v8a.apk /home/claude/work/apks/de.hafas.android.db_240000860/config.xxhdpi.apk
+free_before:
+              total        used        free      shared  buff/cache   available
+Mem:           7301        1303        2588         368        3410        5259
+Swap:         10951           0       10951
+load_before: 0.04 0.08 0.15 1/757 112367
+free_after:
+              total        used        free      shared  buff/cache   available
+Mem:           7301        1279        2608         369        3413        5282
+Swap:         10951           0       10951
+load_after: 0.30 0.14 0.17 12/777 114791
+status: 0

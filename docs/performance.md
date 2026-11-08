@@ -5,7 +5,7 @@ description: Goal, how the cost of an ATL app is measured on the phone, the base
 tags: [performance, memory, battery, background, gadgetbridge, measurement, art, boot-image, webkit, mesa, flatpak]
 generated: { by: claude-code/2.1.319, at: 2026-11-08T20:00:00Z }
 sources:
-  - "on-device: tools/perf-suite.sh runs in ~/work/perf-runs/suite-p1..p5, small result files under performance/"
+  - "on-device: tools/perf-suite.sh runs in ~/work/perf-runs/suite-p1..p5 (p1 and p2 done), small result files under performance/"
   - id: gtk-renderer
     resource: https://gitlab.gnome.org/GNOME/gtk/-/blob/4.20.0/gsk/gskrenderer.c
     title: GTK 4.20.0, gsk/gskrenderer.c (renderer_possibilities, Vulkan before GL)
@@ -40,7 +40,8 @@ Work item: issue #118.
 
 # What is known
 
-Work item: issue #118. Nothing measured. [android-keyboard.md](android-keyboard.md) estimates
+Work item: issue #118. Baseline: see [Results](#results) (passes 1 and 2
+of 5). Before it, [android-keyboard.md](android-keyboard.md) estimates
 150 to 300 MB resident per ART process; Stevia, the native keyboard,
 uses 78 MB RSS.
 
@@ -136,7 +137,114 @@ How the memory categories are told apart, since the kernel has no
 
 # Results
 
-<!-- RESULTS -->
+Baseline of 2026-11-08, ATL `cbd9da5e`, measured with `tools/perf-suite.sh`
+as described above. The series ran unattended on the phone
+(`~/work/perf-runs/run-all.sh`, one pass after the other) and **stopped
+at 16:28 during pass 3**, so it is incomplete:
+
+| Pass | What | Status |
+|---|---|---|
+| 1 (`suite-p1`) | All four apps and the pair, 1 start and 1 background run each, idle 30 min | done, 11:55 to 14:26 |
+| 2 (`suite-p2`) | Chooser and Gadgetbridge, 2 more start and background runs each, idle 30 min | done, 14:26 to 16:27 |
+| 3 (`suite-p3`) | HeliBoard, DB Navigator and the pair, 2 more runs each, idle 10 min | **open**: stopped at 16:28 in HeliBoard's first background run (last line of `suite.log` 16:28:09, the run's files last written 16:31, no end snapshot), no usable result |
+| 4 (`suite-p4`) | Visible (uncovered) idle of Chooser and Gadgetbridge, GTK renderers cairo, ngl and vulkan | **open**: never started (waits for pass 3) |
+| 5 (`suite-p5`) | Verification runs for the code analysis: `-Xnorelocate`, `GDK_DISABLE=vulkan`/`gl`, GTK debug logs, quit after start | **open**: never started (waits for pass 4) |
+
+**Unverified:** the suspected cause of the stop is that the `claude`
+user's processes were ended when its last SSH connection closed
+(`Linger=no`, see [development environment](dev-environment.md#agent-on-a-laptop-over-ssh));
+`nohup setsid` does not protect against the end of the login's
+systemd scope. Not checked yet; check it before repeating passes 3 to 5.
+
+So Chooser and Gadgetbridge have 3 runs each (6 start values, since
+every background run also records its start), HeliBoard, DB Navigator
+and the pair one run each (2 start values). Single runs carry no
+spread and are only indicative. Result files: [performance/suite-p1](performance/suite-p1/)
+and [performance/suite-p2](performance/suite-p2/) (copied with
+`tools/perf-report.py suite-p1 suite-p2 -o docs/performance`; the
+screenshots, logs and full `smaps` dumps stay on the phone).
+
+What stands out, before any analysis:
+
+- **Chooser burns CPU in the background**: about 9.8 s of CPU time and
+  3600 wake-ups per minute while covered, almost all in its `main`
+  thread (284 s of 286 s over 29 minutes), in all three runs. The other
+  three apps use 3 to 33 ms per minute. This is the case
+  [item 5](#5-frames-run-on-a-timer-not-on-the-display) is about.
+- **Memory floor**: PSS after start is 200 MB (HeliBoard, Chooser) to
+  300 MB (DB Navigator); USS 175 to 260 MB. The categories every app
+  pays about equally (`art-image`, `lib-gtk`, `lib-mesa`, `lib-other`,
+  `lib-art`) add up to 120 to 142 MB PSS per app.
+- **Two apps share about 106 MB**: with Chooser started next to
+  Gadgetbridge, Gadgetbridge's PSS drops from 256 to 203 MB and
+  Chooser's PSS is 152 MB (USS 83 MB); one run only.
+- PSS grows by 0 to 17 MB during 30 minutes of idling.
+- DB Navigator's wake-up count is negative because about 60 threads
+  ended in its first idle minute (153 to 93) and took their counts with
+  them. From the second sample on (28 minutes) it is about 35 wake-ups
+  and 31 ms CPU per minute (computed by hand from `idle.tsv`).
+- No app except Gadgetbridge drew ten frames within the start run, so
+  the "10th frame" column is empty for them.
+
+The tables below are the output of `perf-report.py` (median, min-max and
+n in brackets when there is more than one run).
+
+## Start and memory per app
+
+| App | First frame (ms) | 10th frame (ms) | PSS after start (MB) | USS after start (MB) | PSS after idle (MB) | USS after idle (MB) | Idle (min) | Threads |
+|---|---|---|---|---|---|---|---|---|
+| chooser | 2496 (2232-3151, n=6) | - | 204 (179-209, n=6) | 179 (154-184, n=6) | 222 (187-223, n=3) | 197 (162-198, n=3) | 29 (29-29, n=3) | 91 (91-91, n=3) |
+| dbnavigator | 5517 (5427-5607, n=2) | - | 299 (297-302, n=2) | 256 (250-261, n=2) | 311 | 270 | 29 | 92 |
+| gadgetbridge | 2374 (2311-2446, n=6) | 2537 (2464-2609, n=6) | 254 (249-257, n=6) | 218 (216-220, n=6) | 263 (253-266, n=3) | 226 (225-230, n=3) | 29 (29-29, n=3) | 46 (46-48, n=3) |
+| heliboard | 1726 (1714-1737, n=2) | - | 201 (200-203, n=2) | 176 (175-178, n=2) | 199 | 175 | 29 | 37 |
+
+## Idle cost in the background (covered window)
+
+| App | CPU ms per minute | Wake-ups per minute (voluntary switches) | PSS growth during idle (MB) | GPU memory total / resident (MB) |
+|---|---|---|---|---|
+| chooser | 9815 (9697-10286, n=3) | 3578 (3575-3580, n=3) | +12.8 (+7.4-+17.1, n=3) | 99 (99-99, n=3) / 75 (75-75, n=3) |
+| dbnavigator | 33 | -116 | +11.4 | 100 / 76 |
+| gadgetbridge | 6 (6-6, n=3) | 7 (7-8, n=3) | +6.6 (+4.5-+9.7, n=3) | 63 (63-63, n=3) / 51 (51-51, n=3) |
+| heliboard | 3 | 4 | -0.3 | 62 / 50 |
+
+## Memory by category after idle (PSS MB, median of the background runs; USS in brackets)
+
+| Category | chooser | dbnavigator | gadgetbridge | heliboard |
+|---|---|---|---|---|
+| native-anon | 44.9 (44.9) | 94.8 (94.8) | 75.2 (75.2) | 34.8 (34.8) |
+| art-image | 31.5 (31.5) | 38.1 (38.0) | 40.0 (39.9) | 42.4 (42.4) |
+| lib-gtk | 36.2 (32.5) | 22.4 (8.0) | 32.4 (29.2) | 32.2 (29.2) |
+| lib-mesa | 22.5 (7.9) | 20.1 (7.8) | 22.5 (7.9) | 22.5 (7.9) |
+| lib-other | 34.5 (32.7) | 25.7 (21.7) | 32.9 (31.1) | 32.4 (30.9) |
+| stacks | 26.2 (26.2) | 21.8 (21.8) | 10.5 (10.5) | 9.1 (9.1) |
+| lib-art | 13.6 (13.2) | 13.6 (13.2) | 13.7 (13.3) | 12.9 (12.5) |
+| art-heap | 6.8 (6.8) | 29.3 (29.3) | 14.6 (14.6) | 5.4 (5.4) |
+| app-dex | 2.4 (0.3) | 35.6 (32.4) | 10.9 (0.3) | 4.3 (1.2) |
+| icu-data | 2.0 (0.0) | 5.3 (0.0) | 9.8 (4.2) | 2.0 (0.0) |
+| art-jit | 0.2 (0.1) | 0.9 (0.4) | 0.4 (0.2) | 0.0 (0.0) |
+| lib-atl | 0.6 (0.6) | 0.6 (0.6) | 0.6 (0.6) | 0.6 (0.6) |
+| lib-bionic | 0.3 (0.3) | 0.3 (0.3) | 0.3 (0.3) | 0.3 (0.3) |
+| malloc | 0.3 (0.3) | 0.4 (0.4) | 0.4 (0.4) | 0.2 (0.2) |
+| fonts | 0.2 (0.0) | 0.3 (0.1) | 0.3 (0.0) | 0.2 (0.0) |
+| graphics | - | - | - | - |
+| other-file | 0.1 (0.1) | 0.3 (0.1) | 0.1 (0.1) | 0.1 (0.1) |
+| other-anon | 0.0 (0.0) | 1.4 (1.4) | 0.0 (0.0) | 0.0 (0.0) |
+| icons-pixbuf | 0.0 (0.0) | 0.0 (0.0) | 0.0 (0.0) | 0.0 (0.0) |
+| TOTAL | 222.2 (197.2) | 310.9 (270.2) | 262.5 (225.7) | 199.5 (174.5) |
+
+## Threads with the most CPU while idle (ms over the idle time, median run per app)
+
+- **chooser** (chooser-bg-1, 285920 ms in all threads): main 284000 ms / 104027 wake-ups, HeapTaskDaemon 1190 ms / 44 wake-ups, FinalizerDaemon 460 ms / 21 wake-ups, Jit thread pool 160 ms / 11 wake-ups, gdbus 70 ms / 58 wake-ups, ReferenceQueueD 30 ms / 20 wake-ups
+- **dbnavigator** (dbnavigator-bg-1, 890 ms in all threads): gdbus 190 ms / 132 wake-ups, PressureMonitor 160 ms / 350 wake-ups, main 150 ms / 69 wake-ups, Jit thread pool 140 ms / 58 wake-ups, WM.task-4 100 ms / 46 wake-ups, BlueZ signals 60 ms / 77 wake-ups
+- **gadgetbridge** (gadgetbridge-bg-1, 250 ms in all threads): gdbus 120 ms / 87 wake-ups, main 110 ms / 24 wake-ups, BlueZ signals 20 ms / 29 wake-ups
+- **heliboard** (heliboard-bg-1, 200 ms in all threads): main 100 ms / 33 wake-ups, gdbus 90 ms / 59 wake-ups, DefaultDispatch 10 ms / 29 wake-ups
+
+## Two apps at once (Gadgetbridge first, Chooser second)
+
+| Run | PSS first alone (MB) | PSS first with second (MB) | USS first alone | USS first with second | PSS second (MB) | USS second (MB) | Shared between the two (MB) |
+|---|---|---|---|---|---|---|---|
+| pair-1 | 256 | 203 | 219 | 122 | 152 | 83 | ~106 |
+
 
 # Code analysis
 
