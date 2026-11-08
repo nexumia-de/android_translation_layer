@@ -206,7 +206,7 @@ Result: starts and reaches sign-in; the map and everything after sign-in need th
 | Welcome screen | `wrong` | Buttons flat, text clipped, wrong colours. Auto-size text and problems 4 and 5 are the candidates |
 | GET STARTED | `headless` | Opens the coach screen ([screenshot](screenshots/duolingo-coach-2026-10-31.png)). Its speech bubble is too narrow and CONTINUE was not followed further |
 | Sign-in screen | `headless` | Opens, 2026-10-31 |
-| Sign-in | `headless` | With random data the server answers "Wrong username or password" ([screenshot](screenshots/duolingo-wrong-password-2026-10-31.png)), so the request goes out although Play Integrity fails. A correct login is an owner test; Duolingo may still ask for Play Integrity then |
+| Sign-in | `headless` | With random data the server answers "Wrong username or password" ([screenshot](screenshots/duolingo-wrong-password-2026-10-31.png)), so the request goes out. That text is also the server's answer to a failed Play Integrity check (`401`), and the test ran with upstream's GMS stub on, so it does not show whether a correct password would have passed. With the stub off (default since 2026-11-02) the login should work; fallback is the password reset inside the app ([Duolingo login](duolingo-login.md)). A correct login is an owner test |
 | Sign-in with Google | `missing` | No abort any more; the app says "Unable to sign in with Google", there are no Google Play services |
 | Sign-in with Facebook | `wrong` | No abort any more, but a black screen follows. Cause not looked at |
 | Lessons | `untested` | Depends on sign-in or GET STARTED |

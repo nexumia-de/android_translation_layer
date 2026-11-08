@@ -1,6 +1,7 @@
 # Directory Update Log
 
 ## 2026-11-08
+* **Duolingo login**: Public reports and a logcat from /e/OS show that Duolingo's login API answers `401` to a bad Play Integrity verdict and the app shows "Wrong username or password" for it; devices with a Play Store that fails the check (microG, upstream ATL's GMS stub) are rejected, devices without any Play Store are let in. So the headless result of 2026-10-31 (stub on) was ambiguous, and with the stub off since 2026-11-02 the email login should work; fallback is the password reset requested and opened inside the app, which logs in without the check ([Duolingo login](duolingo-login.md)). Not tested on the phone (not reachable). Four forum hosts added to the cloud environment and the [hosts table](dev-environment.md#required-hosts).
 * **Update**: `AGENTS.md` imports only `agents/core.md` from phosh-toolkit instead of its whole `AGENTS.md`, so the GTK app rules and the list of rules that do not apply are gone (toolkit decision "lean agent rules", to use fewer tokens per session).
 
 ## 2026-10-28
