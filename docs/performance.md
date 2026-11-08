@@ -332,3 +332,49 @@ the post-zygote count is what each process pays for today. After the
 change, compare `native-anon` and `art-heap` in `smaps-start.tsv` and
 the start time; the framework's classes should appear under the boot
 class loader.
+
+## 5. Frames run on a timer, not on the display
+
+**Cause.** ATL's `Choreographer` is Android's class in its no-vsync
+mode: `USE_VSYNC = false` (`src/api-impl/android/view/Choreographer.java:93`),
+a fixed 60 Hz frame interval (`147-149`) and a frame delay of 10 ms
+(`77-79`). `scheduleFrameLocked` posts the next frame as a Handler
+message `sFrameDelay` after the last one (`403-415`). Whenever an app
+keeps a frame callback posted (an animation, Compose's frame loop while
+it has pending work, a `ValueAnimator`, a progress indicator), the main
+thread wakes up to 100 times per second and runs `doFrame`, including
+the JNI round trips into GTK, regardless of whether GTK will draw a
+frame, whether the window is covered, or whether the screen is off.
+GTK's own frame clock behaves correctly: it pauses when the compositor
+sends no frame callbacks, so a covered window is not drawn; but ATL's
+view invalidation goes through `gtk_widget_queue_draw` and idle sources
+(`src/api-impl-jni/widgets/WrapperWidget.c:255-262`), which run even
+when nothing is drawn. The main looper itself is event driven and not
+at fault (`src/api-impl-jni/android_os_MessageQueue.c:74-90` hands the
+timeout to a GLib source). Candidate for the 16 % of a core the main
+thread used while Chooser sat idle, and for CPU in the background.
+
+**Android.** The Choreographer wakes only on a vsync event from the
+display (`USE_VSYNC = true`), SurfaceFlinger stops sending them to
+apps that are not visible, and a cached app is frozen altogether.
+
+**Expected gain.** CPU and battery, no memory: the idle main-thread
+time of apps that animate, down to near zero while covered; a visible
+idle app runs at most at the display rate. The share of the 16 % that
+this explains is unknown until the per-thread numbers of the baseline
+(`threads-*.tsv`, main thread delta between start and end) and a Java
+stack dump during idle (`kill -QUIT`, look for `doFrame`) show where
+the main thread spends its time.
+
+**Size.** M. Drive `doFrame` from GTK's frame clock
+(`gtk_widget_add_tick_callback` on the activity's window, as
+`src/api-impl-jni/util.c:215-242` already does for other deferred
+work), which gives the display's rate and stops when the surface is
+hidden; keep a timer fallback only while no window is mapped. Also
+make `Choreographer` report the real refresh rate. Upstream-ready.
+
+**Verify.** `perf-idle.sh` columns `utime_ms` and `vol_cs` per minute
+for the visible and the covered run of Chooser, and the main thread's
+line in `threads-end.tsv` minus `threads-start.tsv`, before and after.
+A covered app should show wake-ups per minute in the low hundreds (GLib
+and ART housekeeping) instead of thousands.
