@@ -83,3 +83,7 @@ The following environment variables are recognized by the main executable:
 ---
 
 `GDK_DISABLE` - GTK's own variable; ATL sets it to `vulkan` unless it is already set, so GTK uses only the GL stack that ATL needs anyway instead of loading both Vulkan and GL. Set it to an empty value to get GTK's default renderer back.
+
+---
+
+`ATL_CHECK_JNI` - if set, ART runs with CheckJNI (`-Xcheck:jni`), which checks the arguments of every JNI call. Useful while developing ATL or debugging native crashes; off by default because it slows down every JNI call (also possible with `-X -Xcheck:jni`).
