@@ -27,6 +27,14 @@ public class ContentProviderClient implements AutoCloseable {
 		return contentProvider.query(url, projection, selection, selectionArgs, sortOrder);
 	}
 
+	public Bundle call(String method, String arg, Bundle extras) throws RemoteException {
+		return contentProvider.call(method, arg, extras);
+	}
+
+	public Bundle call(String authority, String method, String arg, Bundle extras) throws RemoteException {
+		return contentProvider.call(authority, method, arg, extras);
+	}
+
 	public String getType(Uri url) throws RemoteException {
 		return contentProvider.getType(url);
 	}
@@ -63,10 +71,6 @@ public class ContentProviderClient implements AutoCloseable {
 
 	public Cursor query(Uri url, String[] projection, String selection, String[] selectionArgs, String sortOrder, CancellationSignal signal) throws RemoteException {
 		return contentProvider.query(url, projection, selection, selectionArgs, sortOrder, signal);
-	}
-
-	public Bundle call(String method, String arg, Bundle extras) throws RemoteException {
-		return contentProvider.call(method, arg, extras);
 	}
 
 	public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations) throws RemoteException, OperationApplicationException {
