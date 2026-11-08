@@ -35,6 +35,63 @@ follow [bringing up an app](app-bring-up.md).
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
+- 2026-11-08: Measurements for issue #118 ([performance](performance.md))
+  need tools `claude` cannot install or enable. `perf` (Alpine package
+  `perf`, 7.2.x, works with the 7.3 kernel) would show which code wakes
+  the main thread and the JIT thread while an app idles; without it the
+  measurements only count context switches per thread:
+
+  ```sh
+  sudo apk add perf strace sysstat
+  ```
+
+  With `kernel.perf_event_paranoid = 2` (the current value) `perf` sees
+  only the `claude` user's own processes and no kernel samples, which is
+  enough for `perf stat`/`perf record` of one ATL app. Scheduler
+  tracepoints (`perf sched`, `perf trace`, who wakes whom) need `-1`,
+  also after a reboot:
+
+  ```sh
+  echo 'kernel.perf_event_paranoid = -1' | sudo tee /etc/sysctl.d/90-perf.conf
+  ```
+
+  ```sh
+  sudo sysctl -w kernel.perf_event_paranoid=-1
+  ```
+
+  The kernel is built without `CONFIG_SCHEDSTATS` and
+  `CONFIG_ANON_VMA_NAME` (no per-thread run statistics, no names on
+  anonymous memory) and `/proc/timer_list` is root-only; nothing to do
+  there short of another kernel. Timer and wake-up tracing through
+  `/sys/kernel/tracing` is root-only as well; making it readable for the
+  `claude` user would need a group on the mount
+  (`mount -o remount,gid=1000,mode=750 /sys/kernel/tracing`), only if
+  the perf route is not enough.
+
+- 2026-11-08: Gadgetbridge connected to the Amazfit Balance, 30 minutes
+  (issue #118): the headless measurement covers the idle app without a
+  watch; the connected case runs on the phone as `user` with the
+  packaged ATL, since the watch is bonded to the owner's session.
+  Start it from a terminal and leave it connected for 30 minutes with
+  the screen off, then copy the three result files where `claude` can
+  read them. The scripts are in `claude`'s checkout
+  (`/home/claude/work/android_translation_layer/tools`, world-readable):
+
+  ```sh
+  android-translation-layer -w 360 -h 720 --sdk-int 26 /home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk 2>&1 | tee /tmp/gb-connected.log
+  ```
+
+  In a second terminal, once the watch shows connected (PID from
+  `pgrep -f gadgetbridge_255`):
+
+  ```sh
+  T=/home/claude/work/android_translation_layer/tools; P=$(pgrep -f gadgetbridge_255 | head -1); python3 $T/perf-smaps.py $P start > /tmp/gb-connected-smaps-start.tsv; $T/perf-threads.sh $P > /tmp/gb-connected-threads-start.tsv; $T/perf-idle.sh $P 1800 60 > /tmp/gb-connected-idle.tsv; python3 $T/perf-smaps.py $P end > /tmp/gb-connected-smaps-end.tsv; $T/perf-threads.sh $P > /tmp/gb-connected-threads-end.tsv; chmod 644 /tmp/gb-connected-*
+  ```
+
+  Why: Gadgetbridge's cost with a watch (GATT notifications, sync) is
+  what made the owner drop it; the idle number is the floor, not the
+  real case.
+
 - 2026-11-07: DB Navigator: for the crash after
   accepting the map and in Journeys after the login, a log is needed:
   start DB Navigator from a terminal as in its launcher
