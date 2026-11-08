@@ -530,3 +530,39 @@ path is upstream's call.
 `start.tsv` of the very first run of a fresh user against a later one;
 after the change, `smaps-start.tsv` should list the image under the
 system path and `art-image` should be shared in the pair run.
+## 10. bionic_translation and the larger apps
+
+**bionic_translation.** Nothing in it adds to the base cost of
+Chooser, Gadgetbridge or HeliBoard: they have no Android native
+libraries, so the bionic linker only loads its own small libraries.
+For apps with native code (DB Navigator: Hermes, Akamai, maps) the
+linker maps segments privately from the file (`linker/linker.c:1189-1191`)
+and relocates them like any dynamic linker; read-only segments are made
+writable during relocation and remembered for re-protection
+(`linker/linker.c:1286-1293`), which only costs private pages where
+relocations land (the GOT and `.data.rel.ro`), the same as on Android.
+The one-page-per-missing-function stubs (`linker/linker.c:1665-1690`)
+exist only with `LINKER_DIE_AT_RUNTIME` set (`1850`). The pthread
+wrapper passes stack sizes through unchanged
+(`pthread_wrapper/libpthread.c:359-369`), so a bionic thread without an
+explicit size gets musl's 128 KB default instead of bionic's 1 MB:
+less memory, not more (a risk for deep native stacks, not a cost).
+
+**Where the extra memory of the larger apps goes.** The baseline's
+`smaps-start.tsv` per app answers this; from the code the candidates
+are:
+
+- Gadgetbridge (+58 MB over Chooser): a much larger dex (more classes
+  and metadata in `native-anon` and `art-heap`, item 4 does not help
+  with the app's own), its database and device support classes, and
+  Bluetooth threads (two executors per GATT connection).
+- DB Navigator (+156 MB): several APKs with large dex files
+  (`app-dex`, and the `speed`-compiled oat of each is mapped as
+  `art-image`), React Native with Hermes and Akamai through the bionic
+  linker (`lib-other` and their private data), and a WebView once a
+  ticket is shown (item 2 does not reduce that case).
+- HeliBoard (-6 MB): the smallest app; its number is the floor of
+  items 1 to 7.
+
+**Size.** None here; the per-app parts are the apps' own, as on
+Android.
