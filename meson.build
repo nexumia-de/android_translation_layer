@@ -320,7 +320,10 @@ shared_library('translation_layer_webkit', [
                                            	dependency('gtk4', version: '>=4.14'), dependency('gio-unix-2.0'), dependency('jni'), dependency('webkitgtk-6.0'),
                                            	libart_dep, upcalls_header
                                            ],
-                                           link_with: [ libtranslationlayer_so ])
+                                           link_with: [ libtranslationlayer_so ],
+                                           c_args: [
+                                           	'-D_LARGEFILE64_SOURCE',
+                                           ])
 
 # atl.gresources.xml
 resources = gnome.compile_resources('com.gitlab.android_translation_layer.android_translation_layer', files('src/main-executable/atl.gresource.xml'))
