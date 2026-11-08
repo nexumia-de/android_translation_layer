@@ -1,9 +1,9 @@
 ---
 type: Decision Record
 title: Every Android app as its own Flatpak
-description: Proposed - the host-side ATL installer turns each APK into its own Flatpak at install time, running on an ATL engine built for Flatpak; Flatpak provides sandbox, permissions and portal identity, a small host broker handles installs and intents.
+description: Accepted - the host-side ATL installer turns each APK into its own Flatpak at install time, running on an ATL engine built for Flatpak; Flatpak provides sandbox, permissions and portal identity, a small host broker handles installs and intents.
 tags: [decision, security, sandbox, flatpak, permissions]
-status: draft
+status: accepted
 generated: { by: claude-code/2.1.308, at: 2026-10-29T17:40:00Z }
 sources:
   - id: flatpak-under-the-hood
@@ -15,6 +15,10 @@ sources:
 ---
 
 # Status
+
+Accepted (2026-11-08): the owner confirmed the threat model of the
+[hardening roadmap](../hardening-roadmap.md) and this record; the phase 0
+prototype had run on the phone since 2026-10-29.
 
 Proposed (2026-10-29). The owner chose this option over ATL's own
 bubblewrap sandbox on 2026-10-29; it becomes Accepted when the prototype

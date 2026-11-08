@@ -239,3 +239,10 @@ Chooser compared with `phosh` ([app status](apps.md),
 
 * **Fused location in gstub**: the fake GMS package answers `GoogleLocationManagerService.START` with a broker and a location service on ATL's `LocationManager` (location portal): `getLastLocation`, `updateLocationRequest`, location availability and `checkLocationSettings`. DB Navigator's Nearby lists the stops around a fake position at Berlin Hbf instead of waiting forever; without location it shows its normal hint. `WorkSource` is `Parcelable` now; the client's `LocationRequest` aborted on it ([app status](apps.md), [GMS compatibility](gms-compat.md)).
 * **Merged with the komoot work**: `Activity.addContentView` came with both branches; the one from `phosh` stays. komoot's row notes that it needs `GMS_STUB_APPS` for location.
+
+## 2026-11-08: Owner decisions
+
+* **Sandbox accepted**: the owner confirmed the threat model and [one Flatpak per app](decisions/app-sandbox.md), which is now Accepted; phase 0 of the [hardening roadmap](hardening-roadmap.md) only lacks a WebView app and the start time.
+* **Back navigation accepted**: default `ATL_NAVIGATION=both` ([decision](decisions/navigation.md)); per app or global later is still open.
+* **Background location and boot autostart**: both per app, only for apps the owner allows; the boot autostart entry is not built yet ([hardening roadmap](hardening-roadmap.md)).
+* **Phone**: speech-dispatcher, espeak-ng and flatpak-builder installed; the owner allows tests on the phone's own hardware within what `claude` reaches ([development environment](dev-environment.md)).

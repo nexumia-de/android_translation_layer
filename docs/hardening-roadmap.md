@@ -62,16 +62,18 @@ date), so a new session knows where to continue.
 
 | Phase | State | Pull requests | Updated |
 |---|---|---|---|
-| 0 Facts, sign-off, prototype | prototype works: Chooser runs in its own Flatpak on the fork's engine ([screenshot](screenshots/chooser-flatpak-2026-10-29.png)); tested by the owner on the real screen; open: owner sign-off, a WebView app, start time | this branch | 2026-10-29 |
+| 0 Facts, sign-off, prototype | prototype works: Chooser runs in its own Flatpak on the fork's engine ([screenshot](screenshots/chooser-flatpak-2026-10-29.png)); tested by the owner on the real screen; threat model and decision signed off by the owner (2026-11-08); open: a WebView app, start time | this branch | 2026-11-08 |
 | T Escape test | `flatpak/escape-test.sh`: 18 checks, all blocked for a generated app; APK-level checks open | this branch | 2026-10-29 |
 | 1 ATL engine as Flatpak | done: CI build on `ubuntu-24.04-arm` (`.github/workflows/engine-flatpak.yml`), published through the release `engine` and phosh-apps to `flatpak.nexumia.de`; signed install from there verified on the phone, Chooser runs on it | #27, #29 | 2026-10-30 |
 | 2 Installer and broker on the host | `--install-flatpak` (#30); installer service `de.nexumia.atl.Installer` (install, uninstall, list, launch; only for APKs requesting `REQUEST_INSTALL_PACKAGES`), `--install-ask --install-flatpak` and `--uninstall-flatpak` pages ([installing apps](installing-apps.md#app-stores-in-their-own-flatpak)); opening an APK file uses the Flatpak path (2026-11-04); updates without asking for the installer of record, allowed per store in App info ([installing apps](installing-apps.md#updates-without-asking), 2026-11-04); open: SDK 31 for stores' installer API, update checks in the background | this branch | 2026-11-04 |
 | 3 ATL inside a per-app Flatpak | vibration through feedbackd (#31); install, uninstall, installed apps and starting other apps go to the installer service; links out (OpenURI) and in (D-Bus activation) checked headless; open: network state from the portal (F-Droid's "No internet"), a real login, sensors, WebView | this branch | 2026-10-30 |
-| 4 Permissions | decision record and mapping (below); next: runtime prompts, App info, Android apps page | this branch | 2026-11-03 |
+| 4 Permissions | decision record and mapping (below); owner confirmed background location and boot autostart per app (2026-11-08); next: runtime prompts, App info, Android apps page, the boot autostart entry (not built yet) | this branch | 2026-11-08 |
 | 5 Install integrity | signers verified over the whole APK (v3 with key rotation, v2, v1 of every entry; AOSP's verifier); unsigned, changed and foreign-signed APKs and downgrades refused; open: installer of record, signer changes on the update page, v4 | this branch | 2026-10-30 |
 | 6 Migration and default | not started | - | - |
 
 # Threat model
+
+Confirmed by the owner on 2026-11-08.
 
 | Asset | Example |
 |---|---|
@@ -465,7 +467,8 @@ below the app:
   permissions, each allow/deny, default deny; the answers are stored like
   the others and reported by `checkSelfPermission`. Access itself still
   goes through the portals and ATL's checks.
-- **Autostart after reboot**: apps that request `RECEIVE_BOOT_COMPLETED`
+- **Autostart after reboot** (confirmed by the owner on 2026-11-08: they
+  want it for apps they allow): apps that request `RECEIVE_BOOT_COMPLETED`
   get a question (default no), stored like the others and changeable in
   App info; only apps answered "yes" get a boot autostart entry.
 - **Push server**: the "Android apps" page gets a "Push server" field

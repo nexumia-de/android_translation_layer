@@ -27,6 +27,10 @@ The phone is the owner's daily driver.
   `claude` user, not in the owner's Phosh session.
 - Long builds keep all cores busy: announce them so the phone is on its
   charger. Automatic suspend must be off while the agent works.
+- The owner allows tests on the phone's own hardware (2026-11-08), within
+  what the `claude` user can reach without root; see
+  [tests with the owner](#tests-with-the-owner-on-the-real-screen) for
+  what it cannot reach.
 
 # Running the agent
 
