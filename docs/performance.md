@@ -278,3 +278,57 @@ item in [apps.md](apps.md) once the measurement confirms LLVM's share.
 `libLLVM` and `libvulkan_freedreno` rows of the biggest mappings, and
 `gpu_total_kb` in `idle.tsv`. `GDK_DEBUG=opengl,vulkan` in `app.log`
 shows which stack GTK initialised and why.
+
+## 4. The Android framework (api-impl) is loaded from dex in every process
+
+**Cause.** ATL's re-implementation of the Android framework,
+`api-impl.jar` (930 Java files, `src/api-impl/meson.build`), is passed
+as `-Djava.class.path` (`src/main-executable/main.c:128-129`), not as
+part of the boot class path. The boot image holds only libcore and its
+companions (`core-oj`, `core-libart`, `okhttp`, `bouncycastle`,
+`apache-xml`, `apachehttp`, `wolfssljni`, `junit`, `hamcrest`; the list
+in `flatpak/de.nexumia.atl.BaseApp.yml:205-216` is the same one the
+runtime generates from, `art/runtime/gc/space/image_space.cc:107-183`).
+So every process loads the framework classes from dex at start: the
+class linker parses them, allocates their `Class` objects on the Java
+heap and their methods, fields, vtables and dex caches in `LinearAlloc`,
+which is anonymous memory from a `MemMapArenaPool`
+(`art/runtime/runtime.cc:1436-1437`), counted in `native-anon` because
+it has no name and sits above 4 GiB. The app's classes are handled the
+same way, which is unavoidable, but the framework's are the same in
+every process. Class initialisation (`<clinit>`) of the framework runs
+at every start too.
+
+**Android.** The framework jars are on the boot class path and in the
+boot image: classes come pre-linked and partly pre-initialised,
+file-backed and shared; the zygote additionally preloads some
+thousand classes before forking.
+
+**Expected gain.** Part of the 42 MB `native-anon` and part of the
+start time. With roughly 1,000 to 1,500 classes and their methods the
+metadata is estimated at 3 to 8 MB per process; the heap part of the
+`Class` objects and strings is small. Confidence in the number is
+low until the SIGQUIT dump (below) gives the class count and the
+measurement the delta.
+
+**Size.** M. Add `api-impl.jar` to the boot class path
+(`-Xbootclasspath:` with the libcore jars and the image generated
+from that list, `art/runtime/gc/space/image_space.cc:146-149`;
+`GetBootClassPath()` feeds `GenerateImage`). To check first: the
+framework's JNI library must be loadable by the boot class loader
+(`java.library.path` is given, `src/main-executable/main.c:123-125`),
+`ATLPaths` relies on `api-impl.jar` being the first class path entry
+(`src/main-executable/main.c:128`), classes that look up the app's
+resources through their own class loader need a look, and the Flatpak
+engine's precompiled `api-impl.odex`
+(`flatpak/de.nexumia.atl.BaseApp.yml:219-224`) becomes part of the boot
+image instead. An image containing api-impl must be regenerated for
+every ATL build (it already is for libcore changes).
+
+**Verify.** `kill -QUIT <pid>` writes ART's dump into `app.log`:
+`Zygote loaded classes=... post zygote classes=...` and the loaded dex
+files (`art/runtime/runtime.cc:1986-1998`, `art/runtime/class_linker.cc:9268-9276`);
+the post-zygote count is what each process pays for today. After the
+change, compare `native-anon` and `art-heap` in `smaps-start.tsv` and
+the start time; the framework's classes should appear under the boot
+class loader.
