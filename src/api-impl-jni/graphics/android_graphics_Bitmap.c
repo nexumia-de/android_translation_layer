@@ -22,8 +22,10 @@ extern GThread *main_thread_id;
 
 JNIEXPORT jlong JNICALL Java_android_graphics_Bitmap_native_1create_1texture(JNIEnv *env, jclass class, jlong snapshot_ptr, jint width, jint height, jint stride, jint format)
 {
-	static GType renderer_type = 0;
 	static GdkDisplay *off_screen_display;
+	/* realised once and kept: a new renderer per bitmap allocated and freed
+	 * its GPU device state, command and staging buffers every time */
+	static GskRenderer *off_screen_renderer;
 	GtkSnapshot *snapshot = _PTR(snapshot_ptr);
 	GskRenderNode *node = snapshot ? gtk_snapshot_free_to_node(snapshot) : NULL;
 	GdkTexture *texture = NULL;
@@ -38,22 +40,23 @@ JNIEXPORT jlong JNICALL Java_android_graphics_Bitmap_native_1create_1texture(JNI
 				off_screen_display = gdk_display_open(NULL);
 				// Create and destroy a dummy surface to get the renderer type
 				GdkSurface *surface = gdk_surface_new_toplevel(off_screen_display);
-				GskRenderer *renderer = gsk_renderer_new_for_surface(surface);
-				renderer_type = G_OBJECT_TYPE(renderer);
-				gsk_renderer_unrealize(renderer);
-				g_object_unref(renderer);
+				GskRenderer *dummy = gsk_renderer_new_for_surface(surface);
+				GType renderer_type = G_OBJECT_TYPE(dummy);
+				gsk_renderer_unrealize(dummy);
+				g_object_unref(dummy);
 				gdk_surface_destroy(surface);
+				off_screen_renderer = g_object_new(renderer_type, NULL);
+				gsk_renderer_realize_for_display(off_screen_renderer, off_screen_display, NULL);
 			}
-			renderer = g_object_new(renderer_type, NULL);
-			gsk_renderer_realize_for_display(renderer, off_screen_display, NULL);
+			texture = gsk_renderer_render_texture(off_screen_renderer, node, &bounds);
 		} else {
 			renderer = gsk_cairo_renderer_new();
 			gsk_renderer_realize(renderer, NULL, NULL);
+			texture = gsk_renderer_render_texture(renderer, node, &bounds);
+			gsk_renderer_unrealize(renderer);
+			g_object_unref(renderer);
 		}
-		texture = gsk_renderer_render_texture(renderer, node, &bounds);
 		gsk_render_node_unref(node);
-		gsk_renderer_unrealize(renderer);
-		g_object_unref(renderer);
 	} else {
 		if (format == -1) {
 			format = GDK_MEMORY_R8G8B8A8;
