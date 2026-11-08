@@ -540,6 +540,7 @@ Tested from the cloud dev container on 2026-10-28:
 | `gitlab.com` | Upstream ATL and its dependencies | reachable |
 | `dl-cdn.alpinelinux.org` | Alpine packages (ATL is packaged in Alpine) | blocked by the proxy (`403`) |
 | `mirror.postmarketos.org` | postmarketOS packages | connection failed |
+| `community.e.foundation`, `community.iode.tech`, `discuss.grapheneos.org`, `forum.sailfishos.org` | App compatibility reports from de-Googled Android systems (Duolingo login) | blocked by the proxy (`403`) until added to the cloud environment on 2026-11-08; Discourse threads read as `<thread url>.json`, Flarum as `/api/posts?filter[discussion]=<id>` |
 
 The phone itself has unrestricted network access.
 
