@@ -1,9 +1,22 @@
 ---
 type: Plan
 title: Base cost of ATL apps (memory first)
-description: Goal, measures and order of work for lowering what every ATL app costs while it runs, memory first; nothing measured yet, the causes listed are hypotheses.
-tags: [performance, memory, battery, background, gadgetbridge]
-generated: { by: claude-code/2.1.319, at: 2026-11-08T12:00:00Z }
+description: Goal, measures and order of work for lowering what every ATL app costs while it runs, memory first; code analysis of the base cost (boot image relocation, WebKit always loaded, two GPU stacks, classes outside the boot image, timer-driven frames, CheckJNI, bitmaps, threads) with what Android does instead, and what apps can share in per-app Flatpaks.
+tags: [performance, memory, battery, background, gadgetbridge, art, boot-image, webkit, mesa, flatpak]
+generated: { by: claude-code/2.1.319, at: 2026-11-08T15:00:00Z }
+sources:
+  - id: gtk-renderer
+    resource: https://gitlab.gnome.org/GNOME/gtk/-/blob/4.20.0/gsk/gskrenderer.c
+    title: GTK 4.20.0, gsk/gskrenderer.c (renderer_possibilities, Vulkan before GL)
+  - id: gtk-dmabuf
+    resource: https://gitlab.gnome.org/GNOME/gtk/-/blob/4.20.0/gdk/gdkdisplay.c
+    title: GTK 4.20.0, gdk/gdkdisplay.c (gdk_display_init_dmabuf initialises Vulkan and EGL)
+  - id: gtk-gpu-cache
+    resource: https://gitlab.gnome.org/GNOME/gtk/-/blob/4.20.0/gsk/gpu/gskgpudevice.c
+    title: GTK 4.20.0, gsk/gpu/gskgpudevice.c (CACHE_TIMEOUT 15 s) and gskgpurenderer.c (render_texture downloads into a memory texture)
+  - id: alpine-mesa
+    resource: https://gitlab.alpinelinux.org/alpine/aports/-/blob/master/main/mesa/APKBUILD
+    title: Alpine aports, main/mesa/APKBUILD (gallium drivers llvmpipe and freedreno in one library, LLVM 23)
 ---
 
 # Goal
@@ -67,3 +80,53 @@ Unverified; listed so the analysis checks them, not as facts:
   Google Play services and system_server and ATL does not; per app it
   is harder, because Android has the zygote, a precompiled boot image
   and freezes cached apps.
+
+# Code analysis
+
+Read from the code only, on 2026-11-08, while the baseline suite ran on
+the phone (ATL `phosh` 52fe6d6, art_standalone `phosh` 9447fac8,
+bionic_translation `phosh` 0b2e6e8). The numbers it starts from are the
+calibration run of Chooser: PSS 185 MB, of which Java heap 4 MB, native
+anonymous memory 42 MB, boot image relocated privately 32 MB, GTK and
+WebKit 29 MB, Mesa with LLVM and the Vulkan driver 23 MB, 105 thread
+stacks 16 MB; about 100 MB GPU memory; the main thread at about 16 % of
+a core while idle. The other apps: HeliBoard 179 MB, Gadgetbridge
+243 MB, DB Navigator 341 MB. HeliBoard, a small app, sits at the same
+level as Chooser: about 175 MB is the floor every ATL app pays before
+its own code counts. The items below explain that floor.
+
+Each item: the cause with the lines that show it, how Android avoids
+it, the expected gain (an estimate from the code, to be replaced by
+measurements), the size (S = a day, M = a few days, L = a week or more,
+as in the [hardening roadmap](hardening-roadmap.md)), and how to verify
+it on the phone with the scripts of the baseline branch
+(`tools/perf-run.sh -i 0 -- <ATL arguments>` takes one snapshot after
+30 s; compare the categories in `smaps-start.tsv`). Line numbers refer
+to the commits above. Nothing here is implemented; the order is the
+expected gain for every app, largest first.
+
+## Not the cause
+
+Two hypotheses from above are wrong, one is harmless:
+
+- **App code interpreted or only JIT-compiled.** No: this fork of ART
+  compiles every dex file ahead of time at first start. The runtime
+  itself runs `dex2oat` for a dex file without an up-to-date oat
+  (`art/runtime/oat_file_assistant.cc:207-237`, a fork change; upstream
+  Android leaves that to the installer) and passes no compiler filter,
+  so dex2oat's default `speed` applies (`art/runtime/compiler_filter.h:45`);
+  `quicken` is only added under `-Xint` (`art/runtime/runtime.cc:2592-2596`).
+  That is why the first start of an app takes long and why `app.log`
+  shows `Compiling dex file:` lines. The JIT still exists for methods
+  without compiled code (`art/runtime/runtime_options.def:76`, one
+  worker thread `art/runtime/jit/jit.cc:702`, code cache from 64 KB up to
+  64 MB `art/runtime/jit/jit_code_cache.h:87-90`), which is the `art-jit`
+  category.
+- **GC threads.** ART creates no GC thread pool here:
+  `kDefaultEnableParallelGC` is false (`art/runtime/gc/heap.h:145`), so
+  `ParallelGCThreads` is 0 (`art/runtime/parsed_options.cc:621-622`) and
+  `Heap::CreateThreadPool` makes nothing (`art/runtime/gc/heap.cc:1002-1006`).
+- **The 10 ms timer at start** (`src/main-executable/main.c:2109`) polls
+  only until the window has a width, then removes itself
+  (`src/main-executable/main.c:174-182`).
+
