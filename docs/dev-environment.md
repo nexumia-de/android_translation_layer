@@ -3,7 +3,7 @@ type: Playbook
 title: Development environment
 description: The owner's Phosh phone as build and test device - separate user, build into ~/.local, headless test display, required hosts.
 tags: [development, phone, testing, network]
-generated: { by: claude-code/2.1.308, at: 2026-10-28T09:20:00Z }
+generated: { by: claude-code/2.1.319, at: 2026-11-08T11:00:00Z }
 ---
 
 # Why the phone
@@ -50,6 +50,59 @@ Checkouts in `~/work`: this fork and, next to it, `phosh-toolkit`
 git clone https://github.com/nexumia-de/android_translation_layer
 git clone https://github.com/nexumia-de/phosh-toolkit
 ```
+
+# Agent on a laptop over SSH
+
+For measurements the agent runs on the owner's laptop and reaches the
+phone over SSH (since 2026-11-08). An agent running on the phone would
+distort what it measures: Claude Code itself holds a few hundred MB,
+its tool calls wake the CPU every few seconds, and the memory cage
+(`agents.slice`) pushes other processes into swap. On the laptop only
+the app under test and the measuring scripts run on the phone.
+
+The SSH configuration on the laptop (`~/.ssh/config`) has one host
+alias; the address and the key stay on the laptop, never in this
+repository:
+
+```
+Host phone
+    User claude
+    IdentityFile ~/.ssh/<key>
+    IdentitiesOnly yes
+    BatchMode yes
+    ControlMaster auto
+    ControlPath ~/.ssh/cm-%r@%h:%p
+    ControlPersist 10m
+```
+
+`ControlMaster` keeps one connection open, so the many short commands
+of a session do not each pay a key exchange. The phone has to be
+reachable: over USB networking (postmarketOS brings up `usb0` when the
+cable is plugged in, which is also the stable choice for long runs) or
+over the LAN by its host name; a `Match host phone exec` block can pick
+the one that answers. Key login as `claude` needs the laptop's public
+key in `/home/claude/.ssh/authorized_keys` (mode 700/600), which the
+owner creates once with root, since `claude` cannot log in with a
+password.
+
+Commands run as `ssh phone '<command>'`; builds and runs need ATL's
+environment first, so a build is
+
+```sh
+ssh phone 'cd ~/work/android_translation_layer && git pull --ff-only && flock /tmp/atl-heavy.lock tools/phone-setup.sh atl'
+```
+
+and a measurement is `ssh phone 'cd ~/work/android_translation_layer && tools/perf-run.sh ... -- <apk>'`
+(see [performance](performance.md)). Long runs start on the phone with
+`nohup setsid ... &` and write into `~/work/perf-runs/`, so a dropped
+connection does not end them; results come back with `scp`. The phone
+checkout is `~/work/android_translation_layer` on `phosh`; the agent
+commits on the laptop and pulls on the phone, or copies single scripts
+with `scp` while they are being developed. Logging in as `claude`
+starts its systemd user session (dbus-broker, gnome-keyring, gvfs,
+pipewire-pulse, mmsd-tng, vvmd, cellbroadcastd); `Linger=no`, so it
+ends with the last SSH session. Those daemons belong to the login, not
+to the app, and are left out of the measurements.
 
 # The phone
 

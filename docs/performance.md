@@ -1,10 +1,11 @@
 ---
 type: Plan
 title: Base cost of ATL apps (memory first)
-description: Goal, measures and order of work for lowering what every ATL app costs while it runs, memory first; code analysis of the base cost (boot image relocation, WebKit always loaded, two GPU stacks, classes outside the boot image, timer-driven frames, CheckJNI, bitmaps, threads) with what Android does instead, and what apps can share in per-app Flatpaks.
-tags: [performance, memory, battery, background, gadgetbridge, art, boot-image, webkit, mesa, flatpak]
-generated: { by: claude-code/2.1.319, at: 2026-11-08T15:00:00Z }
+description: Goal, how the cost of an ATL app is measured on the phone, the baseline of 2026-11-08 (Chooser, Gadgetbridge, HeliBoard, DB Navigator, two apps at once), the code analysis of the base cost with each estimate checked against the measurements, what apps can share in per-app Flatpaks, and the handoff for the analysis; nothing fixed yet.
+tags: [performance, memory, battery, background, gadgetbridge, measurement, art, boot-image, webkit, mesa, flatpak]
+generated: { by: claude-code/2.1.319, at: 2026-11-08T20:00:00Z }
 sources:
+  - "on-device: tools/perf-suite.sh runs in ~/work/perf-runs/suite-p1..p5 (p1 and p2 done), small result files under performance/"
   - id: gtk-renderer
     resource: https://gitlab.gnome.org/GNOME/gtk/-/blob/4.20.0/gsk/gskrenderer.c
     title: GTK 4.20.0, gsk/gskrenderer.c (renderer_possibilities, Vulkan before GL)
@@ -26,35 +27,23 @@ too high, and named memory as the likely bottleneck (2026-11-08). The
 goal is to lower everything an ATL app costs while it runs, so that
 apps meant to run all the time (Gadgetbridge, GPSLogger, FluffyChat and
 WhatsApp push, HeliBoard as keyboard) become usable. The owner's stretch
-goal: run better than the same app on Android.
+goal: run better than the same app on Android. Not only Gadgetbridge:
+every app should get cheaper, so the baseline covers four apps and two
+apps running at once.
 
 Most of the cost is expected in ATL itself (each app starts its own ART
 runtime), so a gain helps every app. The [hardening roadmap](hardening-roadmap.md)
 moves every app into its own Flatpak; whether apps can share memory
 belongs in that design before the migration (phase 6), not after.
 
+Work item: issue #118.
+
 # What is known
 
-Work item: issue #118. Nothing measured. [android-keyboard.md](android-keyboard.md) estimates
+Work item: issue #118. Baseline: see [Results](#results) (passes 1 and 2
+of 5). Before it, [android-keyboard.md](android-keyboard.md) estimates
 150 to 300 MB resident per ART process; Stevia, the native keyboard,
 uses 78 MB RSS.
-
-# Measures
-
-Per app, headless on the phone as `claude`, results with date and ATL
-commit in this file:
-
-- Memory after start and after 30 minutes idle in the background:
-  PSS and USS (`/proc/<pid>/smaps_rollup`), split into ART heap, boot
-  image, native libraries, GPU/graphics buffers.
-- Wake-ups and CPU time per minute while idle (`/proc/<pid>/stat`,
-  scheduler statistics).
-- Start time to the first drawn frame.
-- Later, with the owner: battery per hour with the screen off.
-
-Reference points: Amazfish (native app for the same watch) for
-Gadgetbridge, and what Android reports for the same app where the owner
-has a device.
 
 # Order of work
 
@@ -80,6 +69,182 @@ Unverified; listed so the analysis checks them, not as facts:
   Google Play services and system_server and ATL does not; per app it
   is harder, because Android has the zygote, a precompiled boot image
   and freezes cached apps.
+
+# How it is measured
+
+Everything runs headless on the phone as `claude`, driven from the
+laptop over SSH ([development environment](dev-environment.md#agent-on-a-laptop-over-ssh)),
+with the `~/.local` build of this checkout. The scripts live in
+`tools/` so the same measurement can be repeated after every fix:
+
+| Script | What it measures | Source |
+|---|---|---|
+| `perf-smaps.py PID [LABEL]` | Memory by category: PSS, USS, RSS, swap per category and the biggest mappings | `/proc/PID/smaps`, `/proc/PID/task/*/syscall` |
+| `perf-idle.sh PID SECONDS [INTERVAL]` | Over time: CPU time (user, system), context switches of all threads, PSS/USS/RSS, GPU memory, battery current and power | `/proc/PID/stat`, `task/*/status`, `smaps_rollup`, `fdinfo` (`drm-*`), `/sys/class/power_supply` |
+| `perf-threads.sh PID` | Per thread: CPU time and context switches, to subtract start from end | `task/TID/stat`, `status`, `comm` |
+| `perf-start.py RESULT CMD...` | Time from exec to the first Wayland message, the first `xdg_toplevel.configure`, the first and the tenth `wl_surface.commit` with a buffer | `WAYLAND_DEBUG=client` |
+| `perf-run.sh [-c] [-2 CMD] [-x STEP] -- ARGS` | One run: start, settle, snapshot, optional cover window or second app, idle sampling, snapshot | `headless-shot.sh` (cage) |
+| `perf-suite.sh` | The whole baseline: per app 3 start runs and 3 background runs, plus the pair | |
+| `perf-report.py SUITE... [-o DIR]` | Markdown tables (medians, min-max) and copies of the small result files | |
+
+Conditions, chosen to match the owner's phone:
+
+- Apps start as F-Droid and Aurora Store install them:
+  `-w 360 -h 720 --sdk-int 26`; the display is 720×1440 at scale 2.
+- "After start" is 30 s after exec (25 s in the start runs), once the
+  first screen is up and dex2oat is done; DB Navigator's tour and
+  Gadgetbridge's welcome page are left with taps first
+  (`perf-suite.sh`).
+- "In the background" means the app's window is covered by another
+  client (`foot`) in the same compositor for the idle time, as a
+  background app under phoc is covered by the foreground app. The app
+  gets no frame callbacks then. A run without a cover (the app visible
+  and idle) is the other condition.
+- Idle time 30 minutes (10 for the extra repeats of HeliBoard, DB
+  Navigator and the pair), one sample per minute.
+- Everything runs next to the owner's Phosh session and its daemons, so
+  battery numbers are for the whole phone and only context; the
+  `claude` login's own session daemons (dbus, keyring, gvfs, pipewire)
+  are not counted.
+- Wake-ups are voluntary context switches of the app's threads per
+  minute: a thread that goes to sleep and is woken counts once. The
+  kernel has no `CONFIG_SCHEDSTATS`, `perf` is not installed and
+  `/proc/timer_list` is root-only, so this is the only wake-up count an
+  unprivileged user gets; [app status](apps.md#needs-owner) lists what
+  the owner can install to do better.
+
+How the memory categories are told apart, since the kernel has no
+`CONFIG_ANON_VMA_NAME` and anonymous memory carries no names:
+
+- `art-heap`: anonymous memory below 4 GiB. ART keeps its heap spaces
+  there because object references are 32 bit; the main space starts at
+  `0x12c00000` as on Android.
+- `stacks`: the mapping holding each thread's saved stack pointer, plus
+  every anonymous `rw` mapping above 4 GiB behind a `PROT_NONE` guard
+  mapping (musl's pthread stack layout).
+- `native-anon`: the rest of the anonymous memory above 4 GiB: musl's
+  malloc for ART's metadata (class tables, dex caches, linear alloc),
+  GTK, Mesa and the app's native libraries. It cannot be split further
+  without names; see the handoff.
+- `art-image`: the boot image and compiled code in `~/.cache/art/arm64`
+  (`boot.oat`, `boot.art`, `boot-*.oat`, the app's `…@classes.dex` oat
+  and `.vdex`); `art-jit`: the JIT code cache (`memfd:jit-cache`).
+- `app-dex`: the APKs, splits and jars mapped directly; `lib-art`,
+  `lib-bionic`, `lib-atl`, `lib-gtk` (GTK, GLib, Pango, Cairo, WebKit,
+  …), `lib-mesa` (GL, Vulkan, LLVM, libdrm), `lib-other`: shared
+  libraries by group; `icu-data`: `icudt78l.dat`; `graphics`: CPU
+  mappings of GEM buffers (GPU memory itself is read from `fdinfo`).
+
+# Results
+
+Baseline of 2026-11-08, ATL `cbd9da5e`, measured with `tools/perf-suite.sh`
+as described above. The series ran unattended on the phone
+(`~/work/perf-runs/run-all.sh`, one pass after the other) and **stopped
+at 16:28 during pass 3**, so it is incomplete:
+
+| Pass | What | Status |
+|---|---|---|
+| 1 (`suite-p1`) | All four apps and the pair, 1 start and 1 background run each, idle 30 min | done, 11:55 to 14:26 |
+| 2 (`suite-p2`) | Chooser and Gadgetbridge, 2 more start and background runs each, idle 30 min | done, 14:26 to 16:27 |
+| 3 (`suite-p3`) | HeliBoard, DB Navigator and the pair, 2 more runs each, idle 10 min | **open**: stopped at 16:28 in HeliBoard's first background run (last line of `suite.log` 16:28:09, the run's files last written 16:31, no end snapshot), no usable result |
+| 4 (`suite-p4`) | Visible (uncovered) idle of Chooser and Gadgetbridge, GTK renderers cairo, ngl and vulkan | **open**: never started (waits for pass 3) |
+| 5 (`suite-p5`) | Verification runs for the code analysis: `-Xnorelocate`, `GDK_DISABLE=vulkan`/`gl`, GTK debug logs, quit after start | **open**: never started (waits for pass 4) |
+
+**Unverified:** the suspected cause of the stop is that the `claude`
+user's processes were ended when its last SSH connection closed
+(`Linger=no`, see [development environment](dev-environment.md#agent-on-a-laptop-over-ssh));
+`nohup setsid` does not protect against the end of the login's
+systemd scope. Not checked yet; check it before repeating passes 3 to 5.
+
+So Chooser and Gadgetbridge have 3 runs each (6 start values, since
+every background run also records its start), HeliBoard, DB Navigator
+and the pair one run each (2 start values). Single runs carry no
+spread and are only indicative. Result files: [performance/suite-p1](performance/suite-p1/)
+and [performance/suite-p2](performance/suite-p2/) (copied with
+`tools/perf-report.py suite-p1 suite-p2 -o docs/performance`; the
+screenshots, logs and full `smaps` dumps stay on the phone).
+
+What stands out, before any analysis:
+
+- **Chooser burns CPU in the background**: about 9.8 s of CPU time and
+  3600 wake-ups per minute while covered, almost all in its `main`
+  thread (284 s of 286 s over 29 minutes), in all three runs. The other
+  three apps use 3 to 33 ms per minute. This is the case
+  [item 5](#5-frames-run-on-a-timer-not-on-the-display) is about.
+- **Memory floor**: PSS after start is 200 MB (HeliBoard, Chooser) to
+  300 MB (DB Navigator); USS 175 to 260 MB. The categories every app
+  pays about equally (`art-image`, `lib-gtk`, `lib-mesa`, `lib-other`,
+  `lib-art`) add up to 120 to 142 MB PSS per app.
+- **Two apps share about 106 MB**: with Chooser started next to
+  Gadgetbridge, Gadgetbridge's PSS drops from 256 to 203 MB and
+  Chooser's PSS is 152 MB (USS 83 MB); one run only.
+- PSS grows by 0 to 17 MB during 30 minutes of idling.
+- DB Navigator's wake-up count is negative because about 60 threads
+  ended in its first idle minute (153 to 93) and took their counts with
+  them. From the second sample on (28 minutes) it is about 35 wake-ups
+  and 31 ms CPU per minute (computed by hand from `idle.tsv`).
+- No app except Gadgetbridge drew ten frames within the start run, so
+  the "10th frame" column is empty for them.
+
+The tables below are the output of `perf-report.py` (median, min-max and
+n in brackets when there is more than one run).
+
+## Start and memory per app
+
+| App | First frame (ms) | 10th frame (ms) | PSS after start (MB) | USS after start (MB) | PSS after idle (MB) | USS after idle (MB) | Idle (min) | Threads |
+|---|---|---|---|---|---|---|---|---|
+| chooser | 2496 (2232-3151, n=6) | - | 204 (179-209, n=6) | 179 (154-184, n=6) | 222 (187-223, n=3) | 197 (162-198, n=3) | 29 (29-29, n=3) | 91 (91-91, n=3) |
+| dbnavigator | 5517 (5427-5607, n=2) | - | 299 (297-302, n=2) | 256 (250-261, n=2) | 311 | 270 | 29 | 92 |
+| gadgetbridge | 2374 (2311-2446, n=6) | 2537 (2464-2609, n=6) | 254 (249-257, n=6) | 218 (216-220, n=6) | 263 (253-266, n=3) | 226 (225-230, n=3) | 29 (29-29, n=3) | 46 (46-48, n=3) |
+| heliboard | 1726 (1714-1737, n=2) | - | 201 (200-203, n=2) | 176 (175-178, n=2) | 199 | 175 | 29 | 37 |
+
+## Idle cost in the background (covered window)
+
+| App | CPU ms per minute | Wake-ups per minute (voluntary switches) | PSS growth during idle (MB) | GPU memory total / resident (MB) |
+|---|---|---|---|---|
+| chooser | 9815 (9697-10286, n=3) | 3578 (3575-3580, n=3) | +12.8 (+7.4-+17.1, n=3) | 99 (99-99, n=3) / 75 (75-75, n=3) |
+| dbnavigator | 33 | -116 | +11.4 | 100 / 76 |
+| gadgetbridge | 6 (6-6, n=3) | 7 (7-8, n=3) | +6.6 (+4.5-+9.7, n=3) | 63 (63-63, n=3) / 51 (51-51, n=3) |
+| heliboard | 3 | 4 | -0.3 | 62 / 50 |
+
+## Memory by category after idle (PSS MB, median of the background runs; USS in brackets)
+
+| Category | chooser | dbnavigator | gadgetbridge | heliboard |
+|---|---|---|---|---|
+| native-anon | 44.9 (44.9) | 94.8 (94.8) | 75.2 (75.2) | 34.8 (34.8) |
+| art-image | 31.5 (31.5) | 38.1 (38.0) | 40.0 (39.9) | 42.4 (42.4) |
+| lib-gtk | 36.2 (32.5) | 22.4 (8.0) | 32.4 (29.2) | 32.2 (29.2) |
+| lib-mesa | 22.5 (7.9) | 20.1 (7.8) | 22.5 (7.9) | 22.5 (7.9) |
+| lib-other | 34.5 (32.7) | 25.7 (21.7) | 32.9 (31.1) | 32.4 (30.9) |
+| stacks | 26.2 (26.2) | 21.8 (21.8) | 10.5 (10.5) | 9.1 (9.1) |
+| lib-art | 13.6 (13.2) | 13.6 (13.2) | 13.7 (13.3) | 12.9 (12.5) |
+| art-heap | 6.8 (6.8) | 29.3 (29.3) | 14.6 (14.6) | 5.4 (5.4) |
+| app-dex | 2.4 (0.3) | 35.6 (32.4) | 10.9 (0.3) | 4.3 (1.2) |
+| icu-data | 2.0 (0.0) | 5.3 (0.0) | 9.8 (4.2) | 2.0 (0.0) |
+| art-jit | 0.2 (0.1) | 0.9 (0.4) | 0.4 (0.2) | 0.0 (0.0) |
+| lib-atl | 0.6 (0.6) | 0.6 (0.6) | 0.6 (0.6) | 0.6 (0.6) |
+| lib-bionic | 0.3 (0.3) | 0.3 (0.3) | 0.3 (0.3) | 0.3 (0.3) |
+| malloc | 0.3 (0.3) | 0.4 (0.4) | 0.4 (0.4) | 0.2 (0.2) |
+| fonts | 0.2 (0.0) | 0.3 (0.1) | 0.3 (0.0) | 0.2 (0.0) |
+| graphics | - | - | - | - |
+| other-file | 0.1 (0.1) | 0.3 (0.1) | 0.1 (0.1) | 0.1 (0.1) |
+| other-anon | 0.0 (0.0) | 1.4 (1.4) | 0.0 (0.0) | 0.0 (0.0) |
+| icons-pixbuf | 0.0 (0.0) | 0.0 (0.0) | 0.0 (0.0) | 0.0 (0.0) |
+| TOTAL | 222.2 (197.2) | 310.9 (270.2) | 262.5 (225.7) | 199.5 (174.5) |
+
+## Threads with the most CPU while idle (ms over the idle time, median run per app)
+
+- **chooser** (chooser-bg-1, 285920 ms in all threads): main 284000 ms / 104027 wake-ups, HeapTaskDaemon 1190 ms / 44 wake-ups, FinalizerDaemon 460 ms / 21 wake-ups, Jit thread pool 160 ms / 11 wake-ups, gdbus 70 ms / 58 wake-ups, ReferenceQueueD 30 ms / 20 wake-ups
+- **dbnavigator** (dbnavigator-bg-1, 890 ms in all threads): gdbus 190 ms / 132 wake-ups, PressureMonitor 160 ms / 350 wake-ups, main 150 ms / 69 wake-ups, Jit thread pool 140 ms / 58 wake-ups, WM.task-4 100 ms / 46 wake-ups, BlueZ signals 60 ms / 77 wake-ups
+- **gadgetbridge** (gadgetbridge-bg-1, 250 ms in all threads): gdbus 120 ms / 87 wake-ups, main 110 ms / 24 wake-ups, BlueZ signals 20 ms / 29 wake-ups
+- **heliboard** (heliboard-bg-1, 200 ms in all threads): main 100 ms / 33 wake-ups, gdbus 90 ms / 59 wake-ups, DefaultDispatch 10 ms / 29 wake-ups
+
+## Two apps at once (Gadgetbridge first, Chooser second)
+
+| Run | PSS first alone (MB) | PSS first with second (MB) | USS first alone | USS first with second | PSS second (MB) | USS second (MB) | Shared between the two (MB) |
+|---|---|---|---|---|---|---|---|
+| pair-1 | 256 | 203 | 219 | 122 | 152 | 83 | ~106 |
+
 
 # Code analysis
 
@@ -567,6 +732,77 @@ are:
 **Size.** None here; the per-app parts are the apps' own, as on
 Android.
 
+## 11. A GStreamer pipeline per MediaPlayer, built and run at start
+
+**Cause.** `MediaPlayer` is implemented on `GtkMediaFile`. `setDataSource`
+calls `gtk_media_file_new_for_filename` at once
+(`src/api-impl-jni/media/android_media_MediaPlayer.c:14-23`), and GTK's
+GStreamer backend builds a `GstPlay` with a `playbin` pipeline for the
+file right there, not at the first `start()`. As soon as the stream
+reports `prepared`, ATL plays it once muted "to ensure file is fully
+loaded" (`on_prepared`, lines 7-12, from the 2025-03-04 commit that
+moved MediaPlayer to GtkMediaStream), so every player decodes its whole
+file at start. `prepare()` then only flags the stream as prepared with a
+duration of 0 (`native_prepare`, lines 41-49). `MediaPlayer.create()`
+(`src/api-impl/android/media/MediaPlayer.java:48-60`) is the path apps
+take for sound effects: extract the raw resource, `setDataSource`,
+`prepare`. Chooser creates three players at start, one per sound.
+
+Each pipeline brings its threads and stays alive after the muted
+playback (GTK keeps the pipeline paused, GStreamer keeps a paused
+pipeline's streaming threads): in the Chooser snapshot
+`threads-start.tsv` lists 3 × `GstPlay`, 3 × `gstglcontext`,
+3 × `typefind:sink`, 3 × `typefindelement`, 3 × `aqueue:src` and 6 ×
+`multiqueue*:src`, 21 threads for three Ogg/Opus files. The
+`gstglcontext` threads show that GTK's video sink opens a GL context
+per pipeline although the files have no video; **inference:** the
+extra Mesa threads of Chooser come from those contexts, since Chooser
+has 46 Mesa threads (`android-:gdrv` 10, `android-:ir3q` 8,
+`androi:traceq` 12, `android:disk$` 10, `gldisplay-event` 6) where
+HeliBoard, with no media, has 17. Chooser has 92 threads in all,
+HeliBoard 35; the three pipelines with their GL contexts account for
+about 50 of the difference.
+
+**Android.** `MediaPlayer.create()` also prepares the player
+synchronously, but the decoder is opened in the media server and
+prerolls one buffer; it does not play the file through, and a
+prepared-but-idle player holds no rendering threads in the app.
+
+**Measured.** Libraries of the audio stack mapped only because of the
+pipelines (GStreamer core and plugins, orc, opus, vorbis, ogg,
+PulseAudio client): 5.8 MB PSS in Chooser against 1.4 MB in HeliBoard
+(those come in through WebKit), so about 4.4 MB; the 21 GStreamer
+threads and the roughly 29 extra Mesa threads about 150 KB of touched
+stack each, 7 to 8 MB; the three GL contexts' driver state is in
+`native-anon` and GPU memory and cannot be separated there (the P5
+`GDK_DEBUG` run lists the contexts). CPU while idle is small: the
+GStreamer threads used 160 ms in the first 30 s and nothing measurable
+afterwards. Estimated total 12 to 15 MB of Chooser's 185 MB, plus the
+start-time cost of decoding three files muted.
+
+**Expected gain.** That memory and the threads for every app that
+creates sound effects at start (a common pattern: games, timers,
+keyboards with key sounds), and a shorter start. Nothing for apps
+without media.
+
+**Size.** S. Create the `GtkMediaFile` on the first `start()` (or on the
+first call that needs the stream: `getDuration`, `seekTo`) and keep only
+the path until then; drop the muted play-through in `on_prepared`, or
+replace it with `gtk_media_stream_realize` if a display is what the
+file needs; after `ended`, set the stream back so GStreamer releases
+the pipeline (`gtk_media_stream_pause` keeps it; unrealizing or
+re-creating per playback drops the threads). Upstream-ready as one
+commit; `MediaPlayer.create()` still returns a usable player, since
+`prepare()` already does not wait for GStreamer.
+
+**Verify.** Chooser `-i 0`: the `GstPlay`, `gstglcontext`, `typefind`,
+`multiqueue` and `aqueue` threads must be absent from
+`threads-start.tsv` until a sound is played, the Mesa thread count
+should fall towards HeliBoard's, and `stacks` and the audio libraries
+in `smaps-start.tsv` should drop by the amounts above; `start.tsv`
+gives the start-time difference. A sound must still play on the
+phone (owner test, Chooser's choice sound).
+
 ## Can ATL apps share memory, and what it means for the Flatpak plan
 
 Android shares between apps by **forking**: the zygote has the runtime,
@@ -633,8 +869,9 @@ For the Flatpak plan this means:
    item, after the floor is lower.
 
 The order to fix, by gain per effort: 1 (S, biggest), 6 (S, CPU), 3
-(S, choice of stack), 2 (S-M), 5 (M, CPU and battery), 4 (M), 7 (M),
-9 (S-M, first start), 8 (nothing unless the thread names say so).
+(S, choice of stack), 2 (S-M), 11 (S, apps with sounds), 5 (M, CPU and
+battery), 4 (M), 7 (M), 9 (S-M, first start), 8 (nothing unless the
+thread names say so).
 Each fix is measured with the baseline scripts before the next one
 starts, as [the order of work](#order-of-work) says.
 
@@ -642,3 +879,7 @@ starts, as [the order of work](#order-of-work) says.
 [^gtk-dmabuf]: GTK 4.20.0, gdk/gdkdisplay.c
 [^gtk-gpu-cache]: GTK 4.20.0, gsk/gpu/gskgpudevice.c and gskgpurenderer.c
 [^alpine-mesa]: Alpine aports, main/mesa/APKBUILD
+
+# Handoff for the analysis
+
+<!-- HANDOFF -->

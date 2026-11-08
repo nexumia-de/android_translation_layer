@@ -1,0 +1,18 @@
+date: 2026-11-08T12:26:07+01:00
+atl_commit: cbd9da5e (2026-11-08)
+atl_binary: Nov 8 11:34
+kernel: 7.3.0
+cpu_governor: schedutil
+settle: 30 idle: 1800 interval: 60 cover: 1
+command: android-translation-layer -w 360 -h 720 --sdk-int 26 /home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk
+free_before:
+              total        used        free      shared  buff/cache   available
+Mem:           7301        1288        2612         368        3402        5274
+Swap:         10951           0       10951
+load_before: 1.49 0.88 0.58 1/757 92917
+free_after:
+              total        used        free      shared  buff/cache   available
+Mem:           7301        1295        2598         368        3408        5267
+Swap:         10951           0       10951
+load_after: 0.09 0.24 0.30 1/753 102322
+status: 0

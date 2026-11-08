@@ -1,0 +1,38 @@
+tid	name	cpu_ms	vol_cs	nonvol_cs
+102372	main	1200	376	72
+102373	pool-spawner	0	3	0
+102374	gmain	0	1	0
+102375	gdbus	20	64	4
+102435	[pango] fontcon	40	16	8
+102441	Jit thread pool	0	3	0
+102442	Runtime worker 	0	2	0
+102443	Runtime worker 	0	4	0
+102444	Runtime worker 	0	5	0
+102445	Runtime worker 	0	3	0
+102446	Signal Catcher	0	1	0
+102447	ReferenceQueueD	0	8	0
+102448	FinalizerDaemon	0	7	1
+102449	FinalizerWatchd	0	3	0
+102450	HeapTaskDaemon	70	29	17
+102453	DefaultDispatch	0	5	0
+102454	DefaultDispatch	0	12	1
+102457	android:disk$0	0	7	0
+102459	androi:traceq0	0	1	0
+102460	android:disk$1	0	6	0
+102461	android:disk$2	0	3	0
+102462	android:disk$3	0	4	0
+102463	ExecutorUtils	0	1	1
+102465	android:disk$0	0	6	0
+102467	androi:traceq0	0	1	0
+102468	android:disk$1	0	5	8
+102469	android:disk$2	0	5	0
+102470	android:disk$3	0	2	0
+102471	android:disk$0	0	2	0
+102472	android-:ir3q0	0	17	0
+102473	android-:ir3q1	0	14	0
+102474	androi:traceq0	0	1	0
+102475	android-:gdrv0	0	1	0
+102476	android-:ir3q2	0	6	1
+102477	android-:ir3q3	0	6	0
+102478	androi:traceq0	0	1	0
+102479	android-:gdrv0	0	1	0

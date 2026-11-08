@@ -1,0 +1,65 @@
+# pid 112392 threads 169 label start
+# cmd android-translation-layer -w 360 -h 720 --sdk-int 26 /home/claude/work/apks/de.hafas.android.db_240000860/base.apk /home/claude/work/apks/de.hafas.android.db_240000860/config.arm64_v8a.apk /home/claude/work/apks/de.hafas.android.db_240000860/config.xxhdpi.apk
+category	mappings	size_kb	rss_kb	pss_kb	uss_kb	shared_kb	swap_kb	swappss_kb
+native-anon	674	72214988	86764	86764	86764	0	0	0
+art-image	103	131652	39168	39132	39096	72	0	0
+app-dex	90	56592	54352	36482	33080	21272	0	0
+art-heap	18	852076	32712	32712	32712	0	0	0
+lib-gtk	205	167824	83592	22886	8184	75408	0	0
+stacks	286	253084	22748	22748	22748	0	0	0
+lib-mesa	165	293160	152704	20420	7652	145052	0	0
+lib-other	315	100564	51324	19530	9068	42256	0	0
+lib-art	68	20072	18224	13945	13600	4624	0	0
+icu-data	1	32332	18604	5416	0	18604	0	0
+other-anon	60	5896	1388	1369	1364	24	0	0
+art-jit	4	98308	1568	988	408	1160	0	0
+lib-atl	3	644	600	600	600	0	0	0
+malloc	2	420	416	416	416	0	0	0
+other-file	10	408	408	270	136	272	0	0
+lib-bionic	12	528	244	244	244	0	0	0
+fonts	10	3672	2196	176	0	2196	0	0
+icons-pixbuf	3	220	220	37	0	220	0	0
+TOTAL	2029	74232440	567232	304135	256072	311160	0	0
+
+# biggest mappings by PSS (merged by name)
+category	name	mappings	size_kb	rss_kb	pss_kb	uss_kb	swap_kb
+native-anon	<anon native-anon>	674	72214988	86764	86764	86764	0
+art-heap	<anon art-heap>	18	852076	32712	32712	32712	0
+app-dex	~/work/apks/de.hafas.android.db_240000860/base.apk	19	39000	36760	31313	29908	0
+stacks	<anon stacks>	285	246936	22620	22620	22620	0
+lib-gtk	/usr/lib/libwebkitgtk-6.0.so.4.19.5	6	90080	34140	13387	6068	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot.oat	5	11460	10592	10588	10584	0
+lib-mesa	/usr/lib/libvulkan_freedreno.so	3	14092	11844	8258	4672	0
+lib-mesa	/usr/lib/libLLVM.so.23.1	3	173552	107888	7300	1384	0
+lib-art	~/.local/lib/art/libart.so	3	7180	7176	7176	7176	0
+icu-data	/usr/share/icu/78.1/icudt78l.dat	1	32332	18604	5416	0	0
+lib-gtk	/usr/lib/libjavascriptcoregtk-6.0.so.1.8.9	7	32768	16292	5116	700	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-core-libart-hostdex.oat	5	5124	4720	4716	4712	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot.vdex	1	4996	4484	4484	4484	0
+lib-mesa	/usr/lib/libgallium-26.2.6.so	3	37240	28984	4042	1300	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@android_translation_layer@api-impl.jar@classes.dex	5	3848	3848	3848	3848	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@android_translation_layer@api-impl.jar@classes.vdex	1	15924	3508	3508	3508	0
+lib-art	~/.local/lib/art/libart-compiler.so	3	3460	3408	3408	3408	0
+app-dex	~/.local/share/android_translation_layer/base.apk_/lib/libakamaibap.so	5	2816	2816	2816	2816	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-bouncycastle-hostdex.oat	5	3488	2780	2776	2772	0
+lib-other	/usr/lib/libvixl.so.5.1.0	3	2884	2680	2680	2680	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-core-libart-hostdex.vdex	1	2880	2424	2424	2424	0
+lib-other	/usr/lib/libSvtAv1Enc.so.4.3.0	3	4232	4180	2100	20	0
+app-dex	~/.local/lib/java/dex/android_translation_layer/framework-res.apk	15	14032	14032	1960	0	0
+lib-other	/usr/lib/libavcodec.so.63.1.102	3	16072	3048	1736	424	0
+lib-gtk	/usr/lib/libgtk-4.so.1.2400.1	3	12852	12852	1636	244	0
+lib-other	/usr/lib/libwolfssl.so.46.0.0	3	1544	1512	1512	1512	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-bouncycastle-hostdex.vdex	1	1676	1372	1372	1372	0
+other-anon	/memfd:glycin-frame (deleted)	53	5852	1360	1360	1360	0
+lib-other	/usr/lib/libx265.so.216	3	6860	2544	1296	48	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot.art	2	1264	1264	1264	1264	0
+lib-other	/usr/lib/libflite_cmu_us_rms.so.2.2	3	3332	2732	1157	632	0
+lib-other	/usr/lib/libvpx.so.12.1.0	3	2628	2192	1104	16	0
+lib-other	/usr/lib/libflite_cmu_us_slt.so.2.2	3	2884	2644	1078	556	0
+lib-other	/usr/lib/libflite_cmu_us_awb.so.2.2	3	2884	2644	1078	556	0
+art-jit	/memfd:/jit-cache (deleted)	3	98304	1568	988	408	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-okhttp-hostdex.oat	5	780	776	776	776	0
+lib-art	~/.local/lib/art/libandroidfw.so	3	1028	728	728	728	0
+lib-other	/usr/lib/libaom.so.3.15.3	3	6860	2520	690	80	0
+lib-atl	~/.local/lib/java/dex/android_translation_layer/natives/libtranslation_layer_main.so	3	644	600	600	600	0
+lib-other	/usr/lib/libcrypto.so.3	3	4492	3024	570	464	0
