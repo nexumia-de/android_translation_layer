@@ -231,3 +231,11 @@ Chooser compared with `phosh` ([app status](apps.md),
 * **First tap on Compose screens**: on a newly shown Compose screen (Legal notice, Licences) the first tap did nothing. ATL sent hover events (from GTK crossings and the headless mouse) straight into a press, without Android's `ACTION_HOVER_EXIT`, and with raw = local coordinates and time 0. Hovering now ends before a press, there is no hover during a press or from touch screens, and hover events get window coordinates and a real time. Ruled out on the way: `isInTouchMode()` (still false) and hidden views in the touch hit test ([app status](apps.md)).
 * **Gradient rectangles**: `GskCanvas.drawRect` and `drawRoundRect` ignored shaders, so DB Navigator's drop shadows were black bars; they now go through `drawPath` with GSK gradients ([app status](apps.md)).
 
+## 2026-11-07: komoot
+
+* **komoot**: komoot 2026.44.2 from Google Play (Aurora Store, Pixel 9a profile) starts and reaches sign-in headless. Missing APIs on its start path were filled in groups from the gap list, and `View.isShowingLayoutBounds()` returns `false` instead of `true`, which had covered Compose screens in red debug bounds. Bar colours come from the theme instead of a fixed red and grey ([app status](apps.md), [app audit](app-audit.md)).
+
+## 2026-11-07: DB Navigator location
+
+* **Fused location in gstub**: the fake GMS package answers `GoogleLocationManagerService.START` with a broker and a location service on ATL's `LocationManager` (location portal): `getLastLocation`, `updateLocationRequest`, location availability and `checkLocationSettings`. DB Navigator's Nearby lists the stops around a fake position at Berlin Hbf instead of waiting forever; without location it shows its normal hint. `WorkSource` is `Parcelable` now; the client's `LocationRequest` aborted on it ([app status](apps.md), [GMS compatibility](gms-compat.md)).
+* **Merged with the komoot work**: `Activity.addContentView` came with both branches; the one from `phosh` stays. komoot's row notes that it needs `GMS_STUB_APPS` for location.

@@ -17,6 +17,8 @@ extern "C" {
 #define android_hardware_SensorManager_SENSOR_STATUS_ACCURACY_MEDIUM 2L
 #undef android_hardware_SensorManager_SENSOR_STATUS_ACCURACY_HIGH
 #define android_hardware_SensorManager_SENSOR_STATUS_ACCURACY_HIGH 3L
+#undef android_hardware_SensorManager_PRESSURE_STANDARD_ATMOSPHERE
+#define android_hardware_SensorManager_PRESSURE_STANDARD_ATMOSPHERE 1013.25f
 /*
  * Class:     android_hardware_SensorManager
  * Method:    register_accelerometer_listener_native

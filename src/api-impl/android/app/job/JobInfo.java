@@ -91,6 +91,24 @@ public class JobInfo {
 			return this;
 		}
 
+		/* only "some network" is checked when the job runs, not the request's capabilities */
+		public Builder setRequiredNetwork(android.net.NetworkRequest networkRequest) {
+			jobInfo.networkType = networkRequest != null ? NETWORK_TYPE_ANY : NETWORK_TYPE_NONE;
+			return this;
+		}
+
+		public Builder setTraceTag(String traceTag) {
+			return this;
+		}
+
+		public Builder setTriggerContentUpdateDelay(long durationMs) {
+			return this;
+		}
+
+		public Builder setTriggerContentMaxDelay(long durationMs) {
+			return this;
+		}
+
 		public Builder setRequiredNetworkType(int networkType) {
 			jobInfo.networkType = networkType;
 			return this;

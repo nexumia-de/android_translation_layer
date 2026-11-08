@@ -7,6 +7,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_view_ViewGroup_AUTOFILL_TYPE_NONE
+#define android_view_ViewGroup_AUTOFILL_TYPE_NONE 0L
+#undef android_view_ViewGroup_AUTOFILL_TYPE_TEXT
+#define android_view_ViewGroup_AUTOFILL_TYPE_TEXT 1L
+#undef android_view_ViewGroup_AUTOFILL_TYPE_TOGGLE
+#define android_view_ViewGroup_AUTOFILL_TYPE_TOGGLE 2L
+#undef android_view_ViewGroup_AUTOFILL_TYPE_LIST
+#define android_view_ViewGroup_AUTOFILL_TYPE_LIST 3L
+#undef android_view_ViewGroup_AUTOFILL_TYPE_DATE
+#define android_view_ViewGroup_AUTOFILL_TYPE_DATE 4L
 #undef android_view_ViewGroup_NO_ID
 #define android_view_ViewGroup_NO_ID -1L
 #undef android_view_ViewGroup_NOT_FOCUSABLE

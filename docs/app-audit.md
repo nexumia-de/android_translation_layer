@@ -37,6 +37,7 @@ Every element is in the snapshots, one pair per app:
 | DB Navigator | `de.hafas.android.db` | 0 + 0 | 1205 + 573 | 204 |
 | Post & DHL | `de.dhl.paket` | 6 + 13 | 1280 + 524 | 149 |
 | Duolingo | `com.duolingo` | 72 + 146 | 1630 + 643 | 79 |
+| komoot | `de.komoot.android` | 38 + 78 | 976 + 578 | 111 |
 
 Most "in total" entries come from libraries and hardware paths never reached.
 DB Navigator's own code is entirely obfuscated, so its first column says
@@ -170,6 +171,31 @@ Result: the core works on the phone. The date picker is the biggest unknown.
 
 Result: usable for reading, not yet finished. Most open rows have a known
 cause.
+
+# komoot
+
+`de.komoot.android` 2026.44.2, minSdk 32.
+
+| Feature | State | Evidence |
+|---|---|---|
+| Start, privacy consent | `headless` | Consent page with Accept, Refuse and Customize ([screenshot](screenshots/komoot-privacy-2026-11-07.png)), Refuse leads on, 2026-11-07 |
+| Start page | `headless` | Google, Facebook and email buttons, 2026-11-07 |
+| Sign-up and sign-in with email | `headless` | The email page ([screenshot](screenshots/komoot-email-2026-11-07.png)) sends the address; for a test address the server answered with its sign-up page ([screenshot](screenshots/komoot-sign-up-2026-11-07.png)). No account was made; a real sign-in is an owner test |
+| Text fields | `wrong` | The hint "username@email.com" is drawn as dark as typed text; Next and Sign Up keep their disabled look after text was filled in, but react |
+| Check boxes | `wrong` | GTK's blue check box instead of komoot's, and its text is cut at the right edge |
+| Sign-in with Google | `out of scope` | Google sign-in |
+| Sign-in with Facebook | `untested` | |
+| Map | `untested` | MapLibre (OpenGL ES); reached only after sign-in |
+| Location | `untested` | Needs the owner's phone and sign-in |
+| Route planning, navigation, voice | `untested` | Speech: `TextToSpeech` gaps in the list |
+| Offline maps | `untested` | `MapDownloadService` |
+| Watches and sensors (Bluetooth LE) | `untested` | `BluetoothLeAdvertiser` and others missing |
+| Number pickers | `missing` | `NumberPicker` (51 own calls) |
+| Drag and drop | `missing` | `DragEvent` |
+| Web pages in the app | `missing` | `WebResourceError`, `WebViewClient.onReceivedError` and more (23 own calls) |
+| Premium purchases | `out of scope` | Google Play billing |
+
+Result: starts and reaches sign-in; the map and everything after sign-in need the owner's account on the phone.
 
 # Duolingo
 

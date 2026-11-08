@@ -97,7 +97,6 @@ public class Window {
 		decorView.addView(view);
 	}
 
-	/* next to the content view, on top of it */
 	public void addContentView(View view, ViewGroup.LayoutParams params) {
 		decorView.addView(view, params);
 	}
@@ -147,9 +146,48 @@ public class Window {
 
 	public void takeSurface(SurfaceHolder.Callback2 callback) {}
 
-	public void setStatusBarColor(int color) {}
+	/* Phosh draws the bars, so their colours are only kept for apps that read them back;
+	 * until set they come from the theme, as on Android */
+	private Integer statusBarColor;
+	private Integer navigationBarColor;
 
-	public void setNavigationBarColor(int color) {}
+	private int themeColor(int attr) {
+		TypedArray ta = context.obtainStyledAttributes(new int[] {attr});
+		int color = ta.getColor(0, 0xFF000000);
+		ta.recycle();
+		return color;
+	}
+
+	public void setStatusBarColor(int color) {
+		statusBarColor = color;
+	}
+
+	public int getStatusBarColor() {
+		if (statusBarColor == null)
+			statusBarColor = themeColor(com.android.internal.R.attr.statusBarColor);
+		return statusBarColor;
+	}
+
+	public void setNavigationBarColor(int color) {
+		navigationBarColor = color;
+	}
+
+	public int getNavigationBarColor() {
+		if (navigationBarColor == null)
+			navigationBarColor = themeColor(com.android.internal.R.attr.navigationBarColor);
+		return navigationBarColor;
+	}
+
+	/* ATL draws no navigation bar of its own, so there is no divider to colour */
+	private int navigationBarDividerColor;
+
+	public void setNavigationBarDividerColor(int color) {
+		navigationBarDividerColor = color;
+	}
+
+	public int getNavigationBarDividerColor() {
+		return navigationBarDividerColor;
+	}
 
 	public void setFormat(int format) {}
 
@@ -165,15 +203,10 @@ public class Window {
 
 	public void setSoftInputMode(int dummy) {}
 
-	public int getNavigationBarColor() {
-		return 0xFF888888; // gray
-	}
-
 	public void setBackgroundDrawableResource(int resId) {
 		setBackgroundDrawable(context.getDrawable(resId));
 	}
 
-	public int getStatusBarColor() { return 0xFFFF0000; }
 
 	public Context getContext() {
 		return context;
@@ -213,6 +246,12 @@ public class Window {
 	public void setReturnTransition(Transition transition) {}
 
 	public void setEnterTransition(Transition transition) {}
+
+	public void setExitTransition(Transition transition) {}
+
+	public Transition getExitTransition() {
+		return null;
+	}
 
 	public void setGravity(int gravity) {
 		set_gravity(native_window, gravity);

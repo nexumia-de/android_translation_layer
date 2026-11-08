@@ -144,6 +144,13 @@ public final class PowerManager {
 
 	public static final int FULL_WAKE_LOCK = 0x1a;
 
+	public static final int THERMAL_STATUS_NONE = 0;
+
+	/* no thermal information is read from the system */
+	public int getCurrentThermalStatus() {
+		return THERMAL_STATUS_NONE;
+	}
+
 	public boolean isPowerSaveMode() {
 		return false;
 	}

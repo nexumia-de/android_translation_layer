@@ -206,6 +206,11 @@ public class ImageView extends View {
 
 	public void setImageAlpha(int alpha) {}
 
+	@Deprecated
+	public void setAlpha(int alpha) {
+		setImageAlpha(alpha);
+	}
+
 	public void setMaxWidth(int width) {}
 
 	public void setMaxHeight(int height) {}
