@@ -80,9 +80,8 @@ entry: date, what, why. Remove an entry once it is done.
   ~/work/apks/app.comaps.fdroid/app.comaps.fdroid_26100519.apk
   > /tmp/comaps.log 2>&1`, allow the world map download, then report
   whether the map fills the screen without a black box and whether
-  pinch/drag move it. Voice guidance (#70) needs
-  `sudo apk add speech-dispatcher espeak-ng`, then turn on voice in a
-  route.
+  pinch/drag move it. Voice guidance (#70): speech-dispatcher and
+  espeak-ng are installed (2026-11-08); turn on voice in a route.
 
 - 2026-11-03: Window size from the monitor (no `-w`/`-h`). After the
   fix is in the aports package: start F-Droid from a launcher without
@@ -114,15 +113,6 @@ entry: date, what, why. Remove an entry once it is done.
   `android-translation-layer@nexumia` with `sudo`, and try Chooser with
   several fingers on the real touch screen; headless tests cannot do
   that. The owner runs every root command themselves.
-- 2026-10-29: [Hardening roadmap](hardening-roadmap.md), phase 0:
-  confirm the threat model and the proposed
-  [one Flatpak per app](decisions/app-sandbox.md), and send the output
-  of, as `user`: `flatpak --version; flatpak remotes --user;
-  flatpak list --runtime; apk info -v | grep portal`. Done by the agent
-  on the phone (see [dev-environment.md](dev-environment.md#app-flatpaks));
-  still open: the sign-off, `sudo apk add flatpak-builder` for the engine
-  build (phase 1), and the phone on the charger while it builds.
-
 - 2026-10-28: For DB Navigator from Aurora Store on the phone: merge
   nexumia-de/aports pull request #6 (ATL with the Aurora fixes; #5 with
   `art_standalone` r101 and the new `bionic_translation` is merged and
@@ -173,12 +163,9 @@ entry: date, what, why. Remove an entry once it is done.
 
 - 2026-11-03: Location tracking for Dawarich (GPSLogger; pull requests
   #61 location, #62 battery, #63 foreground services, wake locks next).
-  Three decisions, each with the agent's recommendation:
-  1. Background location (`ACCESS_BACKGROUND_LOCATION`): an app gets
-     locations while it has a window or a foreground service (shown by
-     its ongoing notification), as on Android 10+; without either only
-     if you allow it per app (default no). Recommended: yes, as proposed
-     in #58.
+  Background location and autostart after reboot are decided (owner,
+  2026-11-08, as in the [hardening roadmap](hardening-roadmap.md)): both
+  only for apps the owner allows, asked per app, default no. Still open:
   2. Suspend while tracking: decided 2026-11-03, see
      [system wake windows](decisions/wake-windows.md). Steps for the owner:
      - Find what keeps the phone from suspending (it had not suspended in
@@ -189,8 +176,6 @@ entry: date, what, why. Remove an entry once it is done.
        settings page has it (example 5 minutes):
        `sudo systemctl edit atl-wake.timer`, add
        `[Timer]` / `OnCalendar=` / `OnCalendar=*:0/5`.
-  3. Autostart after reboot (`RECEIVE_BOOT_COMPLETED`): recommended no for
-     now; start the tracker by hand after a reboot.
 
   Check on the phone, as `user` (prints no coordinates):
   `/usr/libexec/geoclue-2.0/demos/where-am-i -t 60 -a 8 | grep -i -E 'accuracy|error|fail'`
@@ -199,10 +184,9 @@ entry: date, what, why. Remove an entry once it is done.
   Wi-Fi `url`, so the location portal depends on Phosh's geoclue agent and
   on the modem GNSS (`[modem-gps]`); as `claude` geoclue timed out.
 - 2026-11-03: [Back navigation](navigation.md) (pull request from
-  `claude/navigation`): decide the default of `ATL_NAVIGATION`
-  (`buttons`, `gesture` or `both`, proposed `both`) and whether the
-  choice later lives per app or globally in the settings app
-  ([decision](decisions/navigation.md)). Then, once the aports pin
+  `claude/navigation`): default `both` decided (owner, 2026-11-08);
+  still to decide: whether the choice later lives per app or globally in
+  the settings app ([decision](decisions/navigation.md)). Then, once the aports pin
   includes it, as `user` on the phone with the packaged ATL:
   `android-translation-layer <app>.apk 2>&1 | tee /tmp/nav.log` with
   Gadgetbridge or F-Droid, open a second page, swipe from the left edge

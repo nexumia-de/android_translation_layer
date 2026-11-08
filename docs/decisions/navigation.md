@@ -1,9 +1,9 @@
 ---
 type: Decision Record
 title: Back navigation by button, edge swipe and keys
-description: Proposed - ATL goes back by the header bar button, a swipe from the left or right edge and the keys Escape, Alt+Left and XF86Back; on-screen choice ATL_NAVIGATION=buttons|gesture|both (default both) until the settings app owns it; Home and Recents stay Phosh's job.
+description: Accepted - ATL goes back by the header bar button, a swipe from the left or right edge and the keys Escape, Alt+Left and XF86Back; on-screen choice ATL_NAVIGATION=buttons|gesture|both (default both) until the settings app owns it; Home and Recents stay Phosh's job.
 tags: [decision, navigation, gestures, keyboard, back, settings]
-status: proposed
+status: accepted
 generated: { by: claude-code/2.1.312, at: 2026-11-03T12:00:00Z }
 sources:
   - id: android-gesture-nav
@@ -18,6 +18,8 @@ sources:
 ---
 
 # Status
+
+Accepted on 2026-11-08: the owner chose the default `both`.
 
 Proposed on 2026-11-03 for the owner's request of 2026-11-02 (Android
 control in ATL: swipe from the side for back, control by keys).
@@ -65,5 +67,6 @@ browsers.
   outside the window, so they do not collide with the side edges.
 - With `gesture` the header bar has no back button; apps without a
   keyboard then rely on the swipe.
-- Open for the owner: the default (`both`), and whether the choice later
+- Default `both`, chosen by the owner on 2026-11-08. Still open for the
+  owner: whether the choice later
   lives per app or globally in the settings app.
