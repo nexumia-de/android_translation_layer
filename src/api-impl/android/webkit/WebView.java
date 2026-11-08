@@ -38,6 +38,18 @@ public class WebView extends ViewGroup {
 		super(context, attrs, defStyleAttr);
 	}
 
+	/* WebKit is loaded with the first page, not with the class: many apps
+	 * create a WebView only for its user agent or for ads. Until then no
+	 * WebKitWebView exists, so the methods that act on one return early. */
+	private static boolean webkitLoaded;
+
+	private static void loadWebKit() {
+		if (!webkitLoaded) {
+			System.loadLibrary("translation_layer_webkit");
+			webkitLoaded = true;
+		}
+	}
+
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		return native_gtkEventPropagation();
@@ -107,7 +119,7 @@ public class WebView extends ViewGroup {
 	@Override
 	protected void onSizeChanged(int w, int h, int oldw, int oldh) {
 		super.onSizeChanged(w, h, oldw, oldh);
-		if (w != oldw)
+		if (w != oldw && webkitLoaded)
 			native_updateContentHeight(widget);
 	}
 
@@ -146,6 +158,7 @@ public class WebView extends ViewGroup {
 		// webkit doesn't allow overwriting the file:// uri scheme. So we replace it with the android-asset:// scheme
 		data = data.replace("file:///android_asset/", "android-asset:///assets/");
 		ownLoadPending = true;
+		loadWebKit();
 		updateBridgeScript();
 		native_loadDataWithBaseURL(widget, baseUrl, data, mimeType, encoding, settings.getJavaScriptEnabled());
 	}
@@ -158,6 +171,7 @@ public class WebView extends ViewGroup {
 		// webkit doesn't allow overwriting the file:// uri scheme. So we replace it with the android-asset:// scheme
 		url = url.replace("file:///android_asset/", "android-asset:///assets/");
 		ownLoadPending = true;
+		loadWebKit();
 		updateBridgeScript();
 		native_loadUrl(widget, url, settings.getJavaScriptEnabled());
 	}
@@ -165,35 +179,39 @@ public class WebView extends ViewGroup {
 	public void stopLoading() {}
 
 	public boolean canGoBack() {
-		return native_canGoBackOrForward(widget, -1);
+		return webkitLoaded && native_canGoBackOrForward(widget, -1);
 	}
 
 	public void goBack() {
-		native_goBackOrForward(widget, -1);
+		if (webkitLoaded)
+			native_goBackOrForward(widget, -1);
 	}
 
 	public boolean canGoForward() {
-		return native_canGoBackOrForward(widget, 1);
+		return webkitLoaded && native_canGoBackOrForward(widget, 1);
 	}
 
 	public void goForward() {
-		native_goBackOrForward(widget, 1);
+		if (webkitLoaded)
+			native_goBackOrForward(widget, 1);
 	}
 
 	public boolean canGoBackOrForward(int steps) {
-		return native_canGoBackOrForward(widget, steps);
+		return webkitLoaded && native_canGoBackOrForward(widget, steps);
 	}
 
 	public void goBackOrForward(int steps) {
-		native_goBackOrForward(widget, steps);
+		if (webkitLoaded)
+			native_goBackOrForward(widget, steps);
 	}
 
 	public void reload() {
-		native_reload(widget);
+		if (webkitLoaded)
+			native_reload(widget);
 	}
 
 	public String getUrl() {
-		return native_getUrl(widget);
+		return webkitLoaded ? native_getUrl(widget) : null;
 	}
 
 	// to be used by native code
@@ -217,6 +235,7 @@ public class WebView extends ViewGroup {
 	}
 
 	public void evaluateJavascript(String script, ValueCallback<String> resultCallback) {
+		loadWebKit();
 		native_evaluateJavascript(widget, script, resultCallback, settings.getJavaScriptEnabled());
 	}
 
