@@ -113,7 +113,7 @@ a commit is added, sent or merged.
 
 | Commit | Size | Status |
 |---|---|---|
-| `wolfssljni: ignore freed sessions in setNativeTimeout` (art_standalone; patch in nexumia-de/aports `art_standalone/`) | 5 lines | being sent by the owner (fork `Xilance/art_standalone`, `eee27f55`) |
+| `wolfssljni: ignore freed sessions in setNativeTimeout` (art_standalone; patch in nexumia-de/aports `art_standalone/`) | 5 lines | merged 2026-11-03 ([art_standalone!50](https://gitlab.com/android_translation_layer/art_standalone/-/merge_requests/50), by Mis012) |
 | `3c392697 main-executable: start launchers with an absolute /usr/bin/env` | 3 lines | kept |
 | `86bb2de7 main-executable: keep --sdk-int in the launcher` | 2 lines | kept |
 | `b40cd2a1 api-impl: Application: fall back to the literal android:label` | 15 lines | kept |
@@ -149,8 +149,55 @@ a commit is added, sent or merged.
 
 Commit ids are those on `phosh`; cherry-pick them from there.
 
+# Where upstream stands (2026-11-08)
+
+Checked on GitLab before choosing the next merge request. A fix that
+meets what the maintainers are working on, with an app they can test,
+is easier for them to judge than one for an app with other open
+problems (HeliBoard, for example).
+
+- **AI stance.** In [issue #32](https://gitlab.com/android_translation_layer/android_translation_layer/-/issues/32)
+  Mis012 (2025-01) does not want to review patches whose author has not
+  read and understood all of the code, and would trust AI only with
+  stubs. julianwi (2026-10): AI was never forbidden and helps with
+  debugging, but AI code is usually a proof of concept. Useful patches
+  must be extracted, follow the code style, and classes copied from
+  AOSP keep their licence header and name the source commit in the
+  commit message. Our first merge request (art_standalone!50) was a
+  small, understood bug fix, and it was merged.
+- **What not to do.** One contributor sent about a dozen AI-written
+  merge requests in August 2026 (!294–!304). Most were closed, and the
+  stubs came in later as one bundle (!349). This is the flood the
+  owner wants to avoid.
+- **Active work.** Daniels Šatcs (shatz.dan): microG login, AccountManager,
+  ContentProvider, sync adapters, Binder/Parcel, Play Services
+  signatures. His open
+  [!351 "Parse v2/v3 APK signatures"](https://gitlab.com/android_translation_layer/android_translation_layer/-/merge_requests/351)
+  (Google Keep needs GMS's certificate; his `ApkSigningBlock` is
+  "vibe coded", in his words) overlaps our
+  `PackageParser: read the signer from APK Signature Scheme v3/v2 blocks`
+  and the AOSP verifier. Julian Winkler: Compose, MapLibre, CoMaps,
+  WhatsApp, performance. jlucfarias: NinePatchDrawable, popups, Aegis.
+- **Overlaps with our candidates.**
+  - Lambdas (art_standalone): in
+    [issue #95](https://gitlab.com/android_translation_layer/android_translation_layer/-/issues/95)
+    Mis012 says the fix is building ART with d8, which desugars
+    lambdas (`d8` branch in art_standalone). Our runtime fix goes
+    another way; do not send it.
+  - APK signatures: test !351 on the phone with our install flow, and
+    point to the AOSP verifier we use, instead of sending a competing
+    merge request.
+  - The WhatsApp stub issues #96–#102 are all in `master` now (!349).
+
 # Open questions
 
 - Do the ATL maintainers accept AI-written merge requests? Not asked
   separately; the first merge request (art_standalone, 2026-10-28) says
   that it came from Claude Code. Record their answer here.
+  2026-11-03: Mis012 merged
+  [art_standalone!50](https://gitlab.com/android_translation_layer/art_standalone/-/merge_requests/50),
+  which said it was written with Claude Code. That is not a general
+  yes; keep each merge request small and disclosed.
+- Some rows in the candidate table may be outdated: upstream has added
+  some of the same APIs since (for example `RotateAnimation`). Check each
+  commit against `origin/master` before suggesting it.
