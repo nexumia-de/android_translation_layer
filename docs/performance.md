@@ -150,11 +150,12 @@ at 16:28 during pass 3**, so it is incomplete:
 | 4 (`suite-p4`) | Visible (uncovered) idle of Chooser and Gadgetbridge, GTK renderers cairo, ngl and vulkan | **open**: never started (waits for pass 3) |
 | 5 (`suite-p5`) | Verification runs for the code analysis: `-Xnorelocate`, `GDK_DISABLE=vulkan`/`gl`, GTK debug logs, quit after start | **open**: never started (waits for pass 4) |
 
-**Unverified:** the suspected cause of the stop is that the `claude`
-user's processes were ended when its last SSH connection closed
-(`Linger=no`, see [development environment](dev-environment.md#agent-on-a-laptop-over-ssh));
-`nohup setsid` does not protect against the end of the login's
-systemd scope. Not checked yet; check it before repeating passes 3 to 5.
+**Cause of the stop (verified 2026-11-08 from the journal):** the
+laptop's SSH connection timed out at 16:31:01, and logind, which has
+`KillUserProcesses=yes` on the phone, killed the login's session scope
+with the series in it; `nohup setsid` does not leave the scope. Linger
+alone does not help; long runs now start as user units with
+`systemd-run --user` (see [development environment](dev-environment.md#agent-on-a-laptop-over-ssh)).
 
 So Chooser and Gadgetbridge have 3 runs each (6 start values, since
 every background run also records its start), HeliBoard, DB Navigator

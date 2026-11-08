@@ -35,6 +35,21 @@ follow [bringing up an app](app-bring-up.md).
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
+- 2026-11-08: The agent for issue #118 runs in `tmux` session `perf118`
+  inside the laptop's SSH login (session `c22`, started 19:44). logind
+  kills that login with everything in it once the connection times out
+  (`KillUserProcesses=yes`, linger does not prevent it), so the agent
+  and any job it started there can stop overnight. The agent was not
+  allowed to restart itself as a user unit (no self-persistence). If it
+  stopped, start it again outside any SSH login, for example:
+
+  ```sh
+  systemd-run --user --unit=claude-perf118 --collect -p Type=forking tmux new -d -s perf118 -x 200 -y 50 claude --permission-mode auto --model opus "Lies zuerst ~/work/handoff/perf-118.md und arbeite autonom weiter."
+  ```
+
+  Measurement jobs the agent starts itself use `systemd-run --user` and
+  are not affected.
+
 - 2026-11-08: Measurements for issue #118 ([performance](performance.md))
   need tools `claude` cannot install or enable. `perf` (Alpine package
   `perf`, 7.2.x, works with the 7.3 kernel) would show which code wakes

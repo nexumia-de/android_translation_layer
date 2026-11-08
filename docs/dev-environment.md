@@ -94,15 +94,26 @@ ssh phone 'cd ~/work/android_translation_layer && git pull --ff-only && flock /t
 
 and a measurement is `ssh phone 'cd ~/work/android_translation_layer && tools/perf-run.sh ... -- <apk>'`
 (see [performance](performance.md)). Long runs start on the phone with
-`nohup setsid ... &` and write into `~/work/perf-runs/`, so a dropped
-connection does not end them; results come back with `scp`. The phone
+`systemd-run --user` (see below) and write into `~/work/perf-runs/`, so
+a dropped connection does not end them; results come back with `scp`. The phone
 checkout is `~/work/android_translation_layer` on `phosh`; the agent
 commits on the laptop and pulls on the phone, or copies single scripts
 with `scp` while they are being developed. Logging in as `claude`
 starts its systemd user session (dbus-broker, gnome-keyring, gvfs,
-pipewire-pulse, mmsd-tng, vvmd, cellbroadcastd); `Linger=no`, so it
-ends with the last SSH session. Those daemons belong to the login, not
-to the app, and are left out of the measurements.
+pipewire-pulse, mmsd-tng, vvmd, cellbroadcastd). Those daemons belong
+to the login, not to the app, and are left out of the measurements.
+
+**Jobs that must outlive the SSH connection** run as user units:
+`systemd-run --user --unit=NAME --collect sh -c '...'`. logind on the
+phone has `KillUserProcesses=yes`: when an SSH connection ends, the
+login's session scope is killed with every process in it, including
+jobs started with `nohup setsid` or inside `tmux` (they stay in the
+scope). That ended the baseline series at 16:28 on 2026-11-08 (journal:
+sshd "Read error ... Operation timed out" at 16:31:01, then the user
+manager exited). The owner enabled linger for `claude` the same day
+(`loginctl show-user claude -p Linger` is `yes`), which keeps the user
+manager (`user@1000.service`) and its units running without a login;
+it does not protect the session scope.
 
 # The phone
 
