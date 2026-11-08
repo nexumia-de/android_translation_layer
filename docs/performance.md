@@ -247,6 +247,50 @@ n in brackets when there is more than one run).
 | pair-1 | 256 | 203 | 219 | 122 | 152 | 83 | ~106 |
 
 
+## Fixes
+
+Each fix is measured like the baseline: `~/work/perf-runs/run-fix.sh`
+builds the branch on the phone, starts every app of [apps.md](apps.md)
+once (`tools/app-smoke.sh`), then runs `tools/perf-suite.sh -r 3 -i 600
+-a "chooser gadgetbridge"` (3 start and 3 covered 10-minute idle runs
+per app). Median of the runs, Chooser / Gadgetbridge. Since the night of
+2026-11-08 the agent runs on the phone itself; whole-phone numbers and
+start times of later fixes are compared only with a "before" that also
+ran with the agent on the phone. Per-process memory and CPU are barely
+affected.
+
+### Items 1 and 6: `-Xnorelocate`, CheckJNI opt-in
+
+Branch `claude/perf-runtime-flags-118`. Before: `fix-0-phosh`
+(`43d35a19`), after: `fix-1b-flags-no3` (`5f20712c`).
+
+| | First frame (ms) | PSS after start (MB) | PSS after idle (MB) | CPU ms/min covered | Wake-ups/min covered | GPU MB |
+|---|---|---|---|---|---|---|
+| before | 2529 / 2438 | 205 / 255 | 220 / 263 | 8317 / 4 | 3617 / 5 | 99 / 63 |
+| after | 2430 / 2228 | 208 / 255 | 225 / 264 | 6610 / 3 | 3618 / 5 | 99 / 63 |
+
+- **CPU**: Chooser's covered idle drops by 21 %, all in its main
+  thread; the wake-ups stay (that is item 5). First frame 4 % / 9 %
+  earlier.
+- **Memory**: the `boot*.art` pages go from 2.4 MB to 0.5 MB private
+  dirty per process (item 1); the rest of `art-image` was never
+  relocated memory (see the correction in item 1). Chooser's PSS
+  differed by +3 MB between the two series; an A/B run on the same
+  build (`~/work/perf-runs/ab-flags`, Chooser start only, new and old
+  defaults alternating 4 times, old ones with `ATL_RELOCATE_BOOT_IMAGE=1
+  ATL_CHECK_JNI=1`) gives a median PSS of 207.3 MB new against 208.2 MB
+  old, and first frame 2337 against 2498 ms. The difference was drift
+  between the series: the `stacks` and `native-anon` categories swing by
+  up to 8 MB from run to run, because `perf-smaps.py` counts an
+  anonymous mapping after a guard page as a stack, which also matches
+  mappings that are no stacks.
+- **Smoke test**: the same as before (WhatsApp exits early, Duolingo's
+  dex2oat crashes on an invalid dex while the app runs on, Super
+  Productivity aborts: all already on `phosh`).
+
+Merged. Item 3 (`GDK_DISABLE=vulkan`) was on the branch first and was
+reverted, see item 3.
+
 # Code analysis
 
 Read from the code only, on 2026-11-08, while the baseline suite ran on
@@ -312,11 +356,18 @@ loader reserves a random address (`ART_BASE_ADDRESS + random delta`,
 differs from the one the image was compiled for, patches all objects,
 methods and tables in place (`MaybeRelocateSpaces` and
 `DoRelocateSpaces`, `art/runtime/gc/space/image_space.cc:1721-1740`,
-`1567-1583`). Almost every page of the image holds a pointer, so almost
-every page becomes a private copy: the 32 MB measured as `art-image`
-private. They are anonymous memory to the kernel, cannot be dropped
-under pressure (only swapped), and are not shared between two ATL
-processes even though both read the same file.
+`1567-1583`). The patched pages become private copies that cannot be
+dropped under pressure (only swapped) and are not shared between two
+ATL processes.
+
+**Correction (measured 2026-11-08, see [Fixes](#items-1-and-6--xnorelocate-checkjni-opt-in)):**
+the analysis first took the 32 MB of `art-image` for relocated pages.
+They are not: `art-image` is almost all clean, file-backed `.oat`,
+`.vdex` and `.dex` pages (`boot.oat` 9 MB, `boot.vdex` 4 MB,
+`api-impl` dex and vdex 7 MB, ...), which count as private only because
+a single ATL process maps them; a second ATL process shares them
+through the page cache. The `boot*.art` files themselves are 2.5 MB
+PSS, of which 2.4 MB private dirty with relocation and 0.5 MB without.
 
 **Android.** The zygote loads and relocates the image once at boot and
 every app process is a fork of it, so the relocated pages are shared
@@ -327,9 +378,10 @@ has no zygote: every app relocates its own copy.
 compiled address and the patch pass is skipped (`diff` is 0,
 `art/runtime/gc/space/image_space.cc:1729-1732`). Untouched pages stay
 file-backed, clean and shared through the page cache by every ATL
-process of the same user (or the same engine in Flatpak): around 25 to
-30 of the 32 MB per app, plus the time the patch pass takes at start
-(tens to a few hundred ms on the phone). What stays private is what the
+process of the same user (or the same engine in Flatpak). Estimated
+first as 25 to 30 MB per app; measured: about 1.9 MB private dirty
+less per app (see the correction above); the start time gain could not
+be separated from item 6's. What stays private is what the
 runtime writes into the image at run time (class status, dex caches,
 intern table), a few MB on Android.
 
@@ -444,6 +496,12 @@ item in [apps.md](apps.md) once the measurement confirms LLVM's share.
 `libLLVM` and `libvulkan_freedreno` rows of the biggest mappings, and
 `gpu_total_kb` in `idle.tsv`. `GDK_DEBUG=opengl,vulkan` in `app.log`
 shows which stack GTK initialised and why.
+
+**Result (2026-11-08): rejected.** With `GDK_DISABLE=vulkan` GTK
+renders with GL: GPU memory rose from 99 to 136 MB (Chooser) and 63 to
+148 MB (Gadgetbridge), the first frame came 0.3 to 0.5 s later, and one
+run crashed in Mesa's GL driver (`libgallium`) under
+`gsk_renderer_render` (run `fix-1-flags`). Reverted on the branch.
 
 ## 4. The Android framework (api-impl) is loaded from dex in every process
 
@@ -569,6 +627,11 @@ development builds; a meson option covers both.
 thread's CPU delta in `threads-*.tsv`; `-X -Xcheck:jni` cannot be
 removed from the command line today, so this needs a build with the
 default changed.
+
+**Result (2026-11-08).** Default off, `ATL_CHECK_JNI=1` turns it on:
+Chooser's covered idle CPU fell from 8.3 to 6.6 s per minute, the first
+frame came about 6 % earlier ([Fixes](#items-1-and-6--xnorelocate-checkjni-opt-in)).
+
 ## 7. Bitmaps exist twice, and each draw makes a GPU renderer
 
 **Cause.** An Android `Bitmap` that is drawn into (a `Canvas` on a
