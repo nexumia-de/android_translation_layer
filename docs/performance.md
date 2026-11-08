@@ -183,3 +183,48 @@ should drop by most of the 32 MB, `start.tsv` should show a shorter
 time to the first frame, and in a pair run (`-2`) both processes should
 share the `boot.art` pages (`shared_kb` of `art-image`). If ART logs
 `Failed to map image` the address was taken and the fallback is needed.
+
+## 2. WebKit is linked into every app process
+
+**Cause.** The WebView glue (`src/api-impl-jni/widgets/android_webkit_WebView.c`)
+is compiled into `libtranslationlayer.so`, and that library lists
+`webkitgtk-6.0` as a dependency (`meson.build:299`). The dynamic linker
+therefore loads `libwebkitgtk-6.0.so`, `libjavascriptcoregtk-6.0.so`
+and their dependencies (libsoup, GStreamer core and plugin libraries,
+libenchant, libhyphen, libwoff2, libmanette, libavif and more) when the
+process starts, although nothing calls into WebKit before the first
+`webkit_web_view_new()` (`src/api-impl-jni/widgets/android_webkit_WebView.c:124`).
+musl binds every symbol at load time, so the cost is paid up front:
+the relocation of some hundred thousand entries (start time), their
+GOT and `.data.rel.ro` pages (private, written), and the symbol-table
+pages read to resolve them. Chooser, HeliBoard and Gadgetbridge never
+show a WebView; DB Navigator does, for tickets.
+
+**Android.** The WebView implementation is a separate APK (Chromium)
+that `WebViewFactory` loads into the app only when the first `WebView`
+is constructed, and its renderer runs in separate sandboxed processes.
+Apps without a WebView never map it.
+
+**Expected gain.** The WebKit share of the 29 MB measured as `lib-gtk`
+(GTK itself is needed and stays), estimated at 10 to 20 MB per process
+from the size of the libraries, plus a noticeable part of the start
+time. The estimate has the widest range of all items; the baseline's
+`smaps-start.tsv` settles it (sum the mappings named `libwebkitgtk`,
+`libjavascriptcoregtk`, `libgst*`, `libsoup`, `libenchant`,
+`libhyphen`, `libwoff2`, `libmanette`, `libavif` in the biggest-mappings
+table, or in the raw `smaps-start.txt.gz`).
+
+**Size.** S to M. Move the WebView glue into its own shared library
+(`libtranslationlayer_webkit.so`, following the one-job-per-file rule)
+that `android_webkit_WebView.c` opens with `dlopen` on the first
+WebView, or resolve the dozen WebKit functions it uses through
+`g_module_symbol`. The Java side (`src/api-impl/android/webkit/WebView.java`)
+does not change. Upstream-ready as one commit.
+
+**Verify.** A build with the lazy library: run Chooser and compare the
+`lib-gtk` category and the named WebKit mappings in `smaps-start.tsv`;
+they should be absent until DB Navigator opens a ticket. `start.tsv`
+gives the start-time difference. Also check with `LD_DEBUG`-free
+means that the libraries are not pulled in by another path:
+`grep -c webkit /proc/<pid>/maps` must be 0 for Chooser.
+
