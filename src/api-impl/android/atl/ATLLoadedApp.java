@@ -312,6 +312,11 @@ public final class ATLLoadedApp {
 				}
 			}
 		}
+		if (component == null && ATLPaths.gstub_jar.getPath().equals(pkg.applicationInfo.sourceDir)) {
+			String className = ATLGStub.serviceFor(intent.getAction());
+			if (className != null)
+				component = new ComponentName(pkg.packageName, className);
+		}
 		if (component == null) {
 			Slog.w(TAG, "startService: no matching service found for intent: " + intent);
 			return null;

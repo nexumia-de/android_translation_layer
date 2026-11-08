@@ -48,6 +48,13 @@ final class ATLGStub {
 		return new ATLLoadedApp(Resources.getSystem(), pathClassLoader, pkg);
 	}
 
+	/* services gstub.jar answers, by intent action */
+	static String serviceFor(String action) {
+		if ("com.google.android.location.internal.GoogleLocationManagerService.START".equals(action))
+			return "com.google.android.gms.location.internal.GoogleLocationManagerServiceImpl";
+		return null;
+	}
+
 	static ATLLoadedApp loadFakePlayServices(String packageName) {
 		switch (packageName) {
 			case "com.google.android.gms":

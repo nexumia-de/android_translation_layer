@@ -234,3 +234,8 @@ Chooser compared with `phosh` ([app status](apps.md),
 ## 2026-11-07: komoot
 
 * **komoot**: komoot 2026.44.2 from Google Play (Aurora Store, Pixel 9a profile) starts and reaches sign-in headless. Missing APIs on its start path were filled in groups from the gap list, and `View.isShowingLayoutBounds()` returns `false` instead of `true`, which had covered Compose screens in red debug bounds. Bar colours come from the theme instead of a fixed red and grey ([app status](apps.md), [app audit](app-audit.md)).
+
+## 2026-11-07: DB Navigator location
+
+* **Fused location in gstub**: the fake GMS package answers `GoogleLocationManagerService.START` with a broker and a location service on ATL's `LocationManager` (location portal): `getLastLocation`, `updateLocationRequest`, location availability and `checkLocationSettings`. DB Navigator's Nearby lists the stops around a fake position at Berlin Hbf instead of waiting forever; without location it shows its normal hint. `WorkSource` is `Parcelable` now; the client's `LocationRequest` aborted on it ([app status](apps.md), [GMS compatibility](gms-compat.md)).
+* **Merged with the komoot work**: `Activity.addContentView` came with both branches; the one from `phosh` stays. komoot's row notes that it needs `GMS_STUB_APPS` for location.
