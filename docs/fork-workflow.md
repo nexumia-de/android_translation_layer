@@ -113,7 +113,7 @@ a commit is added, sent or merged.
 
 | Commit | Size | Status |
 |---|---|---|
-| `wolfssljni: ignore freed sessions in setNativeTimeout` (art_standalone; patch in nexumia-de/aports `art_standalone/`) | 5 lines | being sent by the owner (fork `Xilance/art_standalone`, `eee27f55`) |
+| `wolfssljni: ignore freed sessions in setNativeTimeout` (art_standalone; patch in nexumia-de/aports `art_standalone/`) | 5 lines | merged 2026-11-03 ([art_standalone!50](https://gitlab.com/android_translation_layer/art_standalone/-/merge_requests/50), by Mis012) |
 | `3c392697 main-executable: start launchers with an absolute /usr/bin/env` | 3 lines | kept |
 | `86bb2de7 main-executable: keep --sdk-int in the launcher` | 2 lines | kept |
 | `b40cd2a1 api-impl: Application: fall back to the literal android:label` | 15 lines | kept |
@@ -154,3 +154,10 @@ Commit ids are those on `phosh`; cherry-pick them from there.
 - Do the ATL maintainers accept AI-written merge requests? Not asked
   separately; the first merge request (art_standalone, 2026-10-28) says
   that it came from Claude Code. Record their answer here.
+  2026-11-03: Mis012 merged
+  [art_standalone!50](https://gitlab.com/android_translation_layer/art_standalone/-/merge_requests/50),
+  which said it was written with Claude Code. That is not a general
+  yes; keep each merge request small and disclosed.
+- Some rows in the candidate table may be outdated: upstream has added
+  some of the same APIs since (for example `RotateAnimation`). Check each
+  commit against `origin/master` before suggesting it.
