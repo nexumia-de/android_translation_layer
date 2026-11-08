@@ -378,3 +378,29 @@ for the visible and the covered run of Chooser, and the main thread's
 line in `threads-end.tsv` minus `threads-start.tsv`, before and after.
 A covered app should show wake-ups per minute in the low hundreds (GLib
 and ART housekeeping) instead of thousands.
+
+## 6. CheckJNI is always on
+
+**Cause.** `create_vm` passes `-Xcheck:jni` unconditionally
+(`src/main-executable/main.c:133`). CheckJNI wraps every JNI function in
+argument, reference and thread-state checks. ATL is built on JNI: every
+view, draw call, text measurement and event crosses it, often several
+times per frame, so the overhead lands on the main thread and on the
+start time. It also forces ART's slow path for some JNI transitions.
+
+**Android.** CheckJNI is off for release apps; it is enabled only for
+debuggable apps or with `debug.checkjni`.
+
+**Expected gain.** CPU only: a measurable part of the main-thread time
+and of the start time (CheckJNI roughly doubles the cost of a JNI
+call; how much of ATL's time is JNI calls is unknown). No memory.
+
+**Size.** S. Make it opt-in (`ATL_CHECK_JNI=1` or `-X -Xcheck:jni`),
+default off. Upstream-ready, but upstream may want it on for
+development builds; a meson option covers both.
+
+**Verify.** Chooser with and without, `start.tsv` and the main
+thread's CPU delta in `threads-*.tsv`; `-X -Xcheck:jni` cannot be
+removed from the command line today, so this needs a build with the
+default changed.
+
