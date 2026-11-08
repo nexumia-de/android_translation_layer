@@ -317,7 +317,7 @@ shared_library('translation_layer_webkit', [
                                            install_dir : get_option('libdir') / 'java/dex/android_translation_layer/natives',
                                            install_rpath: '$ORIGIN/:' + get_option('prefix') / get_option('libdir') / 'art',
                                            dependencies: [
-                                           	dependency('gtk4', version: '>=4.14'), dependency('jni'), dependency('webkitgtk-6.0'),
+                                           	dependency('gtk4', version: '>=4.14'), dependency('gio-unix-2.0'), dependency('jni'), dependency('webkitgtk-6.0'),
                                            	libart_dep, upcalls_header
                                            ],
                                            link_with: [ libtranslationlayer_so ])
