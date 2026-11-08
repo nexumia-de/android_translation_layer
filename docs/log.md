@@ -264,3 +264,7 @@ Chooser compared with `phosh` ([app status](apps.md),
 ## 2026-11-08: Baseline passes 1 and 2
 
 * **Baseline for issue #118, incomplete**: [performance.md](performance.md) "Results" gets the tables of passes 1 and 2 (Chooser and Gadgetbridge 3 runs each; HeliBoard, DB Navigator and the pair once), the result files are in `docs/performance/suite-p1` and `suite-p2`. The unattended series stopped at 16:28 during pass 3, so passes 3, 4 and 5 are open; suspected cause (unverified): the `claude` user's processes end with its last SSH connection (`Linger=no`). Findings: Chooser uses about 9.8 s CPU and 3600 wake-ups per minute while covered (its main thread), the other apps 3 to 33 ms; PSS after start 200 to 300 MB; two apps share about 106 MB.
+
+## 2026-11-08: Why the baseline series stopped
+
+* **Long runs as user units**: the series stopped at 16:28 because logind on the phone has `KillUserProcesses=yes` and killed the SSH login's session scope (with the `nohup setsid` jobs in it) when the laptop's connection timed out at 16:31 (journal). The owner enabled linger for `claude`, which keeps the user manager but not the session scope; long runs now start with `systemd-run --user` ([development environment](dev-environment.md#agent-on-a-laptop-over-ssh), [performance](performance.md#results)).
