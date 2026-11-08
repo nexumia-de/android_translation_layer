@@ -624,6 +624,77 @@ are:
 **Size.** None here; the per-app parts are the apps' own, as on
 Android.
 
+## 11. A GStreamer pipeline per MediaPlayer, built and run at start
+
+**Cause.** `MediaPlayer` is implemented on `GtkMediaFile`. `setDataSource`
+calls `gtk_media_file_new_for_filename` at once
+(`src/api-impl-jni/media/android_media_MediaPlayer.c:14-23`), and GTK's
+GStreamer backend builds a `GstPlay` with a `playbin` pipeline for the
+file right there, not at the first `start()`. As soon as the stream
+reports `prepared`, ATL plays it once muted "to ensure file is fully
+loaded" (`on_prepared`, lines 7-12, from the 2025-03-04 commit that
+moved MediaPlayer to GtkMediaStream), so every player decodes its whole
+file at start. `prepare()` then only flags the stream as prepared with a
+duration of 0 (`native_prepare`, lines 41-49). `MediaPlayer.create()`
+(`src/api-impl/android/media/MediaPlayer.java:48-60`) is the path apps
+take for sound effects: extract the raw resource, `setDataSource`,
+`prepare`. Chooser creates three players at start, one per sound.
+
+Each pipeline brings its threads and stays alive after the muted
+playback (GTK keeps the pipeline paused, GStreamer keeps a paused
+pipeline's streaming threads): in the Chooser snapshot
+`threads-start.tsv` lists 3 × `GstPlay`, 3 × `gstglcontext`,
+3 × `typefind:sink`, 3 × `typefindelement`, 3 × `aqueue:src` and 6 ×
+`multiqueue*:src`, 21 threads for three Ogg/Opus files. The
+`gstglcontext` threads show that GTK's video sink opens a GL context
+per pipeline although the files have no video; **inference:** the
+extra Mesa threads of Chooser come from those contexts, since Chooser
+has 46 Mesa threads (`android-:gdrv` 10, `android-:ir3q` 8,
+`androi:traceq` 12, `android:disk$` 10, `gldisplay-event` 6) where
+HeliBoard, with no media, has 17. Chooser has 92 threads in all,
+HeliBoard 35; the three pipelines with their GL contexts account for
+about 50 of the difference.
+
+**Android.** `MediaPlayer.create()` also prepares the player
+synchronously, but the decoder is opened in the media server and
+prerolls one buffer; it does not play the file through, and a
+prepared-but-idle player holds no rendering threads in the app.
+
+**Measured.** Libraries of the audio stack mapped only because of the
+pipelines (GStreamer core and plugins, orc, opus, vorbis, ogg,
+PulseAudio client): 5.8 MB PSS in Chooser against 1.4 MB in HeliBoard
+(those come in through WebKit), so about 4.4 MB; the 21 GStreamer
+threads and the roughly 29 extra Mesa threads about 150 KB of touched
+stack each, 7 to 8 MB; the three GL contexts' driver state is in
+`native-anon` and GPU memory and cannot be separated there (the P5
+`GDK_DEBUG` run lists the contexts). CPU while idle is small: the
+GStreamer threads used 160 ms in the first 30 s and nothing measurable
+afterwards. Estimated total 12 to 15 MB of Chooser's 185 MB, plus the
+start-time cost of decoding three files muted.
+
+**Expected gain.** That memory and the threads for every app that
+creates sound effects at start (a common pattern: games, timers,
+keyboards with key sounds), and a shorter start. Nothing for apps
+without media.
+
+**Size.** S. Create the `GtkMediaFile` on the first `start()` (or on the
+first call that needs the stream: `getDuration`, `seekTo`) and keep only
+the path until then; drop the muted play-through in `on_prepared`, or
+replace it with `gtk_media_stream_realize` if a display is what the
+file needs; after `ended`, set the stream back so GStreamer releases
+the pipeline (`gtk_media_stream_pause` keeps it; unrealizing or
+re-creating per playback drops the threads). Upstream-ready as one
+commit; `MediaPlayer.create()` still returns a usable player, since
+`prepare()` already does not wait for GStreamer.
+
+**Verify.** Chooser `-i 0`: the `GstPlay`, `gstglcontext`, `typefind`,
+`multiqueue` and `aqueue` threads must be absent from
+`threads-start.tsv` until a sound is played, the Mesa thread count
+should fall towards HeliBoard's, and `stacks` and the audio libraries
+in `smaps-start.tsv` should drop by the amounts above; `start.tsv`
+gives the start-time difference. A sound must still play on the
+phone (owner test, Chooser's choice sound).
+
 ## Can ATL apps share memory, and what it means for the Flatpak plan
 
 Android shares between apps by **forking**: the zygote has the runtime,
@@ -690,8 +761,9 @@ For the Flatpak plan this means:
    item, after the floor is lower.
 
 The order to fix, by gain per effort: 1 (S, biggest), 6 (S, CPU), 3
-(S, choice of stack), 2 (S-M), 5 (M, CPU and battery), 4 (M), 7 (M),
-9 (S-M, first start), 8 (nothing unless the thread names say so).
+(S, choice of stack), 2 (S-M), 11 (S, apps with sounds), 5 (M, CPU and
+battery), 4 (M), 7 (M), 9 (S-M, first start), 8 (nothing unless the
+thread names say so).
 Each fix is measured with the baseline scripts before the next one
 starts, as [the order of work](#order-of-work) says.
 
