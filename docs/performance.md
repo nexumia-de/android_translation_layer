@@ -227,4 +227,54 @@ they should be absent until DB Navigator opens a ticket. `start.tsv`
 gives the start-time difference. Also check with `LD_DEBUG`-free
 means that the libraries are not pulled in by another path:
 `grep -c webkit /proc/<pid>/maps` must be 0 for Chooser.
+## 3. Two GPU stacks are loaded: GL with LLVM, and Vulkan
 
+**Cause.** Two things add up on the phone.
+
+- Alpine builds Mesa's GL drivers as one library that contains
+  `llvmpipe` next to `freedreno`, and that library links LLVM 23
+  (`main/mesa/APKBUILD`: `_gallium_drivers` with `llvmpipe` at lines
+  85 and 95, `-Dgallium-drivers` at 246).[^alpine-mesa] Any process that
+  initialises EGL on this phone maps `libLLVM-23.so` and relocates it,
+  even though the Adreno driver never calls into LLVM. ATL initialises
+  EGL: `libtranslationlayer.so` depends on `gl` and `egl`
+  (`meson.build:297`), `libandroid.so` on `vulkan` (`meson.build:173`),
+  and SurfaceView and GL apps get a `GdkGLContext`
+  (`src/libandroid/egl.c:223`, `500`).
+- GTK 4.20 (libadwaita 1.10 on the phone) tries the Vulkan renderer
+  before the GL renderer on Wayland (`renderer_possibilities` in
+  `gsk/gskrenderer.c`),[^gtk-renderer] so the app's window is drawn by
+  the Vulkan driver (`libvulkan_freedreno.so`, Turnip). The GL stack is
+  initialised anyway: `gdk_display_init_dmabuf` sets up both Vulkan and
+  EGL to learn the dmabuf formats (`gdk/gdkdisplay.c:2027-2043`),[^gtk-dmabuf]
+  and the renderer selection itself calls `gdk_display_prepare_gl`
+  when it checks the GL fallback.
+
+So one process carries the GL driver with LLVM and the Vulkan driver,
+each with its own device state, shader compilers and caches: the 23 MB
+measured as `lib-mesa`, plus GPU memory for two devices (item 7).
+
+**Android.** One driver stack per process, chosen by the app: HWUI uses
+either GL or Vulkan, never both, and the vendor GL driver has no
+software rasteriser compiled in.
+
+**Expected gain.** Dropping one stack: the Vulkan driver is the smaller
+part (a few MB private), LLVM the bigger (its relocated data alone is
+several MB). Estimated 8 to 15 MB per process. The LLVM part is a
+system packaging matter (a Mesa build without `llvmpipe` in the
+gallium library, or a split as Fedora and Debian do), which only the
+owner or the distribution can change; ATL can only decide which stack
+it needs.
+
+**Size.** S for the choice: set `GDK_DISABLE=vulkan` before `gtk_init`
+when ATL will need GL anyway (every app may create a SurfaceView), or
+`GDK_DISABLE=gl` for apps that are known not to use GL. GTK's own
+`GSK_RENDERER=gl` is not enough, because `gdk_display_init_dmabuf`
+still initialises Vulkan. A Mesa without `llvmpipe` is a "Needs owner"
+item in [apps.md](apps.md) once the measurement confirms LLVM's share.
+
+**Verify.** Three runs of Chooser with `-i 0`: default,
+`GDK_DISABLE=vulkan`, `GDK_DISABLE=gl`; compare `lib-mesa` PSS, the
+`libLLVM` and `libvulkan_freedreno` rows of the biggest mappings, and
+`gpu_total_kb` in `idle.tsv`. `GDK_DEBUG=opengl,vulkan` in `app.log`
+shows which stack GTK initialised and why.
