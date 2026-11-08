@@ -489,3 +489,44 @@ Listed because the count looked alarming, not because it pays.
 (`comm`); group them by name (`Thread-N`, `DefaultDispatcher-worker`,
 `pool-N-thread-M`, ART names, `gmain`, Mesa names) to see whose they
 are, and compare Chooser with HeliBoard.
+## 9. The boot image is built per user, in full, at first start
+
+**Cause.** Without a system image next to `libart.so`
+(`<libdir>/art/../java/dex/art/oat/<isa>/boot.art`, the default image
+location this fork derives, `art/runtime/parsed_options.cc:689-712`),
+the runtime generates one into `~/.cache/art/<isa>/`
+(`art/libartbase/base/file_utils.cc:245-251`,
+`art/runtime/gc/space/image_space.cc:2075-2082`) at the first start of
+any ATL app for that user. `GenerateImage` compiles all boot jars
+(`art/runtime/gc/space/image_space.cc:146-149`) with dex2oat's default
+filter `speed` and no profile, so every method of libcore, Bouncy
+Castle, OkHttp, Apache HTTP, JUnit and Hamcrest is compiled and every
+class is in the image. The result is a large `boot.oat` and `boot.art`
+(the 32 MB of item 1 is mostly the `.art` part), minutes of dex2oat at
+the first start (the owner's `user` and `claude` each pay it), and no
+sharing between users. The Flatpak engine already does it right: the
+image is built once at engine build time with a fixed base
+(`flatpak/de.nexumia.atl.BaseApp.yml:192-217`), together with
+`api-impl.odex` (`219-224`).
+
+**Android.** The boot image is built with the system image from a
+boot-image profile (`speed-profile`): only hot methods compiled, only
+needed classes in the image, which keeps it at a fraction of the
+size, and it ships read-only in `/system`.
+
+**Expected gain.** Start time of the first run per user (minutes) and
+disk; with item 1 in place, a smaller image also means fewer
+file-backed pages to fault in. Memory gain beyond item 1 is small.
+
+**Size.** S to M. For the aports package: generate the image at
+install time into the system location (`/usr/lib/java/dex/art/oat/arm64/`,
+an apk trigger or a post-install script, as the Flatpak manifest does),
+so all users share it and no user waits. Optionally a profile or
+`--image-classes` for the boot jars (M, needs a representative set of
+apps; low priority). Dropping JUnit and Hamcrest from the boot class
+path is upstream's call.
+
+**Verify.** `ls -la ~/.cache/art/arm64/` on the phone for sizes;
+`start.tsv` of the very first run of a fresh user against a later one;
+after the change, `smaps-start.tsv` should list the image under the
+system path and `art-image` should be shared in the pair run.
