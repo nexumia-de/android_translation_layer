@@ -403,4 +403,53 @@ development builds; a meson option covers both.
 thread's CPU delta in `threads-*.tsv`; `-X -Xcheck:jni` cannot be
 removed from the command line today, so this needs a build with the
 default changed.
+## 7. Bitmaps exist twice, and each draw makes a GPU renderer
 
+**Cause.** An Android `Bitmap` that is drawn into (a `Canvas` on a
+bitmap) is rendered in `native_create_texture`
+(`src/api-impl-jni/graphics/android_graphics_Bitmap.c:23-66`): on the
+main thread ATL opens a **second** `GdkDisplay` (`gdk_display_open(NULL)`,
+line 38; a second Wayland connection with its own Vulkan device, EGL
+setup and GTK caches), then for **every call** creates a new
+`GskRenderer`, realises it, renders, and unrealises it (lines 46-57).
+GTK's GPU renderer renders into a GPU image and downloads it into a
+`GdkMemoryTexture` (`gsk_gpu_renderer_render_texture`,
+`gsk/gpu/gskgpurenderer.c`),[^gtk-gpu-cache] so the bitmap's pixels
+live in process memory (`native-anon`); when a view draws that texture,
+the window's renderer uploads it again and keeps the GPU copy in its
+cache until the texture dies or 15 s pass unused (`CACHE_TIMEOUT`,
+`gsk/gpu/gskgpudevice.c:12`). Decoded images (`BitmapFactory`,
+`src/api-impl-jni/graphics/android_graphics_BitmapFactory.c:61-63`,
+drawables from files, `android_graphics_drawable_Drawable.c:11`) are
+memory textures too. For a 720×1440 screen one full-size bitmap is
+4 MB in RAM and 4 MB on the GPU, and the renderer created per draw
+allocates its command buffers, staging buffers and descriptor pools
+each time; the driver's buffer cache keeps what was freed for reuse.
+Together a plausible source of a large part of the 100 MB GPU memory
+and of a part of `native-anon`, and churn on the main thread. Untested
+assumption: Chooser (Compose) draws through bitmaps at all; the
+counts below settle it.
+
+**Android.** HWUI keeps bitmaps once (in the Java heap or ashmem) and
+uploads them into a texture cache with a fixed budget that is trimmed
+on `onTrimMemory`; the renderer and its thread live for the window's
+lifetime.
+
+**Expected gain.** GPU memory and process memory in the tens of MB for
+apps that draw into bitmaps, less for Compose apps; less main-thread
+time per bitmap draw. Uncertain until counted.
+
+**Size.** M. Keep one off-screen renderer per display (or realise the
+window's renderer once for off-screen work) instead of one per call;
+drop the second `GdkDisplay` once GTK issue 7848 (the workaround at
+lines 35-37) no longer needs it; consider `gdk_dmabuf_texture` or
+`GdkGLTexture` for bitmaps that are only drawn, so they exist once on
+the GPU. Partly upstream-ready, partly waits on GTK.
+
+**Verify.** Count calls: `GSK_DEBUG=renderer` in `app.log` logs every
+renderer realised ("Using renderer"), and `GDK_DEBUG=dmabuf,opengl`
+the second display's initialisation. `gpu_total_kb` in `idle.tsv` over
+time, and the `graphics` category of `smaps-start.tsv` (CPU mappings
+of GPU buffers), before and after. A quick upper bound of what bitmaps
+cost: `grep -c 'Using renderer' app.log` against the number of
+bitmaps the app creates (ATL could log it under `ATL_DEBUG`).
