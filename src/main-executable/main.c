@@ -2340,6 +2340,12 @@ int main(int argc, char **argv)
 	// for correct functionality
 	setenv("LC_ALL", "C.UTF-8", 1);
 
+	/* GTK initialises both Vulkan and EGL (for the dmabuf formats and the
+	 * renderer fallback) and then draws with Vulkan, so every app carries two
+	 * GPU driver stacks. ATL needs GL anyway (SurfaceView, GLSurfaceView,
+	 * TextureView), so keep GTK on GL only; an explicit GDK_DISABLE wins */
+	setenv("GDK_DISABLE", "vulkan", 0);
+
 	libc_bio_set_apply_path_overrides_func(apply_path_overrides);
 
 	/* zeroed: only some options are set below, the others stay unset unless given */

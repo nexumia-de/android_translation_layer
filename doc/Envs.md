@@ -79,3 +79,7 @@ The following environment variables are recognized by the main executable:
 ---
 
 `ATL_RELOCATE_BOOT_IMAGE` - if set, ART relocates the boot image to a random address in every process (ART's default) instead of mapping it at the address it was compiled for. Relocation makes almost every page of the image a private copy, so it costs about 30 MB per app.
+
+---
+
+`GDK_DISABLE` - GTK's own variable; ATL sets it to `vulkan` unless it is already set, so GTK uses only the GL stack that ATL needs anyway instead of loading both Vulkan and GL. Set it to an empty value to get GTK's default renderer back.
