@@ -501,6 +501,10 @@ public class Drawable {
 
 	public void setAutoMirrored(boolean mirrored) {}
 
+	public boolean isAutoMirrored() {
+		return false;
+	}
+
 	public void jumpToCurrentState() {}
 
 	public boolean setLayoutDirection(int layoutDirection) {
@@ -548,10 +552,6 @@ public class Drawable {
 		if (op1 == android.graphics.PixelFormat.TRANSPARENT || op2 == android.graphics.PixelFormat.TRANSPARENT)
 			return android.graphics.PixelFormat.TRANSPARENT;
 		return android.graphics.PixelFormat.OPAQUE;
-	}
-
-	public boolean isAutoMirrored() {
-		return false;
 	}
 
 	public boolean isFilterBitmap() {

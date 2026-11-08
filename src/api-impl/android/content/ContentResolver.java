@@ -1,6 +1,7 @@
 package android.content;
 
 import android.accounts.Account;
+import android.atl.ATLLoadedApp;
 import android.content.res.AssetFileDescriptor;
 import android.database.ContentObserver;
 import android.database.Cursor;
@@ -8,7 +9,9 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -30,6 +33,9 @@ public class ContentResolver {
 	public final void unregisterContentObserver(ContentObserver observer) {
 	}
 	public void notifyChange(Uri uri, ContentObserver observer) {
+	}
+	public void notifyChange(Uri uri, ContentObserver observer, boolean syncToNetwork) {
+		notifyChange(uri, observer);
 	}
 	public int getUserId() {
 		return 0;
@@ -156,6 +162,24 @@ public class ContentResolver {
 			return 0;
 	}
 
+	public final Bundle call(Uri uri, String method, String arg, Bundle extras) {
+		return call(uri.getAuthority(), method, arg, extras);
+	}
+
+	public final Bundle call(String authority, String method, String arg, Bundle extras) {
+		ContentProvider provider = ContentProvider.atl_get_content_provider(authority);
+		if (provider == null)
+			throw new IllegalArgumentException("Unknown authority " + authority);
+		return provider.call(authority, method, arg, extras);
+	}
+
+	public ContentProviderResult[] applyBatch(String authority, ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
+		ContentProvider provider = ContentProvider.atl_get_content_provider(authority);
+		if (provider == null)
+			throw new IllegalArgumentException("Unknown authority " + authority);
+		return provider.applyBatch(authority, operations);
+	}
+
 	public List getPersistedUriPermissions() {
 		return Collections.emptyList();
 	}
@@ -177,13 +201,64 @@ public class ContentResolver {
 		return acquireContentProviderClient(name);
 	}
 
-	public static void requestSync(Account account, String authority, Bundle extras) {
+	public static void requestSync(final Account account, final String authority, final Bundle extras) {
+		// bind the app's sync adapter service and run the sync on a separate thread, like the SyncManager would
+		ATLLoadedApp app = ATLLoadedApp.getPrimaryApplication();
+		Intent intent = new Intent("android.content.SyncAdapter");
+		intent.setPackage(app.pkg.packageName);
+		ComponentName component = app.startOrBindService(intent, new ServiceConnection() {
+			@Override
+			public void onServiceConnected(ComponentName name, IBinder service) {
+				if (!(service instanceof AbstractThreadedSyncAdapter.SyncAdapterBinder)) {
+					Log.w("ContentResolver", "requestSync: sync adapter service returned " + service);
+					return;
+				}
+				final AbstractThreadedSyncAdapter adapter = ((AbstractThreadedSyncAdapter.SyncAdapterBinder)service).getSyncAdapter();
+				new Thread(new Runnable() {
+					@Override
+					public void run() {
+						ContentProvider provider = ContentProvider.atl_get_content_provider(authority);
+						SyncResult syncResult = new SyncResult();
+						try {
+							adapter.onPerformSync(account, extras != null ? extras : new Bundle(), authority,
+							                      provider != null ? new ContentProviderClient(provider) : null, syncResult);
+							Log.i("ContentResolver", "requestSync: sync for " + authority + " finished: " + syncResult);
+						} catch (Throwable t) {
+							Log.e("ContentResolver", "requestSync: sync for " + authority + " failed", t);
+						}
+					}
+				}, "SyncAdapterThread").start();
+			}
+		});
+		if (component == null)
+			Log.w("ContentResolver", "requestSync: no sync adapter service found in " + app.pkg.packageName);
 	}
 
 	public static void cancelSync(Account account, String authority) {
 	}
 
 	public static void setMasterSyncAutomatically(boolean sync) {
+	}
+
+	public static boolean getMasterSyncAutomatically() {
+		return true;
+	}
+
+	public static int getIsSyncable(Account account, String authority) {
+		return 1;
+	}
+
+	public static boolean getSyncAutomatically(Account account, String authority) {
+		return false;
+	}
+
+	public static void setSyncAutomatically(Account account, String authority, boolean sync) {
+	}
+
+	public static void addPeriodicSync(Account account, String authority, Bundle extras, long pollFrequency) {
+	}
+
+	public static void setIsSyncable(Account account, String authority, int syncable) {
 	}
 
 	public static boolean isSyncActive(Account account, String authority) {
@@ -195,41 +270,7 @@ public class ContentResolver {
 		return provider != null ? provider.bulkInsert(uri, values) : 0;
 	}
 
-	/* Android throws when no provider has the authority, e.g. the contacts
-	 * provider, which ATL does not have */
-	public ContentProviderResult[] applyBatch(String authority, ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
-		ContentProvider provider = ContentProvider.atl_get_content_provider(authority);
-		if (provider == null)
-			throw new IllegalArgumentException("Unknown authority " + authority);
-		return provider.applyBatch(authority, operations);
-	}
-
-	public final Bundle call(Uri uri, String method, String arg, Bundle extras) {
-		return call(uri.getAuthority(), method, arg, extras);
-	}
-
-	public final Bundle call(String authority, String method, String arg, Bundle extras) {
-		ContentProvider provider = ContentProvider.atl_get_content_provider(authority);
-		if (provider == null)
-			throw new IllegalArgumentException("Unknown authority " + authority);
-		return provider.call(authority, method, arg, extras);
-	}
-
-	public static void addPeriodicSync(Account account, String authority, Bundle extras, long pollFrequency) {}
-
 	public static void removePeriodicSync(Account account, String authority, Bundle extras) {}
-
-	public static boolean getSyncAutomatically(Account account, String authority) {
-		return false;
-	}
-
-	public static void setSyncAutomatically(Account account, String authority, boolean sync) {}
-
-	public static int getIsSyncable(Account account, String authority) {
-		return 0;
-	}
-
-	public static void setIsSyncable(Account account, String authority, int syncable) {}
 
 	private static native void native_query_file_info(String path, String[] attributes, Object[] result);
 }

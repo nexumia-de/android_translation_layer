@@ -58,8 +58,29 @@ public abstract class ContentProvider {
 
 	public boolean onCreate() { return false; }
 
+	public Bundle call(String method, String arg, Bundle extras) {
+		return null;
+	}
+
+	public Bundle call(String authority, String method, String arg, Bundle extras) {
+		return call(method, arg, extras);
+	}
+
 	public Context getContext() {
 		return ATLLoadedApp.getPrimaryApplication().getApplication();
+	}
+
+	public ContentProviderResult[] applyBatch(String authority, ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
+		return applyBatch(operations);
+	}
+
+	public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
+		final int numOperations = operations.size();
+		final ContentProviderResult[] results = new ContentProviderResult[numOperations];
+		for (int i = 0; i < numOperations; i++) {
+			results[i] = operations.get(i).apply(this, results, i);
+		}
+		return results;
 	}
 
 	public abstract Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder);
@@ -145,26 +166,6 @@ public abstract class ContentProvider {
 			insert(uri, v);
 		}
 		return values.length;
-	}
-
-	public ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
-		ContentProviderResult[] results = new ContentProviderResult[operations.size()];
-		for (int i = 0; i < operations.size(); i++) {
-			results[i] = operations.get(i).apply(this, results, i);
-		}
-		return results;
-	}
-
-	public ContentProviderResult[] applyBatch(String authority, ArrayList<ContentProviderOperation> operations) throws OperationApplicationException {
-		return applyBatch(operations);
-	}
-
-	public Bundle call(String method, String arg, Bundle extras) {
-		return null;
-	}
-
-	public Bundle call(String authority, String method, String arg, Bundle extras) {
-		return call(method, arg, extras);
 	}
 
 	public boolean isTemporary() {
