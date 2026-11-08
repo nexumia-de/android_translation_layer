@@ -269,3 +269,7 @@ Chooser compared with `phosh` ([app status](apps.md),
 ## 2026-11-08: Why the baseline series stopped
 
 * **Long runs as user units**: the series stopped at 16:28 because logind on the phone has `KillUserProcesses=yes` and killed the SSH login's session scope (with the `nohup setsid` jobs in it) when the laptop's connection timed out at 16:31 (journal). The owner enabled linger for `claude`, which keeps the user manager but not the session scope; long runs now start with `systemd-run --user` ([development environment](dev-environment.md#agent-on-a-laptop-over-ssh), [performance](performance.md#results)).
+
+## 2026-11-08: Boot image without relocation, CheckJNI opt-in
+
+* **Runtime flags (#118)**: ATL starts ART with `-Xnorelocate` (opt-out `ATL_RELOCATE_BOOT_IMAGE=1`) and without CheckJNI (opt-in `ATL_CHECK_JNI=1`). Chooser's covered idle CPU fell from 8.3 to 6.6 s per minute and the first frame comes 4 to 9 % earlier; memory is unchanged within noise (boot image 1.9 MB less private dirty; the analysis' estimate of 25 to 30 MB was wrong, corrected in [performance](performance.md#1-the-boot-image-is-relocated-privately-in-every-process)). Rendering with GL only (`GDK_DISABLE=vulkan`) was measured and rejected: more GPU memory, later first frame, a crash in Mesa. `tools/app-smoke.sh` starts every app of [apps.md](apps.md) once ([performance](performance.md#fixes)).
