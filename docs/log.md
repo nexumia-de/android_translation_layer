@@ -246,3 +246,4 @@ Chooser compared with `phosh` ([app status](apps.md),
 * **Back navigation accepted**: default `ATL_NAVIGATION=both` ([decision](decisions/navigation.md)); per app or global later is still open.
 * **Background location and boot autostart**: both per app, only for apps the owner allows; the boot autostart entry is not built yet ([hardening roadmap](hardening-roadmap.md)).
 * **Phone**: speech-dispatcher, espeak-ng and flatpak-builder installed; the owner allows tests on the phone's own hardware within what `claude` reaches ([development environment](dev-environment.md)).
+* **Base cost plan**: the owner dropped Gadgetbridge for its base cost, memory most likely; [performance.md](performance.md) sets the goal (lower what every ATL app costs, memory first, ideally better than Android), the measures and the order: measure, analyse with Fable, fix one cause at a time.
