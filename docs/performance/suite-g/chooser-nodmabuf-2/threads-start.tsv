@@ -1,0 +1,87 @@
+tid	name	cpu_ms	vol_cs	nonvol_cs
+977931	main	53490	34475	2101
+977932	pool-spawner	0	24	0
+977933	gmain	0	1	0
+977934	gdbus	40	108	19
+977994	[pango] fontcon	30	29	3
+977995	aqueue:src	10	32	6
+977996	Jit thread pool	750	147	142
+977997	Runtime worker 	0	4	2
+977998	Runtime worker 	0	1	0
+977999	Runtime worker 	0	4	0
+978000	Runtime worker 	0	1	0
+978001	Signal Catcher	0	1	0
+978002	ReferenceQueueD	0	11	6
+978003	FinalizerDaemon	160	12	27
+978004	FinalizerWatchd	0	19	0
+978005	HeapTaskDaemon	430	34	33
+978007	android:disk$0	0	21	1
+978009	androi:traceq0	0	1	0
+978010	android:disk$1	0	8	0
+978011	android:disk$2	0	6	0
+978012	android:disk$3	0	14	0
+978013	android:disk$0	0	2	0
+978014	android-:ir3q0	0	75	0
+978015	android-:ir3q1	10	84	2
+978016	androi:traceq0	0	1	0
+978017	android-:gdrv0	0	1	1
+978018	androi:traceq0	0	2	0
+978019	android-:gdrv0	0	1	0
+978025	DefaultDispatch	0	33	0
+978026	DefaultDispatch	0	23	1
+978027	DefaultDispatch	0	10	0
+978028	DefaultDispatch	0	12	0
+978029	DefaultDispatch	0	13	0
+978030	GstPlay	0	80	2
+978031	androi:traceq0	0	1	0
+978032	android-:gdrv0	0	1	0
+978033	gldisplay-event	0	1	0
+978034	gldisplay-event	0	1	0
+978035	gstglcontext	0	65	1
+978036	androi:traceq0	0	1	1
+978037	android-:gdrv0	0	1	0
+978038	GstPlay	0	63	2
+978039	androi:traceq0	0	1	0
+978040	android-:gdrv0	0	1	0
+978041	typefindelement	0	19	2
+978042	gldisplay-event	0	1	0
+978043	gldisplay-event	0	1	0
+978044	typefind:sink	0	4	0
+978045	gstglcontext	10	75	0
+978046	oggdemux0:sink	0	9	0
+978047	multiqueue2:src	0	16	0
+978048	multiqueue0:src	100	195	13
+978049	androi:traceq0	0	1	0
+978050	android-:gdrv0	0	1	1
+978051	typefindelement	0	8	1
+978052	GstPlay	0	58	0
+978054	typefind:sink	0	24	0
+978055	androi:traceq0	0	1	0
+978056	android-:gdrv0	0	1	0
+978057	gldisplay-event	0	2	0
+978058	oggdemux1:sink	0	11	0
+978059	gldisplay-event	0	1	0
+978060	gstglcontext	0	40	2
+978061	multiqueue4:src	0	11	0
+978062	multiqueue1:src	60	138	16
+978065	android-:ir3q2	0	25	2
+978066	androi:traceq0	0	1	0
+978067	android-:gdrv0	0	1	0
+978071	typefindelement	0	7	0
+978072	typefind:sink	0	3	0
+978073	oggdemux2:sink	0	43	0
+978074	multiqueue5:src	0	91	2
+978075	multiqueue3:src	40	48	1
+978079	threaded-ml	0	1	0
+978083	android:disk$0	0	16	0
+978087	androi:traceq0	0	1	0
+978088	android:disk$1	0	20	2
+978090	android:disk$2	0	15	0
+978091	android:disk$3	0	13	4
+978093	aqueue:src	0	8	0
+978094	aqueue:src	0	10	0
+978097	android:disk$0	0	1	0
+978098	android-:ir3q0	0	34	1
+978099	androi:traceq0	0	1	0
+978101	android-:gdrv0	0	1	0
+978149	android-:ir3q3	0	6	2

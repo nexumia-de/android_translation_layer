@@ -1,0 +1,148 @@
+tid	name	cpu_ms	vol_cs	nonvol_cs
+964740	main	5110	5760	421
+964741	pool-spawner	0	4	0
+964742	gmain	0	7	0
+964743	gdbus	60	686	44
+964805	Jit thread pool	1410	1334	227
+964806	Runtime worker 	0	2	0
+964807	Runtime worker 	0	2	0
+964808	Runtime worker 	0	2	1
+964809	Runtime worker 	0	2	0
+964810	Signal Catcher	0	2	0
+964811	ReferenceQueueD	0	46	1
+964812	FinalizerDaemon	0	49	6
+964813	FinalizerWatchd	0	6	1
+964814	HeapTaskDaemon	940	1063	140
+964830	Firebase Backgr	30	194	12
+964831	Firebase Blocki	140	1455	14
+964832	Firebase Backgr	20	144	2
+964833	Firebase Backgr	50	695	14
+964834	Firebase Blocki	70	478	7
+964835	GoogleApiHandle	30	388	10
+964836	Firebase-Messag	0	58	0
+964838	Firebase-Messag	0	25	0
+964841	Thread-2	0	10	2
+964842	TAG	140	1131	0
+964843	PackageInstalle	0	2	0
+964844	Firebase Backgr	40	402	5
+964845	Firebase Blocki	70	334	1
+964846	pool-9-thread-1	310	221	17
+964847	Firebase Blocki	0	46	1
+964848	DefaultDispatch	200	690	77
+964849	DefaultDispatch	230	474	65
+964850	DefaultDispatch	10	53	35
+964855	MessengerIpcCli	0	25	0
+964865	pool-12-thread-	90	268	26
+964871	WM.task-1	340	403	66
+964872	pool-15-thread-	0	1	0
+964874	pool-16-thread-	0	1	0
+964875	WM.task-2	60	136	25
+964876	WM.task-3	240	176	28
+964879	DefaultDispatch	80	407	90
+964880	pool-18-thread-	0	26	2
+964881	WM.task-4	270	462	20
+964886	pool-21-thread-	0	15	0
+964887	BlueZ signals	0	4	0
+964892	process reaper	0	6	0
+964897	android:disk$0	0	15	0
+964899	androi:traceq0	0	1	0
+964900	android:disk$1	0	4	0
+964901	android:disk$2	0	17	0
+964902	android:disk$3	0	9	0
+964908	arch_disk_io_0	10	15	0
+964913	arch_disk_io_1	10	34	4
+964914	arch_disk_io_2	0	2	1
+964917	async-io	0	939	7
+964918	gly-global-exec	30	509	43
+964919	main	80	425	63
+964936	DefaultDispatch	10	49	10
+964937	DefaultDispatch	0	89	10
+964938	DefaultDispatch	310	278	165
+964939	DefaultDispatch	170	289	10
+964940	CYFMotionListen	0	1	0
+964941	CYFOrientationL	0	3	0
+964942	CYFTouchManager	0	1	2
+964943	androidx.work-1	0	2	0
+964945	DefaultDispatch	0	26	11
+964946	DefaultDispatch	40	232	36
+964947	DefaultDispatch	0	21	19
+964949	Firebase-Messag	0	2	0
+964950	Okio Watchdog	0	49	1
+964952	main	20	125	3
+964953	OkHttp TaskRunn	0	20	1
+964954	android:disk$0	0	5	2
+964955	android-:ir3q0	0	12	0
+964956	androi:traceq0	0	1	0
+964957	android-:gdrv0	0	1	0
+964958	PressureMonitor	0	9	5
+964959	ebsiteDataStore	0	2	0
+964961	pool-13-thread-	10	2	1
+964962	OkHttp Dispatch	10	7	0
+964971	androi:traceq0	0	1	0
+964972	android-:gdrv0	0	1	0
+964974	ReceiveQueue	0	20	5
+964978	Okio Watchdog	0	15	1
+964997	android:disk$0	0	6	0
+964999	androi:traceq0	0	1	0
+965000	android:disk$1	0	7	1
+965001	android:disk$2	0	7	0
+965002	android:disk$3	0	11	0
+965003	OkHttp TaskRunn	0	7	3
+965008	OkHttp Connecti	0	13	2
+965009	OkHttp Connecti	0	22	4
+965011	android:disk$0	0	1	0
+965012	android-:ir3q0	0	15	2
+965013	androi:traceq0	0	1	0
+965014	android-:gdrv0	0	1	0
+965015	android-:ir3q1	0	3	0
+965016	androi:traceq0	0	1	0
+965017	android-:gdrv0	0	1	0
+965024	pool-14-thread-	0	1	0
+965025	ReceiveQueue	0	113	22
+965034	DefaultDispatch	10	80	15
+965035	DefaultDispatch	0	10	2
+965036	DefaultDispatch	0	7	0
+965037	DefaultDispatch	0	11	0
+965038	DefaultDispatch	0	16	5
+965039	DefaultDispatch	0	11	1
+965040	DefaultDispatch	0	11	3
+965041	DefaultDispatch	0	22	3
+965042	DefaultDispatch	0	9	0
+965043	DefaultDispatch	0	13	0
+965044	DefaultDispatch	0	7	0
+965046	DefaultDispatch	0	11	0
+965047	DefaultDispatch	0	8	1
+965049	DefaultDispatch	0	6	3
+965050	DefaultDispatch	0	7	0
+965051	DefaultDispatch	0	9	1
+965052	DefaultDispatch	0	7	1
+965053	DefaultDispatch	0	7	1
+965054	DefaultDispatch	0	9	2
+965055	DefaultDispatch	0	4	0
+965056	DefaultDispatch	0	14	3
+965058	DefaultDispatch	0	3	0
+965059	DefaultDispatch	0	13	0
+965060	DefaultDispatch	0	16	1
+965061	DefaultDispatch	0	9	3
+965062	DefaultDispatch	0	8	3
+965063	DefaultDispatch	0	10	5
+965064	DefaultDispatch	0	19	1
+965065	DefaultDispatch	0	18	0
+965066	DefaultDispatch	0	16	0
+965067	DefaultDispatch	0	6	0
+965069	DefaultDispatch	30	298	31
+965070	DefaultDispatch	0	14	1
+965071	DefaultDispatch	140	157	26
+965072	DefaultDispatch	0	2	0
+965074	DefaultDispatch	0	19	1
+965075	DefaultDispatch	20	143	15
+965076	DefaultDispatch	0	24	5
+965077	DefaultDispatch	50	200	35
+965078	DefaultDispatch	0	2	0
+965079	DefaultDispatch	10	100	15
+965107	futures-timer	0	3	0
+965112	ReceiveQueue	0	81	8
+965417	pool-2	0	18	1
+965425	Debouncer	0	2	0
+965427	arch_disk_io_3	0	17	1
+965437	[pango] fontcon	0	8	0

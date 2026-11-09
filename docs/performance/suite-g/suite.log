@@ -1,0 +1,16 @@
+20:43:09 G start
+/home/claude/work/perf-runs/suite-g/floor
+/home/claude/work/perf-runs/suite-g/webkit
+/home/claude/work/perf-runs/suite-g/chooser
+/home/claude/work/perf-runs/suite-g/gadgetbridge
+/home/claude/work/perf-runs/suite-g/dbnavigator
+20:46:04 G done
+20:49:29 G2 start
+/home/claude/work/perf-runs/suite-g/gadgetbridge-default-1
+/home/claude/work/perf-runs/suite-g/chooser-default-1
+/home/claude/work/perf-runs/suite-g/gadgetbridge-nodmabuf-1
+/home/claude/work/perf-runs/suite-g/chooser-nodmabuf-1
+/home/claude/work/perf-runs/suite-g/gadgetbridge-default-2
+/home/claude/work/perf-runs/suite-g/chooser-default-2
+/home/claude/work/perf-runs/suite-g/gadgetbridge-nodmabuf-2
+21:07:15 G2 stopped by hand: chooser-nodmabuf-2 hung (cage thread gdrv0 in dma_fence_default_wait, state D), its smaps are 9 min late, not comparable

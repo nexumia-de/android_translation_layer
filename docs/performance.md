@@ -688,6 +688,110 @@ per DRM client from fdinfo (corrected as in A).
   the app has run, so only a per-app list works. Not implemented.
 
 
+### G: who creates each GPU client, and why app code is not used (follow-up of A, B and F)
+
+A left one 5.5 to 7 MB client and F two 12 MB GL contexts without an
+owner. `tools/perf-drm-open.c` is an `LD_PRELOAD` shim that logs the
+call stack of every `open` of a DRM render node (the phone has no gdb,
+strace or perf); `scripts/run-g.sh` ran the floor, the WebKit floor,
+Chooser, Gadgetbridge and DB Navigator once with it on `phosh`
+`069812e0` (data `performance/suite-g/<name>/opens`, read with
+`scripts/opens-summary.py`; clients and memory from
+`drm-fds-start.txt`, 30 s after start).
+
+| GPU client (MB total) | Floor | Chooser | Gadgetbridge | DB Navigator | Created by |
+|---|---|---|---|---|---|
+| Vulkan device of the window | 22.4 | 22.6 | 24.7 | 25.0 | `gtk_widget_realize` of the window |
+| GL context, default display | - | 12.2 | - | - | `gdk_display_create_gl_context` from `gst_play_new`, from `gtk_media_file_new_for_filename` in `SoundPool.nativeLoad` |
+| GL context, default display | - | - | - | 12.1 | `gdk_display_prepare_gl` from `libwebkitgtk` (the WebView) |
+| Vulkan device of a second `GdkDisplay` | - | 5.5 | 7.0 | 7.0 | `Bitmap.native_create_texture`: `gdk_display_open` and `gsk_renderer_realize_for_display` (item 7) |
+| GL context on that second display | - | 12.1 | 12.1 | 12.1 | `gdk_display_prepare_gl` from `gsk_renderer_render_texture` in `native_create_texture` |
+| **Sum** | 22.4 | 52.4 | 43.8 | 56.2 | |
+
+- **Every app pays 17.6 to 19.1 MB of GPU memory for the bitmap
+  path**, of which 12.1 MB is a GL context that never draws: all GL
+  clients show 0 ns of GPU time and 8.1 MB resident. GTK's Vulkan
+  renderer returns a `GdkDmabufTexture` from
+  `gsk_renderer_render_texture`, and the first dmabuf texture of a
+  display initialises its dmabuf support, which sets up EGL and a GL
+  context for the downloader (`gdk_dmabuf_texture_new_from_builder` →
+  `gdk_display_init_dmabuf` → `gdk_dmabuf_egl_init` →
+  `gdk_display_prepare_gl`, GTK 4.24.1 `gdk/gdkdmabuftexture.c:244`,
+  `gdk/gdkdisplay.c`). Because ATL renders bitmaps on its own second
+  display, that display gets its own Vulkan device and its own GL
+  context. Item 7 above says the renderer downloads into a
+  `GdkMemoryTexture`; that is only the fallback
+  (`gsk_gpu_renderer_fallback_render_texture`), not what runs here.
+  This is also why LLVM and `libgallium` are loaded and the GL driver
+  threads exist in apps that never use GL.
+- **Chooser's extra GL context is `SoundPool`**: one `GtkMediaFile` per
+  loaded sound at `load()`; `gst_play_new` asks GTK for a GL context
+  for its video sink although the files are audio. F's result for
+  Chooser (1.1 s earlier, 39 threads fewer with `GDK_DISABLE=gl`) is
+  this: with the flag the 3 `gstglcontext`, 6 `gldisplay-event`, 10
+  `gdrv`, 8 `ir3q` and 10 `traceq` threads are gone while the three
+  `GstPlay` pipelines stay (`suite-f/chooser-*/threads-start.tsv`). DB
+  Navigator, which has the bitmap path's GL context and WebKit's but no
+  `SoundPool`, starts no faster with the flag: the start time is in
+  GStreamer's GL setup, not in GTK's.
+- **`GDK_DISABLE=dmabuf` is not a way out** (`scripts/run-g2.sh`,
+  default against the flag, two rounds alternating):
+
+  | | Gadgetbridge default | Gadgetbridge `GDK_DISABLE=dmabuf` | Chooser default | Chooser `GDK_DISABLE=dmabuf` |
+  |---|---|---|---|---|
+  | first frame | 2209, 2274 ms | 2873, 2930 ms | 2155, 2391 ms | 2129 ms |
+  | threads | 47, 48 | 54, 53 | 90, 88 | 89 |
+  | PSS | 195.5, 201.3 MB | 214.6, 217.2 MB | 164.5, 166.5 MB | 175.7 MB |
+  | `native-anon` | 71.7, 69.6 MB | 83.4, 83.7 MB | 44.2, 41.4 MB | 49.0 MB |
+  | GPU memory | 43.4, 43.8 MB | 51.8, 51.9 MB | 52.4, 52.4 MB | 40.6, 40.6 MB |
+
+  Without dmabuf GTK does not use its Vulkan renderer at all: the
+  window and the second display both get a GL renderer (three fds per
+  client, 32.3 and 18.7 MB in Gadgetbridge), which is item 3 again:
+  650 ms later, 18 MB more PSS. The second Chooser run with the flag
+  hung: its compositor (`cage`) stayed in `dma_fence_default_wait`,
+  its smaps were taken nine minutes late and are left out. After it
+  the phone's GPU driver was stuck (`gpu-worker` and
+  `irq/22-arm-smmu` in state D, `3d00000.gpu` runtime status
+  `suspending`, a new `cage` blocked in `rpm_resume`); the kernel log
+  is not readable without root, so the cause is not known, but it is
+  the second failure in a run that renders the window with GL (item 3
+  had a Mesa crash). The fix has to be in ATL's bitmap path, not in a
+  GTK switch.
+
+**Why item 4 works (B), measured now.** B explained the 22 MB of
+Gadgetbridge with "the app's compiled code is now used" as a reading of
+the smaps. The logs say it directly: on `phosh` ART prints for 9 of the
+16 smoke-test apps (Chooser, DHL, Gadgetbridge, komoot, OwnTracks, DB
+Navigator, F-Droid, Aurora, FluffyChat;
+`suite-g/oat-check-classpath.txt`, extracted from `suite-c/smoke`)
+
+    ClassLoaderContext parent mismatch. (PCL[] | PCL[];PCL[…/api-impl.jar*…])
+    Found duplicate classes, falling back to extracting from APK : …
+    NOTE: This wastes RAM and hurts startup performance.
+    Found duplicated class when checking oat files: 'Landroid/view/WindowInsetsAnimation$Callback;' in <apk> and …/api-impl.jar
+
+The app's oat file was compiled without a class loader context, the
+runtime's context has `api-impl.jar` (and `ghax.jar`) in it, so ART
+runs its collision check (`OatFileManager::OpenDexFilesFromOat`,
+`art/runtime/oat_file_manager.cc`), finds a class that the app bundles
+and the framework also defines (`WindowInsetsAnimation$Callback`,
+`FloatProperty`, `CompanionDeviceManager$Callback`), throws the
+`speed`-compiled oat away and runs the app from its dex: interpreted
+and JIT-compiled, with class data in private memory. dex2oat's work at
+first start is wasted for these apps. With the framework on the boot
+class path the check has nothing to collide with.
+
+**Two apps are still rejected with item 4**: komoot and DB Navigator
+(`suite-g/oat-check-bootclasspath.txt`, from `suite-b/smoke`),
+because `ATLLoadedApp.java:115` puts `ghax.jar` first on the app's
+class loader path and both apps bundle
+`com.google.android.gms.ads.identifier.AdvertisingIdClient$Info`,
+which `ghax.jar` replaces. DB Navigator's `app-dex` is 35.6 MB PSS,
+32.4 MB of it private (its dex is extracted into anonymous memory),
+and its code runs without AOT. Any app with the Play Services ads
+identifier library is affected.
+
 # Code analysis
 
 Read from the code only, on 2026-11-08, while the baseline suite ran on
@@ -1075,6 +1179,13 @@ lifetime.
 **Expected gain.** GPU memory and process memory in the tens of MB for
 apps that draw into bitmaps, less for Compose apps; less main-thread
 time per bitmap draw. Uncertain until counted.
+
+**Correction (measurement G).** The texture is not downloaded: on
+GTK 4.24 with Vulkan `gsk_renderer_render_texture` returns a
+`GdkDmabufTexture`, and creating the first one makes GTK set up EGL and
+a GL context on the second display. The cost of this path is that
+display's Vulkan device (5.5 to 7 MB) and GL context (12.1 MB) in
+every app, not the renderer per call; see "G" under the measurements.
 
 **Result (2026-11-09).** One kept renderer (branch
 `claude/perf-bitmap-renderer-118`) gave no clear gain for Chooser and
@@ -1538,12 +1649,44 @@ numbers were doubled by a measurement bug (the floor is 23 MB, Chooser
 54 MB); B made item 4 a PR (#134); C showed that item 11 does not touch
 Chooser, which uses `SoundPool`; F showed `GDK_DISABLE=gl` is worth
 15 to 25 MB and, for Chooser, 1.1 s of start, but breaks GL apps, so it
-can only be a per-app switch. D, E, G, H and I are open.
+can only be a per-app switch. A follow-up (section "G") traced every
+GPU client to its caller and found why app code is not used; the plan
+that follows from it is "What to optimise next" below. D, E, G, H and
+I are open.
 
 **Order**: A's measurement first, because it is the largest block and
 cheap to look at; B and C are ready and go to the phone in the same
 session; then E's differential, which decides between D and A's fix;
 F alongside as an A/B. G runs overnight whenever the phone is free.
+
+## What to optimise next (second evaluation, after A to G)
+
+A to G changed the picture: the GPU block is not a floor of GTK (the
+floor is 22 MB) but three things ATL does, and the largest CPU-side
+loss is app code that is compiled and then not used. By gain per
+effort; the numbers are measured unless marked as expected:
+
+| # | What | Gain | Who gains | Size | State |
+|---|---|---|---|---|---|
+| 1 | **Item 4, framework on the boot class path** (PR #134) | app oat is used instead of thrown away: Gadgetbridge -22 MB private dirty, -360 ms first frame | 9 of 16 tested apps reject their oat today, 7 of them are fixed by it | done | PR open, owner merges |
+| 2 | **`ghax.jar` on the boot class path too** (`put_framework_on_boot_class_path` in `main.c`, drop the prepend in `ATLLoadedApp.java:115`; parents are asked first, so it still overrides the app's copy) | expected: DB Navigator -32 MB private (`app-dex` USS), AOT code for komoot and DB Navigator, no collision check for any app | apps with the GMS ads identifier library | S | after #134 is merged (no stacked PR); verify with the smoke test that no log has "Found duplicate classes" |
+| 3 | **`SoundPool` without `GtkMediaFile`**: step 1, create the stream at the first `play` and drop it after it ended (what item 11 did for `MediaPlayer`); step 2, decode at `load` with libavcodec to PCM and play through the ALSA path of `AudioTrack`, which is what Android's `SoundPool` does and needs no pipeline and no GL | Chooser: first frame 2.4 → at most 1.3 s, -12 MB GPU, -39 threads, -10 MB `native-anon`, -18 MB PSS (F, which removed only the GL part; the three pipelines go on top) | apps with UI sounds, games | step 1 S, step 2 M | open; measure the latency of the first sound in step 1, it decides whether step 2 is needed |
+| 4 | **Bitmap path without a second display and without dmabuf**: (a) render with the cairo renderer as the non-main threads already do: no device, no GL context; or (b) render with the window's renderer on the default display: saves the 5.5 to 7 MB device, the 12 MB GL context stays | (a) -17.6 to -19.1 MB GPU memory in every app, EGL and LLVM not initialised in apps without WebView, video or `SurfaceView`; (b) -5.5 to -7 MB | every app | S to write, M to verify | open; (a) needs the screenshots of the 16 apps compared and the time of bitmap draws measured (CPU raster of a full-screen bitmap), because item 7's branch showed that the per-call cost was not the problem, the display was |
+| 5 | **Per-app `GDK_DISABLE=gl` list** (F) | nothing left once 3 and 4 are in: the GL contexts it removed are those two | - | - | dropped; `GDK_DISABLE=dmabuf` is ruled out by G |
+| 6 | **First start**: 14.5 to 14.8 s (boot image 7 s, app dex2oat) | first impression after install | every app | M | open: compile at install time (ATL's installer page), ship the boot image in the package (item 9) |
+| 7 | D (app image), E (`native-anon` split), G (12-hour run), H (start breakdown), I (stacks) from the table above | D only makes sense after 1 and 2, when app oat files are actually loaded | | | open |
+
+Expected after 1 to 4, at start: Chooser 52 → about 23 MB GPU memory,
+91 → about 50 threads, first frame under 1.3 s; Gadgetbridge 44 → 25 MB
+GPU memory and the 22 MB of item 4; DB Navigator 56 → 37 MB GPU memory
+(WebKit keeps its GL context) and 32 MB less private memory. The sum
+per app is 40 to 60 MB of real memory, most of it not visible in PSS.
+
+**Order**: 1 is waiting for the merge. 3 (step 1) and 4 are
+independent of it and of each other and can be separate PRs from
+`phosh` now; 2 follows the merge of #134. Each needs the 16-app smoke
+test with screenshots; 3 needs a sound test by the owner (Chooser's
+vibration and sound settings), 4 an A/B of `fix-3-phosh` kind.
 
 **Reference for the stretch goal** (better than Android): no Android
 number for Gadgetbridge on this phone exists. If Waydroid is still

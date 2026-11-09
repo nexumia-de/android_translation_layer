@@ -128,3 +128,38 @@ Tool changes of this session: `perf-idle.sh` counts DRM clients once,
 `perf-run.sh` takes `PERF_CMD`, `perf-drm-fds.sh`, `perf-gtk-floor.c`,
 `perf-webkit-floor.c`. The remote branch of #134 is not rebased (the
 rebase was tested locally: clean merge, same diff).
+
+## Evaluation of A to F and follow-up G, 2026-11-09 late evening
+
+Written up in performance.md, "G: who creates each GPU client, and why
+app code is not used" (measurements) and "What to optimise next"
+(the plan). Data `suite-g`, scripts `run-g.sh`, `run-g2.sh`,
+`opens-summary.py`, tool `tools/perf-drm-open.c` (build line in its
+header).
+
+- **GPU clients are all attributed** (`suite-g/<name>/opens`): the
+  bitmap path (`Bitmap.native_create_texture`) costs every app a second
+  Vulkan device (5.5 to 7 MB) and an unused GL context (12.1 MB) on
+  ATL's second `GdkDisplay`; `SoundPool` costs Chooser another GL
+  context (12.2 MB) through `gst_play_new`; DB Navigator's fourth
+  client is WebKit's own GL context.
+- **The oat rejection is in the logs** (`suite-g/oat-check-*.txt`): 9
+  of 16 apps log "Found duplicate classes, falling back to extracting
+  from APK" on `phosh`; with item 4 (#134) komoot and DB Navigator
+  still do, because of `ghax.jar` on the app's class loader path.
+- **`GDK_DISABLE=dmabuf` makes things worse** (GTK falls back to its GL
+  renderer) and is ruled out.
+- **Next, nothing implemented yet**: `ghax.jar` on the boot class path
+  (after #134 is merged), `SoundPool` lazy or decoded to PCM, the
+  bitmap path on the cairo renderer or on the window's renderer. Each
+  is a separate PR from `phosh`.
+
+**The phone needs a reboot before the next measurement.** In the last
+run of `run-g2.sh` (`chooser-nodmabuf-2`) the GPU driver hung: `cage`
+pid 977909 is a zombie with a thread in `dma_fence_default_wait`, the
+kernel's `gpu-worker` and `irq/22-arm-smmu` are in state D,
+`/sys/bus/platform/devices/3d00000.gpu/power/runtime_status` reads
+`suspending`, and a `cage` started afterwards (pid 984535) blocks in
+`rpm_resume` and cannot be killed; it holds `/tmp/atl-heavy.lock`, so
+no heavy run can start. The kernel log needs root (owner: `sudo dmesg
+> /tmp/gpu-hang-dmesg.txt` before the reboot, the agent reads it).

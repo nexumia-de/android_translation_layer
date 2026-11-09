@@ -1,0 +1,17 @@
+== fd 10 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4591
+drm-engine-gpu:	314218 ns
+drm-cycles-gpu:	202752
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	22976 KiB
+drm-shared-memory:	17376 KiB
+drm-resident-memory:	22976 KiB
+== fd 8 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4590
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	0
+drm-shared-memory:	0

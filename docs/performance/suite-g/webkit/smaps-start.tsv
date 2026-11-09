@@ -1,0 +1,58 @@
+# pid 961465 threads 22 label start
+# cmd /home/claude/work/perf-runs/bin/perf-webkit-floor
+category	mappings	size_kb	rss_kb	pss_kb	uss_kb	shared_kb	swap_kb	swappss_kb
+native-anon	149	72073044	24524	24524	24524	0	0	0
+lib-gtk	194	165312	64828	22143	6800	58028	0	0
+lib-mesa	106	252728	61688	14744	3528	58160	0	0
+lib-other	232	51524	18828	6147	3648	15180	0	0
+stacks	23	40656	3980	3980	3980	0	0	0
+lib-art	8	5128	3332	858	164	3168	0	0
+fonts	10	3672	2044	258	8	2036	0	0
+malloc	2	136	132	132	132	0	0	0
+icons-pixbuf	4	60	60	24	8	52	0	0
+other-file	3	12	12	12	12	0	0	0
+other-anon	4	32	16	4	0	16	0	0
+TOTAL	735	72592304	179444	72826	42804	136640	0	0
+
+# biggest mappings by PSS (merged by name)
+category	name	mappings	size_kb	rss_kb	pss_kb	uss_kb	swap_kb
+native-anon	<anon native-anon>	149	72073044	24524	24524	24524	0
+lib-gtk	/usr/lib/libwebkitgtk-6.0.so.4.19.5	6	90080	26904	12931	4684	0
+lib-mesa	/usr/lib/libLLVM.so.23.1	3	173552	30520	6853	1384	0
+stacks	<anon stacks>	22	40524	3880	3880	3880	0
+lib-gtk	/usr/lib/libjavascriptcoregtk-6.0.so.1.8.9	8	32768	9268	3626	700	0
+lib-mesa	/usr/lib/libgallium-26.2.6.so	3	37240	21072	3615	1300	0
+lib-mesa	/usr/lib/libvulkan_freedreno.so	3	14092	6768	3478	576	0
+lib-gtk	/usr/lib/libgtk-4.so.1.2400.1	3	12852	11548	2293	372	0
+lib-other	/usr/lib/libflite_cmu_us_rms.so.2.2	3	3332	760	674	632	0
+lib-art	/usr/lib/libicui18n.so.78.1	3	3140	2548	613	84	0
+lib-other	/usr/lib/libflite_cmu_us_slt.so.2.2	3	2884	660	590	556	0
+lib-other	/usr/lib/libflite_cmu_us_awb.so.2.2	3	2884	640	583	556	0
+lib-other	/usr/lib/libibus-1.0.so.5.0.535	3	580	524	460	396	0
+lib-gtk	/usr/lib/libepoxy.so.0.0.0	3	1244	1012	358	60	0
+lib-other	/usr/lib/libgnutls.so.30.42.0	3	2060	1108	287	84	0
+lib-other	/usr/lib/libglycin-2.so.0	3	2704	2484	264	116	0
+lib-other	/usr/lib/libp11-kit.so.0.4.8	3	1532	628	239	124	0
+lib-art	/usr/lib/libicuuc.so.78.1	3	1860	716	235	80	0
+lib-other	/usr/lib/libaom.so.3.15.3	3	6860	516	224	80	0
+lib-other	/usr/lib/libstdc++.so.6.0.34	3	2820	2508	218	76	0
+lib-gtk	/usr/lib/libharfbuzz.so.0.61421.0	3	1220	1144	201	12	0
+lib-mesa	/usr/lib/libvulkan.so.1.4.360	3	772	632	198	16	0
+fonts	/usr/share/fonts/Adwaita/AdwaitaSans-Regular.ttf	4	3440	1812	184	8	0
+lib-other	/usr/lib/libasound.so.2.0.0	3	1028	444	174	60	0
+lib-gtk	/usr/lib/libgstvideo-1.0.so.0.2807.0	3	900	316	157	84	0
+lib-gtk	/usr/lib/libcairo.so.2.11804.4	3	1032	740	151	24	0
+lib-gtk	/usr/lib/libgstreamer-1.0.so.0.2807.0	3	1480	400	149	36	0
+lib-other	/usr/lib/libjxl.so.0.11.2	6	2880	396	141	28	0
+lib-gtk	/usr/lib/libfreetype.so.6.20.6	3	708	672	134	32	0
+malloc	[heap]	2	136	132	132	132	0
+lib-mesa	/usr/lib/libGL.so.1.2.0	3	644	332	131	24	0
+lib-other	/usr/lib/libuim-scm.so.0.1.0	3	196	148	116	84	0
+lib-other	/usr/lib/liborc-0.4.so.0.42.0	3	992	300	115	36	0
+lib-mesa	/usr/lib/libEGL.so.1.0.0	3	388	364	112	52	0
+lib-gtk	/usr/lib/libgstgl-1.0.so.0.2807.0	3	644	256	103	28	0
+lib-other	/usr/lib/libcups.so.2	3	644	244	101	44	0
+lib-gtk	/usr/lib/libpango-1.0.so.0.5800.2	3	452	404	101	20	0
+lib-other	/usr/lib/libsqlite3.so.3.54.1	3	1620	292	100	36	0
+stacks	[stack]	1	132	100	100	100	0
+lib-gtk	/usr/lib/libsoup-3.0.so.0.7.4	3	644	364	94	24	0
