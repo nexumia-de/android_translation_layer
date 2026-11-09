@@ -9,7 +9,10 @@
 #   -i SECONDS   idle time to sample after the first snapshot (1800); 0 skips
 #   -n SECONDS   sampling interval of perf-idle.sh (60)
 #   -c           cover the app's window with another client (foot) during the
-#                idle time: the app is "in the background" as under Phosh
+#                idle time: the app is "in the background" as under Phosh.
+#                foot runs fullscreen: maximized it rounds its height to text
+#                lines and leaves a strip of the app visible, whose frames
+#                then go on
 #   -2 'CMD'     start a second ATL app (its arguments) after the first
 #                snapshot, in the same display, and snapshot it too: shows
 #                what two ATL processes share (pair-*.tsv)
@@ -84,7 +87,7 @@ s1="$snap; shot \"\$PERF_OUT/start.png\"; snapshot \$P start"
 s2=
 [ -n "$second" ] && s2="$snap; dbus-run-session -- sh -c 'echo \$\$ >\"\$XDG_RUNTIME_DIR/atl2.pid\"; exec android-translation-layer $second' >\"\$PERF_OUT/app2.log\" 2>&1 & sleep 30; P2=\$(cat \"\$XDG_RUNTIME_DIR/atl2.pid\"); shot \"\$PERF_OUT/pair.png\"; snapshot \$P2 pair-second; snapshot \$P pair-first"
 s3=
-[ -n "$cover" ] && s3="foot -T cover sh -c 'sleep 2147483647' >\"\$PERF_OUT/foot.log\" 2>&1 & echo \$! >\"\$XDG_RUNTIME_DIR/foot.pid\"; sleep 4; shot \"\$PERF_OUT/covered.png\""
+[ -n "$cover" ] && s3="foot -F -T cover sh -c 'sleep 2147483647' >\"\$PERF_OUT/foot.log\" 2>&1 & echo \$! >\"\$XDG_RUNTIME_DIR/foot.pid\"; sleep 4; shot \"\$PERF_OUT/covered.png\""
 s4="$snap; if [ \"\$PERF_IDLE\" -gt 0 ]; then \"\$PERF_TOOLS/perf-idle.sh\" \$P \"\$PERF_IDLE\" \"\$PERF_INTERVAL\" >\"\$PERF_OUT/idle.tsv\" & I=\$!; if [ -s \"\$XDG_RUNTIME_DIR/atl2.pid\" ]; then \"\$PERF_TOOLS/perf-idle.sh\" \$(cat \"\$XDG_RUNTIME_DIR/atl2.pid\") \"\$PERF_IDLE\" \"\$PERF_INTERVAL\" >\"\$PERF_OUT/idle-second.tsv\"; fi; wait \$I; fi; snapshot \$P end; if [ -s \"\$XDG_RUNTIME_DIR/atl2.pid\" ]; then snapshot \$(cat \"\$XDG_RUNTIME_DIR/atl2.pid\") pair-second-end; kill \$(cat \"\$XDG_RUNTIME_DIR/atl2.pid\") 2>/dev/null; fi; [ -s \"\$XDG_RUNTIME_DIR/foot.pid\" ] && kill \$(cat \"\$XDG_RUNTIME_DIR/foot.pid\") 2>/dev/null; sleep 1; true"
 
 status=0
