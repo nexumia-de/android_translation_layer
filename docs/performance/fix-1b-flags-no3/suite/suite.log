@@ -1,0 +1,25 @@
+22:45:27 chooser start 1
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/chooser-start-1
+22:45:58 chooser background 1, idle 600 s
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/chooser-bg-1
+22:56:40 chooser start 2
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/chooser-start-2
+22:57:11 chooser background 2, idle 600 s
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/chooser-bg-2
+23:06:52 chooser start 3
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/chooser-start-3
+23:07:23 chooser background 3, idle 600 s
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/chooser-bg-3
+23:17:04 gadgetbridge start 1
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/gadgetbridge-start-1
+23:17:36 gadgetbridge background 1, idle 600 s
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/gadgetbridge-bg-1
+23:28:18 gadgetbridge start 2
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/gadgetbridge-start-2
+23:28:50 gadgetbridge background 2, idle 600 s
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/gadgetbridge-bg-2
+23:38:32 gadgetbridge start 3
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/gadgetbridge-start-3
+23:39:04 gadgetbridge background 3, idle 600 s
+/home/claude/work/perf-runs/fix-1b-flags-no3/suite/gadgetbridge-bg-3
+23:48:46 suite done: /home/claude/work/perf-runs/fix-1b-flags-no3/suite

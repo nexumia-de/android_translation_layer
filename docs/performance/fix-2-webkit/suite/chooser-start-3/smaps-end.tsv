@@ -1,0 +1,65 @@
+# pid 390644 threads 92 label end
+# cmd android-translation-layer -w 360 -h 720 --sdk-int 26 /home/claude/work/apks/com.uravgcode.chooser_26.apk
+category	mappings	size_kb	rss_kb	pss_kb	uss_kb	shared_kb	swap_kb	swappss_kb
+native-anon	338	104616	41636	41636	41636	0	0	0
+art-image	97	68360	32384	32344	32304	80	0	0
+lib-other	289	90064	42700	26211	24320	18380	0	0
+stacks	105	190668	23928	23928	23928	0	0	0
+lib-mesa	193	275736	152784	23113	8140	144644	0	0
+lib-art	68	20072	18124	14055	13668	4456	0	0
+lib-gtk	234	47852	36204	9142	5168	31036	0	0
+art-heap	18	852076	4504	4504	4504	0	0	0
+app-dex	32	8676	8668	2438	336	8332	0	0
+icu-data	1	32332	6144	2048	0	6144	0	0
+lib-atl	3	644	600	600	600	0	0	0
+malloc	2	324	320	320	320	0	0	0
+lib-bionic	12	528	288	288	288	0	0	0
+fonts	10	3672	2436	264	0	2436	0	0
+art-jit	4	98308	312	196	80	232	0	0
+other-file	4	140	140	136	136	4	0	0
+icons-pixbuf	3	56	56	11	4	52	0	0
+other-anon	5	36	20	3	0	20	0	0
+TOTAL	1418	1794160	371248	181237	155432	215816	0	0
+
+# biggest mappings by PSS (merged by name)
+category	name	mappings	size_kb	rss_kb	pss_kb	uss_kb	swap_kb
+native-anon	<anon native-anon>	338	104616	41636	41636	41636	0
+stacks	<anon stacks>	104	184520	21800	21800	21800	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot.oat	5	11460	9172	9168	9164	0
+lib-mesa	/usr/lib/libLLVM.so.23.1	3	173552	107888	8483	1384	0
+lib-mesa	/usr/lib/libvulkan_freedreno.so	3	14092	11844	8258	4672	0
+lib-art	~/.local/lib/art/libart.so	3	7180	7176	7176	7176	0
+lib-mesa	/usr/lib/libgallium-26.2.6.so	3	37240	29008	5207	1300	0
+art-heap	<anon art-heap>	18	852076	4504	4504	4504	0
+lib-other	/usr/lib/libSvtAv1Enc.so.4.3.0	3	4232	4180	4180	4180	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot.vdex	1	4996	4120	4120	4120	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@android_translation_layer@api-impl.jar@classes.dex	5	3880	3600	3600	3600	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@android_translation_layer@api-impl.jar@classes.vdex	1	16244	3508	3508	3508	0
+lib-art	~/.local/lib/art/libart-compiler.so	3	3460	3408	3408	3408	0
+lib-other	/usr/lib/libavcodec.so.63.1.102	3	16072	3048	3048	3048	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-bouncycastle-hostdex.oat	5	3488	2696	2692	2688	0
+lib-other	/usr/lib/libvixl.so.5.1.0	3	2884	2680	2680	2680	0
+lib-other	/usr/lib/libx265.so.216	3	6860	2544	2544	2544	0
+lib-other	/usr/lib/libaom.so.3.15.3	3	6860	2516	2516	2516	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-core-libart-hostdex.oat	5	5124	2308	2304	2300	0
+lib-other	/usr/lib/libvpx.so.12.1.0	3	2628	2192	2192	2192	0
+stacks	[stack]	1	6148	2128	2128	2128	0
+icu-data	/usr/share/icu/78.1/icudt78l.dat	1	32332	6144	2048	0	0
+app-dex	~/.local/lib/java/dex/android_translation_layer/framework-res.apk	8	7888	7888	1964	0	0
+lib-gtk	/usr/lib/libgtk-4.so.1.2400.1	3	12852	12852	1929	244	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-core-libart-hostdex.vdex	1	2880	1404	1404	1404	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-bouncycastle-hostdex.vdex	1	1676	1384	1384	1384	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot.art	2	1264	1264	1264	1264	0
+lib-other	/usr/lib/libopenal.so.1.25.2	3	1504	1220	1220	1220	0
+lib-other	/usr/lib/libwolfssl.so.46.0.0	3	1544	936	936	936	0
+lib-art	~/.local/lib/art/libandroidfw.so	3	1028	732	732	732	0
+lib-atl	~/.local/lib/java/dex/android_translation_layer/natives/libtranslation_layer_main.so	3	644	600	600	600	0
+lib-other	/usr/lib/libcrypto.so.3	3	4492	3024	582	464	0
+lib-gtk	/usr/lib/libepoxy.so.0.0.0	3	1244	1148	523	444	0
+lib-gtk	/usr/lib/gstreamer-1.0/libgstcoreelements.so	3	516	460	460	460	0
+lib-gtk	/usr/lib/libgstreamer-1.0.so.0.2807.0	3	1480	1444	399	36	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-core-libart-hostdex.art	2	384	384	384	384	0
+lib-gtk	/usr/lib/libgstgl-1.0.so.0.2807.0	3	644	592	383	348	0
+lib-other	/usr/lib/libjxl.so.0.11.2	6	2880	400	376	352	0
+lib-gtk	/usr/lib/gstreamer-1.0/libgstopengl.so	3	388	340	340	340	0
+lib-other	/usr/lib/libavutil.so.61.1.102	3	1028	328	328	328	0

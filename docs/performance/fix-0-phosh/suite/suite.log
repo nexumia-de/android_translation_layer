@@ -1,0 +1,25 @@
+20:27:14 chooser start 1
+/home/claude/work/perf-runs/fix-0-phosh/suite/chooser-start-1
+20:27:45 chooser background 1, idle 600 s
+/home/claude/work/perf-runs/fix-0-phosh/suite/chooser-bg-1
+20:38:27 chooser start 2
+/home/claude/work/perf-runs/fix-0-phosh/suite/chooser-start-2
+20:38:57 chooser background 2, idle 600 s
+/home/claude/work/perf-runs/fix-0-phosh/suite/chooser-bg-2
+20:48:39 chooser start 3
+/home/claude/work/perf-runs/fix-0-phosh/suite/chooser-start-3
+20:49:10 chooser background 3, idle 600 s
+/home/claude/work/perf-runs/fix-0-phosh/suite/chooser-bg-3
+20:58:52 gadgetbridge start 1
+/home/claude/work/perf-runs/fix-0-phosh/suite/gadgetbridge-start-1
+20:59:23 gadgetbridge background 1, idle 600 s
+/home/claude/work/perf-runs/fix-0-phosh/suite/gadgetbridge-bg-1
+21:09:06 gadgetbridge start 2
+/home/claude/work/perf-runs/fix-0-phosh/suite/gadgetbridge-start-2
+21:09:37 gadgetbridge background 2, idle 600 s
+/home/claude/work/perf-runs/fix-0-phosh/suite/gadgetbridge-bg-2
+21:20:19 gadgetbridge start 3
+/home/claude/work/perf-runs/fix-0-phosh/suite/gadgetbridge-start-3
+21:20:51 gadgetbridge background 3, idle 600 s
+/home/claude/work/perf-runs/fix-0-phosh/suite/gadgetbridge-bg-3
+21:31:33 suite done: /home/claude/work/perf-runs/fix-0-phosh/suite

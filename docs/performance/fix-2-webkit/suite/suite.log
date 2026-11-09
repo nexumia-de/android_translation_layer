@@ -1,0 +1,25 @@
+00:10:39 chooser start 1
+/home/claude/work/perf-runs/fix-2-webkit/suite/chooser-start-1
+00:11:10 chooser background 1, idle 600 s
+/home/claude/work/perf-runs/fix-2-webkit/suite/chooser-bg-1
+00:20:51 chooser start 2
+/home/claude/work/perf-runs/fix-2-webkit/suite/chooser-start-2
+00:21:22 chooser background 2, idle 600 s
+/home/claude/work/perf-runs/fix-2-webkit/suite/chooser-bg-2
+00:32:04 chooser start 3
+/home/claude/work/perf-runs/fix-2-webkit/suite/chooser-start-3
+00:32:35 chooser background 3, idle 600 s
+/home/claude/work/perf-runs/fix-2-webkit/suite/chooser-bg-3
+00:42:16 gadgetbridge start 1
+/home/claude/work/perf-runs/fix-2-webkit/suite/gadgetbridge-start-1
+00:42:48 gadgetbridge background 1, idle 600 s
+/home/claude/work/perf-runs/fix-2-webkit/suite/gadgetbridge-bg-1
+00:52:30 gadgetbridge start 2
+/home/claude/work/perf-runs/fix-2-webkit/suite/gadgetbridge-start-2
+00:53:02 gadgetbridge background 2, idle 600 s
+/home/claude/work/perf-runs/fix-2-webkit/suite/gadgetbridge-bg-2
+01:02:44 gadgetbridge start 3
+/home/claude/work/perf-runs/fix-2-webkit/suite/gadgetbridge-start-3
+01:03:15 gadgetbridge background 3, idle 600 s
+/home/claude/work/perf-runs/fix-2-webkit/suite/gadgetbridge-bg-3
+01:12:58 suite done: /home/claude/work/perf-runs/fix-2-webkit/suite

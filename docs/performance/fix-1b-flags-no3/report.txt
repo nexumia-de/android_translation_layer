@@ -1,0 +1,46 @@
+ATL commit(s): 5f20712c (2026-11-08)
+; runs: 12; suites: suite
+
+## Start and memory per app
+
+| App | First frame (ms) | 10th frame (ms) | PSS after start (MB) | USS after start (MB) | PSS after idle (MB) | USS after idle (MB) | Idle (min) | Threads |
+|---|---|---|---|---|---|---|---|---|
+| chooser | 2430 (2289-5045, n=6) | - | 208 (205-210, n=6) | 182 (180-185, n=6) | 225 (220-225, n=3) | 199 (195-200, n=3) | 9 (9-10, n=3) | 91 (89-92, n=3) |
+| gadgetbridge | 2228 (2068-14717, n=6) | 2388 (2222-14873, n=6) | 255 (250-257, n=6) | 218 (212-220, n=6) | 264 (262-265, n=3) | 227 (225-228, n=3) | 9 (9-10, n=3) | 48 (47-48, n=3) |
+
+## Idle cost in the background (covered window)
+
+| App | CPU ms per minute | Wake-ups per minute (voluntary switches) | PSS growth during idle (MB) | GPU memory total / resident (MB) |
+|---|---|---|---|---|
+| chooser | 6610 (6501-6633, n=3) | 3618 (3618-3619, n=3) | +14.7 (+12.0-+15.7, n=3) | 99 (99-99, n=3) / 75 (75-75, n=3) |
+| gadgetbridge | 3 (2-4, n=3) | 5 (5-7, n=3) | +10.3 (+7.0-+10.4, n=3) | 63 (63-63, n=3) / 51 (51-51, n=3) |
+
+## Memory by category after idle (PSS MB, median of the background runs; USS in brackets)
+
+| Category | chooser | gadgetbridge |
+|---|---|---|
+| native-anon | 42.1 (42.1) | 75.0 (75.0) |
+| art-image | 31.4 (31.4) | 39.9 (39.8) |
+| lib-gtk | 36.5 (32.5) | 32.9 (29.3) |
+| lib-mesa | 22.6 (8.0) | 22.5 (7.9) |
+| lib-other | 34.9 (33.0) | 33.2 (31.3) |
+| stacks | 30.7 (30.7) | 11.6 (11.6) |
+| lib-art | 13.7 (13.3) | 13.8 (13.4) |
+| art-heap | 6.9 (6.9) | 13.6 (13.6) |
+| app-dex | 2.4 (0.3) | 10.9 (0.3) |
+| icu-data | 2.0 (0.0) | 9.8 (4.2) |
+| art-jit | 0.2 (0.1) | 0.4 (0.2) |
+| lib-atl | 0.6 (0.6) | 0.6 (0.6) |
+| lib-bionic | 0.3 (0.3) | 0.3 (0.3) |
+| malloc | 0.3 (0.3) | 0.4 (0.4) |
+| fonts | 0.2 (0.0) | 0.4 (0.0) |
+| graphics | - | - |
+| other-file | 0.1 (0.1) | 0.1 (0.1) |
+| other-anon | 0.0 (0.0) | 0.0 (0.0) |
+| icons-pixbuf | 0.0 (0.0) | 0.0 (0.0) |
+| TOTAL | 224.6 (199.1) | 264.2 (226.8) |
+
+## Threads with the most CPU while idle (ms over the idle time, median run per app)
+
+- **chooser** (chooser-bg-2, 60660 ms in all threads): main 59810 ms / 33001 wake-ups, HeapTaskDaemon 460 ms / 16 wake-ups, FinalizerDaemon 260 ms / 8 wake-ups, Jit thread pool 80 ms / 10 wake-ups, gdbus 20 ms / 19 wake-ups, ReferenceQueueD 10 ms / 8 wake-ups
+- **gadgetbridge** (gadgetbridge-bg-2, 70 ms in all threads): main 40 ms / 32 wake-ups, gdbus 10 ms / 18 wake-ups, HeapTaskDaemon 10 ms / 1 wake-ups, DefaultDispatch 10 ms / 9 wake-ups

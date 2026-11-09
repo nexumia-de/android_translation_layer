@@ -1,0 +1,18 @@
+date: 2026-11-08T21:55:28+01:00
+atl_commit: f4af2d77 (2026-11-08)
+atl_binary: Nov 8 21:31
+kernel: 7.3.0
+cpu_governor: schedutil
+settle: 30 idle: 600 interval: 60 cover: 1
+command: android-translation-layer -w 360 -h 720 --sdk-int 26 /home/claude/work/apks/com.uravgcode.chooser_26.apk
+free_before:
+              total        used        free      shared  buff/cache   available
+Mem:           7301        1298        1919         376        4083        5252
+Swap:         10951           2       10949
+load_before: 0.34 0.49 0.54 1/759 296732
+free_after:
+              total        used        free      shared  buff/cache   available
+Mem:           7301        1309        1909         376        4084        5242
+Swap:         10951           2       10949
+load_after: 0.69 0.41 0.45 3/758 300659
+status: 0
