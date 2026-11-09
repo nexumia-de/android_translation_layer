@@ -115,8 +115,15 @@ JNIEnv *create_vm(char *api_impl_jar, char *apk_classpath, char *framework_res_a
 	/* CheckJNI checks every JNI call, and ATL makes many per frame; Android
 	 * enables it only for debuggable apps */
 	const bool check_jni = getenv("ATL_CHECK_JNI") != NULL;
+	/* the framework on the boot class path: its classes come pre-linked from
+	 * the boot image, file-backed and shared between ATL processes, instead of
+	 * being loaded from dex in every process; ATL_FRAMEWORK_ON_CLASSPATH=1
+	 * loads it from java.class.path only, as before */
+	const bool framework_in_boot_image = getenv("ATL_FRAMEWORK_ON_CLASSPATH") == NULL;
 
 	if (check_jni)
+		args.nOptions += 1;
+	if (framework_in_boot_image)
 		args.nOptions += 1;
 	if (jdwp_port)
 		args.nOptions += 2;
@@ -145,6 +152,8 @@ JNIEnv *create_vm(char *api_impl_jar, char *apk_classpath, char *framework_res_a
 	options[4].optionString = getenv("ATL_RELOCATE_BOOT_IMAGE") ? "-Xrelocate" : "-Xnorelocate";
 	if (check_jni)
 		options[option_counter++].optionString = "-Xcheck:jni";
+	if (framework_in_boot_image)
+		options[option_counter++].optionString = construct_classpath("-Xbootclasspath/a:", (char *[]){api_impl_jar}, 1);
 	if (jdwp_port) {
 		strncat(jdwp_option_string, jdwp_port, 5); // 5 chars is enough for a port number, and won't overflow our array
 		options[option_counter++].optionString = "-XjdwpProvider:internal";
@@ -1838,6 +1847,14 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	/* 'android/view/View' is part of the "hax.dex" package, any other class from that package would serve just as well */
 	jobject class_loader = J__Class__getClassLoader(env, _CACHED_CLASS(View));
+	/* for a class on the boot class path that is the BootClassLoader, which
+	 * finds no libraries; without a class loader Runtime searches
+	 * java.library.path and registers the library for the boot class path */
+	jclass boot_class_loader = (*env)->FindClass(env, "java/lang/BootClassLoader");
+	if (boot_class_loader && (*env)->IsInstanceOf(env, class_loader, boot_class_loader))
+		class_loader = NULL;
+	if ((*env)->ExceptionCheck(env))
+		(*env)->ExceptionClear(env);
 
 	jobject java_runtime = J__Runtime__getRuntime(env);
 
