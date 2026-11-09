@@ -7,6 +7,32 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_view_Choreographer_DEBUG
+#define android_view_Choreographer_DEBUG 0L
+#undef android_view_Choreographer_DEFAULT_FRAME_DELAY
+#define android_view_Choreographer_DEFAULT_FRAME_DELAY 10LL
+#undef android_view_Choreographer_USE_VSYNC
+#define android_view_Choreographer_USE_VSYNC 0L
+#undef android_view_Choreographer_USE_FRAME_TIME
+#define android_view_Choreographer_USE_FRAME_TIME 0L
+#undef android_view_Choreographer_SKIPPED_FRAME_WARNING_LIMIT
+#define android_view_Choreographer_SKIPPED_FRAME_WARNING_LIMIT 30L
+#undef android_view_Choreographer_NANOS_PER_MS
+#define android_view_Choreographer_NANOS_PER_MS 1000000LL
+#undef android_view_Choreographer_MSG_DO_FRAME
+#define android_view_Choreographer_MSG_DO_FRAME 0L
+#undef android_view_Choreographer_MSG_DO_SCHEDULE_VSYNC
+#define android_view_Choreographer_MSG_DO_SCHEDULE_VSYNC 1L
+#undef android_view_Choreographer_MSG_DO_SCHEDULE_CALLBACK
+#define android_view_Choreographer_MSG_DO_SCHEDULE_CALLBACK 2L
+#undef android_view_Choreographer_CALLBACK_INPUT
+#define android_view_Choreographer_CALLBACK_INPUT 0L
+#undef android_view_Choreographer_CALLBACK_ANIMATION
+#define android_view_Choreographer_CALLBACK_ANIMATION 1L
+#undef android_view_Choreographer_CALLBACK_TRAVERSAL
+#define android_view_Choreographer_CALLBACK_TRAVERSAL 2L
+#undef android_view_Choreographer_CALLBACK_LAST
+#define android_view_Choreographer_CALLBACK_LAST 2L
 /*
  * Class:     android_view_Choreographer
  * Method:    native_requestFrame
