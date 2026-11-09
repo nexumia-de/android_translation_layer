@@ -97,3 +97,14 @@ per-mapping difference and the largest dirty mappings of raw smaps).
 On the phone long jobs must run as `systemd-run --user --unit=NAME
 --collect` (logind kills session scopes), and `~/.local/bin` must be on
 `PATH` for `headless-shot.sh -x`.
+
+## Second session on the phone, 2026-11-09 (measurements A, B, C, F)
+
+Branch `claude/perf-measure-118` (on top of #133). Scripts in
+`scripts/` (`run-a.sh`, `run-a2.sh`, …), runs under `performance/`.
+Steps are listed as they finish:
+
+- **A done** (`suite-a`): `perf-idle.sh` counted dup()ed DRM fds
+  several times; GPU memory is 23 MB for a plain GTK4 window, 54 MB for
+  Chooser, 45 MB for Gadgetbridge, not 99 and 64. Old `gpu_*` columns
+  are too high. See performance.md "A: what the GPU memory is".
