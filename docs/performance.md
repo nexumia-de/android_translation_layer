@@ -561,9 +561,7 @@ alternating; medians of the rounds. Memory from the raw smaps
   of the two together is 29 MB higher, because the boot image arm maps
   file pages that the class path arm does not touch (see below). File
   pages are not swap-backed and can be dropped under memory pressure;
-  dirty anonymous memory cannot. Which of the two the phone is short of
-  decides whether this is a gain: on this phone (7.3 GB, 11 GB swap)
-  it is the anonymous memory.
+  dirty anonymous memory can only go to swap.
 - **Start**: Gadgetbridge shows its first frame 360 ms (18 %) earlier;
   Chooser 150 ms earlier (A/B in "Item 4" above).
 - **The pair shares the framework's pages**: Gadgetbridge's private
