@@ -104,7 +104,7 @@ class path dex at the first start and fails without harm.
 6. Item 9 belongs to nexumia-de/aports (the owner's pipeline).
 
 Pull request #130 (the cover fix and the item 5 and 7 results) is
-waiting for the owner's merge; this branch builds on it.
+merged; `tools/perf-run.sh -c` covers fully since then.
 
 ## Scripts
 
