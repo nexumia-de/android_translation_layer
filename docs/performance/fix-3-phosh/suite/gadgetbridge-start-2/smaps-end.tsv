@@ -1,0 +1,65 @@
+# pid 580405 threads 48 label end
+# cmd android-translation-layer -w 360 -h 720 --sdk-int 26 /home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk
+category	mappings	size_kb	rss_kb	pss_kb	uss_kb	shared_kb	swap_kb	swappss_kb
+native-anon	258	135960	69500	69500	69500	0	0	0
+art-image	97	118860	40640	40600	40560	80	0	0
+lib-mesa	135	263224	64096	28618	9820	54276	0	0
+lib-art	68	20072	18244	18225	18220	24	0	0
+lib-other	263	86036	28248	16624	14160	14088	0	0
+lib-gtk	174	43544	31128	12453	8888	22240	0	0
+art-heap	18	852076	11832	11832	11832	0	0	0
+stacks	65	88304	9416	9416	9416	0	0	0
+app-dex	60	94288	55252	8028	440	54812	0	0
+icu-data	1	32332	5772	4236	3724	2048	0	0
+fonts	12	5152	2996	1192	96	2900	0	0
+lib-atl	3	644	600	600	600	0	0	0
+art-jit	4	98308	600	380	160	440	0	0
+malloc	2	344	340	340	340	0	0	0
+lib-bionic	12	528	288	288	288	0	0	0
+other-file	6	176	176	154	136	40	0	0
+icons-pixbuf	4	224	188	122	56	132	0	0
+other-anon	6	48	20	3	0	20	0	0
+TOTAL	1188	1840120	339336	222611	188236	151100	0	0
+
+# biggest mappings by PSS (merged by name)
+category	name	mappings	size_kb	rss_kb	pss_kb	uss_kb	swap_kb
+native-anon	<anon native-anon>	258	135960	69500	69500	69500	0
+lib-mesa	/usr/lib/libLLVM.so.23.1	3	173552	30640	15156	1448	0
+art-heap	<anon art-heap>	18	852076	11832	11832	11832	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot.oat	5	11460	10224	10220	10216	0
+stacks	<anon stacks>	64	82156	9312	9312	9312	0
+lib-art	~/.local/lib/art/libart.so	3	7180	7176	7176	7176	0
+lib-mesa	/usr/lib/libvulkan_freedreno.so	3	14092	6956	6378	5800	0
+app-dex	~/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk	16	77808	38772	5722	104	0
+lib-mesa	/usr/lib/libgallium-26.2.6.so	3	37240	22608	5093	1300	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-core-libart-hostdex.oat	5	5124	4448	4444	4440	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot.vdex	1	4996	4428	4428	4428	0
+icu-data	/usr/share/icu/78.1/icudt78l.dat	1	32332	5772	4236	3724	0
+lib-gtk	/usr/lib/libgtk-4.so.1.2400.1	3	12852	12852	4050	2612	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@android_translation_layer@api-impl.jar@classes.dex	5	3880	3880	3880	3880	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@android_translation_layer@api-impl.jar@classes.vdex	1	16244	3536	3536	3536	0
+lib-art	~/.local/lib/art/libart-compiler.so	3	3460	3408	3408	3408	0
+lib-art	/usr/lib/libicui18n.so.78.1	3	3140	2900	2900	2900	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-bouncycastle-hostdex.oat	5	3488	2680	2676	2672	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-core-libart-hostdex.vdex	1	2880	2448	2448	2448	0
+art-image	~/.cache/art/arm64/home@claude@work@apks@nodomain.freeyourgadget.gadgetbridge@nodomain.freeyourgadget.gadgetbridge_255.apk@classes.dex	5	42536	2120	2120	2120	0
+app-dex	~/.local/lib/java/dex/android_translation_layer/framework-res.apk	17	16004	16004	1961	0	0
+lib-art	/usr/lib/libicuuc.so.78.1	3	1860	1848	1833	1832	0
+lib-other	/usr/lib/libvixl.so.5.1.0	3	2884	1656	1656	1656	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot-bouncycastle-hostdex.vdex	1	1676	1364	1364	1364	0
+art-image	~/.cache/art/arm64/home@claude@work@apks@nodomain.freeyourgadget.gadgetbridge@nodomain.freeyourgadget.gadgetbridge_255.apk@classes.vdex	1	17952	1304	1304	1304	0
+art-image	~/.cache/art/arm64/home@claude@.local@lib@art@..@java@dex@art@oat@boot.art	2	1264	1264	1264	1264	0
+lib-other	/usr/lib/libavcodec.so.63.1.102	3	16072	1184	1184	1184	0
+lib-gtk	/usr/lib/libharfbuzz.so.0.61421.0	3	1220	1168	965	824	0
+lib-other	/usr/lib/libwolfssl.so.46.0.0	3	1544	936	936	936	0
+lib-other	/usr/lib/libx265.so.216	3	6860	880	880	880	0
+lib-other	/usr/lib/libcrypto.so.3	3	4492	3024	844	464	0
+fonts	/usr/share/fonts/Adwaita/AdwaitaSans-Regular.ttf	4	3440	2212	776	48	0
+lib-gtk	/usr/lib/libadwaita-1.so.0	3	1924	740	736	736	0
+lib-art	~/.local/lib/art/libandroidfw.so	3	1028	720	720	720	0
+lib-other	/usr/lib/libsqlite3.so.3.54.1	3	1620	1500	663	220	0
+lib-other	/usr/lib/libgnutls.so.30.42.0	3	2060	1108	634	400	0
+lib-gtk	/usr/lib/libepoxy.so.0.0.0	3	1244	992	608	288	0
+lib-atl	~/.local/lib/java/dex/android_translation_layer/natives/libtranslation_layer_main.so	3	644	600	600	600	0
+lib-other	/usr/lib/libibus-1.0.so.5.0.535	3	580	548	548	548	0
+lib-other	/usr/lib/libglycin-2.so.0	3	2704	2676	541	308	0

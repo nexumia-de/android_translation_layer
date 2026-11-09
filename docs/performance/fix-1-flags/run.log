@@ -1,0 +1,6 @@
+21:31:33 start 1-flags claude/perf-runtime-flags-118
+f4af2d77 tools: app-smoke.sh starts every app of docs/apps.md once headless (#118)
+21:31:34 build
+21:31:43 smoke
+21:42:38 suite
+22:27:40 done

@@ -1054,4 +1054,7 @@ starts, as [the order of work](#order-of-work) says.
 
 # Handoff for the analysis
 
+State of 2026-11-09, where the measured data is, the item 4 result not
+yet written above and what is open: [performance/handoff.md](performance/handoff.md).
+
 <!-- HANDOFF -->

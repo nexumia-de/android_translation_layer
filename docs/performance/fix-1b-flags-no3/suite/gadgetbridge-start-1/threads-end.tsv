@@ -1,0 +1,51 @@
+tid	name	cpu_ms	vol_cs	nonvol_cs
+341533	main	6740	2404	397
+341534	pool-spawner	0	4	0
+341535	gmain	0	4	1
+341536	gdbus	40	155	9
+341598	[pango] fontcon	50	39	12
+341599	pool-0	0	15	1
+341612	Jit thread pool	1410	265	70
+341613	Runtime worker 	0	2	0
+341614	Runtime worker 	0	2	0
+341615	Runtime worker 	0	1	1
+341616	Runtime worker 	0	2	0
+341617	Signal Catcher	0	3	0
+341618	ReferenceQueueD	0	10	0
+341619	FinalizerDaemon	0	11	2
+341620	FinalizerWatchd	0	3	0
+341621	HeapTaskDaemon	240	207	0
+341728	WM.task-1	110	421	11
+341730	WM.task-2	0	26	0
+341731	WM.task-3	0	5	0
+341732	WM.task-4	50	151	0
+341733	Thread-1	0	2	0
+341734	PackageInstalle	0	1	0
+341735	DefaultDispatch	70	273	0
+341736	DefaultDispatch	0	1	1
+341737	DefaultDispatch	0	2	0
+341745	pool-1	0	11	5
+341747	android:disk$0	0	5	0
+341749	androi:traceq0	0	1	0
+341750	android:disk$1	0	6	0
+341751	android:disk$2	0	3	0
+341752	android:disk$3	0	4	0
+341754	async-io	0	17	0
+341755	gly-global-exec	0	9	0
+341756	main	0	27	4
+341761	gly-hdl-loader	0	2	3
+341774	BlueZ signals	0	1	1
+341775	pool-2	0	3	0
+341781	android:disk$0	0	6	1
+341783	androi:traceq0	0	1	0
+341784	android:disk$1	0	6	0
+341785	android:disk$2	0	4	0
+341786	android:disk$3	0	6	0
+341787	android:disk$0	0	2	0
+341788	android-:ir3q0	0	18	0
+341789	android-:ir3q1	0	6	0
+341790	androi:traceq0	0	1	0
+341791	android-:gdrv0	0	1	0
+341792	androi:traceq0	0	1	0
+341793	android-:gdrv0	0	1	0
+341863	AsyncTask #1	0	1	0

@@ -1,0 +1,9 @@
+MemFree:         1713996 kB
+MemAvailable:    4920732 kB
+Cached:          3699752 kB
+SwapFree:       11210240 kB
+AnonPages:       1307004 kB
+Mapped:           728648 kB
+Shmem:            462232 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB

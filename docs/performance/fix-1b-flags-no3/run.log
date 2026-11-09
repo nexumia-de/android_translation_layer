@@ -1,0 +1,6 @@
+22:34:24 start 1b-flags-no3 claude/perf-runtime-flags-118
+5f20712c Revert "main-executable: keep GTK on one GPU stack (GL)"
+22:34:25 build
+22:34:34 smoke
+22:45:27 suite
+23:48:46 done

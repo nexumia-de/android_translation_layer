@@ -1,0 +1,28 @@
+10:55:29 chooser start 1
+/home/claude/work/perf-runs/fix-5-vsync/suite/chooser-start-1
+10:56:00 chooser background 1, idle 600 s
+/home/claude/work/perf-runs/fix-5-vsync/suite/chooser-bg-1
+11:05:42 chooser start 2
+/home/claude/work/perf-runs/fix-5-vsync/suite/chooser-start-2
+11:06:13 chooser background 2, idle 600 s
+/home/claude/work/perf-runs/fix-5-vsync/suite/chooser-bg-2
+11:15:54 chooser start 3
+/home/claude/work/perf-runs/fix-5-vsync/suite/chooser-start-3
+11:16:25 chooser background 3, idle 600 s
+/home/claude/work/perf-runs/fix-5-vsync/suite/chooser-bg-3
+11:26:07 gadgetbridge start 1
+/home/claude/work/perf-runs/fix-5-vsync/suite/gadgetbridge-start-1
+11:26:39 gadgetbridge background 1, idle 600 s
+/home/claude/work/perf-runs/fix-5-vsync/suite/gadgetbridge-bg-1
+11:37:21 gadgetbridge start 2
+/home/claude/work/perf-runs/fix-5-vsync/suite/gadgetbridge-start-2
+11:37:53 gadgetbridge background 2, idle 600 s
+/home/claude/work/perf-runs/fix-5-vsync/suite/gadgetbridge-bg-2
+11:48:35 gadgetbridge start 3
+/home/claude/work/perf-runs/fix-5-vsync/suite/gadgetbridge-start-3
+11:49:07 gadgetbridge background 3, idle 600 s
+/home/claude/work/perf-runs/fix-5-vsync/suite/gadgetbridge-bg-3
+11:58:50 suite done: /home/claude/work/perf-runs/fix-5-vsync/suite
+/home/claude/work/perf-runs/fix-5-vsync/suite/chooser-visible-1
+/home/claude/work/perf-runs/fix-5-vsync/suite/chooser-visible-2
+/home/claude/work/perf-runs/fix-5-vsync/suite/chooser-visible-3

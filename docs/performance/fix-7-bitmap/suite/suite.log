@@ -1,0 +1,28 @@
+12:27:20 chooser start 1
+/home/claude/work/perf-runs/fix-7-bitmap/suite/chooser-start-1
+12:27:51 chooser background 1, idle 600 s
+/home/claude/work/perf-runs/fix-7-bitmap/suite/chooser-bg-1
+12:37:33 chooser start 2
+/home/claude/work/perf-runs/fix-7-bitmap/suite/chooser-start-2
+12:38:04 chooser background 2, idle 600 s
+/home/claude/work/perf-runs/fix-7-bitmap/suite/chooser-bg-2
+12:48:46 chooser start 3
+/home/claude/work/perf-runs/fix-7-bitmap/suite/chooser-start-3
+12:49:17 chooser background 3, idle 600 s
+/home/claude/work/perf-runs/fix-7-bitmap/suite/chooser-bg-3
+12:58:59 gadgetbridge start 1
+/home/claude/work/perf-runs/fix-7-bitmap/suite/gadgetbridge-start-1
+12:59:30 gadgetbridge background 1, idle 600 s
+/home/claude/work/perf-runs/fix-7-bitmap/suite/gadgetbridge-bg-1
+13:09:13 gadgetbridge start 2
+/home/claude/work/perf-runs/fix-7-bitmap/suite/gadgetbridge-start-2
+13:09:45 gadgetbridge background 2, idle 600 s
+/home/claude/work/perf-runs/fix-7-bitmap/suite/gadgetbridge-bg-2
+13:19:27 gadgetbridge start 3
+/home/claude/work/perf-runs/fix-7-bitmap/suite/gadgetbridge-start-3
+13:19:59 gadgetbridge background 3, idle 600 s
+/home/claude/work/perf-runs/fix-7-bitmap/suite/gadgetbridge-bg-3
+13:30:41 suite done: /home/claude/work/perf-runs/fix-7-bitmap/suite
+/home/claude/work/perf-runs/fix-7-bitmap/suite/chooser-visible-1
+/home/claude/work/perf-runs/fix-7-bitmap/suite/chooser-visible-2
+/home/claude/work/perf-runs/fix-7-bitmap/suite/chooser-visible-3

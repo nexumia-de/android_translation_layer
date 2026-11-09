@@ -1,0 +1,6 @@
+23:59:41 start 2-webkit claude/perf-webkit-lazy-118
+0e21d572 fixup: webkit library needs _LARGEFILE64_SOURCE
+23:59:42 build
+23:59:48 smoke
+00:10:39 suite
+01:12:58 done

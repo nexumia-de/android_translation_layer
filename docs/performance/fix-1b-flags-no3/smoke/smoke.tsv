@@ -1,0 +1,16 @@
+chooser	ok	45	-
+fdroid	ok	46	-
+aurora	ok	46	-
+gadgetbridge	ok	46	-
+comaps	ok	45	-
+heliboard	ok	46	-
+gpslogger	ok	46	-
+whatsapp	exited	4	-
+fluffychat	ok	46	-
+blokish	ok	45	-
+komoot	ok	46	-
+dbnavigator	ok	46	-
+dhl	ok	45	-
+duolingo	crash	46	Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR) fault addr 0
+superproductivity	exited	10	Fatal signal 6 (SIGABRT), code -6 (SI_TKILL)
+owntracks	ok	45	-
