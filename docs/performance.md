@@ -291,6 +291,40 @@ Branch `claude/perf-runtime-flags-118`. Before: `fix-0-phosh`
 Merged. Item 3 (`GDK_DISABLE=vulkan`) was on the branch first and was
 reverted, see item 3.
 
+### Item 2: WebKit loaded with the first page
+
+Branch `claude/perf-webkit-lazy-118`. Before: `fix-1b-flags-no3`
+(`5f20712c`, the code of `phosh` after items 1 and 6), after:
+`fix-2-webkit` (`0e21d572`). Both series ran with the agent on the
+phone and before a second agent session (account `user`) started on
+it on 2026-11-09 at about 08:40; fixes after this one need a new
+"before" measured with both agents running.
+
+| | First frame (ms) | PSS after start (MB) | USS after start (MB) | PSS after idle (MB) | CPU ms/min covered | Wake-ups/min covered | GPU MB |
+|---|---|---|---|---|---|---|---|
+| before | 2430 / 2228 | 208 / 255 | 182 / 218 | 225 / 264 | 6610 / 3 | 3618 / 5 | 99 / 63 |
+| after | 2498 / 2298 | 171 / 217 | 146 / 180 | 189 / 228 | 6608 / 3 | 3619 / 5 | 99 / 63 |
+
+- **Memory**: 36 to 38 MB less PSS and USS per process, almost all
+  private. By category after idle (Chooser): `lib-gtk` 36.5 -> 8.9 MB
+  (the category also holds the WebKit libraries), `lib-other` 34.9 ->
+  25.7 MB (libsoup, libflite with its voices, libenchant, libhyphen,
+  libmanette, libavif, libxslt and other WebKit dependencies are no
+  longer mapped). The analysis estimated 10 to 20 MB.
+- **CPU, GPU**: unchanged.
+- **Start**: the first frame is 3 % later in both apps, inside the
+  drift between series seen in the A/B run of items 1 and 6 (161 ms);
+  each range overlaps the other series' median.
+- **WebView still works**: `grep -c webkit /proc/<pid>/maps` is 0 for
+  Chooser and Gadgetbridge; Post & DHL (onboarding page) and DB
+  Navigator (already at start) load `libtranslation_layer_webkit.so`
+  and WebKit, start their web processes and show the page as before.
+  komoot does not open a WebView at start; WhatsApp exits before its
+  first screen (already on `phosh`).
+- **Smoke test**: the same as before.
+
+Merged.
+
 # Code analysis
 
 Read from the code only, on 2026-11-08, while the baseline suite ran on
@@ -416,7 +450,8 @@ musl binds every symbol at load time, so the cost is paid up front:
 the relocation of some hundred thousand entries (start time), their
 GOT and `.data.rel.ro` pages (private, written), and the symbol-table
 pages read to resolve them. Chooser, HeliBoard and Gadgetbridge never
-show a WebView; DB Navigator does, for tickets.
+show a WebView; DB Navigator creates one already at start, Post & DHL
+on its onboarding page.
 
 **Android.** The WebView implementation is a separate APK (Chromium)
 that `WebViewFactory` loads into the app only when the first `WebView`
@@ -431,6 +466,10 @@ time. The estimate has the widest range of all items; the baseline's
 `libjavascriptcoregtk`, `libgst*`, `libsoup`, `libenchant`,
 `libhyphen`, `libwoff2`, `libmanette`, `libavif` in the biggest-mappings
 table, or in the raw `smaps-start.txt.gz`).
+
+**Result.** Done (fix "Item 2" in Results): 36 to 38 MB less per
+process without a WebView, more than estimated, because the WebKit
+dependencies in `lib-other` go too.
 
 **Size.** S to M. Move the WebView glue into its own shared library
 (`libtranslationlayer_webkit.so`, following the one-job-per-file rule)

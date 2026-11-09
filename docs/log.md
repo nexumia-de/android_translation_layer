@@ -273,3 +273,7 @@ Chooser compared with `phosh` ([app status](apps.md),
 ## 2026-11-08: Boot image without relocation, CheckJNI opt-in
 
 * **Runtime flags (#118)**: ATL starts ART with `-Xnorelocate` (opt-out `ATL_RELOCATE_BOOT_IMAGE=1`) and without CheckJNI (opt-in `ATL_CHECK_JNI=1`). Chooser's covered idle CPU fell from 8.3 to 6.6 s per minute and the first frame comes 4 to 9 % earlier; memory is unchanged within noise (boot image 1.9 MB less private dirty; the analysis' estimate of 25 to 30 MB was wrong, corrected in [performance](performance.md#1-the-boot-image-is-relocated-privately-in-every-process)). Rendering with GL only (`GDK_DISABLE=vulkan`) was measured and rejected: more GPU memory, later first frame, a crash in Mesa. `tools/app-smoke.sh` starts every app of [apps.md](apps.md) once ([performance](performance.md#fixes)).
+
+## 2026-11-09: WebKit loaded with the first page
+
+* **WebView glue in its own library (#118)**: `libtranslation_layer_webkit.so` holds the WebView glue and links WebKitGTK; `WebView.java` loads it before the first page or script, so apps without a WebView no longer map WebKit and its dependencies. Chooser and Gadgetbridge use 36 to 38 MB less memory (PSS and USS) each; CPU and GPU are unchanged. Post & DHL and DB Navigator still show their WebView pages ([performance](performance.md#item-2-webkit-loaded-with-the-first-page)).
