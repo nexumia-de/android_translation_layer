@@ -146,6 +146,7 @@ a commit is added, sent or merged.
 | `api-impl: DrawableContainer: pass color filter, tint, state and level on to the current child` (same) | 110 lines | kept |
 | `api-impl: ImageView and LayerDrawable: apply color filters and tints` (same) | 90 lines | kept |
 | `api-impl: Canvas: matrix calls on a canvas without bitmap` (HeliBoard aborted after a long press) | 10 lines | kept |
+| `api-impl: MediaPlayer: open the GStreamer pipeline on first use, release it after playback` (a pipeline, GL context and 7 threads per sound effect at start; #118) | 110 lines | kept, untested |
 
 Commit ids are those on `phosh`; cherry-pick them from there.
 

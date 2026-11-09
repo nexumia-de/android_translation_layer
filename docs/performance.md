@@ -1,9 +1,9 @@
 ---
 type: Plan
 title: Base cost of ATL apps (memory first)
-description: Goal, how the cost of an ATL app is measured on the phone, the baseline of 2026-11-08 (Chooser, Gadgetbridge, HeliBoard, DB Navigator, two apps at once), the code analysis of the base cost with each estimate checked against the measurements, what apps can share in per-app Flatpaks, and the handoff for the analysis; nothing fixed yet.
+description: Goal, how the cost of an ATL app is measured on the phone, the baseline of 2026-11-08 (Chooser, Gadgetbridge, HeliBoard, DB Navigator, two apps at once), the code analysis of the base cost with each estimate checked against the measurements, what apps can share in per-app Flatpaks, the fixes measured so far (items 1, 2 and 6 merged, 3, 5 and 7 rejected, 4 measured in an A/B run, 11 implemented and not yet measured), and the handoff.
 tags: [performance, memory, battery, background, gadgetbridge, measurement, art, boot-image, webkit, mesa, flatpak]
-generated: { by: claude-code/2.1.319, at: 2026-11-08T20:00:00Z }
+generated: { by: claude-code/2.1.319, at: 2026-11-09T18:00:00Z }
 sources:
   - "on-device: tools/perf-suite.sh runs in ~/work/perf-runs/suite-p1..p5 (p1 and p2 done), small result files under performance/"
   - id: gtk-renderer
@@ -383,6 +383,94 @@ idle, `chooser-visible-N`) next to the suite.
   depends on how many other processes map them at that moment. Compare
   USS for library categories.
 - **Smoke test**: the same as before in both.
+
+### Item 4: framework on the boot class path (A/B measured, not merged)
+
+Branch `claude/perf-framework-boot-118` (`a276340f`, on top of #130):
+`api-impl.jar` is put on the boot class path through the `BOOTCLASSPATH`
+environment (ART's ten default jars plus `api-impl.jar`), so the
+framework is compiled into the boot image at the first start after an
+ATL update (7 s, 25 s CPU); `ATL_FRAMEWORK_ON_CLASSPATH=1` switches it
+off. `-Xbootclasspath/a:` does not work: the dex2oat processes ART
+starts for the apps' dex files pass only `--boot-image`, read ART's
+default boot class path, take the image for stale and delete it, so it
+was built again at every start. `main.c` also passes a null class
+loader to `Runtime.loadLibrary` when the framework's loader is the
+`BootClassLoader`, which finds no libraries.
+
+A/B on one build (`performance/ab-boot`, `scripts/ab-boot.sh`): each
+arm with its own `XDG_CACHE_HOME`, one warm-up start, then four Chooser
+starts alternating between the arms, 30 s settle, no idle. Totals from
+the raw smaps (`scripts/pd.py`), first frame from `start.tsv`:
+
+| Arm | Private dirty (MB) | Private clean (MB) | PSS (MB) | First frame (ms) |
+|---|---|---|---|---|
+| boot image (branch) | 64.4 / 64.4 / 65.1 / 65.1 | 85.7 / 85.4 / 85.5 / 85.5 | 173.6 / 173.5 / 174.2 / 174.1 | 2203 / 2195 / 2236 / 2195 |
+| class path (today) | 67.1 / 71.0 / 70.9 / 70.9 | 75.6 / 75.7 / 75.9 / 75.5 | 166.4 / 170.4 / 170.4 / 170.0 | 2173 / 2361 / 2434 / 2336 |
+
+- **Memory**: about 6 MB less private dirty memory per app (medians
+  64.8 against 70.9 MB), the framework's class metadata that is now in
+  the image file. 10 MB more private *clean* pages: the framework's
+  part of the boot image, which is file-backed and shared by every ATL
+  process that runs at the same time. With one process they count as
+  private and raise PSS by 3.6 MB; with two apps the second pays
+  nothing for them, so the gain per additional app is the 6 MB. What
+  each extra app costs is private dirty memory; USS misleads with one
+  ATL process, since shared file pages count as USS there.
+- **Start**: first frame about 150 ms earlier (medians 2199 against
+  2348 ms).
+- **Open**: a pair run (`perf-run.sh -2`) to show the clean pages shared,
+  the smoke test of all apps on the branch, and the start time of the
+  first start after an update (the image build). `boot-api-impl.art` is
+  only 244 kB, so few framework classes are in the image itself; an
+  image class list or a profile for `GenerateImage` in art_standalone
+  could put more there. Side finding: `api-impl.jar` stays on
+  `java.class.path` too (`ATLPaths` and `AssetManager` read it from
+  there), so ART also tries to compile it as class path dex at the
+  first start and fails without harm.
+
+Not merged: the pair run and the smoke test need the phone.
+
+### Item 11: MediaPlayer pipeline on first use, released after playback
+
+Implemented 2026-11-09 in the cloud (no phone), **not yet measured**.
+Commit `api-impl: MediaPlayer: open the GStreamer pipeline on first
+use, release it after playback` (upstream-ready, touches only
+`MediaPlayer.java`, its JNI file and generated header):
+
+- `setDataSource()` and `prepare()` keep only the path. The
+  `GtkMediaFile` is created on the first call that needs the stream
+  (`start()`, `seekTo()`, `getDuration()`, `prepareAsync()`), so a
+  player that an app creates for a sound effect and never plays costs
+  no pipeline, no GL context and no threads.
+- The muted play-through in the `prepared` callback is gone. Upstream
+  removed the same hack from `SoundPool` on 2026-10-25 ("no longer
+  needed"; PipeWire restores a stream's muted state at the next start,
+  so the hack could mute every stream of the app). It also decoded every
+  file in full at start.
+- The `prepare()` hack that marked the stream prepared with duration 0
+  is gone too: it made GTK's backend skip its own `stream_prepared`
+  call, so `getDuration()` stayed 0 for the player's lifetime.
+- Five seconds after playback has ended (not while looping), the file
+  is closed (`gtk_media_file_clear`), which stops and frees the
+  `GstPlay` pipeline with its threads and GL context; `start()` and
+  `seekTo()` open the file again, with the known duration. `stop()`
+  closes it at once, as Android's `stop()` releases the decoders.
+- The completion listener is stored on the stream and replaced instead
+  of connecting a new handler per `setDataSource()`.
+
+Checked here: the C file compiles against GTK 4.14 and JNI headers; the
+Java changes compile only in ATL's build (the JDK lacks libcore). To
+measure on the phone, Chooser `-i 0` against `phosh`: `threads-start.tsv`
+should have no `GstPlay`, `gstglcontext`, `typefind*`, `multiqueue*`,
+`aqueue:src` or `oggdemux*` threads (21 of Chooser's 92), fewer Mesa
+threads (`gldisplay-event`, `gdrv`, `traceq`, `ir3q`, `disk$`: 46 in
+Chooser, 17 in HeliBoard), and `stacks` plus the GStreamer, Opus,
+Vorbis, Ogg and PulseAudio libraries in `smaps-start.tsv` should drop
+(estimated 12 to 15 MB); `start.tsv` gives the start time. Then the
+owner test: Chooser's choice sound plays, also twice in a row and again
+after more than five seconds; Duolingo's GET STARTED still works
+(`MediaPlayer.setDataSource(AssetFileDescriptor)`), and the smoke test.
 
 # Code analysis
 
@@ -967,6 +1055,11 @@ re-creating per playback drops the threads). Upstream-ready as one
 commit; `MediaPlayer.create()` still returns a usable player, since
 `prepare()` already does not wait for GStreamer.
 
+**Done.** Implemented 2026-11-09, see [Item 11](#item-11-mediaplayer-pipeline-on-first-use-released-after-playback)
+under Fixes; the GL context per pipeline comes from GTK's
+`GtkGstPaintable`, which creates a GDK GL context for the video sink of
+every `GstPlay` it renders, audio-only or not.
+
 **Verify.** Chooser `-i 0`: the `GstPlay`, `gstglcontext`, `typefind`,
 `multiqueue` and `aqueue` threads must be absent from
 `threads-start.tsv` until a sound is played, the Mesa thread count
@@ -1054,7 +1147,7 @@ starts, as [the order of work](#order-of-work) says.
 
 # Handoff for the analysis
 
-State of 2026-11-09, where the measured data is, the item 4 result not
-yet written above and what is open: [performance/handoff.md](performance/handoff.md).
+State of 2026-11-09, where the measured data is and what is open:
+[performance/handoff.md](performance/handoff.md).
 
 <!-- HANDOFF -->

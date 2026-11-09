@@ -18,7 +18,10 @@ import java.io.IOException;
 import java.util.Map;
 
 public class MediaPlayer {
+	/* the GtkMediaFile; created on the first call that needs it, so a player
+	 * that is only prepared (sound effects) costs no GStreamer pipeline */
 	private long gtk_media_stream;
+	private String path;
 
 	public interface OnCompletionListener {
 		@Export
@@ -96,10 +99,25 @@ public class MediaPlayer {
 	}
 
 	public void setDataSource(String path) {
-		gtk_media_stream = native_setDataSource(path);
-		if (completionListener != null)
-			native_setOnCompletionListener(gtk_media_stream, completionListener);
-		native_setLooping(gtk_media_stream, looping);
+		if (gtk_media_stream != 0)
+			native_release(gtk_media_stream);
+		gtk_media_stream = 0;
+		this.path = path;
+	}
+
+	/* returns the GtkMediaFile, created on first use; 0 without a data source */
+	private long stream() {
+		if (gtk_media_stream == 0) {
+			if (path == null) {
+				Slog.w("MediaPlayer", "no data source set");
+				return 0;
+			}
+			gtk_media_stream = native_create(path);
+			native_setLooping(gtk_media_stream, looping);
+			if (completionListener != null)
+				native_setOnCompletionListener(gtk_media_stream, completionListener);
+		}
+		return gtk_media_stream;
 	}
 
 	public void setDataSource(Context context, Uri uri) {
@@ -122,7 +140,7 @@ public class MediaPlayer {
 
 	public void setOnCompletionListener(MediaPlayer.OnCompletionListener listener) {
 		completionListener = listener;
-		if (gtk_media_stream != 0 && listener != null)
+		if (gtk_media_stream != 0)
 			native_setOnCompletionListener(gtk_media_stream, listener);
 	}
 
@@ -136,24 +154,26 @@ public class MediaPlayer {
 	public void setAudioStreamType(int dummy) {}
 
 	public void start() {
-		native_start(gtk_media_stream, volume);
+		long stream = stream();
+		if (stream != 0)
+			native_start(stream, volume);
 	}
 
 	public void stop() {
-		native_pause(gtk_media_stream);
-		native_seekTo(gtk_media_stream, 0);
+		if (gtk_media_stream != 0)
+			native_stop(gtk_media_stream);
 	}
 
 	public void pause() {
-		native_pause(gtk_media_stream);
+		if (gtk_media_stream != 0)
+			native_pause(gtk_media_stream);
 	}
 
-	public void prepare() {
-		native_prepare(gtk_media_stream);
-	}
+	/* the file is opened on the first start(), seekTo() or duration query */
+	public void prepare() {}
 
 	public void prepareAsync() {
-		native_prepare(gtk_media_stream);
+		stream(); // open the file now, so the duration is known when the app asks
 		new Handler(Looper.getMainLooper()).post(new Runnable() {
 			@Override
 			public void run() {
@@ -167,6 +187,7 @@ public class MediaPlayer {
 		if (gtk_media_stream != 0)
 			native_release(gtk_media_stream);
 		gtk_media_stream = 0;
+		path = null;
 	}
 
 	public void release() {
@@ -178,7 +199,9 @@ public class MediaPlayer {
 	}
 
 	public void seekTo(int msec) {
-		native_seekTo(gtk_media_stream, msec);
+		long stream = stream();
+		if (stream != 0)
+			native_seekTo(stream, msec);
 	}
 
 	public void seekTo(long msec, int mode) {
@@ -194,22 +217,23 @@ public class MediaPlayer {
 	}
 
 	public int getDuration() {
-		return native_getDuration(gtk_media_stream);
+		long stream = stream();
+		return stream != 0 ? native_getDuration(stream) : 0;
 	}
 
 	public int getCurrentPosition() {
-		return native_getCurrentPosition(gtk_media_stream);
+		return gtk_media_stream != 0 ? native_getCurrentPosition(gtk_media_stream) : 0;
 	}
 
 	public int getAudioSessionId() { return 0; }
 
 	public void setWakeMode(Context context, int mode) {}
 
-	public static native void native_prepare(long gtk_media_stream);
-	public native long native_setDataSource(String path);
+	public native long native_create(String path);
 	public static native void native_setOnCompletionListener(long gtk_media_stream, MediaPlayer.OnCompletionListener listener);
 	public static native void native_start(long gtk_media_stream, float volume);
 	public static native void native_pause(long gtk_media_stream);
+	public static native void native_stop(long gtk_media_stream);
 	public static native void native_seekTo(long gtk_media_stream, int msec);
 	public static native void native_setLooping(long gtk_media_stream, boolean looping);
 	public static native void native_setVolume(long gtk_media_stream, float volume);

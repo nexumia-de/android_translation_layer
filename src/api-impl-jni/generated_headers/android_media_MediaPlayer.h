@@ -9,18 +9,10 @@ extern "C" {
 #endif
 /*
  * Class:     android_media_MediaPlayer
- * Method:    native_prepare
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1prepare
-  (JNIEnv *, jclass, jlong);
-
-/*
- * Class:     android_media_MediaPlayer
- * Method:    native_setDataSource
+ * Method:    native_create
  * Signature: (Ljava/lang/String;)J
  */
-JNIEXPORT jlong JNICALL Java_android_media_MediaPlayer_native_1setDataSource
+JNIEXPORT jlong JNICALL Java_android_media_MediaPlayer_native_1create
   (JNIEnv *, jobject, jstring);
 
 /*
@@ -45,6 +37,14 @@ JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1start
  * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1pause
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     android_media_MediaPlayer
+ * Method:    native_stop
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_android_media_MediaPlayer_native_1stop
   (JNIEnv *, jclass, jlong);
 
 /*

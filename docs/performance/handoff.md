@@ -52,51 +52,34 @@ the same conditions. CPU per series drifts by about 15 %; the PSS of
 shared libraries (`lib-mesa`) swings with the other processes on the
 phone, so compare USS or Private_Dirty there.
 
-## Item 4: not yet in performance.md
+## Item 4: measured, not merged
 
-Branch `claude/perf-framework-boot-118` (pushed, no PR): `api-impl.jar`
-on the boot class path through `BOOTCLASSPATH` (ART's ten default jars
-plus `api-impl.jar`), so the framework is compiled into the boot image;
-`ATL_FRAMEWORK_ON_CLASSPATH=1` switches it off. `-Xbootclasspath/a:`
-was tried first and does not work: the dex2oat processes ART starts for
-the apps' dex files pass only `--boot-image` and read ART's default
-boot class path, take the image for stale and delete it, so it was
-built again at every start (`art/runtime/oat_file_assistant.cc`,
-`GetBestOatFile`). `main.c` also passes a null class loader to
-`Runtime.loadLibrary` when the framework's loader is the
-`BootClassLoader`, which finds no libraries.
+Written up in [performance.md](../performance.md#item-4-framework-on-the-boot-class-path-ab-measured-not-merged)
+on 2026-11-09 from `ab-boot` (branch `claude/perf-framework-boot-118`,
+`a276340f`, pushed, no PR). Open on the phone: a pair run
+(`perf-run.sh -2`) to show the framework's image pages shared, and the
+smoke test of all apps on the branch; then PR.
 
-`ab-boot` (script `scripts/ab-boot.sh`): one build, each arm with its
-own `XDG_CACHE_HOME` (else each switch rebuilds the boot image), one
-warm-up start, then 4 Chooser starts alternating, 30 s settle, no idle.
+## Item 11: implemented, not measured
 
-| Run | Private_Dirty | Private_Clean | PSS | First frame (ms) |
-|---|---|---|---|---|
-| boot 1-4 | 64.4 / 64.4 / 65.1 / 65.1 | 85.7 / 85.4 / 85.5 / 85.5 | 173.6 / 173.5 / 174.2 / 174.1 | 2203 / 2195 / 2236 / 2195 |
-| classpath 1-4 | 67.1 / 71.0 / 70.9 / 70.9 | 75.6 / 75.7 / 75.9 / 75.5 | 166.4 / 170.4 / 170.4 / 170.0 | 2173 / 2361 / 2434 / 2336 |
-
-(MB from `scripts/pd.py` on `smaps-start.txt.gz`.) Reading: about 6 MB
-less private dirty memory per app and about 150 ms earlier first frame
-(medians); 10 MB more private *clean* pages, the framework's boot image
-files, which a second ATL app shares (only one ATL process ran, so they
-count as private and raise PSS by 4 MB here). To confirm: a pair run
-(two apps at once, `perf-run.sh -2`) to show the clean pages shared,
-and the smoke test of all apps on the branch. The boot image with the
-framework is built in 7 s (25 s CPU) at the first start after every ATL
-update. `boot-api-impl.art` is only 244 kB: few framework classes are
-in the image itself; an image class list or profile for
-`GenerateImage` in art_standalone could give more. Side finding:
-`api-impl.jar` is still on `java.class.path` too (`ATLPaths` and
-`AssetManager` read it from there), so ART also tries to compile it as
-class path dex at the first start and fails without harm.
+Branch `claude/atl-app-cost-reduction-whgdbj` (2026-11-09, cloud
+session without the phone): `MediaPlayer` opens its GStreamer pipeline
+on first use and closes it five seconds after playback ends; the muted
+play-through and the fake `prepared` are gone. What to measure and
+test is in [performance.md](../performance.md#item-11-mediaplayer-pipeline-on-first-use-released-after-playback).
+The branch is not built: build it on the phone first (`run-fix.sh`),
+then Chooser `-i 0` against `phosh`, then the smoke test and the sound
+test.
 
 ## Open, by expected gain
 
-1. Item 4: pair run and smoke test on the phone, then docs and PR.
-2. Item 11: a GStreamer pipeline per MediaPlayer, about 25 threads in
-   Chooser.
+1. Item 11: build, measure (Chooser threads, `stacks`, audio libraries,
+   start time) and test sound on the phone; then merge.
+2. Item 4: pair run and smoke test on the phone, then PR.
 3. Item 8: Mesa threads (Chooser: 10 `gdrv`, 12 `traceq`, 8 `ir3q`,
-   10 `disk$`): disk cache and u_trace environment switches.
+   10 `disk$`): disk cache and u_trace environment switches. Item 11
+   should already remove the contexts of the audio pipelines; measure
+   it first.
 4. Baseline again with the fixed cover; then HeliBoard, DB Navigator,
    WhatsApp and FluffyChat; work on what costs most.
 5. On the real phone: does phoc stop frame callbacks for an app in the
