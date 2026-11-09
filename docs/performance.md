@@ -1,9 +1,9 @@
 ---
 type: Plan
 title: Base cost of ATL apps (memory first)
-description: Goal, how the cost of an ATL app is measured on the phone, the baseline of 2026-11-08 (Chooser, Gadgetbridge, HeliBoard, DB Navigator, two apps at once), the code analysis of the base cost with each estimate checked against the measurements, what apps can share in per-app Flatpaks, the fixes measured so far (items 1, 2 and 6 merged, 3, 5 and 7 rejected, 4 measured in an A/B run, 11 implemented and not yet measured), and the handoff.
-tags: [performance, memory, battery, background, gadgetbridge, measurement, art, boot-image, webkit, mesa, flatpak]
-generated: { by: claude-code/2.1.319, at: 2026-11-09T18:00:00Z }
+description: Goal, how the cost of an ATL app is measured on the phone, the baseline of 2026-11-08 (Chooser, Gadgetbridge, HeliBoard, DB Navigator, two apps at once), the code analysis of the base cost with each estimate checked against the measurements, what apps can share in per-app Flatpaks, the fixes measured so far (items 1, 2 and 6 merged, 3, 5 and 7 rejected, 4 measured in an A/B run, 11 merged and not yet measured), the evaluation of all measurements with the ranked list of what can still be implemented (GPU memory first, then the app image and the split of the anonymous memory), and the handoff.
+tags: [performance, memory, battery, background, gadgetbridge, measurement, art, boot-image, webkit, mesa, gpu-memory, app-image, flatpak]
+generated: { by: claude-code/2.1.319, at: 2026-11-09T19:30:00Z }
 sources:
   - "on-device: tools/perf-suite.sh runs in ~/work/perf-runs/suite-p1..p5 (p1 and p2 done), small result files under performance/"
   - id: gtk-renderer
@@ -1144,6 +1144,189 @@ starts, as [the order of work](#order-of-work) says.
 [^gtk-dmabuf]: GTK 4.20.0, gdk/gdkdisplay.c
 [^gtk-gpu-cache]: GTK 4.20.0, gsk/gpu/gskgpudevice.c and gskgpurenderer.c
 [^alpine-mesa]: Alpine aports, main/mesa/APKBUILD
+
+# Evaluation of the measurements (2026-11-09)
+
+Read from the data in [performance/](performance/) (baseline `suite-p1`,
+`suite-p2`; the fix series `fix-0` to `fix-7`; the raw smaps of
+`ab-boot`), without the phone. It answers step 2 of the plan: where
+the memory goes now, what the fixes gave, and what can still be
+implemented. Numbers are Chooser / Gadgetbridge unless said otherwise,
+medians of the three covered 10-minute runs of `fix-3-phosh`
+(`fe78b717`, the code of `phosh` after items 1, 2 and 6; items 4 and
+11 are not in it).
+
+## What an ATL app costs today
+
+| | Chooser | Gadgetbridge | HeliBoard (baseline, with WebKit) | DB Navigator (baseline) |
+|---|---|---|---|---|
+| PSS after 10 min idle (MB) | 183 | 218 | 199 | 311 |
+| USS (MB) | 155 | 184 | 174 | 270 |
+| GPU memory total / resident (MB, `fdinfo`) | 98 / 74 | 63 / 51 | 62 / 50 | 100 / 76 |
+| Threads | 91 | 47 | 37 | 92 |
+| CPU covered (ms/min) | 10 (fully covered, `check-cover-fs`) | 5 | 3 (not fully covered) | 33 (not fully covered) |
+| First frame (ms) | 2300 | 2300 | 1700 | 5500 |
+
+HeliBoard without WebKit (item 2) should be about 36 MB lower, like
+Chooser; it has not been measured since. DB Navigator shows a WebView
+at start and keeps WebKit.
+
+**GPU memory is not in PSS.** The GEM buffers a process holds through
+its DRM file are counted by `fdinfo` only; `perf-smaps.py`'s `graphics`
+category is empty in every run because Turnip maps them only
+transiently. So the real footprint of an ATL app is PSS plus GPU
+memory: about 280 MB for Chooser and Gadgetbridge alike, 360 MB for
+HeliBoard with WebKit, 410 MB for DB Navigator.
+
+**What is private and what is shared.** From the raw smaps of the
+Chooser A/B (`ab-boot/cp-1`, today's code path, 30 s after start, PSS
+170 MB):
+
+| Kind | MB | What it is | Who shares it |
+|---|---|---|---|
+| Private dirty | 71 | anonymous memory 40 (`native-anon`), thread stacks 12, Java heap 4.5, the writable data of the libraries (relocated `.data.rel.ro`, `.data`, `.bss`) about 14 | nobody: this is what each process costs for sure |
+| Private clean | 76 | boot image, `boot.oat`/`.vdex`, `api-impl` oat, `libart.so` and the other files only ATL processes map | every other ATL app running at the same time (the pair run shows 106 MB shared between Gadgetbridge and Chooser) |
+| Shared clean | 105 | GTK, GLib, Mesa, LLVM, ICU data, fonts, the app's APK | already shared with Phosh and its GTK apps on the host; inside Flatpak only with apps on the same runtime |
+
+So of Chooser's 170 MB PSS only 71 MB is unavoidably per process at
+start, and PSS overstates the cost of a second app: the pair run gives
+the second ATL app 156 MB PSS but 85 MB USS. Over ten minutes the
+private part grows (Chooser's `stacks` from 12 to 20 to 33 MB in the
+three runs, see finding 3), so the running cost of Chooser is 85 to
+100 MB private CPU memory **plus 98 MB GPU memory**; for Gadgetbridge
+about 125 MB private (`native-anon` 85, stacks 9, Java heap 15,
+library data about 15) **plus 63 MB GPU memory**. GPU memory is
+between a third and a half of what each app really costs, and nothing
+has looked at it yet.
+
+## What the fixes gave
+
+| Item | Result | State |
+|---|---|---|
+| 1 `-Xnorelocate` | 1.9 MB private dirty per app; the 32 MB were a misreading of clean file pages | merged |
+| 6 CheckJNI off | -21 % CPU while drawing, first frame 4 to 9 % earlier | merged |
+| 2 WebKit lazy | -36 to -38 MB PSS and USS per app without WebView | merged |
+| 3 GL instead of Vulkan | +37 / +85 MB GPU memory, later first frame, one Mesa crash | rejected |
+| 5 frames on GTK's clock | nothing: GTK already stops drawing a hidden window; the background CPU seen before was a cover that left a strip visible | rejected, branch kept |
+| 7 one bitmap renderer | 4 to 7 MB USS, within the swing of the series | branch kept |
+| 4 framework in the boot image | -6 MB private dirty per app, +10 MB shareable clean pages, first frame -150 ms | A/B done, pair run and smoke test open |
+| 11 MediaPlayer pipeline on first use | expected -12 to -15 MB and -50 threads for Chooser, nothing for the other three | merged, not measured |
+
+Chooser went from 222 to 183 MB PSS, Gadgetbridge from 263 to 218;
+with items 4 and 11 Chooser should land near 160 and Gadgetbridge near
+210. The background CPU problem the baseline seemed to show did not
+exist: fully covered, all four apps use 3 to 10 ms CPU and under ten
+wake-ups per minute, which is as good as Android's idle. Gadgetbridge
+without a watch is at 5 ms/min; with a watch it is not measured
+(owner test, [apps.md](apps.md#needs-owner)).
+
+## Findings
+
+1. **GPU memory, 62 to 100 MB per app, is the biggest block nobody has
+   examined.** It is the same 62 to 63 MB for HeliBoard and
+   Gadgetbridge, which draw little, so most of it is a floor of GTK's
+   Vulkan renderer and Turnip on this display (720x1440 at scale 2: one
+   window buffer is 4 MB, GTK keeps a swapchain of several, plus its
+   texture atlas, glyph cache and per-frame buffers; Turnip adds
+   command stream and suballocator pools). Chooser and DB Navigator
+   add 36 MB on top (bitmaps, offscreen textures; item 7 did not change
+   it). With GL instead (item 3) it was 136 to 148 MB. It also does
+   not shrink while the window is covered (98 MB throughout the idle
+   runs), although GTK's GPU cache has a 15 s timeout
+   ([^gtk-gpu-cache]). Nothing is known about its composition; it is
+   the first thing to measure.
+2. **`native-anon` is the biggest CPU-memory block and still
+   unexplained**: 40 MB Chooser, 36 HeliBoard, 85 Gadgetbridge, 97
+   DB Navigator. The raw smaps show it is not a few large regions: in
+   Chooser eight mappings over 2 MB hold 13 MB (a 38 MB region after
+   `libjavacore.so` with 4.4 MB resident, two 2 MB regions next to
+   `api-impl.jar` and the Turnip device, 2.7 MB next to the DRM
+   mappings), the other 27 MB sit in about 200 mappings of 0.1 to 2 MB
+   that are nearly fully resident: musl's malloc groups, that is
+   ordinary heap of ART (class metadata, dex caches, verifier data),
+   GTK, Pango, fontconfig, Mesa and the app's native code. It grows
+   with the app: Gadgetbridge's extra 45 MB over Chooser are its own
+   classes and data. Item 4 shows what the framework's class metadata
+   costs (6 MB); the app's own classes are compiled with `speed` but
+   their metadata is rebuilt in every process, because ATL's dex2oat
+   makes no **app image**: no `…@classes.art` is mapped in any run,
+   only `…@classes.dex` (oat) and `.vdex`. On Android an app image
+   holds the app's loaded classes pre-linked and file-backed and is
+   known to cut start time and class-loading cost. Without the kernel's
+   `CONFIG_ANON_VMA_NAME` the rest cannot be named from smaps; it needs
+   either the differential measurement or a malloc accounting tool
+   (see the table).
+3. **Thread stacks**: 12 MB at 30 s in Chooser (103 stack-like
+   mappings, 158 kB each), 9 MB in Gadgetbridge and HeliBoard, but 20
+   to 33 MB in Chooser after ten minutes of drawing: a thread's touched
+   stack pages stay resident once its deepest call has happened, and
+   interpreted code before the JIT warms up makes deep frames. Also,
+   `perf-smaps.py` counts any anonymous mapping behind a guard page as
+   a stack. Small for the always-on apps, unclear for Chooser; not a
+   first target.
+4. **Shared libraries are not where the memory is.** `lib-mesa` shows
+   25 to 29 MB PSS but only 10 MB USS; libLLVM alone is 173 MB mapped,
+   22 MB resident, 11 MB PSS, 1.4 MB private. Those pages are shared
+   with Phosh. What a process pays privately for libraries is their
+   relocated data, about 14 MB in Chooser, of which Turnip's
+   `libvulkan_freedreno.so` holds 5.8 MB (a system package matter).
+   Loading LLVM and `libgallium` at all (GTK initialises EGL for dmabuf
+   formats, item 3) still costs start time, 6 `gldisplay-event` and
+   several `gdrv`/`disk$` threads and 2.7 MB private; `GDK_DISABLE=gl`
+   (Vulkan only, the opposite of what item 3 tested) is untested.
+5. **The ART side is cheap**: Java heap 4.5 to 15 MB (30 for DB
+   Navigator), JIT cache under 1 MB, `libart.so` 7 MB resident but
+   shared between ATL apps, boot image and oat files clean and shared.
+   The ART heap reserves 256 MB (and tables for it) but touches little.
+6. **No leak in ten minutes**: PSS changes by -2 to +3 MB per 10-minute
+   run apart from the two outliers (Chooser stacks +13 MB in one run,
+   Gadgetbridge `native-anon` +9 MB in its first run); the 30-minute
+   baseline runs grew 0 to 17 MB. Whether an all-day Gadgetbridge
+   stays flat is not known: it needs one long run.
+7. **Start time** is 1.7 to 2.5 s to the first frame for the small
+   apps and 5.5 s for DB Navigator, with no breakdown yet (ART start,
+   framework class loading, GTK and Vulkan init, the app's own
+   `onCreate`). Item 4 takes 150 ms off; an app image would take more;
+   the rest is unmeasured.
+8. **Item 8 (Mesa threads) is not worth it**: Gadgetbridge's 9 `disk$`
+   (shader cache), 4 `traceq`, 2 `ir3q` and 2 `gdrv` threads cost about
+   2 MB; disabling the shader cache would cost compile time at every
+   start. Chooser's 46 Mesa threads come with the GL contexts of its
+   audio pipelines (item 11) and should go with them.
+
+## What can be implemented
+
+By expected gain for an app that runs all day, with how sure the gain
+is and the size of the work:
+
+| # | What | Expected gain | Confidence | Size | Next step |
+|---|---|---|---|---|---|
+| A | **GPU memory**: find what the 62 MB floor and Chooser's extra 36 MB are, then fix in ATL's use of GTK (renderer per draw, bitmaps as textures, offscreen nodes) or GTK/Turnip settings | 20 to 50 MB per app (real memory, not PSS) | low until measured; the block is certain, its composition unknown | measurement S, fix S to M | on the phone: Chooser and Gadgetbridge with `TU_DEBUG=bos` (Turnip prints its buffers by name and size when the device is destroyed) and `GSK_DEBUG=cache`; a 20-line GTK4 Vulkan program as the floor of GTK alone; then decide |
+| B | **Item 4**: framework in the boot image | 6 MB private per app, 150 ms start | high (A/B done) | S | pair run and smoke test on the phone, PR from `claude/perf-framework-boot-118` |
+| C | **Item 11**: measure what is merged | 12 to 15 MB and 50 threads for apps with sounds (Chooser) | medium | S | Chooser `-i 0` against `fe78b717`, smoke test, sound test |
+| D | **App image for the app's own classes**: let the dex2oat ATL runs at first start write `--app-image-file` next to the oat (`…@classes.art`; the runtime loads `<oat>.art` on its own through `OatFileAssistant::OpenImageSpace`); a change in art_standalone's `OatFileAssistant::GenerateOatFileNoChecks` or in the compiler options ATL passes | part of the app's class metadata in `native-anon` becomes file-backed and start gets faster; for Gadgetbridge perhaps 10 to 25 MB of its 85 | low: not measured, and whether `speed` app images keep all classes must be checked | M | `kill -QUIT` on Gadgetbridge for the class count; try `-Xcompiler-option --app-image-file=…` by hand on one app; measure `native-anon` and first frame |
+| E | **Split `native-anon`** so items can be chosen with numbers | none directly; decides D and what follows | - | S for the differential, M for the tool | differential: `perf-smaps.py` on a plain GTK4 Vulkan program and on ART running a hello world (`art_standalone`'s launcher) on the phone; the remainder is ATL and the app. Tool: an `LD_PRELOAD` malloc accounting shim in `tools/` (musl hides its allocator, so the shim brings its own and attributes by the caller's library through `dladdr`), dump on `SIGUSR2` |
+| F | **Vulkan only** (`GDK_DISABLE=gl`): do not load LLVM and `libgallium` in a process that renders with Vulkan | 2.7 MB private, 16 MB PSS share, 6 to 15 threads, start time | medium; risk: dmabuf import for video and WebKit falls back | S | A/B like `ab-flags.sh`: Chooser and DB Navigator (WebView) with and without, check video in DB Navigator's pages |
+| G | **Long run**: Gadgetbridge for 12 hours covered, with a watch if the owner connects one | knowledge: leak or not; the owner's real complaint was an app running all day | - | S | `systemd-run --user`, `perf-run.sh -c -i 43200` |
+| H | **Start-time breakdown** | knowledge for the next items | - | S | timestamps from ART (`-verbose:startup`), ATL's log and `perf-start.py` in one timeline |
+| I | **Stacks**: see whether Chooser's growth is the app's threads or ATL's; trim is not available (ART has none, Android has none) | 0 to 20 MB for Chooser, little for the others | low | S to look, M to change | compare `threads-start` with `threads-end` stack mappings per thread in one run |
+
+Not worth doing now: item 8 (2 MB, costs start time), item 7 (no
+clear gain; keep the branch for an app that draws many bitmaps), a
+smaller ART heap reservation (it touches little), anything on the
+shared libraries' text (shared already).
+
+**Order**: A's measurement first, because it is the largest block and
+cheap to look at; B and C are ready and go to the phone in the same
+session; then E's differential, which decides between D and A's fix;
+F alongside as an A/B. G runs overnight whenever the phone is free.
+
+**Reference for the stretch goal** (better than Android): no Android
+number for Gadgetbridge on this phone exists. If Waydroid is still
+installed, `dumpsys meminfo nodomain.freeyourgadget.gadgetbridge` in
+it gives PSS and the Dalvik/native/graphics split of the same app on
+the same hardware; without it, the comparison stays an estimate
+([apps.md](apps.md#needs-owner)).
 
 # Handoff for the analysis
 
