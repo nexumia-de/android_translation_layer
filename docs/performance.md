@@ -429,7 +429,8 @@ the raw smaps (`scripts/pd.py`), first frame from `start.tsv`:
   there), so ART also tries to compile it as class path dex at the
   first start and fails without harm.
 
-Not merged: the pair run and the smoke test need the phone.
+Pair run and smoke test done 2026-11-09: see
+[B](#b-item-4-with-a-second-app-and-the-smoke-test).
 
 ### Item 11: MediaPlayer pipeline on first use, released after playback
 
@@ -530,6 +531,70 @@ of it is what any GTK4 window costs. What is left to find out is which
 object each of the two to three extra clients is (second `GdkDisplay`,
 GL context of GStreamer or of `SurfaceView`): F below removes the GL
 ones. Not implemented; that is for a second session.
+
+### B: item 4 with a second app, and the smoke test
+
+Branch `claude/perf-framework-boot-118`, rebased onto `phosh` `069812e0`
+(clean, two commits, `main.c` only) and built on the phone
+(`scripts/run-b.sh`, `run-b2.sh`; data `performance/suite-b`). Each arm
+(branch default and `ATL_FRAMEWORK_ON_CLASSPATH=1`, today's behaviour)
+has its own `XDG_CACHE_HOME`, started fresh. Pair runs: Gadgetbridge
+first, Chooser started 30 s later, snapshots 30 s after that, 3 rounds
+alternating; medians of the rounds. Memory from the raw smaps
+(`scripts/pd.py`), in MB:
+
+| | Private dirty | Private clean | PSS | First frame |
+|---|---|---|---|---|
+| Gadgetbridge alone, boot image | 77.4 | 123.3 | 231.1 | 1649 / 1685 ms |
+| Gadgetbridge alone, class path | 99.2 | 79.0 | 208.0 | 2011 / 2091 ms |
+| Gadgetbridge, with Chooser running, boot image | 76.5 | 57.8 | 191.5 | |
+| Gadgetbridge, with Chooser running, class path | 98.1 | 12.2 | 167.5 | |
+| Chooser second, boot image | 64.6 | 18.0 | 133.1 | |
+| Chooser second, class path | 69.0 | 8.6 | 128.0 | |
+
+(First frame of Gadgetbridge in rounds 2 and 3; round 1 includes
+`dex2oat` of the app.)
+
+- **Private dirty memory falls, PSS rises.** Gadgetbridge has 22 MB less
+  private dirty memory (`native-anon` 52 against 68 to 72 MB, the JIT
+  cache 32 kB against 380 kB), Chooser 4 MB less, together 26 MB. PSS
+  of the two together is 29 MB higher, because the boot image arm maps
+  file pages that the class path arm does not touch (see below). File
+  pages are not swap-backed and can be dropped under memory pressure;
+  dirty anonymous memory cannot. Which of the two the phone is short of
+  decides whether this is a gain: on this phone (7.3 GB, 11 GB swap)
+  it is the anonymous memory.
+- **Start**: Gadgetbridge shows its first frame 360 ms (18 %) earlier;
+  Chooser 150 ms earlier (A/B in "Item 4" above).
+- **The pair shares the framework's pages**: Gadgetbridge's private
+  clean memory falls by 67 MB in both arms when Chooser runs (shared
+  libraries, boot image, framework), as it should.
+- **Why PSS rises: in today's arm Gadgetbridge's own compiled code is
+  not used.** `-verbose:oat` says in both arms
+  `…@classes.dex is kOatUpToDate with filter speed`, the oat is opened
+  executable (`suite-b/verbose-*/app-oat.log`), but in the class path
+  arm 0.3 MB of the 34 MB of oat code and 1.3 of 12.4 MB of the vdex
+  are resident after 30 s, in the boot image arm 34 and 12.6 MB
+  (`scripts/pcdiff.py`). With the framework on the class path ART
+  cannot link the app's compiled classes against it directly and runs
+  them in the interpreter and the JIT (that is the 22 MB of dirty
+  memory and the slower start); with the framework in the boot image
+  the app's `speed` code runs. This is a hypothesis for the mechanism;
+  the observation (touched oat pages, JIT cache, dirty memory) is
+  measured. It means the item's gain is larger than the A/B of
+  Chooser showed, and that for every app so far ATL ran without its
+  AOT code.
+- **First start after an update** (fresh cache, image build and the
+  app's `dex2oat`, Chooser, first frame): 14.8 s with the framework in
+  the image, 14.5 s without; no difference to the user's wait. (The
+  cost of the image is 7 s inside that.)
+- **Smoke test** (`suite-b/smoke`, all 16 apps, 45 s each): 15 start and
+  run (WhatsApp and Duolingo, which exited or crashed in
+  `fix-3-phosh`, ran this time); Super Productivity exits with
+  `SIGABRT` after 33 s, as it did in `fix-3-phosh` before the branch.
+  No app is worse than before.
+
+**Result:** item 4 is ready: a PR into `phosh`.
 
 # Code analysis
 
