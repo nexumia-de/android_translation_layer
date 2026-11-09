@@ -115,15 +115,8 @@ JNIEnv *create_vm(char *api_impl_jar, char *apk_classpath, char *framework_res_a
 	/* CheckJNI checks every JNI call, and ATL makes many per frame; Android
 	 * enables it only for debuggable apps */
 	const bool check_jni = getenv("ATL_CHECK_JNI") != NULL;
-	/* the framework on the boot class path: its classes come pre-linked from
-	 * the boot image, file-backed and shared between ATL processes, instead of
-	 * being loaded from dex in every process; ATL_FRAMEWORK_ON_CLASSPATH=1
-	 * loads it from java.class.path only, as before */
-	const bool framework_in_boot_image = getenv("ATL_FRAMEWORK_ON_CLASSPATH") == NULL;
 
 	if (check_jni)
-		args.nOptions += 1;
-	if (framework_in_boot_image)
 		args.nOptions += 1;
 	if (jdwp_port)
 		args.nOptions += 2;
@@ -152,8 +145,6 @@ JNIEnv *create_vm(char *api_impl_jar, char *apk_classpath, char *framework_res_a
 	options[4].optionString = getenv("ATL_RELOCATE_BOOT_IMAGE") ? "-Xrelocate" : "-Xnorelocate";
 	if (check_jni)
 		options[option_counter++].optionString = "-Xcheck:jni";
-	if (framework_in_boot_image)
-		options[option_counter++].optionString = construct_classpath("-Xbootclasspath/a:", (char *[]){api_impl_jar}, 1);
 	if (jdwp_port) {
 		strncat(jdwp_option_string, jdwp_port, 5); // 5 chars is enough for a port number, and won't overflow our array
 		options[option_counter++].optionString = "-XjdwpProvider:internal";
@@ -1471,6 +1462,44 @@ static gboolean on_drop(GtkDropTarget *target, const GValue *value, double x, do
 	return TRUE;
 }
 
+/* The framework on the boot class path: its classes come pre-linked from the
+ * boot image, file-backed and shared between ATL processes, instead of being
+ * loaded from dex in every process. Set as BOOTCLASSPATH, not with
+ * -Xbootclasspath/a:, because the dex2oat processes ART starts for the apps'
+ * dex files read the boot class path from there; with another one they take
+ * the boot image for stale and delete it. The jars before api-impl.jar are
+ * ART's default list (art/runtime/parsed_options.cc). An existing
+ * BOOTCLASSPATH is kept; ATL_FRAMEWORK_ON_CLASSPATH=1 loads the framework
+ * from java.class.path only, as before. */
+static void put_framework_on_boot_class_path(const char *dex_install_dir, const char *api_impl_jar)
+{
+	static const char *art_jars[] = {
+		"core-oj", "apachehttp", "apache-xml", "bouncycastle", "core-junit",
+		"core-libart", "hamcrest", "junit-runner", "okhttp", "wolfssljni",
+	};
+
+	if (getenv("BOOTCLASSPATH") || getenv("ATL_FRAMEWORK_ON_CLASSPATH"))
+		return;
+	char *art_dir_path = g_strdup_printf("%s/art", dex_install_dir);
+	char *art_dir = realpath(art_dir_path, NULL);
+	char *api_impl = realpath(api_impl_jar, NULL);
+	g_free(art_dir_path);
+	if (!art_dir || !api_impl) {
+		fprintf(stderr, "can't resolve the boot class path, the framework stays on java.class.path\n");
+		free(art_dir);
+		free(api_impl);
+		return;
+	}
+	GString *bcp = g_string_new(NULL);
+	for (size_t i = 0; i < G_N_ELEMENTS(art_jars); i++)
+		g_string_append_printf(bcp, "%s/%s-hostdex.jar:", art_dir, art_jars[i]);
+	g_string_append(bcp, api_impl);
+	setenv("BOOTCLASSPATH", bcp->str, 1);
+	g_string_free(bcp, TRUE);
+	free(art_dir);
+	free(api_impl);
+}
+
 char *find_jar_or_die(char *builddir_path, char *installed_path, char *install_prefix)
 {
 	char *path;
@@ -1832,6 +1861,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	dl_parse_library_path(ld_path, ":");
 	g_free(ld_path);
 
+	put_framework_on_boot_class_path(dex_install_dir, api_impl_jar);
 	JNIEnv *env = create_vm(api_impl_jar, apk_classpath, framework_res_apk, test_runner_jar, api_impl_natives_dir, app_lib_dir, d->sdk_int, d->extra_jvm_options);
 
 	free(app_lib_dir);
