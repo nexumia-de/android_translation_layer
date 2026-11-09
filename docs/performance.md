@@ -594,6 +594,46 @@ alternating; medians of the rounds. Memory from the raw smaps
 
 **Result:** item 4 is ready: a PR into `phosh`.
 
+### C: item 11 on the phone
+
+Chooser, `-i 0`, 30 s settle, 4 starts after a warm-up per build, each
+build with its own `XDG_CACHE_HOME` (`scripts/run-c.sh`, data
+`performance/suite-c`): before = `fe78b717` (#129, binary of 18:32),
+after = `phosh` `069812e0` with item 11 (binary of 18:36). (`meta.txt` of
+the runs shows the commit of the checkout that holds the tools, not
+of the build; the binary time tells the builds apart.)
+
+| Chooser, median of 4 | before | after |
+|---|---|---|
+| threads | 92 (91 to 92) | 91 (90 to 92) |
+| `GstPlay`, `gstglcontext`, `typefind*`, `aqueue:src` threads | 3 each | 3 each |
+| first frame | 2368 ms | 2389 ms |
+| PSS / private dirty | 162.6 / 63.1 MB | 164.5 / 65.6 MB |
+| `native-anon` / `stacks` | 37.7 / 11.6 MB | 37.0 / 15.2 MB |
+| GStreamer, Opus, Vorbis, Ogg, Pulse libraries mapped | 36 | 36 |
+
+**Item 11 changes nothing for Chooser, because Chooser does not use
+`MediaPlayer`.** Its dex references `android.media.SoundPool` and not
+`MediaPlayer` (`grep` in `classes.dex`). `SoundPool.load()` calls
+`nativeLoad` (`src/api-impl-jni/audio/android_media_SoundPool.c:12`),
+which makes a `GtkMediaFile` at once, so each of Chooser's three sounds
+has its `GstPlay` pipeline, its GL context and its threads from the
+first second on: the 21 threads and the audio libraries that the item
+meant to remove are `SoundPool`'s. The same fix for `SoundPool` (open the
+file on the first `play()`, close it a few seconds after the end) is the
+change that would do what item 11 promised for Chooser; it was not made
+in this session. Apps that use `MediaPlayer` (the evaluation's
+`grep` of the APKs found references in F-Droid, CoMaps, FluffyChat,
+Gadgetbridge, DHL, Duolingo and WhatsApp, many of them library code)
+are not measured; for them the item stays unmeasured, and the sound
+test of `MediaPlayer` (a sound that plays twice, and again after more
+than five seconds; Duolingo's GET STARTED) needs the owner's ears.
+
+**Smoke test** on `phosh` (`suite-c/smoke`): 15 of 16 apps start and run;
+Super Productivity exits with `SIGABRT` after 34 s as before. So the
+change does not make an app worse.
+
+
 # Code analysis
 
 Read from the code only, on 2026-11-08, while the baseline suite ran on

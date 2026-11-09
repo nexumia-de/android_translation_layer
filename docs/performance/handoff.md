@@ -108,3 +108,9 @@ Steps are listed as they finish:
   several times; GPU memory is 23 MB for a plain GTK4 window, 54 MB for
   Chooser, 45 MB for Gadgetbridge, not 99 and 64. Old `gpu_*` columns
   are too high. See performance.md "A: what the GPU memory is".
+- **C done** (`suite-c`): item 11 does not reduce Chooser's threads or
+  memory (92 and 91 threads): Chooser uses `SoundPool`, whose
+  `nativeLoad` opens a `GtkMediaFile` per sound at load. A lazy
+  `SoundPool` (open on first `play`, close after the end) is the change
+  that would remove Chooser's 21 GStreamer threads; not made.
+  Smoke test of `phosh`: 15 of 16, Super Productivity SIGABRT as before.
