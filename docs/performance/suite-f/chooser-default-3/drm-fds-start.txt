@@ -1,0 +1,88 @@
+== fd 41 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4280
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	0
+drm-shared-memory:	0
+== fd 43 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4281
+drm-engine-gpu:	471302 ns
+drm-cycles-gpu:	303104
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	23124 KiB
+drm-shared-memory:	17392 KiB
+drm-resident-memory:	23124 KiB
+== fd 50 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4282
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	12516 KiB
+drm-shared-memory:	0
+drm-resident-memory:	8420 KiB
+== fd 51 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4282
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	12516 KiB
+drm-shared-memory:	0
+drm-resident-memory:	8420 KiB
+== fd 53 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4282
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	12516 KiB
+drm-shared-memory:	0
+drm-resident-memory:	8420 KiB
+== fd 69 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4283
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	0
+drm-shared-memory:	0
+== fd 80 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4284
+drm-engine-gpu:	29114 ns
+drm-cycles-gpu:	20480
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	5600 KiB
+drm-shared-memory:	0
+drm-resident-memory:	5600 KiB
+== fd 82 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4285
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	12348 KiB
+drm-shared-memory:	0
+drm-resident-memory:	8252 KiB
+== fd 85 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4285
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	12348 KiB
+drm-shared-memory:	0
+drm-resident-memory:	8252 KiB
+== fd 86 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4285
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	12348 KiB
+drm-shared-memory:	0
+drm-resident-memory:	8252 KiB

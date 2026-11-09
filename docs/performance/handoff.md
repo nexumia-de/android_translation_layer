@@ -114,3 +114,17 @@ Steps are listed as they finish:
   `SoundPool` (open on first `play`, close after the end) is the change
   that would remove Chooser's 21 GStreamer threads; not made.
   Smoke test of `phosh`: 15 of 16, Super Productivity SIGABRT as before.
+- **F done** (`suite-f`): `GDK_DISABLE=gl` Chooser −1.1 s start, −39
+  threads, −18 MB PSS, −24 MB GPU; DB Navigator −7 MB, −25 MB GPU, no
+  faster; the two 12 MB DRM clients are GL contexts; plain WebKitGTK
+  draws the same; CoMaps' map (GL `SurfaceView`) is black, so only a
+  per-app list is possible. Not implemented.
+
+Open for the next session: a lazy `SoundPool` (C), the per-app GL
+switch (F), D (app image) and E (split `native-anon`; the floor's
+`native-anon` is 6.8 MB against Chooser's 43 MB, use
+`suite-a/floor-fds`), the remaining 5.5 to 7 MB DRM client of A.
+Tool changes of this session: `perf-idle.sh` counts DRM clients once,
+`perf-run.sh` takes `PERF_CMD`, `perf-drm-fds.sh`, `perf-gtk-floor.c`,
+`perf-webkit-floor.c`. The remote branch of #134 is not rebased (the
+rebase was tested locally: clean merge, same diff).

@@ -528,9 +528,11 @@ are too high; compare only with the new ones.
 **Result:** the "62 MB floor and 36 MB extra" of the evaluation are
 23 MB and 26 to 30 MB. Chooser's GPU memory is 54 MB, not 99, and 23 MB
 of it is what any GTK4 window costs. What is left to find out is which
-object each of the two to three extra clients is (second `GdkDisplay`,
-GL context of GStreamer or of `SurfaceView`): F below removes the GL
-ones. Not implemented; that is for a second session.
+object each of the extra clients is: F below shows that the two clients
+of 12 MB are GL contexts (they are gone with `GDK_DISABLE=gl`); the
+5.5 to 7 MB one that is left is probably the second `GdkDisplay`'s
+Vulkan device (not shown yet). Not implemented; that is for a second
+session.
 
 ### B: item 4 with a second app, and the smoke test
 
@@ -632,6 +634,58 @@ than five seconds; Duolingo's GET STARTED) needs the owner's ears.
 **Smoke test** on `phosh` (`suite-c/smoke`): 15 of 16 apps start and run;
 Super Productivity exits with `SIGABRT` after 34 s as before. So the
 change does not make an app worse.
+
+
+### F: `GDK_DISABLE=gl`
+
+One build (`phosh` `069812e0`), start only, 3 rounds alternating after a
+warm-up of each arm (`scripts/run-f.sh`, `run-f2.sh`, `run-f3.sh`; data
+`performance/suite-f`). Medians; memory from the raw smaps, GPU memory
+per DRM client from fdinfo (corrected as in A).
+
+| | Chooser default | Chooser `GDK_DISABLE=gl` | DB Navigator default | DB Navigator `GDK_DISABLE=gl` |
+|---|---|---|---|---|
+| first frame | 2408 ms | **1300 ms** | 5696 ms | 5707 ms |
+| threads | 92 | **53** | 154 | 140 |
+| PSS | 168.6 MB | **150.5 MB** | 277.4 MB | 270.8 MB |
+| private dirty | 69.8 MB | **54.9 MB** | 148.6 MB | 141.9 MB |
+| `native-anon` | 42.1 MB | 31.9 MB | 79.6 MB | 79.4 MB |
+| `lib-mesa` PSS | 23.0 MB | 21.1 MB | 16.8 MB | 16.9 MB |
+| GPU memory (clients once) | 52.3 MB | **28.1 MB** | 56.8 MB | **32.0 MB** |
+
+- **The two 12 MB GPU clients are GL contexts**: with the flag Chooser has
+  the window's Vulkan device (22.6 MB) and one 5.5 MB client, DB
+  Navigator 25.0 and 7.0 MB (`drm-fds-start.txt`). What is left of A's
+  extra clients is that one, 5.5 to 7 MB.
+- **Chooser starts 1.1 s (46 %) earlier**, with 39 fewer threads, 18 MB
+  less PSS and 15 MB less private dirty memory: no GL context for GTK,
+  none for GStreamer (`GstPlay` needs `gstglcontext`), no Mesa
+  compiler threads for them. DB Navigator gains 14 threads, 7 MB and
+  25 MB of GPU memory, but starts no faster (the tour taps and WebKit's
+  load dominate). `libLLVM` is still loaded in both (`lib-mesa` PSS
+  does not fall much): the flag does not keep the GL driver out of the
+  process.
+- **A plain WebKitGTK window draws script, canvas, gradient and a
+  rotated element identically with the flag** (`webkit-default` and
+  `webkit-nogl`, `end.png`), with 6.7 MB less GPU memory and 6 fewer
+  threads; WebKit does not need GTK's GL.
+- **The flag breaks apps that draw with GL through `SurfaceView`**: in
+  the smoke test with the flag (`suite-f/smoke-nogl`) 14 of 16 apps
+  start, but CoMaps' map stays black (`comaps.png`, the same page has
+  its map without the flag), and a start that "ok" counts is not a
+  correct picture. Duolingo crashed (`SIGSEGV` in the fatal-signal
+  check, it crashed in `fix-3-phosh` without the flag too and not in
+  two later smoke tests: not caused by the flag) and Super Productivity
+  exits as before. Video through GStreamer (`GtkMediaFile` imports
+  frames as dmabuf or GL textures) was not tested.
+- So the flag is a per-app choice, as the evaluation said: apps that
+  never create a `SurfaceView` or `GLSurfaceView`, and play no video,
+  gain 15 to 25 MB, 15 to 40 threads and for Compose apps like
+  Chooser a faster start. A global default is not possible. Deciding it
+  per app needs a switch ATL can read (a manifest or ATL toggle list
+  like `GMS_STUB_APPS`) or ATL deciding at the first
+  `SurfaceView`: GTK takes `GDK_DISABLE` at `gdk_display_open`, before
+  the app has run, so only a per-app list works. Not implemented.
 
 
 # Code analysis
@@ -1477,6 +1531,14 @@ Not worth doing now: item 8 (2 MB, costs start time), item 7 (no
 clear gain; keep the branch for an app that draws many bitmaps), a
 smaller ART heap reservation (it touches little), anything on the
 shared libraries' text (shared already).
+
+**Status after the second session on the phone (2026-11-09)**: A, B, C
+and F are measured (sections "A" to "F" above): A found that the GPU
+numbers were doubled by a measurement bug (the floor is 23 MB, Chooser
+54 MB); B made item 4 a PR (#134); C showed that item 11 does not touch
+Chooser, which uses `SoundPool`; F showed `GDK_DISABLE=gl` is worth
+15 to 25 MB and, for Chooser, 1.1 s of start, but breaks GL apps, so it
+can only be a per-app switch. D, E, G, H and I are open.
 
 **Order**: A's measurement first, because it is the largest block and
 cheap to look at; B and C are ready and go to the phone in the same
