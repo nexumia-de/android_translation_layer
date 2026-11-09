@@ -525,14 +525,11 @@ are too high; compare only with the new ones.
   stay in the renderer's cache, so they are not the 12.5 MB clients.
 
 **Result:** the "62 MB floor and 36 MB extra" of the evaluation are
-23 MB and 26 to 30 MB. Chooser's GPU memory is 54 MB, not 99, and half of
-it is what any GTK4 window costs. What ATL can still save is the
-second and third device (17 to 30 MB for 2 to 3 clients), by not
-creating the devices at all (no second `GdkDisplay`, one renderer for
-off-screen work: item 7's branch did the second, and its result was
-that GPU memory did not change, which was true because the extra
-devices are in the clients that the branch left in place). Not
-implemented: that is for a second session.
+23 MB and 26 to 30 MB. Chooser's GPU memory is 54 MB, not 99, and 23 MB
+of it is what any GTK4 window costs. What is left to find out is which
+object each of the two to three extra clients is (second `GdkDisplay`,
+GL context of GStreamer or of `SurfaceView`): F below removes the GL
+ones. Not implemented; that is for a second session.
 
 # Code analysis
 
