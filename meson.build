@@ -262,7 +262,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/views/android_view_WindowManagerImpl.c',
                                                                   	'src/api-impl-jni/widgets/WrapperWidget.c',
                                                                   	'src/api-impl-jni/widgets/android_view_SurfaceView.c',
-                                                                  	'src/api-impl-jni/widgets/android_webkit_WebView.c',
+                                                                  	'src/api-impl-jni/widgets/android_webkit_WebView_widget.c',
                                                                   	'src/api-impl-jni/widgets/android_widget_Button.c',
                                                                   	'src/api-impl-jni/widgets/android_widget_CheckBox.c',
                                                                   	'src/api-impl-jni/widgets/android_widget_CompoundButton.c',
@@ -296,7 +296,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                         extra_deps,
                                                                   	dependency('gtk4', version: '>=4.14'), dependency('gl'), dependency('egl'), dependency('wayland-client'), dependency('jni'),
                                                                   	dependency('libportal'), dependency('sqlite3'), dependency('libavcodec', version: '>=59'), dependency('libdrm'),
-                                                                  	dependency('gudev-1.0'), dependency('xkbcommon'), dependency('libswscale'), dependency('webkitgtk-6.0'), dependency('fontconfig'), dependency('pangoft2'), dependency('libsecret-1'),
+                                                                  	dependency('gudev-1.0'), dependency('xkbcommon'), dependency('libswscale'), dependency('fontconfig'), dependency('pangoft2'), dependency('libsecret-1'),
                                                                         libart_dep, wayland_protos_dep, upcalls_header
                                                                   ],
                                                                   link_with: [ libandroid_so ],
@@ -306,6 +306,24 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   c_args: [
                                                                   	'-D_LARGEFILE64_SOURCE',
                                                                   ])
+
+# the WebView glue in its own library: WebView.java loads it before the first
+# page, so apps without a WebView page do not load WebKit and its dependencies
+shared_library('translation_layer_webkit', [
+                                           	'src/api-impl-jni/widgets/android_webkit_WebView.c',
+                                           ],
+                                           include_directories: shared_includes_dir,
+                                           install: true,
+                                           install_dir : get_option('libdir') / 'java/dex/android_translation_layer/natives',
+                                           install_rpath: '$ORIGIN/:' + get_option('prefix') / get_option('libdir') / 'art',
+                                           dependencies: [
+                                           	dependency('gtk4', version: '>=4.14'), dependency('gio-unix-2.0'), dependency('jni'), dependency('webkitgtk-6.0'),
+                                           	libart_dep, upcalls_header
+                                           ],
+                                           link_with: [ libtranslationlayer_so ],
+                                           c_args: [
+                                           	'-D_LARGEFILE64_SOURCE',
+                                           ])
 
 # atl.gresources.xml
 resources = gnome.compile_resources('com.gitlab.android_translation_layer.android_translation_layer', files('src/main-executable/atl.gresource.xml'))

@@ -75,3 +75,11 @@ The following environment variables are recognized by the main executable:
 ---
 
 `ATL_VALIDATE_CERTS` - if set, the signing certificate of the APK file will be validated on startup. This adds a few extra seconds to the startup time for large APKs.
+
+---
+
+`ATL_RELOCATE_BOOT_IMAGE` - if set, ART relocates the boot image to a random address in every process (ART's default) instead of mapping it at the address it was compiled for. Relocation turns the written pages of the `.art` files into private copies (about 1.6 MB per app on a Fairphone 6).
+
+---
+
+`ATL_CHECK_JNI` - if set, ART runs with CheckJNI (`-Xcheck:jni`), which checks the arguments of every JNI call. Useful while developing ATL or debugging native crashes; off by default because it slows down every JNI call (also possible with `-X -Xcheck:jni`).
