@@ -2,6 +2,10 @@
 #include <gtk/gtk.h>
 #include <webkit/webkit.h>
 
+/* built as libtranslation_layer_webkit.so, which WebView.java loads before
+ * the first page, so apps that never load one do not map WebKit; the
+ * constructor is in android_webkit_WebView_widget.c */
+
 #include <androidfw/androidfw_c_api.h>
 
 #include "../defines.h"
@@ -140,16 +144,6 @@ static WebKitWebView *get_web_view(GtkWidget *box, gboolean javascript_enabled)
 	/* scripts of the page; the ones we evaluate ourselves still run */
 	webkit_settings_set_enable_javascript_markup(webkit_web_view_get_settings(WEBKIT_WEB_VIEW(webview)), javascript_enabled);
 	return WEBKIT_WEB_VIEW(webview);
-}
-
-JNIEXPORT jlong JNICALL Java_android_webkit_WebView_native_1constructor(JNIEnv *env, jobject this, jobject context, jobject attrs)
-{
-	GtkWidget *wrapper = g_object_ref(wrapper_widget_new());
-	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	wrapper_widget_set_child(WRAPPER_WIDGET(wrapper), box);
-	wrapper_widget_set_jobject(WRAPPER_WIDGET(wrapper), env, this);
-	wrapper_widget_register_invalidation_listener(WRAPPER_WIDGET(wrapper));
-	return _INTPTR(box);
 }
 
 JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadUrl(JNIEnv *env, jobject this, jlong widget_ptr, jstring url, jboolean javascript_enabled)
