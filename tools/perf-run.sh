@@ -24,6 +24,8 @@
 # smaps-start.tsv and threads-start.tsv (perf-smaps.py, perf-threads.sh after
 # the settle time), covered.png, idle.tsv (perf-idle.sh), smaps-end.tsv and
 # threads-end.tsv, end.png, app.log, and the raw smaps as smaps-*.txt.gz.
+# PERF_CMD=prog runs another program instead of ATL (the GTK floor of
+# tools/perf-gtk-floor.c); no arguments are needed then.
 # Runs ATL from ~/.local with the environment of tools/phone-setup.sh env,
 # under flock /tmp/atl-heavy.lock like every other heavy job on the phone.
 set -eu
@@ -52,7 +54,7 @@ while getopts "o:s:i:n:c2:x:h" opt; do
 done
 shift $((OPTIND - 1))
 [ "${1:-}" = "--" ] && shift
-[ $# -gt 0 ] || { echo "no ATL arguments" >&2; exit 1; }
+[ $# -gt 0 ] || [ -n "${PERF_CMD:-}" ] || { echo "no ATL arguments" >&2; exit 1; }
 
 [ -n "$out" ] || out=$HOME/work/perf-runs/$(date +%Y%m%d-%H%M%S)
 mkdir -p "$out"
@@ -66,7 +68,7 @@ eval "$("$tools/phone-setup.sh" env)"
 	echo "kernel: $(uname -r)"
 	echo "cpu_governor: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null)"
 	echo "settle: $settle idle: $idle interval: $interval cover: ${cover:-0}"
-	echo "command: android-translation-layer $*"
+	echo "command: ${PERF_CMD:-android-translation-layer} $*"
 	[ -n "$second" ] && echo "second: android-translation-layer $second"
 	echo "free_before:"; free -m
 	echo "load_before: $(cat /proc/loadavg)"
@@ -93,7 +95,7 @@ s4="$snap; if [ \"\$PERF_IDLE\" -gt 0 ]; then \"\$PERF_TOOLS/perf-idle.sh\" \$P 
 status=0
 eval flock /tmp/atl-heavy.lock "$tools/headless-shot.sh" -d "$settle" -w 1 -o "$out/end.png" -l "$out/app.log" $steps \
 	-x "\"\$s1\"" ${second:+-x "\"\$s2\""} ${cover:+-x "\"\$s3\""} -x "\"\$s4\"" \
-	-- python3 "$tools/perf-start.py" "$out/start.tsv" android-translation-layer "\"\$@\"" >"$out/harness.log" 2>&1 || status=$?
+	-- python3 "$tools/perf-start.py" "$out/start.tsv" "${PERF_CMD:-android-translation-layer}" "\"\$@\"" >"$out/harness.log" 2>&1 || status=$?
 {
 	echo "free_after:"; free -m
 	echo "load_after: $(cat /proc/loadavg)"

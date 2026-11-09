@@ -1,0 +1,11 @@
+tid	name	cpu_ms	vol_cs	nonvol_cs
+821275	perf-gtk-floor	330	135	27
+821276	pool-spawner	0	2	0
+821277	gmain	0	1	0
+821278	gdbus	10	68	10
+821339	[pango] fontcon	10	15	9
+821342	perf-gt:disk$0	0	26	2
+821344	perf-g:traceq0	0	1	0
+821345	perf-gt:disk$1	0	16	6
+821346	perf-gt:disk$2	0	12	0
+821347	perf-gt:disk$3	0	14	0

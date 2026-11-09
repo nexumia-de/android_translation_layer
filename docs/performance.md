@@ -472,6 +472,68 @@ owner test: Chooser's choice sound plays, also twice in a row and again
 after more than five seconds; Duolingo's GET STARTED still works
 (`MediaPlayer.setDataSource(AssetFileDescriptor)`), and the smoke test.
 
+## Measurements of the evaluation (2026-11-09, second session on the phone)
+
+Run one after the other with `systemd-run --user`, on ATL `069812e0`
+(`phosh` with #132) unless noted; data in `performance/suite-a`
+and the later `suite-*` directories, scripts in `performance/scripts`.
+
+### A: what the GPU memory is
+
+**The GPU memory numbers of the baseline were wrong, by up to a factor
+of two.** `perf-idle.sh` summed `drm-total-memory` over every render
+node fd in `/proc/PID/fdinfo`, but Mesa `dup()`s its fd: three fds of
+Chooser report the same `drm-client-id` and the same 12.5 MB, so it was
+counted three times. `perf-idle.sh` now counts each `drm-client-id`
+once (and `tools/perf-drm-fds.sh` dumps the per-client blocks). All
+`gpu_total_kb` and `gpu_resident_kb` columns in older run directories
+are too high; compare only with the new ones.
+
+| | Old number (idle.tsv) | Distinct DRM clients | Clients (MB, total memory) |
+|---|---|---|---|
+| plain GTK4 window (floor) | 23.0 MB | 23.0 | 23.0 (17.4 shared: four window-size buffers) |
+| Chooser | 99 MB | 53.6 at 30 s, 49.5 at the end | 23.1 (17.4 shared), 12.5, 5.6, 12.3 |
+| Gadgetbridge | 63 to 65 MB | 44.6 at 30 s, 40.0 at the end | 25.3 (17.9 shared), 12.3, 6.9 |
+
+- **The floor is 23 MB**, and it is GTK's own: the window's Vulkan
+  device is 6 MB (command streams, descriptor pool, pipeline cache, the
+  4 MB `vkAllocateMemory(4112kb)` for the first buffers), and four
+  buffers of window size (720×1440×4 = 4.1 MB, the swapchain and its
+  dmabufs) are 17 MB. `TU_DEBUG=bos` of the floor: `submitted 15 bos
+  (23 MB)`, the same as fdinfo. A plain GTK4 process also has 26 MB of
+  USS and 6.8 MB `native-anon`, of Chooser's 147 MB and 43 MB.
+- **What ATL adds is 26 to 30 MB for Chooser and 17 to 22 MB for
+  Gadgetbridge**, in two more clients of 12.3 to 12.5 MB with only
+  8.3 MB resident (memory the driver allocated and never touched) and
+  one of 5.6 to 6.9 MB. These are other `GdkDisplay`s or GL contexts, not
+  buffers of the window's device. `GDK_DISABLE=gl` (F, below) shows
+  which are GL.
+- `TU_DEBUG=bos` prints a device's buffers only when it is destroyed.
+  The app's own window device is never destroyed (ATL ends in
+  `System.exit`, also after a window close with `wlrctl toplevel
+  close`), but the devices that ATL creates and destroys on the way
+  print: one `submitted 12 bos (6 MB)` (a device without window
+  buffers) and one `submitted 18 bos (23 MB)` in Chooser, three to five
+  prints in Gadgetbridge, 6 MB each, and the 23 MB one. Each of them is a
+  complete GTK Vulkan device: the second `GdkDisplay` of
+  `native_create_texture` (item 7) and the renderers created per draw
+  cost a device, each time.
+- `GSK_DEBUG=cache` (every 15 s): Chooser's and Gadgetbridge's renderer
+  caches are small. A glyph atlas of 1 MP (`Atlas`, 4 MB as an RGBA
+  texture), glyphs of 7000 px, fills of 800 px; at the end `none`: the
+  caches are empty after the 15 s timeout. Textures of bitmaps do not
+  stay in the renderer's cache, so they are not the 12.5 MB clients.
+
+**Result:** the "62 MB floor and 36 MB extra" of the evaluation are
+23 MB and 26 to 30 MB. Chooser's GPU memory is 54 MB, not 99, and half of
+it is what any GTK4 window costs. What ATL can still save is the
+second and third device (17 to 30 MB for 2 to 3 clients), by not
+creating the devices at all (no second `GdkDisplay`, one renderer for
+off-screen work: item 7's branch did the second, and its result was
+that GPU memory did not change, which was true because the extra
+devices are in the clients that the branch left in place). Not
+implemented: that is for a second session.
+
 # Code analysis
 
 Read from the code only, on 2026-11-08, while the baseline suite ran on

@@ -1,0 +1,20 @@
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 15 bos (23 MB)
+Periodic GskVulkanDevice GC (timestamp 119828618390)
+Cached items:
+  Class        Items Stale      Pixels       Stale      Info
+  Glyph           22    22        7357        7357 100% 
+  Atlas            1     0     1048576           0   0% filled: 0%
+  Fill             1     1         342         342 100% 
+Periodic GskVulkanDevice GC (timestamp 119843628392)
+Cached items:
+  none

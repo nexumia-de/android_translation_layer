@@ -38,9 +38,13 @@ mem() {
 		END { printf "%d\t%d\t%d\t%d", pss, uss, rss, swap }' "/proc/$pid/smaps_rollup"
 }
 gpu() {
-	# One line per render node fd in fdinfo; sum the memory keys (kB or MiB).
+	# One block per render node fd in fdinfo; sum the memory keys (kB or MiB)
+	# once per drm-client-id: dup()ed fds of one open file repeat the block
+	# (Mesa dups its fd, Chooser's 99 MB were 53 MB before this).
 	cat /proc/"$pid"/fdinfo/* 2>/dev/null | awk '
 		function kb(v, u) { if (u == "MiB") return v * 1024; if (u == "GiB") return v * 1048576; return v }
+		/^drm-client-id:/ { dup = ($2 in seen); seen[$2] = 1 }
+		dup { next }
 		/^drm-total-memory:/ { t += kb($2, $3) }
 		/^drm-resident-memory:/ { r += kb($2, $3) }
 		/^drm-total-vram:|^drm-total-system:|^drm-total-gtt:/ { t2 += kb($2, $3) }

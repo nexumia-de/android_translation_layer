@@ -1,0 +1,5 @@
+elapsed_s	utime_ms	stime_ms	vol_cs	nonvol_cs	threads	pss_kb	uss_kb	rss_kb	swap_kb	gpu_total_kb	gpu_resident_kb	bat_current_ma	bat_power_mw	bat_status	clock
+0	260	50	350	35	10	42848	26048	107736	0	22976	22976	1	79049	Full	17:48:46
+20	270	50	352	35	10	42848	26048	107736	0	22976	22976	-5	79049	Full	17:49:06
+40	270	50	353	35	10	42847	26048	107736	0	22976	22976	-1	79049	Full	17:49:26
+60	270	50	353	35	10	42847	26048	107736	0	22976	22976	-4	79049	Full	17:49:46
