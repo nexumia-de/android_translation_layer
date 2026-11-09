@@ -78,4 +78,12 @@ The following environment variables are recognized by the main executable:
 
 ---
 
+`ATL_RELOCATE_BOOT_IMAGE` - if set, ART relocates the boot image to a random address in every process (ART's default) instead of mapping it at the address it was compiled for. Relocation turns the written pages of the `.art` files into private copies (about 1.6 MB per app on a Fairphone 6).
+
+---
+
+`ATL_CHECK_JNI` - if set, ART runs with CheckJNI (`-Xcheck:jni`), which checks the arguments of every JNI call. Useful while developing ATL or debugging native crashes; off by default because it slows down every JNI call (also possible with `-X -Xcheck:jni`).
+
+---
+
 `ATL_FRAME_TIMER` - if set, the main thread's `Choreographer` runs frames on a 10 ms timer as before, instead of following GTK's frame clock (display rate while the window is shown, no frames while it is covered).

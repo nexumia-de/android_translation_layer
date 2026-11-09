@@ -1,6 +1,7 @@
 # Directory Update Log
 
 ## 2026-11-08
+* **Duolingo login**: Public reports and a logcat from /e/OS show that Duolingo's login API answers `401` to a bad Play Integrity verdict and the app shows "Wrong username or password" for it; devices with a Play Store that fails the check (microG, upstream ATL's GMS stub) are rejected, devices without any Play Store are let in. So the headless result of 2026-10-31 (stub on) was ambiguous, and with the stub off since 2026-11-02 the email login should work; fallback is the password reset requested and opened inside the app, which logs in without the check ([Duolingo login](duolingo-login.md)). Not tested on the phone (not reachable). Four forum hosts added to the cloud environment and the [hosts table](dev-environment.md#required-hosts).
 * **Update**: `AGENTS.md` imports only `agents/core.md` from phosh-toolkit instead of its whole `AGENTS.md`, so the GTK app rules and the list of rules that do not apply are gone (toolkit decision "lean agent rules", to use fewer tokens per session).
 
 ## 2026-10-28
@@ -264,3 +265,15 @@ Chooser compared with `phosh` ([app status](apps.md),
 ## 2026-11-08: Baseline passes 1 and 2
 
 * **Baseline for issue #118, incomplete**: [performance.md](performance.md) "Results" gets the tables of passes 1 and 2 (Chooser and Gadgetbridge 3 runs each; HeliBoard, DB Navigator and the pair once), the result files are in `docs/performance/suite-p1` and `suite-p2`. The unattended series stopped at 16:28 during pass 3, so passes 3, 4 and 5 are open; suspected cause (unverified): the `claude` user's processes end with its last SSH connection (`Linger=no`). Findings: Chooser uses about 9.8 s CPU and 3600 wake-ups per minute while covered (its main thread), the other apps 3 to 33 ms; PSS after start 200 to 300 MB; two apps share about 106 MB.
+
+## 2026-11-08: Why the baseline series stopped
+
+* **Long runs as user units**: the series stopped at 16:28 because logind on the phone has `KillUserProcesses=yes` and killed the SSH login's session scope (with the `nohup setsid` jobs in it) when the laptop's connection timed out at 16:31 (journal). The owner enabled linger for `claude`, which keeps the user manager but not the session scope; long runs now start with `systemd-run --user` ([development environment](dev-environment.md#agent-on-a-laptop-over-ssh), [performance](performance.md#results)).
+
+## 2026-11-08: Boot image without relocation, CheckJNI opt-in
+
+* **Runtime flags (#118)**: ATL starts ART with `-Xnorelocate` (opt-out `ATL_RELOCATE_BOOT_IMAGE=1`) and without CheckJNI (opt-in `ATL_CHECK_JNI=1`). Chooser's covered idle CPU fell from 8.3 to 6.6 s per minute and the first frame comes 4 to 9 % earlier; memory is unchanged within noise (boot image 1.9 MB less private dirty; the analysis' estimate of 25 to 30 MB was wrong, corrected in [performance](performance.md#1-the-boot-image-is-relocated-privately-in-every-process)). Rendering with GL only (`GDK_DISABLE=vulkan`) was measured and rejected: more GPU memory, later first frame, a crash in Mesa. `tools/app-smoke.sh` starts every app of [apps.md](apps.md) once ([performance](performance.md#fixes)).
+
+## 2026-11-09: WebKit loaded with the first page
+
+* **WebView glue in its own library (#118)**: `libtranslation_layer_webkit.so` holds the WebView glue and links WebKitGTK; `WebView.java` loads it before the first page or script, so apps without a WebView no longer map WebKit and its dependencies. Chooser and Gadgetbridge use 36 to 38 MB less memory (PSS and USS) each; CPU and GPU are unchanged. Post & DHL and DB Navigator still show their WebView pages ([performance](performance.md#item-2-webkit-loaded-with-the-first-page)).
