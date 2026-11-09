@@ -277,3 +277,8 @@ Chooser compared with `phosh` ([app status](apps.md),
 ## 2026-11-09: WebKit loaded with the first page
 
 * **WebView glue in its own library (#118)**: `libtranslation_layer_webkit.so` holds the WebView glue and links WebKitGTK; `WebView.java` loads it before the first page or script, so apps without a WebView no longer map WebKit and its dependencies. Chooser and Gadgetbridge use 36 to 38 MB less memory (PSS and USS) each; CPU and GPU are unchanged. Post & DHL and DB Navigator still show their WebView pages ([performance](performance.md#item-2-webkit-loaded-with-the-first-page)).
+
+## 2026-11-09: Covered runs, frame clock and bitmap renderer
+
+* **Covered runs fixed (#118)**: `tools/perf-run.sh -c` covered the app with a maximized foot that left a strip of the app visible, so apps that redraw themselves went on drawing; foot now runs fullscreen. Fully covered, Chooser uses about 10 ms CPU per 2 minutes instead of 6 to 8 s per minute: the background CPU found so far was the cost of a visible window ([performance](performance.md#the-covered-runs-were-not-covered)).
+* **Frame clock and bitmap renderer measured, not merged**: driving the Choreographer from GTK's frame clock (item 5) changed neither wake-ups nor CPU, since GTK already stops drawing a hidden window; one kept off-screen renderer for bitmaps (item 7) gave no clear gain. Both branches are kept ([performance](performance.md#items-5-and-7-measured-not-merged)).

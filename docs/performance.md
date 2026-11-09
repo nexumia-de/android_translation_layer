@@ -96,9 +96,10 @@ Conditions, chosen to match the owner's phone:
   Gadgetbridge's welcome page are left with taps first
   (`perf-suite.sh`).
 - "In the background" means the app's window is covered by another
-  client (`foot`) in the same compositor for the idle time, as a
-  background app under phoc is covered by the foreground app. The app
-  gets no frame callbacks then. A run without a cover (the app visible
+  client (`foot`, fullscreen) in the same compositor for the idle
+  time, as a background app under phoc is covered by the foreground
+  app. The app gets no frame callbacks then (until 2026-11-09 a strip
+  stayed visible, see "The covered runs were not covered"). A run without a cover (the app visible
   and idle) is the other condition.
 - Idle time 30 minutes (10 for the extra repeats of HeliBoard, DB
   Navigator and the pair), one sample per minute.
@@ -200,6 +201,10 @@ n in brackets when there is more than one run).
 | heliboard | 1726 (1714-1737, n=2) | - | 201 (200-203, n=2) | 176 (175-178, n=2) | 199 | 175 | 29 | 37 |
 
 ## Idle cost in the background (covered window)
+
+The window was not fully covered in these runs (see "The covered runs
+were not covered" under Fixes): Chooser's CPU and wake-ups are those of
+a visible window.
 
 | App | CPU ms per minute | Wake-ups per minute (voluntary switches) | PSS growth during idle (MB) | GPU memory total / resident (MB) |
 |---|---|---|---|---|
@@ -324,6 +329,60 @@ it on 2026-11-09 at about 08:40; fixes after this one need a new
 - **Smoke test**: the same as before.
 
 Merged.
+
+### The covered runs were not covered
+
+Found on 2026-11-09 while measuring items 5 and 7: `perf-run.sh -c`
+covered the app with a maximized foot, which rounds its height to whole
+text lines and stayed 694 of 720 logical pixels high. A strip of the
+app's window at the bottom stayed visible, the compositor kept sending
+it frame callbacks, and an app that redraws itself went on drawing
+(`GDK_DEBUG=frames`: about 53 frames per second for Chooser, visible or
+"covered"). With foot fullscreen (`foot -F`, now in `perf-run.sh`) GTK
+stops drawing as soon as the window is hidden: Chooser on `phosh`
+(`fe78b717`) used 10 ms CPU and about 8 wake-ups per minute over
+2 covered minutes (`~/work/perf-runs/check-cover-fs`), against 6 to 8 s
+CPU and 3620 wake-ups per minute in the "covered" runs before.
+
+So every "covered" CPU and wake-up number above (baseline, items 1, 2,
+5 and 7) is the cost of a partly visible window. For Chooser that is
+its own redraw loop: it draws at the display rate as long as it is
+shown, as it would on Android. Its real background cost is near zero.
+The memory numbers are not affected. The CPU gain of items 1 and 6
+(-21 %) holds for the visible window.
+
+### Items 5 and 7: measured, not merged
+
+Before: `fix-3-phosh` (`fe78b717`), after: `fix-5-vsync` (`4256e495`)
+and `fix-7-bitmap` (`4967e110`), all three in one chain with the second
+agent session on the phone, each with 3 visible Chooser runs (5 min
+idle, `chooser-visible-N`) next to the suite.
+
+| | PSS after start (MB) | USS after start (MB) | USS after idle (MB) | CPU ms/min "covered" | CPU ms/min visible | Wake-ups/min visible |
+|---|---|---|---|---|---|---|
+| before | 178 / 218 | 150 / 185 | 156 / 185 | 7635 / 5 | 5570 | 3633 |
+| item 5 | 178 / 211 | 150 / 177 | 156 / 181 | 6354 / 4 | 6085 | 3629 |
+| item 7 | 170 / 208 | 146 / 178 | 152 / 179 | 6471 / 3 | 6635 | 3626 |
+
+- **Item 5 (frames on GTK's frame clock)**: wake-ups unchanged, CPU
+  within the drift of these series (the "covered" one is better, the
+  visible one worse, in both item 5 and item 7). Since GTK already
+  stops drawing a hidden window and Chooser's frames come from GTK's
+  drawing, not from the Choreographer's timer, there is nothing left
+  for this change to save. Rejected; branch `claude/perf-vsync-118`
+  kept for apps that animate through the Choreographer without
+  drawing.
+- **Item 7 (one off-screen renderer)**: 4 to 7 MB less USS, mostly in
+  the `stacks` category, which swings by that much between series;
+  the number of Mesa threads is the same (10 `gdrv`), so the per-draw
+  renderers left no contexts behind. No clear gain; branch
+  `claude/perf-bitmap-renderer-118` kept, to measure again with an app
+  that draws many bitmaps.
+- **`lib-mesa`** swings between 22.6 and 28 MB PSS from series to
+  series while its USS stays at 9.5 MB: the PSS of shared libraries
+  depends on how many other processes map them at that moment. Compare
+  USS for library categories.
+- **Smoke test**: the same as before in both.
 
 # Code analysis
 
@@ -629,6 +688,12 @@ this explains is unknown until the per-thread numbers of the baseline
 stack dump during idle (`kill -QUIT`, look for `doFrame`) show where
 the main thread spends its time.
 
+**Result (2026-11-09): rejected.** The 16 % came from Chooser
+redrawing itself while a strip of its window stayed visible in the
+"covered" runs; fully covered, GTK stops drawing and the main thread
+sleeps without this change. With it, wake-ups and CPU stayed the same
+(Fixes, "Items 5 and 7").
+
 **Size.** M. Drive `doFrame` from GTK's frame clock
 (`gtk_widget_add_tick_callback` on the activity's window, as
 `src/api-impl-jni/util.c:215-242` already does for other deferred
@@ -706,6 +771,10 @@ lifetime.
 **Expected gain.** GPU memory and process memory in the tens of MB for
 apps that draw into bitmaps, less for Compose apps; less main-thread
 time per bitmap draw. Uncertain until counted.
+
+**Result (2026-11-09).** One kept renderer (branch
+`claude/perf-bitmap-renderer-118`) gave no clear gain for Chooser and
+Gadgetbridge (Fixes, "Items 5 and 7"); not merged.
 
 **Size.** M. Keep one off-screen renderer per display (or realise the
 window's renderer once for off-screen work) instead of one per call;
