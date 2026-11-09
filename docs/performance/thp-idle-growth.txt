@@ -1,0 +1,27 @@
+run                                         anonS    anonE    hugeS    hugeE   (MB: anon start, anon end, huge start, huge end) growth anon / huge
+fix-3-phosh/suite/chooser-bg-1               71.8     88.6     10.0     30.0    +16.8 /  +20.0
+fix-3-phosh/suite/chooser-bg-2               73.0     76.8      8.0      8.0     +3.7 /   +0.0
+fix-3-phosh/suite/chooser-bg-3               68.9     72.2      6.0      6.0     +3.3 /   +0.0
+fix-3-phosh/suite/gadgetbridge-bg-1         102.0    114.8     22.0     52.0    +12.7 /  +30.0
+fix-3-phosh/suite/gadgetbridge-bg-2          99.6     99.6     18.0     18.0     +0.1 /   +0.0
+fix-3-phosh/suite/gadgetbridge-bg-3         100.4    100.4     16.0     16.0     +0.0 /   +0.0
+fix-2-webkit/suite/chooser-bg-1              73.7     88.9     10.0     28.0    +15.3 /  +18.0
+fix-2-webkit/suite/chooser-bg-2              69.7     89.7      6.0     30.0    +20.0 /  +24.0
+fix-2-webkit/suite/chooser-bg-3              73.0     83.7     10.0     22.0    +10.7 /  +12.0
+fix-2-webkit/suite/gadgetbridge-bg-1         99.3    106.2     18.0     44.0     +6.9 /  +26.0
+fix-2-webkit/suite/gadgetbridge-bg-2        100.7    112.9     16.0     54.0    +12.2 /  +38.0
+fix-2-webkit/suite/gadgetbridge-bg-3         97.0    108.8     18.0     48.0    +11.8 /  +30.0
+fix-1b-flags-no3/suite/chooser-bg-1          79.5     94.7     10.0     30.0    +15.2 /  +20.0
+fix-1b-flags-no3/suite/chooser-bg-2          77.6     93.9      6.0     30.0    +16.3 /  +24.0
+fix-1b-flags-no3/suite/chooser-bg-3          77.2     89.4      6.0     22.0    +12.2 /  +16.0
+fix-1b-flags-no3/suite/gadgetbridge-bg-1    106.5    113.8     24.0     44.0     +7.3 /  +20.0
+fix-1b-flags-no3/suite/gadgetbridge-bg-2    106.7    114.5     22.0     48.0     +7.8 /  +26.0
+fix-1b-flags-no3/suite/gadgetbridge-bg-3    103.9    113.5     18.0     50.0     +9.6 /  +32.0
+suite-p1/chooser-bg-1                        77.6     97.1      6.0     30.0    +19.5 /  +24.0
+suite-p1/dbnavigator-bg-1                   155.2    164.6     16.0     58.0     +9.5 /  +42.0
+suite-p1/gadgetbridge-bg-1                  108.8    115.6     20.0     42.0     +6.8 /  +22.0
+suite-p1/heliboard-bg-1                      55.7     65.5      4.0     18.0     +9.8 /  +14.0
+suite-p2/chooser-bg-1                        80.9     94.2     12.0     28.0    +13.3 /  +16.0
+suite-p2/chooser-bg-2                        76.9     94.5      6.0     28.0    +17.6 /  +22.0
+suite-p2/gadgetbridge-bg-1                  107.6    114.3     20.0     46.0     +6.6 /  +26.0
+suite-p2/gadgetbridge-bg-2                  108.5    118.3     20.0     50.0     +9.8 /  +30.0

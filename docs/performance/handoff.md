@@ -163,3 +163,40 @@ kernel's `gpu-worker` and `irq/22-arm-smmu` are in state D,
 `rpm_resume` and cannot be killed; it holds `/tmp/atl-heavy.lock`, so
 no heavy run can start. The kernel log needs root (owner: `sudo dmesg
 > /tmp/gpu-hang-dmesg.txt` before the reboot, the agent reads it).
+
+## RAM view and transparent huge pages, 2026-11-09 night
+
+The owner's priority is RAM, not start time. No new run was possible
+(GPU hung, see above); everything here is read from the raw smaps
+already in git. In `docs/performance.md`: "Transparent huge pages: the
+growth while idle", "Private memory by category (the RAM view)" and
+the table "Ranked for RAM" in "What to optimise next". Scripts
+`ram-by-category.py`, `thp-mappings.py`, `thp-idle-growth.py`, table
+`thp-idle-growth.txt`.
+
+- **The idle growth is `khugepaged`**: transparent huge pages are
+  `always` on the phone, and in 22 of 26 stored idle runs anonymous
+  memory grew 7 to 20 MB together with `AnonHugePages`; in the four
+  runs without new huge pages it grew 0 to 4 MB. This is the
+  "outlier" of the earlier evaluations.
+- **What cannot be dropped** (private dirty plus resident GPU memory)
+  at start: Chooser 119 MB, Gadgetbridge 140 MB, DB Navigator 204 MB.
+  It is almost all `native-anon` (44 to 89 MB without stacks), thread
+  stacks (9 to 20 MB), the ART heap (5 to 28 MB) and GPU memory (40 to
+  48 MB).
+- **Item 4 in this view**: Gadgetbridge -21 MB anonymous, +44 MB file
+  pages that the kernel can drop. PSS rises, the memory the phone
+  cannot get back falls.
+- **Correction**: DB Navigator's 30 MB `app-dex` are clean pages of the
+  APK, not anonymous memory; the "-32 MB private" expected from the
+  `ghax.jar` fix was wrong and is taken out of the plan.
+- **First run after the reboot**: `scripts/run-thp.sh` (copy in
+  `~/work/perf-runs/`), the A/B of `prctl(PR_SET_THP_DISABLE)` through
+  the wrapper `tools/perf-thp-off.c` (built in
+  `~/work/perf-runs/bin/perf-thp-off`), about 50 minutes:
+  `systemd-run --user --unit=perf-thp --collect ~/work/perf-runs/run-thp.sh`.
+  It was never run, so check its first run by hand. Look at anonymous
+  memory at start and after 10 minutes, `AnonHugePages`, first frame
+  and CPU.
+- **Nothing is implemented.** The fix would be one line in ATL's
+  `main()`, a separate PR from `phosh`.
