@@ -1462,6 +1462,44 @@ static gboolean on_drop(GtkDropTarget *target, const GValue *value, double x, do
 	return TRUE;
 }
 
+/* The framework on the boot class path: its classes come pre-linked from the
+ * boot image, file-backed and shared between ATL processes, instead of being
+ * loaded from dex in every process. Set as BOOTCLASSPATH, not with
+ * -Xbootclasspath/a:, because the dex2oat processes ART starts for the apps'
+ * dex files read the boot class path from there; with another one they take
+ * the boot image for stale and delete it. The jars before api-impl.jar are
+ * ART's default list (art/runtime/parsed_options.cc). An existing
+ * BOOTCLASSPATH is kept; ATL_FRAMEWORK_ON_CLASSPATH=1 loads the framework
+ * from java.class.path only, as before. */
+static void put_framework_on_boot_class_path(const char *dex_install_dir, const char *api_impl_jar)
+{
+	static const char *art_jars[] = {
+		"core-oj", "apachehttp", "apache-xml", "bouncycastle", "core-junit",
+		"core-libart", "hamcrest", "junit-runner", "okhttp", "wolfssljni",
+	};
+
+	if (getenv("BOOTCLASSPATH") || getenv("ATL_FRAMEWORK_ON_CLASSPATH"))
+		return;
+	char *art_dir_path = g_strdup_printf("%s/art", dex_install_dir);
+	char *art_dir = realpath(art_dir_path, NULL);
+	char *api_impl = realpath(api_impl_jar, NULL);
+	g_free(art_dir_path);
+	if (!art_dir || !api_impl) {
+		fprintf(stderr, "can't resolve the boot class path, the framework stays on java.class.path\n");
+		free(art_dir);
+		free(api_impl);
+		return;
+	}
+	GString *bcp = g_string_new(NULL);
+	for (size_t i = 0; i < G_N_ELEMENTS(art_jars); i++)
+		g_string_append_printf(bcp, "%s/%s-hostdex.jar:", art_dir, art_jars[i]);
+	g_string_append(bcp, api_impl);
+	setenv("BOOTCLASSPATH", bcp->str, 1);
+	g_string_free(bcp, TRUE);
+	free(art_dir);
+	free(api_impl);
+}
+
 char *find_jar_or_die(char *builddir_path, char *installed_path, char *install_prefix)
 {
 	char *path;
@@ -1823,6 +1861,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	dl_parse_library_path(ld_path, ":");
 	g_free(ld_path);
 
+	put_framework_on_boot_class_path(dex_install_dir, api_impl_jar);
 	JNIEnv *env = create_vm(api_impl_jar, apk_classpath, framework_res_apk, test_runner_jar, api_impl_natives_dir, app_lib_dir, d->sdk_int, d->extra_jvm_options);
 
 	free(app_lib_dir);
@@ -1838,6 +1877,14 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 
 	/* 'android/view/View' is part of the "hax.dex" package, any other class from that package would serve just as well */
 	jobject class_loader = J__Class__getClassLoader(env, _CACHED_CLASS(View));
+	/* for a class on the boot class path that is the BootClassLoader, which
+	 * finds no libraries; without a class loader Runtime searches
+	 * java.library.path and registers the library for the boot class path */
+	jclass boot_class_loader = (*env)->FindClass(env, "java/lang/BootClassLoader");
+	if (boot_class_loader && (*env)->IsInstanceOf(env, class_loader, boot_class_loader))
+		class_loader = NULL;
+	if ((*env)->ExceptionCheck(env))
+		(*env)->ExceptionClear(env);
 
 	jobject java_runtime = J__Runtime__getRuntime(env);
 
