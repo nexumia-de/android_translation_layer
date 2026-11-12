@@ -233,7 +233,10 @@ Results (2026-10-29, details in [dev-environment.md](dev-environment.md#app-flat
   predates that tool).
 - Engine shipping: generated apps copy the base app's `/app`, like
   upstream's per-app Flatpaks; an extension or own runtime is not needed
-  for now. An engine update regenerates the apps (no compiling).
+  for now. An engine update regenerates the apps (no compiling):
+  `flatpak/update-apps.sh`, run by a user path unit when the base app
+  changes (2026-11-12; until then nothing did, and DB Navigator kept an
+  engine without a fix for days).
 
 ## Phase T - Escape test APK (S, then alongside every phase)
 

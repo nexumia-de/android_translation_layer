@@ -1,0 +1,11 @@
+# ~/.config/systemd/user/atl-update-apps.path: runs atl-update-apps.service
+# when Flatpak deploys a new engine (it replaces the "active" link in this
+# directory)
+[Unit]
+Description=Watch the ATL engine for updates
+
+[Path]
+PathChanged=@BASE_DEPLOY_DIR@
+
+[Install]
+WantedBy=default.target
