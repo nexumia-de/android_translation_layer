@@ -289,6 +289,10 @@ public class ActivityManager {
 
 	public static boolean isUserAMonkey() { return false; }
 
+	public static boolean isRunningInTestHarness() { return false; }
+
+	public boolean isRunningInUserTestHarness() { return false; }
+
 	public void moveTaskToFront(int taskId, int flags, Bundle options) {
 	}
 }

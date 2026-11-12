@@ -14,7 +14,27 @@ public class MediaCodecInfo {
 		return name;
 	}
 
+	public String getCanonicalName() {
+		return name;
+	}
+
 	public boolean isEncoder() {
+		return false;
+	}
+
+	public boolean isAlias() {
+		return false;
+	}
+
+	public boolean isHardwareAccelerated() {
+		return false;
+	}
+
+	public boolean isSoftwareOnly() {
+		return true;
+	}
+
+	public boolean isVendor() {
 		return false;
 	}
 
@@ -36,6 +56,7 @@ public class MediaCodecInfo {
 	public static class CodecCapabilities {
 
 		public CodecProfileLevel[] profileLevels;
+		public int[] colorFormats = new int[0];
 
 		public boolean isFeatureSupported(String feature) {
 			System.out.println("CodecCapabilities.isFeatureSupported(" + feature + ")");
@@ -192,6 +213,35 @@ public class MediaCodecInfo {
 
 		public boolean areSizeAndRateSupported(int width, int height, double frameRate) {
 			return width > 0 && height > 0 && frameRate > 0;
+		}
+
+		public boolean isSizeSupported(int width, int height) {
+			return width > 0 && height > 0;
+		}
+
+		public android.util.Range<Integer> getSupportedWidths() {
+			return new android.util.Range<Integer>(1, 8192);
+		}
+
+		public android.util.Range<Integer> getSupportedHeights() {
+			return new android.util.Range<Integer>(1, 8192);
+		}
+
+		public android.util.Range<Integer> getSupportedFrameRates() {
+			return new android.util.Range<Integer>(0, 960);
+		}
+
+		public android.util.Range<Integer> getBitrateRange() {
+			return new android.util.Range<Integer>(1, 500000000);
+		}
+
+		public android.util.Range<Double> getAchievableFrameRatesFor(int width, int height) {
+			return null;
+		}
+
+		/* null: no performance data, as on devices that do not publish any */
+		public java.util.List getSupportedPerformancePoints() {
+			return null;
 		}
 	}
 
