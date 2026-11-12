@@ -375,7 +375,18 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 		onActivityResult(requestCode, resultCode, new Intent(FILE_CHOOSER_ACTIONS.get(action), uri != null ? Uri.parse(uri) : null));
 	}
 
-	public void startActivityForResult(Intent intent, int requestCode, Bundle options) {
+	public void startActivityForResult(final Intent intent, final int requestCode, final Bundle options) {
+		/* Android creates activities on the main thread whatever thread starts them; androidx's
+		 * ComponentActivity constructor throws off it (Post & DHL starts its login from a coroutine) */
+		if (Looper.myLooper() != Looper.getMainLooper()) {
+			new Handler(Looper.getMainLooper()).post(new Runnable() {
+				@Override
+				public void run() {
+					startActivityForResult(intent, requestCode, options);
+				}
+			});
+			return;
+		}
 		Slog.i(TAG, "startActivityForResult(" + intent + ", " + requestCode + "," + options + ") called");
 		if (intent.getComponent() != null) {
 			try {
