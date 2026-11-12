@@ -57,6 +57,10 @@ public class Layout {
 		return native_get_line_width(layout, line);
 	}
 
+	public float getLineMax(int line) {
+		return getLineWidth(line);
+	}
+
 	public TextPaint getPaint() {
 		return paint;
 	}

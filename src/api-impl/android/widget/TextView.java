@@ -720,6 +720,12 @@ public class TextView extends View {
 
 	public void setCustomInsertionActionModeCallback(ActionMode.Callback actionModeCallback) {}
 
+	public void setJustificationMode(int justificationMode) {}
+
+	public String getFontFeatureSettings() {
+		return null;
+	}
+
 	public int getJustificationMode() {
 		return 0; // JUSTIFICATION_MODE_NONE
 	}
