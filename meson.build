@@ -135,6 +135,12 @@ install_data('flatpak/make-app.sh', rename: 'make-app-flatpak',
 # its pulse server without recording, see flatpak/microphone/
 install_data('flatpak/microphone/atl-pulse-norecord.conf', 'flatpak/microphone/atl-pulse-norecord.service',
              install_dir: join_paths(get_option('datadir'), 'android-translation-layer', 'microphone'))
+# moves those Flatpaks to the installed engine, see flatpak/update-apps.sh
+install_data('flatpak/update-apps.sh', rename: 'update-app-flatpaks',
+             install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
+             install_mode: 'rwxr-xr-x')
+install_data('flatpak/update-apps/atl-update-apps.service', 'flatpak/update-apps/atl-update-apps.path',
+             install_dir: join_paths(get_option('datadir'), 'android-translation-layer', 'update-apps'))
 
 # the user's push server for the host's UnifiedPush distributor, see docs/push.md
 install_data('src/push/atl-push-server.sh', rename: 'atl-push-server',

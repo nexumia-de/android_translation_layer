@@ -450,8 +450,17 @@ root):
   flatpak install --user -y nexumia de.nexumia.atl.BaseApp
   ```
 
-  Generated apps copy the engine, so after an engine update run
-  `make-app.sh` again for each app.
+  Generated apps copy the engine. `flatpak/update-apps.sh` moves them
+  to the installed engine: it replaces the engine part of each app from
+  `atl-local` and keeps the app's own files (`share/atl/`, `bin/atl-app`,
+  launcher, icon, D-Bus service) and metadata, so permissions and
+  overrides stay; `share/atl/engine` records the base app commit an app
+  was built from. `-n` lists the apps that are behind, `-f` rebuilds all.
+  `make-app.sh` installs two user units through `update-apps.sh -i`:
+  `atl-update-apps.path` watches the base app's deployment directory
+  (Flatpak replaces its `active` link on every update, however the
+  update was started) and `atl-update-apps.service` runs the script then
+  and at login.
 - `flatpak/make-app.sh -p <package> -n <name> <apk>` generates
   `de.nexumia.atl.<package>` from an APK, exports it into
   `~/.local/share/android_translation_layer/flatpak-repo` (user remote

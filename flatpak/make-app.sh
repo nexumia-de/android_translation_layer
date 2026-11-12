@@ -128,6 +128,8 @@ printf '%s' "$permissions" | tr ';' '\n' > "$build/files/share/atl/permissions"
 printf '%s\n' "$target_sdk" | tr -cd '0-9\n' > "$build/files/share/atl/target-sdk"
 # the installer of record: the only app store that may update it without asking (--install-ask --unattended)
 printf '%s\n' "$installer" | tr -cd 'A-Za-z0-9_.\n' > "$build/files/share/atl/installer"
+# the engine it copied: update-apps.sh moves it to the next one
+(flatpak info --user --show-commit "$base" 2>/dev/null || flatpak info --show-commit "$base") > "$build/files/share/atl/engine"
 # every app may ask the permission service (atl-permission-service), which asks the user
 finish="$finish --talk-name=de.nexumia.atl.Permissions"
 
@@ -259,4 +261,14 @@ navigation=$(sed -n '/^\[navigation\]/,/^\[/s/^mode=//p' "$settings" 2>/dev/null
 case $navigation in
 buttons | gesture | both) flatpak override --user --env=ATL_NAVIGATION="$navigation" "$id" ;;
 esac
+# engine updates reach the app through update-apps.sh, which these units run
+update_apps=
+for script in "$(dirname "$0")/update-apps.sh" "$(dirname "$0")/update-app-flatpaks"; do
+	[ -x "$script" ] && { update_apps=$script; break; }
+done
+if [ -n "$update_apps" ]; then
+	"$update_apps" -b "$base" -i
+else
+	echo "warning: update-apps.sh not found; engine updates will not reach the app" >&2
+fi
 echo "installed $id"

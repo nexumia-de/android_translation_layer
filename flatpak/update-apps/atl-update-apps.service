@@ -1,0 +1,15 @@
+# ~/.config/systemd/user/atl-update-apps.service: moves the app Flatpaks
+# make-app.sh generated onto the installed engine (update-apps.sh -i
+# writes it); started by atl-update-apps.path and at login
+[Unit]
+Description=Update Android apps (ATL) to the installed engine
+
+[Service]
+Type=oneshot
+ExecStart=@SCRIPT@ -b @BASE@
+# a lower priority than the session: it copies the engine for every app
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=default.target
