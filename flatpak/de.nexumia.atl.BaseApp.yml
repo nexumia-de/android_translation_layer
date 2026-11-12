@@ -223,6 +223,8 @@ modules:
 
   - name: strip-jars
     buildsystem: simple
+    # only the jars run-dex2oat compiled: gstub.jar and ghax.jar are compiled into
+    # the app's cache at run time and need their dex files for that
     build-commands:
-      - for f in /app/lib/java/dex/art/*.jar /app/lib/java/dex/android_translation_layer/*.jar;
+      - for f in /app/lib/java/dex/art/*.jar /app/lib/java/dex/android_translation_layer/api-impl.jar;
         do mv $f tmp.jar; zip -d tmp.jar "classes*.dex"; mv tmp.jar $f; done
