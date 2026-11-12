@@ -217,6 +217,7 @@ public abstract class Context {
 
 	@Export
 	static Application createApplication(long native_window) throws Exception {
+		setDefaultUserAgent();
 		ATLLoadedApp loaded_app = ATLLoadedApp.getPrimaryApplication();
 		/* apps made for Android before 6 never ask: one review before their code runs */
 		android.atl.ATLPermissions.legacyReviewIfNeeded(loaded_app.effective_sdk_compat);
@@ -224,6 +225,29 @@ public abstract class Context {
 		application.native_window = native_window;
 		this_application = application;
 		return application;
+	}
+
+	/* as RuntimeInit.commonInit on Android: HttpURLConnection sends http.agent,
+	 * without it libcore sends "Java" + java.version ("Java0"), which some
+	 * servers refuse (Post & DHL's login page answered 403) */
+	private static void setDefaultUserAgent() {
+		if (System.getProperty("http.agent") != null)
+			return;
+		StringBuilder agent = new StringBuilder(64);
+		agent.append("Dalvik/").append(System.getProperty("java.vm.version"));
+		agent.append(" (Linux; U; Android ");
+		String release = android.os.Build.VERSION.RELEASE;
+		agent.append(release != null && release.length() > 0 ? release : "1.0");
+		if ("REL".equals(android.os.Build.VERSION.CODENAME)) {
+			String model = android.os.Build.MODEL;
+			if (model != null && model.length() > 0)
+				agent.append("; ").append(model);
+		}
+		String id = android.os.Build.ID;
+		if (id != null && id.length() > 0)
+			agent.append(" Build/").append(id);
+		agent.append(")");
+		System.setProperty("http.agent", agent.toString());
 	}
 
 	public Context() {
