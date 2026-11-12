@@ -35,6 +35,19 @@ follow [bringing up an app](app-bring-up.md).
 System packages to install and decisions only the owner can make. Each
 entry: date, what, why. Remove an entry once it is done.
 
+- 2026-11-09: An Android reference for the stretch goal of issue #118
+  ("better than the same app on Android"). If Waydroid is still
+  installed, the same Gadgetbridge in it gives the number to beat on
+  this hardware; the agent cannot run Waydroid. Paste the output into
+  the issue:
+
+  ```
+  waydroid shell dumpsys meminfo nodomain.freeyourgadget.gadgetbridge
+  ```
+
+  Why: ATL's Gadgetbridge costs about 218 MB PSS plus 63 MB GPU memory
+  ([performance](performance.md#evaluation-of-the-measurements-2026-11-09));
+  without the Android number the comparison stays a guess.
 - 2026-11-08: The agent for issue #118 runs in `tmux` session `perf118`
   inside the laptop's SSH login (session `c22`, started 19:44). logind
   kills that login with everything in it once the connection times out

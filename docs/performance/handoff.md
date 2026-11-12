@@ -73,18 +73,14 @@ test.
 
 ## Open, by expected gain
 
-1. Item 11: build, measure (Chooser threads, `stacks`, audio libraries,
-   start time) and test sound on the phone; then merge.
-2. Item 4: pair run and smoke test on the phone, then PR.
-3. Item 8: Mesa threads (Chooser: 10 `gdrv`, 12 `traceq`, 8 `ir3q`,
-   10 `disk$`): disk cache and u_trace environment switches. Item 11
-   should already remove the contexts of the audio pipelines; measure
-   it first.
-4. Baseline again with the fixed cover; then HeliBoard, DB Navigator,
-   WhatsApp and FluffyChat; work on what costs most.
-5. On the real phone: does phoc stop frame callbacks for an app in the
-   background? Expected yes.
-6. Item 9 belongs to nexumia-de/aports (the owner's pipeline).
+The ranked list with gains, confidence and next steps is in
+[performance.md, "What can be implemented"](../performance.md#what-can-be-implemented)
+(2026-11-09). In short: A measure GPU memory (`TU_DEBUG=bos`,
+`GSK_DEBUG=cache`, a plain GTK4 program as floor), B item 4's pair run
+and smoke test, C item 11's measurement and sound test, E the
+differential measurement of `native-anon`, F `GDK_DISABLE=gl` as an
+A/B, G a 12-hour Gadgetbridge run, D the app image once E has numbers.
+Item 8 and item 9 (aports) are not worth it now.
 
 Pull request #130 (the cover fix and the item 5 and 7 results) is
 merged; `tools/perf-run.sh -c` covers fully since then.
