@@ -759,9 +759,17 @@ JNIEXPORT void JNICALL Java_android_view_View_nativeInvalidate(JNIEnv *env, jcla
 	wrapper_widget_queue_draw(WRAPPER_WIDGET(gtk_widget_get_parent(widget)));
 }
 
+static gboolean unref_wrapper_on_main(gpointer widget)
+{
+	g_object_unref(gtk_widget_get_parent(widget));
+	return G_SOURCE_REMOVE;
+}
+
 JNIEXPORT void JNICALL Java_android_view_View_native_1destructor(JNIEnv *env, jobject this, jlong widget_ptr)
 {
-	g_object_unref(gtk_widget_get_parent(_PTR(widget_ptr)));
+	/* View.finalize runs on the FinalizerDaemon thread. The last unref disposes the GTK widget
+	 * tree, which is not thread safe (WebKitWebView aborts the process when disposed there). */
+	g_main_context_invoke(NULL, unref_wrapper_on_main, _PTR(widget_ptr));
 }
 
 #define MEASURE_SPEC_UNSPECIFIED (0 << 30)
