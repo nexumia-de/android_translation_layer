@@ -662,6 +662,7 @@ srcs = [
 	'android/util/Printer.java',
 	'android/util/Property.java',
 	'android/util/Rational.java',
+	'android/util/Range.java',
 	'android/util/Size.java',
 	'android/util/SizeF.java',
 	'android/util/Slog.java',
