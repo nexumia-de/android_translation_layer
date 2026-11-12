@@ -10,7 +10,9 @@ import android.graphics.Matrix;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 public class ImageView extends View {
@@ -102,6 +104,18 @@ public class ImageView extends View {
 	}
 
 	public void setImageMatrix(Matrix matrix) {}
+
+	public void setImageURI(Uri uri) {
+		Drawable d = null;
+		if (uri != null) {
+			try (java.io.InputStream is = getContext().getContentResolver().openInputStream(uri)) {
+				d = Drawable.createFromStream(is, null);
+			} catch (Exception e) {
+				Log.w("ImageView", "Unable to open content: " + uri, e);
+			}
+		}
+		setImageDrawable(d);
+	}
 
 	public void setImageBitmap(Bitmap bitmap) {
 		native_setDrawable(widget, bitmap != null ? bitmap.getTexture() : 0);

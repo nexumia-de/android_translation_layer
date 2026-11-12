@@ -11,8 +11,17 @@ public class Animation {
 	}
 
 	private AnimationListener listener;
+	private long duration;
+	private boolean started;
+	private boolean ended;
 
-	public void setDuration(long durationMillis) {}
+	public void setDuration(long durationMillis) {
+		duration = durationMillis;
+	}
+
+	public long getDuration() {
+		return duration;
+	}
 
 	public void setInterpolator(Interpolator i) {}
 
@@ -35,16 +44,21 @@ public class Animation {
 
 	public void applyTransformation(float interpolatedTime, Transformation t) {}
 
-	public void reset() {}
+	public void reset() {
+		started = false;
+		ended = false;
+	}
 
 	public void start() {
 		new Handler().post(new Runnable() {
 			@Override
 			public void run() {
 				initialize(0, 0, 0, 0);
+				started = true;
 				if (listener != null)
 					listener.onAnimationStart(Animation.this);
 				applyTransformation(1, new Transformation());
+				ended = true;
 				if (listener != null)
 					listener.onAnimationEnd(Animation.this);
 			}
@@ -52,7 +66,11 @@ public class Animation {
 	}
 
 	public boolean hasStarted() {
-		return false;
+		return started;
+	}
+
+	public boolean hasEnded() {
+		return ended;
 	}
 
 	public void setStartTime(long startTime) {}

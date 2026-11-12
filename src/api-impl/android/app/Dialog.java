@@ -271,6 +271,12 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 		throw new UnsupportedOperationException("Unimplemented method 'onMenuOpened'");
 	}
 
+	public Bundle onSaveInstanceState() {
+		return new Bundle();
+	}
+
+	public void onRestoreInstanceState(Bundle savedInstanceState) {}
+
 	protected void onCreate(Bundle savedInstanceState) {
 		System.out.println("- onCreate - Dialog!");
 	}
