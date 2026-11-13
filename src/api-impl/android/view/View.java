@@ -1138,6 +1138,7 @@ public class View implements Drawable.Callback {
 
 		if (a.hasValue(com.android.internal.R.styleable.View_tag))
 			tag = a.getText(com.android.internal.R.styleable.View_tag);
+		transitionName = a.getString(com.android.internal.R.styleable.View_transitionName);
 
 		if (a.hasValue(com.android.internal.R.styleable.View_textAlignment)) {
 			int textAlignment = a.getInt(com.android.internal.R.styleable.View_textAlignment, 0);
@@ -2531,7 +2532,9 @@ public class View implements Drawable.Callback {
 
 	public PorterDuff.Mode getBackgroundTintMode() { return null; }
 
-	public String getTransitionName() { return null; }
+	private String transitionName;
+
+	public String getTransitionName() { return transitionName; }
 
 	public WindowId getWindowId() { return null; }
 
@@ -2555,7 +2558,9 @@ public class View implements Drawable.Callback {
 
 	public void setOnDragListener(OnDragListener onDragListener) {}
 
-	public void setTransitionName(String transitionName) {}
+	public void setTransitionName(String transitionName) {
+		this.transitionName = transitionName;
+	}
 
 	public Animation getAnimation() { return null; }
 

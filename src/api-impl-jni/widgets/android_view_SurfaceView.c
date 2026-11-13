@@ -213,3 +213,62 @@ JNIEXPORT void JNICALL Java_android_view_SurfaceView_native_1postSnapshot(JNIEnv
 
 	surface_view_widget_set_texture(surface_view_widget, texture, FALSE);
 }
+
+// --- TextureView: the same widget, with TextureView's callbacks
+
+static gboolean texture_view_on_resize_delayed(struct jni_callback_data *d)
+{
+	JNIEnv *env;
+	(*d->jvm)->GetEnv(d->jvm, (void **)&env, JNI_VERSION_1_6);
+
+	J__TextureView__surfaceChanged(env, d->this, d->resize_width, d->resize_height);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+	}
+
+	return G_SOURCE_REMOVE;
+}
+
+static void texture_view_on_resize(GtkWidget *self, gint width, gint height, struct jni_callback_data *d)
+{
+	d->resize_width = width;
+	d->resize_height = height;
+
+	g_idle_add_full(G_PRIORITY_HIGH_IDLE + 20, G_SOURCE_FUNC(texture_view_on_resize_delayed), d, NULL);
+}
+
+static void texture_view_on_unrealize(GtkWidget *self, struct jni_callback_data *d)
+{
+	JNIEnv *env;
+	(*d->jvm)->GetEnv(d->jvm, (void **)&env, JNI_VERSION_1_6);
+
+	/* not delayed: the app must stop rendering before the widget is gone */
+	J__TextureView__surfaceDestroyed(env, d->this);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+	}
+}
+
+JNIEXPORT jlong JNICALL Java_android_view_TextureView_native_1constructor(JNIEnv *env, jobject this, jobject context, jobject attrs)
+{
+	GtkWidget *wrapper = g_object_ref(wrapper_widget_new());
+	GtkWidget *dummy = surface_view_widget_new();
+	gtk_widget_set_name(dummy, "dummy widget for TextureView");
+	GtkWidget *graphics_offload = gtk_graphics_offload_new(dummy);
+	wrapper_widget_set_child(WRAPPER_WIDGET(wrapper), graphics_offload);
+	wrapper_widget_set_jobject(WRAPPER_WIDGET(wrapper), env, this);
+
+	JavaVM *jvm;
+	(*env)->GetJavaVM(env, &jvm);
+
+	struct jni_callback_data *callback_data = malloc(sizeof(struct jni_callback_data));
+	callback_data->jvm = jvm;
+	callback_data->this = _REF(this);
+
+	g_signal_connect(dummy, "resize", G_CALLBACK(texture_view_on_resize), callback_data);
+	g_signal_connect(dummy, "unrealize", G_CALLBACK(texture_view_on_unrealize), callback_data);
+
+	return _INTPTR(graphics_offload);
+}

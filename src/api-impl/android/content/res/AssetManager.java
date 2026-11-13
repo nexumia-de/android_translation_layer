@@ -616,6 +616,40 @@ public final class AssetManager {
 
 	private native final int addAssetPathNative(String path);
 
+	private static final Map<String, Long> apkChangeTimes = new HashMap<String, Long>();
+
+	/*
+	 * When the APK at this path was last seen to change. An APK's own time does not show an update
+	 * when it is installed without one (a Flatpak's files have time 0), and files extracted from the
+	 * version before would stay: native libraries that do not match the new code. So the size of
+	 * each APK and the checksum of its manifest are kept in a stamp file next to the extracted files.
+	 */
+	private static synchronized long apkChangeTime(File apk) {
+		String key = apk.getPath();
+		Long cached = apkChangeTimes.get(key);
+		if (cached != null)
+			return cached;
+		long time = 0;
+		try {
+			String identity;
+			try (JarFile jar = new JarFile(apk)) {
+				ZipEntry manifest = jar.getEntry("AndroidManifest.xml");
+				identity = apk.length() + ":" + (manifest != null ? manifest.getCrc() : 0);
+			}
+			File stamp = new File(android.os.Environment.getExternalStorageDirectory(), ".atl-apk-" + Integer.toHexString(key.hashCode()));
+			String known = stamp.exists() ? new String(Files.readAllBytes(stamp.toPath())) : null;
+			if (!identity.equals(known)) {
+				stamp.getParentFile().mkdirs();
+				Files.write(stamp.toPath(), identity.getBytes());
+			}
+			time = stamp.lastModified();
+		} catch (IOException e) {
+			Log.w(TAG, "cannot tell whether " + key + " changed: " + e);
+		}
+		apkChangeTimes.put(key, time);
+		return time;
+	}
+
 	@Export
 	public static void extractFromAPK(String apk_resource_path, String path, String target) throws IOException {
 		String[] apk_paths = apk_resource_path.split(":");
@@ -635,7 +669,8 @@ public final class AssetManager {
 			Path file = Paths.get(android.os.Environment.getExternalStorageDirectory().getPath(), target);
 			for (String apk_path : apk_paths) {
 				File apk_file = new File(apk_path);
-				if (!Files.exists(file) || Files.getLastModifiedTime(file).toMillis() < Files.getLastModifiedTime(apk_file.toPath()).toMillis()) {
+				long extracted = Files.exists(file) ? Files.getLastModifiedTime(file).toMillis() : -1;
+				if (extracted < Files.getLastModifiedTime(apk_file.toPath()).toMillis() || extracted < apkChangeTime(apk_file)) {
 					try (JarFile apk = new JarFile(apk_file)) {
 						ZipEntry entry = apk.getEntry(path);
 						if (entry == null)
