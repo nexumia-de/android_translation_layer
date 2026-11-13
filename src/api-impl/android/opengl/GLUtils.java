@@ -10,4 +10,8 @@ public class GLUtils {
 
 	private static native int native_texImage2D(int target, int level, int internalformat,
 	                                            Bitmap bitmap, int type, int border);
+
+	public static String getEGLErrorString(int error) {
+		return "0x" + Integer.toHexString(error);
+	}
 }

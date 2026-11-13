@@ -65,6 +65,11 @@ public class EGLImpl implements EGL10 {
 			sur = holder.getSurface();
 		} else if (native_window instanceof Surface) {
 			sur = (Surface)native_window;
+		} else if (native_window instanceof android.graphics.SurfaceTexture) {
+			/* a TextureView's SurfaceTexture: render into its widget */
+			android.graphics.SurfaceTexture surfaceTexture = (android.graphics.SurfaceTexture)native_window;
+			if (surfaceTexture.widget != 0)
+				sur = new Surface(surfaceTexture);
 		}
 
 		long eglSurfaceId;
@@ -126,12 +131,19 @@ public class EGLImpl implements EGL10 {
 	public boolean eglCopyBuffers(EGLDisplay display, EGLSurface surface, Object native_pixmap) { return false; }
 	public EGLSurface eglCreatePixmapSurface(EGLDisplay display, EGLConfig config, Object native_pixmap, int[] attrib_list) { return null; }
 	public boolean eglGetConfigs(EGLDisplay display, EGLConfig[] configs, int config_size, int[] num_config) { return false; }
-	public EGLContext eglGetCurrentContext() { return null; }
+	public EGLContext eglGetCurrentContext() {
+		long context = native_eglGetCurrentContext();
+		return context == 0 ? EGL10.EGL_NO_CONTEXT : new EGLContext(context);
+	}
 	public EGLDisplay eglGetCurrentDisplay() { return null; }
 	public EGLSurface eglGetCurrentSurface(int readdraw) { return null; }
 	public int eglGetError() { return EGL_SUCCESS; } // don't let yourself get fooled, this is also a stub :P
-	public boolean eglQueryContext(EGLDisplay display, EGLContext context, int attribute, int[] value) { return false; }
-	public String eglQueryString(EGLDisplay display, int name) { return "FIXME"; }
+	public boolean eglQueryContext(EGLDisplay display, EGLContext context, int attribute, int[] value) {
+		return native_eglQueryContext(display.native_egl_display, context.native_egl_context, attribute, value);
+	}
+	public String eglQueryString(EGLDisplay display, int name) {
+		return native_eglQueryString(display.native_egl_display, name);
+	}
 	public boolean eglQuerySurface(EGLDisplay display, EGLSurface surface, int attribute, int[] value) { return false; }
 	/**
 	 * @hide *
@@ -143,6 +155,9 @@ public class EGLImpl implements EGL10 {
 
 	private native long native_eglCreateWindowSurface(long native_egl_display, long native_egl_config, Surface surface, int[] attrib_list);
 	private native long native_eglGetDisplay(Object native_display);
+	private native long native_eglGetCurrentContext();
+	private native boolean native_eglQueryContext(long native_egl_display, long native_egl_context, int attribute, int[] value);
+	private native String native_eglQueryString(long native_egl_display, int name);
 	private native boolean native_eglInitialize(long native_egl_display, int[] major_minor);
 	private native boolean native_eglGetConfigAttrib(long native_egl_display, long native_edl_config, int attribute, int[] value);
 	private native boolean native_eglMakeCurrent(long native_egl_display, long native_draw_surface, long native_read_surface, long native_context);
