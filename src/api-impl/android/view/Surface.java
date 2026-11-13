@@ -7,11 +7,19 @@ public class Surface {
 
 	public Surface() {}
 
-	public Surface(SurfaceTexture surfaceTexture) {}
+	public Surface(SurfaceTexture surfaceTexture) {
+		widget = surfaceTexture.widget;
+	}
 
 	public boolean isValid() {
 		return widget != 0;
 	}
 
-	public void release() {}
+	public void release() {
+		widget = 0;
+	}
+
+	public void setFrameRate(float frameRate, int compatibility) {}
+
+	public void setFrameRate(float frameRate, int compatibility, int changeFrameRateStrategy) {}
 }
