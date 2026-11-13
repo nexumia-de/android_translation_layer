@@ -43,9 +43,30 @@ while getopts "b:r:nfih" opt; do
 done
 shift $((OPTIND - 1))
 
-base_dir=$(flatpak info --user --show-location "$base" 2>/dev/null || flatpak info --show-location "$base")
-base_commit=$(flatpak info --user --show-commit "$base" 2>/dev/null || flatpak info --show-commit "$base")
-runtime=$(flatpak info --show-runtime "$base")
+read_base() {
+	base_dir=$(flatpak info --user --show-location "$base" 2>/dev/null || flatpak info --show-location "$base")
+	base_commit=$(flatpak info --user --show-commit "$base" 2>/dev/null || flatpak info --show-commit "$base")
+	runtime=$(flatpak info --show-runtime "$base")
+}
+
+# The path unit fires while Flatpak is still deploying: the location read
+# then can be the old deployment, which Flatpak deletes a moment later.
+# Wait until two reads two seconds apart agree on an existing deployment.
+settle_base() {
+	i=0
+	read_base
+	while [ $i -lt 30 ]; do
+		prev=$base_dir
+		sleep 2
+		read_base
+		[ "$base_dir" = "$prev" ] && [ -d "$base_dir/files" ] && return 0
+		i=$((i + 1))
+	done
+	echo "$base: no stable deployment after 60 s" >&2
+	return 1
+}
+
+read_base
 
 # The path unit watches the directory of the base app's deployments: Flatpak
 # replaces its "active" link there on every update.
@@ -87,6 +108,7 @@ fi
 lock=${XDG_RUNTIME_DIR:-/tmp}/atl-update-apps.lock
 exec 9>"$lock"
 flock 9
+settle_base || exit 1
 
 status=0
 for id in "$@"; do
@@ -107,7 +129,16 @@ for id in "$@"; do
 	build=$work/build
 	mkdir -p "$build/files"
 	# not -a: the deployment belongs to another group than the user may give files to
-	cp -dR "$base_dir/files/." "$build/files/"
+	if ! cp -dR "$base_dir/files/." "$build/files/" 2>/dev/null; then
+		# the engine changed under us: copy the deployment that replaced it
+		rm -rf "$build/files" && mkdir -p "$build/files"
+		settle_base && cp -dR "$base_dir/files/." "$build/files/" || {
+			echo "$id: update failed, the engine could not be copied" >&2
+			status=1
+			rm -rf "$work"
+			continue
+		}
+	fi
 	rm -f "$build/files/manifest.json"
 	# the app's own files, as make-app.sh wrote them
 	mkdir -p "$build/files/share/atl"
