@@ -96,4 +96,62 @@ public class EGL14 {
 		javax.microedition.khronos.egl.EGLDisplay raw_display = new javax.microedition.khronos.egl.EGLDisplay(display.getNativeHandle());
 		return impl.eglTerminate(raw_display);
 	}
+
+	public static final int EGL_SUCCESS = 0x3000;
+
+	private static javax.microedition.khronos.egl.EGLDisplay raw(EGLDisplay display) {
+		return new javax.microedition.khronos.egl.EGLDisplay(display.getNativeHandle());
+	}
+
+	private static int[] copyAttribs(int[] attrib_list, int attrib_list_offset) {
+		if (attrib_list == null)
+			return null;
+		int[] raw_attrib_list = new int[attrib_list.length - attrib_list_offset];
+		System.arraycopy(attrib_list, attrib_list_offset, raw_attrib_list, 0, raw_attrib_list.length);
+		return raw_attrib_list;
+	}
+
+	public static EGLSurface eglCreateWindowSurface(EGLDisplay display, EGLConfig config, Object win, int[] attrib_list, int attrib_list_offset) {
+		javax.microedition.khronos.egl.EGLConfig raw_config = new javax.microedition.khronos.egl.EGLConfig(config.getNativeHandle());
+		javax.microedition.khronos.egl.EGLSurface raw_egl_surface = impl.eglCreateWindowSurface(raw(display), raw_config, win, copyAttribs(attrib_list, attrib_list_offset));
+		if (raw_egl_surface == EGL10.EGL_NO_SURFACE)
+			return EGL_NO_SURFACE;
+		return new EGLSurface(((com.google.android.gles_jni.EGLSurfaceImpl)raw_egl_surface).mEGLSurface);
+	}
+
+	public static boolean eglSwapBuffers(EGLDisplay display, EGLSurface surface) {
+		return impl.eglSwapBuffers(raw(display), new com.google.android.gles_jni.EGLSurfaceImpl(surface.getNativeHandle()));
+	}
+
+	public static boolean eglGetConfigAttrib(EGLDisplay display, EGLConfig config, int attribute, int[] value, int offset) {
+		int[] raw_value = new int[1];
+		boolean ret = impl.eglGetConfigAttrib(raw(display), new javax.microedition.khronos.egl.EGLConfig(config.getNativeHandle()), attribute, raw_value);
+		if (ret && value != null)
+			value[offset] = raw_value[0];
+		return ret;
+	}
+
+	public static EGLContext eglGetCurrentContext() {
+		javax.microedition.khronos.egl.EGLContext context = impl.eglGetCurrentContext();
+		if (context == null || context == EGL10.EGL_NO_CONTEXT)
+			return EGL_NO_CONTEXT;
+		return new EGLContext(context.native_egl_context);
+	}
+
+	public static boolean eglQueryContext(EGLDisplay display, EGLContext context, int attribute, int[] value, int offset) {
+		int[] raw_value = new int[1];
+		boolean ret = impl.eglQueryContext(raw(display), new javax.microedition.khronos.egl.EGLContext(context.getNativeHandle()), attribute, raw_value);
+		if (ret && value != null)
+			value[offset] = raw_value[0];
+		return ret;
+	}
+
+	public static String eglQueryString(EGLDisplay display, int name) {
+		return impl.eglQueryString(raw(display), name);
+	}
+
+	/* errors are not tracked yet (EGLImpl.eglGetError is a stub as well) */
+	public static int eglGetError() {
+		return EGL_SUCCESS;
+	}
 }
