@@ -1,9 +1,19 @@
 package android.media;
 
 import android.atl.annotation.Export;
+import android.content.Context;
+import android.media.metrics.LogSessionId;
+import android.os.Handler;
 import java.nio.ByteBuffer;
+import java.util.concurrent.Executor;
 
-public class AudioTrack {
+public class AudioTrack implements AudioRouting {
+	public static abstract class StreamEventCallback {
+		public void onTearDown(AudioTrack track) {}
+		public void onPresentationEnded(AudioTrack track) {}
+		public void onDataRequest(AudioTrack track, int sizeInFrames) {}
+	}
+
 	public interface OnPlaybackPositionUpdateListener {
 		void onMarkerReached(AudioTrack track);
 
@@ -116,9 +126,22 @@ public class AudioTrack {
 	}
 
 	public int write(ByteBuffer audioData, int sizeInBytes, int writeMode) {
+		if (!audioData.hasArray()) { // direct buffers, as ExoPlayer uses
+			byte[] copy = new byte[sizeInBytes];
+			audioData.duplicate().get(copy);
+			int ret = write(copy, 0, sizeInBytes);
+			if (ret > 0)
+				audioData.position(audioData.position() + ret);
+			return ret;
+		}
 		int ret = write(audioData.array(), audioData.arrayOffset() + audioData.position(), sizeInBytes);
-		audioData.position(audioData.position() + ret);
+		if (ret > 0)
+			audioData.position(audioData.position() + ret);
 		return ret;
+	}
+
+	public int write(ByteBuffer audioData, int sizeInBytes, int writeMode, long timestamp) {
+		return write(audioData, sizeInBytes, writeMode);
 	}
 
 	public int write(short audioData[], int offsetInShorts, int sizeInShorts) {
@@ -185,6 +208,74 @@ public class AudioTrack {
 		return -1;
 	}
 
+	public static float getMinVolume() {
+		return 0.0f;
+	}
+
+	public static float getMaxVolume() {
+		return 1.0f;
+	}
+
+	public static boolean isDirectPlaybackSupported(AudioFormat format, AudioAttributes attributes) {
+		return false;
+	}
+
+	public int getBufferSizeInFrames() {
+		return channels > 0 ? bufferSizeInBytes / channels / 2 : bufferSizeInBytes / 4; // 2 means PCM16
+	}
+
+	public int getUnderrunCount() {
+		return 0;
+	}
+
+	public boolean isOffloadedPlayback() {
+		return false;
+	}
+
+	public void setOffloadDelayPadding(int delayInFrames, int paddingInFrames) {}
+
+	public void setOffloadEndOfStream() {}
+
+	public void registerStreamEventCallback(Executor executor, StreamEventCallback eventCallback) {}
+
+	public void unregisterStreamEventCallback(StreamEventCallback eventCallback) {}
+
+	public void setLogSessionId(LogSessionId logSessionId) {}
+
+	private PlaybackParams playbackParams = new PlaybackParams();
+
+	public PlaybackParams getPlaybackParams() {
+		return playbackParams;
+	}
+
+	/* speed and pitch are not applied */
+	public void setPlaybackParams(PlaybackParams params) {
+		if (params == null)
+			throw new IllegalArgumentException("params is null");
+		playbackParams = params;
+	}
+
+	@Override
+	public boolean setPreferredDevice(AudioDeviceInfo deviceInfo) {
+		return true;
+	}
+
+	@Override
+	public AudioDeviceInfo getPreferredDevice() {
+		return null;
+	}
+
+	@Override
+	public AudioDeviceInfo getRoutedDevice() {
+		return null;
+	}
+
+	@Override
+	public void addOnRoutingChangedListener(AudioRouting.OnRoutingChangedListener listener, Handler handler) {}
+
+	@Override
+	public void removeOnRoutingChangedListener(AudioRouting.OnRoutingChangedListener listener) {}
+
 	// nested classes
 	public static class Builder {
 		private AudioAttributes mAttributes;
@@ -194,8 +285,23 @@ public class AudioTrack {
 
 		public Builder() {}
 
+		private int mSessionId;
+
 		public AudioTrack build() {
-			return new AudioTrack(mAttributes, mFormat, mBufferSizeInBytes, mTransferMode, 0);
+			return new AudioTrack(mAttributes, mFormat, mBufferSizeInBytes, mTransferMode, mSessionId);
+		}
+
+		public Builder setSessionId(int sessionId) {
+			mSessionId = sessionId;
+			return this;
+		}
+
+		public Builder setOffloadedPlayback(boolean offload) {
+			return this;
+		}
+
+		public Builder setContext(Context context) {
+			return this;
 		}
 
 		public Builder setAudioAttributes(AudioAttributes attributes) {

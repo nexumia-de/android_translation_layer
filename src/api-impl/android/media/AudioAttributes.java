@@ -40,6 +40,10 @@ public class AudioAttributes {
 			return this;
 		}
 
+		public Builder setIsContentSpatialized(boolean isSpatialized) {
+			return this;
+		}
+
 		public AudioAttributes build() {
 			return new AudioAttributes();
 		}
