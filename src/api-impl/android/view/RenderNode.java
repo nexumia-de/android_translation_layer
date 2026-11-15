@@ -43,6 +43,7 @@ public class RenderNode {
 	private native long nativeClip(long node, float left, float top, float right, float bottom);
 	private native long nativeClipRounded(long node, float left, float top, float right, float bottom, float radius);
 	private native long nativeClipPath(long node, long path, int fill_rule);
+	private native long nativeOpacity(long node, float alpha);
 	private native void nativeUnref(long node);
 	private native long nativeAddStubNode(long snapshot);
 	private native long nativeCreateEmpyNode();
@@ -205,6 +206,10 @@ public class RenderNode {
 
 	public boolean setClipToBounds(boolean clipToBounds) {
 		boolean changed = this.clipToBounds != clipToBounds;
+		if (changed && transformed_node != 0) {
+			nativeUnref(transformed_node);
+			transformed_node = 0;
+		}
 		this.clipToBounds = clipToBounds;
 		return changed;
 	}
@@ -215,6 +220,10 @@ public class RenderNode {
 
 	public boolean setAlpha(float alpha) {
 		boolean changed = this.alpha != alpha;
+		if (changed && transformed_node != 0) {
+			nativeUnref(transformed_node);
+			transformed_node = 0;
+		}
 		this.alpha = alpha;
 		return changed;
 	}
@@ -333,7 +342,12 @@ public class RenderNode {
 					outline.getRect(bounds);
 					clipped_node = nativeClip(clipped_node, bounds.left, bounds.top, bounds.right, bounds.bottom);
 				}
+			} else if (clipToBounds) {
+				clipped_node = nativeClip(clipped_node, 0, 0, width, height);
 			}
+			/* Compose hides content with graphicsLayer { alpha = 0f }, e.g. the collapsed variant of a header */
+			if (alpha < 1.0f)
+				clipped_node = nativeOpacity(clipped_node, Math.max(alpha, 0.0f));
 			transformed_node = nativeTransform(clipped_node, scaleX, scaleY, left + translationX, top + translationY, rotation, pivotX, pivotY);
 			nativeUnref(clipped_node);
 		}

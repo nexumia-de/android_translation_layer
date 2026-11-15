@@ -11,9 +11,16 @@ public class JobInfo {
 	public static final int NETWORK_TYPE_NOT_ROAMING = 3;
 	public static final int NETWORK_TYPE_CELLULAR = 4;
 
+	public static final int BACKOFF_POLICY_LINEAR = 0;
+	public static final int BACKOFF_POLICY_EXPONENTIAL = 1;
+	public static final long DEFAULT_INITIAL_BACKOFF_MILLIS = 30000L;
+	public static final long MAX_BACKOFF_DELAY_MILLIS = 5 * 60 * 60 * 1000L;
+	private static final long MIN_BACKOFF_MILLIS = 10000L;
+
 	private ComponentName service;
-	long initialBackoffMillis;
-	int backoffPolicy;
+	long initialBackoffMillis = DEFAULT_INITIAL_BACKOFF_MILLIS;
+	int backoffPolicy = BACKOFF_POLICY_EXPONENTIAL;
+	int failedAttempts; // reschedules in a row, for the backoff
 	private PersistableBundle extras;
 	long periodicMillis;
 	private int id;
@@ -33,6 +40,27 @@ public class JobInfo {
 
 	public int getId() {
 		return id;
+	}
+
+	public long getInitialBackoffMillis() {
+		return initialBackoffMillis;
+	}
+
+	public int getBackoffPolicy() {
+		return backoffPolicy;
+	}
+
+	/* the delay before the next try of a job that asked to be rescheduled, as Android's
+	 * JobSchedulerService computes it: linear or exponential in the number of tries, at most 5 h */
+	long nextBackoffMillis() {
+		failedAttempts++;
+		long initial = Math.max(initialBackoffMillis, MIN_BACKOFF_MILLIS);
+		long delay;
+		if (backoffPolicy == BACKOFF_POLICY_LINEAR)
+			delay = initial * failedAttempts;
+		else
+			delay = initial << Math.min(failedAttempts - 1, 20);
+		return Math.min(delay, MAX_BACKOFF_DELAY_MILLIS);
 	}
 
 	public static long getMinPeriodMillis() {

@@ -59,6 +59,15 @@ static GskRenderNode *patch_node(GskRenderNode *node, GskRenderNode *old_child, 
 			gsk_render_node_unref(child);
 			break;
 		}
+		case GSK_OPACITY_NODE: {
+			GskRenderNode *child = patch_node(gsk_opacity_node_get_child(node), old_child, new_child);
+			if (child != gsk_opacity_node_get_child(node))
+				new_node = gsk_opacity_node_new(child, gsk_opacity_node_get_opacity(node));
+			else
+				new_node = gsk_render_node_ref(node);
+			gsk_render_node_unref(child);
+			break;
+		}
 		default:
 			new_node = gsk_render_node_ref(node);
 	}
@@ -122,6 +131,14 @@ JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeClipPath(JNIEnv *env,
 	gsk_render_node_unref(color);
 	gsk_render_node_unref(node);
 	return _INTPTR(clipped_node);
+}
+
+JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeOpacity(JNIEnv *env, jobject this, jlong node_ptr, jfloat alpha)
+{
+	GskRenderNode *node = _PTR(node_ptr);
+	GskRenderNode *opacity_node = gsk_opacity_node_new(node, alpha);
+	gsk_render_node_unref(node);
+	return _INTPTR(opacity_node);
 }
 
 JNIEXPORT void JNICALL Java_android_view_RenderNode_nativeUnref(JNIEnv *env, jobject this, jlong node_ptr)
