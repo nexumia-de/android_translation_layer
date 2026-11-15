@@ -1,5 +1,8 @@
 # Directory Update Log
 
+## 2026-11-15
+* **DB Navigator current journey and ticket**: With the owner's logged-in data (headless), the current journey bar stayed without text because ATL's view animations never reported repeats, and the ticket's QR code was covered at the top by a page included as gone, because `<include android:visibility>` was ignored. Both fixed ([apps](apps.md), DB Navigator 22 and 23). [Development environment](dev-environment.md): testing a logged-in Flatpak app headless with `tools/portal-secret-forward.py`, and Java-only test builds in a Flatpak.
+
 ## 2026-11-13
 * **Duolingo 6.104.5 start**: After `android.util.Range` (#138) it exited on the welcome screen as soon as ExoPlayer started: `ActivityManager.isRunningInTestHarness`, the API 29 `MediaCodecInfo` queries and the `AudioTrack` session, offload, routing and `PlaybackParams` methods were missing, and `AudioTrack.write(ByteBuffer)` called `array()` on direct buffers. Added together from the static gap list (`tools/atl-gaps.py`, about 1,300 entries for this version). The welcome screen now stays open on the phone, but taps did nothing and with `ghax.jar` in place the app later died with SIGSEGV in Rive's native `CommandQueueJNIBridge.cppCreateListeners` (the owl animation, Rive's GL renderer; `EGL14.eglGetError` is missing too). Play Integrity now answers "Play Store not installed" (-2), the case in which Duolingo lets the login through ([Duolingo login](duolingo-login.md)). Not usable yet ([app status](apps.md)).
 

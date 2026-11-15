@@ -478,6 +478,29 @@ root):
   are checked from outside.
 - Headless: `tools/headless-shot.sh -- flatpak run --user <app id>`;
   `flatpak run` starts the portals in the test's own session bus.
+- Headless with the owner's logged-in app (agent running as the owner,
+  2026-11-15): copy the contents of
+  `~/.var/app/<id>/data/android_translation_layer` to `<copy>/data` and
+  `~/.var/app/<id>/data/keyrings` to `<copy>/keyrings`, and run
+  `flatpak run --user --filesystem=<copy> --env=ANDROID_APP_DATA_DIR=<copy>/data/
+  --env=XDG_DATA_HOME=<copy> <app id>`, so the app's data stays untouched.
+  The app's keystore keys sit in its file keyring, encrypted with its
+  portal secret, which the Secret portal gets from gnome-keyring. In the
+  test bus gnome-keyring starts on the owner's login keyring and asks for
+  its password; never unlock it. Instead put a directory with service
+  files for `org.freedesktop.secrets` and `org.gnome.keyring` first in
+  `XDG_DATA_DIRS` of `headless-shot.sh`; the first runs
+  `/usr/bin/env REAL_BUS=$DBUS_SESSION_BUS_ADDRESS /usr/bin/python3 -I tools/portal-secret-forward.py`
+  (absolute path), the second `/bin/false`. Without the secret the app is
+  logged out, and DB Navigator aborts with `Keystore cannot load the key`
+  when the secret service is missing altogether.
+- Java-only changes in a Flatpak app: a directory with the build's
+  `api-impl.jar`, symlinks `ghax.jar`, `gstub.jar` and the two natives to
+  `/app/lib/java/dex/android_translation_layer/...` and
+  `res/framework-res/framework-res.apk`, passed with
+  `--filesystem=<dir> --env=RUN_FROM_BUILDDIR=<dir>`. dex2oat then writes
+  its output for that directory into the app's real
+  `~/.var/app/<id>/cache/art/`; delete those files afterwards.
 
 # ATL for the owner
 
