@@ -1688,6 +1688,7 @@ public class View implements Drawable.Callback {
 	public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
 		if (layoutRequested || widthMeasureSpec != oldWidthMeasureSpec || heightMeasureSpec != oldHeightMeasureSpec) {
 			layoutRequested = false;
+			layoutRequired = true;
 			oldWidthMeasureSpec = widthMeasureSpec;
 			oldHeightMeasureSpec = heightMeasureSpec;
 			onMeasure(widthMeasureSpec, heightMeasureSpec);
@@ -1765,9 +1766,13 @@ public class View implements Drawable.Callback {
 	protected void onLayout(boolean changed, int l, int t, int r, int b) {}
 
 	private boolean layouted = false;
+	private boolean layoutRequired = false;
 	private boolean in_layout = false;
 
 	public void layout(int l, int t, int r, int b) {
+		/* measured again: like Android, run onLayout even if the size stays the
+		 * same, GTK would not allocate the widget again */
+		boolean relayout = layoutRequired && !this.in_layout && r - l == oldWidth && b - t == oldHeight && hasAndroidLayout(getClass());
 		this.layouted = true;
 		this.left = l;
 		this.top = t;
@@ -1777,8 +1782,12 @@ public class View implements Drawable.Callback {
 			native_queueAllocate(widget); // GTK is not re-entrant-safe. Queue allocation
 		else
 			native_layout(widget, l, t, r, b);
-		if (!hasAndroidLayout(getClass()))
+		if (!hasAndroidLayout(getClass())) {
+			layoutRequired = false;
 			layoutNativeWidget(r - l, b - t);
+		} else if (relayout) {
+			layoutInternal(r - l, b - t);
+		}
 	}
 
 	private static final java.util.HashMap<Class<?>, Boolean> android_layout_classes = new java.util.HashMap<>();
@@ -1824,6 +1833,7 @@ public class View implements Drawable.Callback {
 	@Export
 	private void layoutInternal(int width, int height) {
 		in_layout = true;
+		layoutRequired = false;
 		// if the layout is triggered from a native widget, we might not have measured yet
 		if (!(parent instanceof ViewGroup) && (width != getMeasuredWidth() || height != getMeasuredHeight())) {
 			requestLayout();
@@ -1914,14 +1924,20 @@ public class View implements Drawable.Callback {
 
 	public void requestLayout() {
 		native_requestLayout(widget);
+		/* like Android, stop at a parent that already has a layout requested, not at
+		 * this view: one that was never measured (e.g. while GONE) keeps the flag set,
+		 * and its parents would never measure it again */
+		layoutRequested = true;
 		View view = this;
-		while (!view.layoutRequested) {
-			view.layoutRequested = true;
-			if (view.parent instanceof View)
-				view = (View)view.parent;
-			else
-				break;
-		}
+		for (; view.parent instanceof View && !((View)view.parent).layoutRequested; view = (View)view.parent)
+			((View)view.parent).layoutRequested = true;
+		/* GTK stops passing a resize up at a widget that still has one queued (e.g. one
+		 * that was hidden since), so the parents would never measure again: queue it on
+		 * the topmost view as well */
+		while (view.parent instanceof View)
+			view = (View)view.parent;
+		if (view != this)
+			native_requestLayout(view.widget);
 	};
 
 	public void setOverScrollMode(int mode) {}

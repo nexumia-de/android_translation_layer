@@ -64,6 +64,8 @@ public class ImageView extends View {
 		}
 		bitmap = BitmapFactory.decodeResource(this.getResources(), resid);
 		native_setDrawable(widget, bitmap != null ? bitmap.getTexture() : 0);
+		/* as on Android: the new image may have another size */
+		requestLayout();
 	}
 	public void setAdjustViewBounds(boolean adjustViewBounds) {}
 
@@ -94,6 +96,8 @@ public class ImageView extends View {
 		if (drawable != null && level != 0) {
 			drawable.setLevel(level);
 		}
+		/* as on Android: the new drawable may have another size */
+		requestLayout();
 	}
 
 	public void setImageLevel(int level) {
