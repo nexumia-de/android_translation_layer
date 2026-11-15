@@ -310,6 +310,11 @@ public class Notification implements Parcelable {
 		public MediaStyle setMediaSession(MediaSession.Token token) { return this; }
 	}
 
+	/* the system's frame around a custom view (API 24); the custom view itself is not shown */
+	public static class DecoratedCustomViewStyle extends Style {}
+
+	public static class DecoratedMediaCustomViewStyle extends MediaStyle {}
+
 	public static class BigTextStyle extends Style {
 
 		public BigTextStyle(Notification.Builder builder) {}
