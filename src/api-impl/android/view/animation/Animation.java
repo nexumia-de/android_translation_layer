@@ -36,9 +36,28 @@ public class Animation {
 		this.listener = l;
 	}
 
-	public void setRepeatCount(int count) {}
+	public static final int INFINITE = -1;
+	public static final int RESTART = 1;
+	public static final int REVERSE = 2;
 
-	public void setRepeatMode(int mode) {}
+	private int repeatCount;
+	private int repeatMode = RESTART;
+
+	public void setRepeatCount(int count) {
+		repeatCount = count < 0 ? INFINITE : count;
+	}
+
+	public int getRepeatCount() {
+		return repeatCount;
+	}
+
+	public void setRepeatMode(int mode) {
+		repeatMode = mode;
+	}
+
+	public int getRepeatMode() {
+		return repeatMode;
+	}
 
 	public void initialize(int width, int height, int parentWidth, int parentHeight) {}
 
@@ -57,7 +76,14 @@ public class Animation {
 				started = true;
 				if (listener != null)
 					listener.onAnimationStart(Animation.this);
-				applyTransformation(1, new Transformation());
+				/* the animation jumps to its end, but apps rely on the repeats in between,
+				 * e.g. to swap a text while it is faded out (DB Navigator) */
+				for (int i = 0; listener != null && i < (repeatCount == INFINITE ? 1 : repeatCount); i++)
+					listener.onAnimationRepeat(Animation.this);
+				// an odd number of reversed repeats ends where it started
+				applyTransformation(repeatMode == REVERSE && repeatCount % 2 != 0 ? 0 : 1, new Transformation());
+				if (repeatCount == INFINITE)
+					return; // never ends, as on Android
 				ended = true;
 				if (listener != null)
 					listener.onAnimationEnd(Animation.this);
