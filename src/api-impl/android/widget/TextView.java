@@ -420,7 +420,11 @@ public class TextView extends View {
 	}
 
 	public Layout getLayout() {
-		return new BoringLayout(getText(), getPaint(), getWidth(), Layout.Alignment.ALIGN_NORMAL, 1, 0, new BoringLayout.Metrics(), false);
+		/* as on Android, the layout of the last measure: apps read it in onMeasure (e.g. to
+		 * shrink a bubble to its longest line), before the view has its new width */
+		int width = getMeasuredWidth() > 0 ? getMeasuredWidth() : getWidth();
+		width = Math.max(width - getPaddingLeft() - getPaddingRight(), 0);
+		return new BoringLayout(getText(), getPaint(), width, Layout.Alignment.ALIGN_NORMAL, 1, 0, new BoringLayout.Metrics(), false);
 	}
 
 	public int getCurrentTextColor() {
