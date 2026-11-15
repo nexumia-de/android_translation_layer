@@ -297,7 +297,9 @@ static gboolean on_pointer_event(GtkEventControllerLegacy *event_controller, Gdk
 			break;
 		case GDK_BUTTON_RELEASE:
 		case GDK_TOUCH_END:
-			action = pointer_index > 0 ? (ACTION_POINTER_UP | (pointer_index << 8)) : ACTION_UP;
+			/* ACTION_UP only for the last pointer; the first finger lifting while another one is
+			 * down is ACTION_POINTER_UP with index 0 (MapLibre's pinch dropped the gesture) */
+			action = (pointers[id].id ? pointer_indices->len > 1 : pointer_indices->len > 0) ? (ACTION_POINTER_UP | (pointer_index << 8)) : ACTION_UP;
 			break;
 		case GDK_MOTION_NOTIFY:
 			if (!(gdk_event_get_modifier_state(event) & GDK_BUTTON1_MASK))
