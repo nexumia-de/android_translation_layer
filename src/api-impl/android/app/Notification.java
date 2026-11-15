@@ -100,7 +100,39 @@ public class Notification implements Parcelable {
 			return this;
 		}
 
-		public Builder setContent(RemoteViews contentView) { return this; }
+		public Builder setContent(RemoteViews contentView) {
+			return setCustomContentView(contentView);
+		}
+
+		/* custom layouts are kept but not shown: the desktop notification has title, text and actions */
+		public Builder setCustomContentView(RemoteViews contentView) {
+			notification.contentView = contentView;
+			return this;
+		}
+
+		public Builder setCustomBigContentView(RemoteViews contentView) {
+			notification.bigContentView = contentView;
+			return this;
+		}
+
+		public Builder setCustomHeadsUpContentView(RemoteViews contentView) {
+			notification.headsUpContentView = contentView;
+			return this;
+		}
+
+		public Builder setChannelId(String channelId) { return this; }
+
+		public Builder setColorized(boolean colorize) { return this; }
+
+		public Builder addPerson(String uri) { return this; }
+
+		public Builder setChronometerCountDown(boolean countDown) { return this; }
+
+		public Builder setActions(Action... actions) {
+			for (Action action : actions)
+				addAction(action);
+			return this;
+		}
 
 		public Builder setTicker(CharSequence tickerText, RemoteViews contentView) { return this; }
 
