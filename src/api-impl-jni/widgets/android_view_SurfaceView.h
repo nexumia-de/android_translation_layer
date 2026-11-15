@@ -8,6 +8,9 @@ struct _SurfaceViewWidget {
 	gboolean needs_flip;
 	void (*frame_callback)(SurfaceViewWidget *surface_view_widget);
 	gpointer frame_callback_data;
+	/* called on the main thread for every new texture (a TextureView tells its Java side) */
+	void (*texture_callback)(SurfaceViewWidget *surface_view_widget, gpointer data);
+	gpointer texture_callback_data;
 };
 
 struct _SurfaceViewWidgetClass {

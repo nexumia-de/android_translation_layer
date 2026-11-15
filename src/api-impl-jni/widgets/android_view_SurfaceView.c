@@ -108,6 +108,8 @@ void surface_view_widget_set_texture(SurfaceViewWidget *surface_view_widget, Gdk
 	surface_view_widget->texture = texture;
 	surface_view_widget->needs_flip = needs_flip;
 	gtk_widget_queue_draw(GTK_WIDGET(surface_view_widget));
+	if (surface_view_widget->texture_callback)
+		surface_view_widget->texture_callback(surface_view_widget, surface_view_widget->texture_callback_data);
 }
 
 // ---
@@ -238,6 +240,20 @@ static void texture_view_on_resize(GtkWidget *self, gint width, gint height, str
 	g_idle_add_full(G_PRIORITY_HIGH_IDLE + 20, G_SOURCE_FUNC(texture_view_on_resize_delayed), d, NULL);
 }
 
+/* a new frame: Compose draws the widget into its own layer, which only a Java invalidation redraws */
+static void texture_view_on_texture(SurfaceViewWidget *surface_view_widget, gpointer data)
+{
+	struct jni_callback_data *d = data;
+	JNIEnv *env;
+	(*d->jvm)->GetEnv(d->jvm, (void **)&env, JNI_VERSION_1_6);
+
+	J__TextureView__frameUpdated(env, d->this);
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+	}
+}
+
 static void texture_view_on_unrealize(GtkWidget *self, struct jni_callback_data *d)
 {
 	JNIEnv *env;
@@ -269,6 +285,8 @@ JNIEXPORT jlong JNICALL Java_android_view_TextureView_native_1constructor(JNIEnv
 
 	g_signal_connect(dummy, "resize", G_CALLBACK(texture_view_on_resize), callback_data);
 	g_signal_connect(dummy, "unrealize", G_CALLBACK(texture_view_on_unrealize), callback_data);
+	SURFACE_VIEW_WIDGET(dummy)->texture_callback = texture_view_on_texture;
+	SURFACE_VIEW_WIDGET(dummy)->texture_callback_data = callback_data;
 
 	return _INTPTR(graphics_offload);
 }
