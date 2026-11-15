@@ -68,6 +68,15 @@ public class TextureView extends View {
 			destroyed.release();
 	}
 
+	/* a new frame arrived: redraw like Android (Compose records this view into its own layer and
+	 * redraws it only when invalidated) and tell the listener */
+	@Export
+	private void frameUpdated() {
+		invalidate();
+		if (surfaceTexture != null && surfaceTextureListener != null)
+			surfaceTextureListener.onSurfaceTextureUpdated(surfaceTexture);
+	}
+
 	public void setSurfaceTextureListener(SurfaceTextureListener surfaceTextureListener) {
 		this.surfaceTextureListener = surfaceTextureListener;
 	}
