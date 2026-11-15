@@ -185,17 +185,20 @@ cause.
 | Check boxes | `wrong` | GTK's blue check box instead of komoot's, and its text is cut at the right edge |
 | Sign-in with Google | `out of scope` | Google sign-in |
 | Sign-in with Facebook | `untested` | |
-| Map | `untested` | MapLibre (OpenGL ES); reached only after sign-in |
-| Location | `untested` | Needs the owner's phone and sign-in |
-| Route planning, navigation, voice | `untested` | Speech: `TextToSpeech` gaps in the list |
+| Map | `headless` | MapLibre through `TextureView`, 2026-11-15 (owner's account, Flatpak). Planner map renders and pans; the Routes tab map was empty until `RenderNode` applied alpha (a hidden Compose layer covered it). The Record tab map stayed an empty background at world zoom (not looked at). `Typeface.sSystemFontMap` missing: MapLibre logs it, only local CJK glyphs are affected |
+| Location | `headless` | 2026-11-15: position dot and "Current location" as start point through ATL's portal location (the app has portal permission EXACT), with and without `ATL_GMS_STUB=1`. Real GPS fix outdoors not tested |
+| Route planning | `wrong` | 2026-11-15: tapping points, "Route to here", the route is computed and drawn with distance, surfaces and way types. Until `RenderNode` applied alpha, the collapsed and expanded statistics were drawn over each other and a hidden map preview showed in the waypoint card. Still wrong: the statistics' auto-sized values grow to the 112 sp maximum (estimated time) and overlap (elevation gain and loss): width is measured right (`Layout.getDesiredWidth`), the height overflow is not seen. Cause open |
+| Navigation, voice | `untested` | Speech: `TextToSpeech` gaps in the list |
 | Offline maps | `untested` | `MapDownloadService` |
+| Background jobs | `headless` | `TourUploadJobService` asks for a reschedule each run; ATL reran it at once (backoff 0), about 5000 runs in 30 s on the owner's phone. Fixed with Android's backoff, 2026-11-15 |
+| HTTPS | `wrong` | On the owner's phone 2026-11-15, for 2 s at start, 66 requests failed with `Hostname … not verified (no certificates)` while many connections opened at once; later requests worked. Not reproduced with 64 parallel handshakes under `dalvikvm`. Suspect: wolfJSSE shares one session object per host between connections (`WolfSSLAuthStore.getSession` resumes the cached object with the new `WolfSSLSession`); upstream wolfssljni removes the entry on lookup |
 | Watches and sensors (Bluetooth LE) | `untested` | `BluetoothLeAdvertiser` and others missing |
 | Number pickers | `missing` | `NumberPicker` (51 own calls) |
 | Drag and drop | `missing` | `DragEvent` |
 | Web pages in the app | `missing` | `WebResourceError`, `WebViewClient.onReceivedError` and more (23 own calls) |
 | Premium purchases | `out of scope` | Google Play billing |
 
-Result: starts and reaches sign-in; the map and everything after sign-in need the owner's account on the phone.
+Result (2026-11-15, owner's account): home, Routes tab, map, location and route planning work; the route statistics are oversized. Navigation not tested.
 
 # Duolingo
 

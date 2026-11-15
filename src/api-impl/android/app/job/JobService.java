@@ -15,15 +15,20 @@ public abstract class JobService extends Service {
 	public void jobFinished(JobParameters params, boolean needsReschedule) {
 		Slog.i(TAG, "jobFinished(" + params + ", " + needsReschedule + ") called");
 		params.jobInfo.running = false;
+		if (!needsReschedule)
+			params.jobInfo.failedAttempts = 0;
 		if (needsReschedule || params.jobInfo.periodicMillis != 0) {
+			long delay = needsReschedule ? params.jobInfo.nextBackoffMillis() : params.jobInfo.periodicMillis;
 			new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
 				@Override
 				public void run() {
+					if (JobScheduler.pendingJobs.get(params.jobInfo.getId()) != params.jobInfo)
+						return; // cancelled meanwhile
 					params.jobInfo.running = true;
 					boolean result = onStartJob(params);
 					Slog.i(TAG, "onStartJob() returned " + result);
 				}
-			}, needsReschedule ? params.jobInfo.initialBackoffMillis : params.jobInfo.periodicMillis);
+			}, delay);
 		} else {
 			JobScheduler.pendingJobs.remove(params.jobInfo.getId());
 		}
