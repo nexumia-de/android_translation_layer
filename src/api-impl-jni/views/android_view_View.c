@@ -838,7 +838,9 @@ JNIEXPORT void JNICALL Java_android_view_View_native_1layout(JNIEnv *env, jobjec
 		if (!wrapper->needs_allocation)
 			gtk_widget_queue_allocate(widget);
 	}
-	if (wrapper->needs_allocation) {
+	/* a native widget (label, picture, ...) gets its size here: 0x0 would make GTK fall back
+	 * to its minimum size, e.g. the height of a label's text instead of the button's */
+	if (wrapper->needs_allocation || !ATL_IS_ANDROID_LAYOUT(gtk_widget_get_layout_manager(wrapper->child))) {
 		allocation.width = width;
 		allocation.height = height;
 	}
