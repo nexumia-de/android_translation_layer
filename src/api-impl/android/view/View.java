@@ -1777,6 +1777,47 @@ public class View implements Drawable.Callback {
 			native_queueAllocate(widget); // GTK is not re-entrant-safe. Queue allocation
 		else
 			native_layout(widget, l, t, r, b);
+		if (!hasAndroidLayout(getClass()))
+			layoutNativeWidget(r - l, b - t);
+	}
+
+	private static final java.util.HashMap<Class<?>, Boolean> android_layout_classes = new java.util.HashMap<>();
+
+	/* only the widget made by View's own native_constructor has the layout
+	 * manager that calls layoutInternal; native widgets (ImageView,
+	 * TextView, ...) are allocated by GTK without it */
+	private static boolean hasAndroidLayout(Class<?> cls) {
+		Boolean cached = android_layout_classes.get(cls);
+		if (cached != null)
+			return cached;
+		boolean result = true;
+		for (Class<?> c = cls; c != null && c != View.class; c = c.getSuperclass()) {
+			try {
+				c.getDeclaredMethod("native_constructor", Context.class, AttributeSet.class);
+				result = false;
+				break;
+			} catch (NoSuchMethodException e) {
+			}
+		}
+		android_layout_classes.put(cls, result);
+		return result;
+	}
+
+	/* what layoutInternal does for views with the layout manager: Android
+	 * calls these from layout() for every view, and apps wait for them
+	 * (e.g. an animation that loads at the view's size from a layout
+	 * change listener) */
+	private void layoutNativeWidget(int width, int height) {
+		boolean changed = oldWidth != width || oldHeight != height;
+		if (changed)
+			onSizeChanged(width, height, oldWidth, oldHeight);
+		onLayout(changed, 0, 0, width, height);
+		if (on_layout_change_listeners != null) {
+			for (OnLayoutChangeListener on_layout_change_listener : on_layout_change_listeners)
+				on_layout_change_listener.onLayoutChange(this, left, top, right, bottom, left, top, left + oldWidth, top + oldHeight);
+		}
+		oldWidth = width;
+		oldHeight = height;
 	}
 
 	/** Helper function to be called from GTKs LayoutManager via JNI */
