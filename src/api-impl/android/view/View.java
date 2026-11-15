@@ -2508,6 +2508,12 @@ public class View implements Drawable.Callback {
 
 	@Export
 	public boolean dispatchTouchEvent(MotionEvent event) {
+		if (getClass().getName().contains("MapView")) {
+			StringBuilder b = new StringBuilder();
+			for (int i = 0; i < event.getPointerCount(); i++)
+				b.append(event.getPointerId(i)).append('@').append((int)event.getX(i)).append(',').append((int)event.getY(i)).append(' ');
+			android.util.Slog.i("ATLDIAG", "MapView a=" + event.getActionMasked() + " i=" + event.getActionIndex() + " " + b + "raw=" + (int)event.getRawX() + "," + (int)event.getRawY() + " p=" + event.getPressure());
+		}
 		if (on_touch_listener != null && on_touch_listener.onTouch(this, event))
 			return true;
 		return onTouchEvent(event);
