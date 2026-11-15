@@ -155,8 +155,7 @@ public class TextView extends View {
 
 		if (text instanceof android.text.Spanned)
 			native_set_markup(1);
-		if (!isLayoutRequested())
-			requestLayout();
+		requestLayout();
 	}
 
 	public void setText(char[] text, int start, int len) {

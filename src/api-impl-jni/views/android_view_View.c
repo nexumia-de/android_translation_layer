@@ -711,7 +711,11 @@ JNIEXPORT void JNICALL Java_android_view_View_native_1setVisibility(JNIEnv *env,
 	GtkWidget *wrapper = gtk_widget_get_parent(widget);
 
 	atl_safe_gtk_widget_set_visible(wrapper, visibility != android_view_View_GONE);
-	gtk_widget_set_opacity(wrapper, (visibility != android_view_View_INVISIBLE) * alpha);
+	/* Android still draws a visible view with alpha 0, and apps rely on it: a faded out
+	 * animation only advances while it is drawn (Duolingo waits for the end of one).
+	 * GTK skips widgets with opacity 0 (it keeps opacity in 8 bits), so use the smallest
+	 * one it draws, which is invisible */
+	gtk_widget_set_opacity(wrapper, visibility == android_view_View_INVISIBLE ? 0 : alpha == 0.0f ? 1.0 / 255 : alpha);
 	/* GTK only hands an event to the picked widget and its parents, never to siblings below it,
 	 * so an invisible overlay (e.g. a faded out splash screen) would take all touches */
 	gtk_widget_set_can_target(wrapper, visibility != android_view_View_INVISIBLE && alpha != 0.0f);
