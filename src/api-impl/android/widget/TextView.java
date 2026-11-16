@@ -189,6 +189,13 @@ public class TextView extends View {
 			updateTextColor();
 		}
 	}
+	@Override
+	public void drawableStateChanged() {
+		super.drawableStateChanged();
+		if (colors != null && colors.isStateful())
+			updateTextColor();
+	}
+
 	private void updateTextColor() {
 		native_setTextColor(colors.getColorForState(getDrawableState(), colors.getDefaultColor()));
 		showHintIfEmpty();

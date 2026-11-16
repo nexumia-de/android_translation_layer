@@ -558,7 +558,20 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 
 	public void setClipChildren(boolean clipChildren) {}
 
+	@Override
 	protected void dispatchSetPressed(boolean pressed) {}
+
+	@Override
+	protected void dispatchSetSelected(boolean selected) {
+		for (int i = 0; i < getChildCount(); i++)
+			getChildAt(i).setSelected(selected);
+	}
+
+	@Override
+	protected void dispatchSetActivated(boolean activated) {
+		for (int i = 0; i < getChildCount(); i++)
+			getChildAt(i).setActivated(activated);
+	}
 
 	@Override
 	public View findViewWithTag(Object tag) {

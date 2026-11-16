@@ -978,6 +978,8 @@ public class View implements Drawable.Callback {
 	private int visibility = View.VISIBLE;
 	private float alpha = 1.0f;
 	private boolean pressed = false;
+	private boolean selected = false;
+	private boolean activated = false;
 	private Drawable background;
 	private int backgroundTint = 0;
 	private int mForegroundGravity = Gravity.START | Gravity.TOP;
@@ -1157,12 +1159,27 @@ public class View implements Drawable.Callback {
 		onCreateDrawableState(0);
 	}
 
+	/* the states that are set come first, the rest of the array (extraSpace and unset states) is 0 */
 	protected int[] onCreateDrawableState(int extraSpace) {
-		return new int[0];
+		int[] state = new int[4 + extraSpace];
+		int i = 0;
+		if (atl_enabled)
+			state[i++] = R.attr.state_enabled;
+		if (pressed)
+			state[i++] = R.attr.state_pressed;
+		if (selected)
+			state[i++] = R.attr.state_selected;
+		if (activated)
+			state[i++] = R.attr.state_activated;
+		return state;
 	}
 
-	protected static int[] mergeDrawableStates(int[] curState, int[] newState) {
-		return new int[0];
+	protected static int[] mergeDrawableStates(int[] baseState, int[] additionalState) {
+		int i = baseState.length - 1;
+		while (i >= 0 && baseState[i] == 0)
+			i--;
+		System.arraycopy(additionalState, 0, baseState, i + 1, additionalState.length);
+		return baseState;
 	}
 
 	public View findViewById(int id) {
@@ -1426,12 +1443,24 @@ public class View implements Drawable.Callback {
 		Slog.w(TAG, "calling setPressed on " + this + " with value: " + pressed);
 		if (this.pressed != pressed) {
 			this.pressed = pressed;
-			if (background != null && background.isStateful())
-				background.setState(getDrawableState());
+			refreshDrawableState();
+			dispatchSetPressed(pressed);
 		}
 	}
 
-	public void setSelected(boolean selected) {}
+	protected void dispatchSetPressed(boolean pressed) {}
+
+	public void setSelected(boolean selected) {
+		if (this.selected != selected) {
+			this.selected = selected;
+			refreshDrawableState();
+			dispatchSetSelected(selected);
+		}
+	}
+
+	protected void dispatchSetSelected(boolean selected) {}
+
+	protected void dispatchSetActivated(boolean activated) {}
 
 	public native Window native_get_window(long widget);
 	public ViewTreeObserver getViewTreeObserver() {
@@ -1629,6 +1658,7 @@ public class View implements Drawable.Callback {
 	}
 
 	public void refreshDrawableState() {
+		drawableStateChanged();
 	}
 
 	public void setDescendantFocusability(int value) {}
@@ -1650,8 +1680,7 @@ public class View implements Drawable.Callback {
 	public void setEnabled(boolean enabled) {
 		atl_enabled = enabled;
 		native_setVisibility(widget, visibility, alpha, atl_enabled);
-		if (background != null && background.isStateful())
-			background.setState(getDrawableState());
+		refreshDrawableState();
 	}
 
 	public CharSequence getContentDescription() {
@@ -2008,7 +2037,7 @@ public class View implements Drawable.Callback {
 			on_layout_change_listeners.remove(listener);
 	}
 
-	public boolean isSelected() { return false; }
+	public boolean isSelected() { return selected; }
 
 	public void sendAccessibilityEvent(int eventType) {}
 
@@ -2019,9 +2048,15 @@ public class View implements Drawable.Callback {
 		this.minWidth = minWidth;
 	}
 
-	public void setActivated(boolean activated) {}
+	public void setActivated(boolean activated) {
+		if (this.activated != activated) {
+			this.activated = activated;
+			refreshDrawableState();
+			dispatchSetActivated(activated);
+		}
+	}
 
-	public boolean isActivated() { return false; }
+	public boolean isActivated() { return activated; }
 
 	public int getVisibility() { return visibility; }
 
@@ -2038,14 +2073,7 @@ public class View implements Drawable.Callback {
 	}
 
 	public final int[] getDrawableState() {
-		int[] state = new int[2];
-		if (atl_enabled) {
-			state[0] = R.attr.state_enabled;
-		}
-		if (pressed) {
-			state[1] = R.attr.state_pressed;
-		}
-		return state;
+		return onCreateDrawableState(0);
 	}
 
 	public float getRotation() { return 0.f; }
@@ -2550,7 +2578,7 @@ public class View implements Drawable.Callback {
 
 	public void requestFitSystemWindows() {}
 
-	public boolean isPressed() { return false; }
+	public boolean isPressed() { return pressed; }
 
 	public native void getWindowVisibleDisplayFrame(Rect rect);
 
