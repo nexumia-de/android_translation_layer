@@ -714,4 +714,96 @@ public class Canvas {
 	public void drawTextRun(char[] text, int index, int count, int contextIndex, int contextCount, float x, float y, boolean isRtl, Paint paint) {
 		drawText(text, index, index + count, x, y, paint);
 	}
+	/* layers are not composited separately: the alpha is ignored */
+	public int saveLayerAlpha(RectF bounds, int alpha, int flags) {
+		return save();
+	}
+
+	public int saveLayerAlpha(RectF bounds, int alpha) {
+		return save();
+	}
+
+	public int saveLayerAlpha(float left, float top, float right, float bottom, int alpha) {
+		return save();
+	}
+
+	public int saveLayerAlpha(float left, float top, float right, float bottom, int alpha, int flags) {
+		return save();
+	}
+
+	public void drawRGB(int r, int g, int b) {
+		drawColor(Color.rgb(r, g, b));
+	}
+
+	public void drawColor(long color) {
+		drawColor(Color.toArgb(color));
+	}
+
+	public void drawColor(int color, BlendMode mode) {
+		if (mode == null || mode == BlendMode.SRC_OVER || mode == BlendMode.SRC)
+			drawColor(color);
+		else
+			Log.w("Canvas", "STUB: drawColor(" + String.format("0x%08x", color) + ", " + mode + ")");
+	}
+
+	public void drawColor(long color, BlendMode mode) {
+		drawColor(Color.toArgb(color), mode);
+	}
+
+	public void skew(float sx, float sy) {
+		Matrix matrix = new Matrix();
+		matrix.setSkew(sx, sy);
+		concat(matrix);
+	}
+
+	public boolean quickReject(float left, float top, float right, float bottom) {
+		return false;
+	}
+
+	public boolean quickReject(RectF rect) {
+		return false;
+	}
+
+	public boolean quickReject(RectF rect, EdgeType type) {
+		return false;
+	}
+
+	public boolean quickReject(Path path) {
+		return false;
+	}
+
+	public boolean quickReject(Path path, EdgeType type) {
+		return false;
+	}
+
+	private int density = 0; // Bitmap.DENSITY_NONE
+	private DrawFilter drawFilter;
+
+	public int getDensity() {
+		return density;
+	}
+
+	public void setDensity(int density) {
+		this.density = density;
+	}
+
+	public DrawFilter getDrawFilter() {
+		return drawFilter;
+	}
+
+	public void setDrawFilter(DrawFilter filter) {
+		drawFilter = filter;
+	}
+
+	public boolean isOpaque() {
+		return bitmap != null && !bitmap.hasAlpha();
+	}
+
+	public int getMaximumBitmapWidth() {
+		return 32766;
+	}
+
+	public int getMaximumBitmapHeight() {
+		return 32766;
+	}
 }

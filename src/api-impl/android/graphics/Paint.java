@@ -459,4 +459,19 @@ public class Paint {
 	private static native void native_set_text_align(long paint, int align);
 	private static native float native_get_font_metrics(long paint, FontMetrics metrics);
 	private static native int native_get_font_metrics_int(long paint, FontMetricsInt metrics);
+	public String getFontFeatureSettings() {
+		return null;
+	}
+
+	public String getFontVariationSettings() {
+		return null;
+	}
+
+	public boolean isElegantTextHeight() {
+		return false;
+	}
+
+	public void setTextLocale(java.util.Locale locale) {}
+
+	public void setTextLocales(android.os.LocaleList locales) {}
 }

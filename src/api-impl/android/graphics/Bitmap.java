@@ -326,4 +326,7 @@ public final class Bitmap implements Parcelable {
 	private static native void native_copy_to_buffer(long texture, Buffer buffer, int memory_format, int stride);
 	private static native byte[] native_save_to_png(long texture);
 	private static native void native_set_pixels(long snapshot, int[] pixels, int offset, int stride, int x, int y, int width, int height);
+	public boolean isPremultiplied() {
+		return true;
+	}
 }
