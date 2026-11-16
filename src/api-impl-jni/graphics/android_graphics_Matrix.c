@@ -1,3 +1,4 @@
+#include <math.h>
 #include <graphene.h>
 #include <stdint.h>
 
@@ -200,6 +201,15 @@ JNIEXPORT void JNICALL Java_android_graphics_Matrix_native_1mapPoints(JNIEnv *en
 	}
 	(*env)->ReleaseFloatArrayElements(env, src_ref, src, 0);
 	(*env)->ReleaseFloatArrayElements(env, dst_ref, dst, 0);
+}
+
+JNIEXPORT jfloat JNICALL Java_android_graphics_Matrix_native_1mapRadius(JNIEnv *env, jclass class, jlong matrix_ptr, jfloat radius)
+{
+	graphene_matrix_t *matrix = (graphene_matrix_t *)_PTR(matrix_ptr);
+	// like Skia: geometric mean of the lengths of the mapped vectors (radius, 0) and (0, radius)
+	float d0 = hypotf(graphene_matrix_get_value(matrix, 0, 0), graphene_matrix_get_value(matrix, 0, 1)) * radius;
+	float d1 = hypotf(graphene_matrix_get_value(matrix, 1, 0), graphene_matrix_get_value(matrix, 1, 1)) * radius;
+	return sqrtf(d0 * d1);
 }
 
 JNIEXPORT void JNICALL Java_android_graphics_Matrix_native_1setTranslate(JNIEnv *env, jclass class, jlong matrix_ptr, jfloat x, jfloat y)
