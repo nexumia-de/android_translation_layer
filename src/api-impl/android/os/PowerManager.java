@@ -147,6 +147,17 @@ public final class PowerManager {
 	public static final int THERMAL_STATUS_NONE = 0;
 
 	/* no thermal information is read from the system */
+	public interface OnThermalStatusChangedListener {
+		void onThermalStatusChanged(int status);
+	}
+
+	/* the thermal status never changes: listeners are not called */
+	public void addThermalStatusListener(OnThermalStatusChangedListener listener) {}
+
+	public void addThermalStatusListener(java.util.concurrent.Executor executor, OnThermalStatusChangedListener listener) {}
+
+	public void removeThermalStatusListener(OnThermalStatusChangedListener listener) {}
+
 	public int getCurrentThermalStatus() {
 		return THERMAL_STATUS_NONE;
 	}
