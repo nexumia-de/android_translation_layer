@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Environment;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class SoundPool {
 
@@ -26,34 +27,58 @@ public class SoundPool {
 
 	private OnLoadCompleteListener loadCompleteListener;
 
+	/* A sound's GtkMediaFile (a GStreamer pipeline with its threads) is created on the
+	 * first play() and on the main thread. Apps load many sounds at once from worker
+	 * threads; creating the pipelines there made GStreamer abort in decodebin3. */
+	private final ArrayList<String> paths = new ArrayList<String>();     // index: sample id - 1
+	private final ArrayList<Integer> nativeIds = new ArrayList<Integer>(); // -1: not created yet
+	private final Handler mainHandler = new Handler(Looper.getMainLooper());
+	private int lastStreamId;
+
 	public SoundPool(int maxStreams, int streamType, int srcQuality) {
 		nativePool = native_constructor();
 	}
 
-	private void notifyLoaded(final int sampleId) {
-		new Handler(Looper.getMainLooper()).post(new Runnable() {
+	private int addSample(String path) {
+		final int sampleId;
+		synchronized (paths) {
+			paths.add(path);
+			nativeIds.add(-1);
+			sampleId = paths.size();
+		}
+		mainHandler.post(new Runnable() {
 			@Override
 			public void run() {
 				if (loadCompleteListener != null)
 					loadCompleteListener.onLoadComplete(SoundPool.this, sampleId, 0);
 			}
 		});
+		return sampleId;
 	}
 
 	public int load(AssetFileDescriptor afd, int priority) throws IOException {
 		String packageCodePath = ATLLoadedApp.getPrimaryApplication().pkg.applicationInfo.sourceDir;
 		AssetManager.extractFromAPK(packageCodePath, afd.fileName, afd.fileName);
-		int sampleId = nativeLoad(nativePool, Environment.getExternalStorageDirectory().getPath() + "/" + afd.fileName);
-		notifyLoaded(sampleId);
-		return sampleId;
+		return addSample(Environment.getExternalStorageDirectory().getPath() + "/" + afd.fileName);
 	}
 
 	public int load(Context context, int resId, int priority) throws IOException {
 		String fileName = context.getResources().getString(resId);
 		AssetManager.extractFromAPK(context.getPackageCodePath(), fileName, fileName);
-		int sampleId = nativeLoad(nativePool, Environment.getExternalStorageDirectory().getPath() + "/" + fileName);
-		notifyLoaded(sampleId);
-		return sampleId;
+		return addSample(Environment.getExternalStorageDirectory().getPath() + "/" + fileName);
+	}
+
+	public int load(String path, int priority) {
+		return addSample(path);
+	}
+
+	public final boolean unload(int soundID) {
+		synchronized (paths) {
+			if (soundID < 1 || soundID > paths.size() || paths.get(soundID - 1) == null)
+				return false;
+			paths.set(soundID - 1, null); // the native stream, if any, stays until the process ends
+			return true;
+		}
 	}
 
 	/**
@@ -63,25 +88,57 @@ public class SoundPool {
 		loadCompleteListener = listener;
 	}
 
-	public final int play(int soundID, float leftVolume, float rightVolume, int priority, int loop, float rate) {
-		return nativePlay(nativePool, soundID);
+	public final int play(final int soundID, float leftVolume, float rightVolume, int priority, int loop, float rate) {
+		final int streamId;
+		synchronized (paths) {
+			if (soundID < 1 || soundID > paths.size() || paths.get(soundID - 1) == null)
+				return 0;
+			streamId = ++lastStreamId;
+		}
+		Runnable play = new Runnable() {
+			@Override
+			public void run() {
+				int nativeId;
+				synchronized (paths) {
+					String path = paths.get(soundID - 1);
+					if (path == null)
+						return;
+					nativeId = nativeIds.get(soundID - 1);
+					if (nativeId < 0) {
+						nativeId = nativeLoad(nativePool, path);
+						nativeIds.set(soundID - 1, nativeId);
+					}
+				}
+				nativePlay(nativePool, nativeId);
+			}
+		};
+		if (Looper.myLooper() == Looper.getMainLooper())
+			play.run();
+		else
+			mainHandler.post(play);
+		return streamId;
 	}
 
-	public final void stop(int streamID) {} // sounds play to their end
+	/* sounds play to their end, at the volume of the output */
+	public final void stop(int streamID) {}
 
-	public void autoResume() {
-		System.out.println("WARNING: SoundPool.autoResume not implemented yet");
-	}
+	public final void pause(int streamID) {}
 
-	public void autoPause() {
-		System.out.println("WARNING: SoundPool.autoPause not implemented yet");
-	}
+	public final void resume(int streamID) {}
 
-	public void setVolume(int streamType, float leftVolume, float rightVolume) {
-		System.out.println("WARNING: SoundPool.setVolume not implemented yet");
-	}
+	public final void autoPause() {}
 
-	public class Builder {
+	public final void autoResume() {}
+
+	public final void setVolume(int streamID, float leftVolume, float rightVolume) {}
+
+	public final void setLoop(int streamID, int loop) {}
+
+	public final void setRate(int streamID, float rate) {}
+
+	public final void setPriority(int streamID, int priority) {}
+
+	public static class Builder {
 		public Builder setAudioAttributes(AudioAttributes attributes) {
 			return this;
 		}
@@ -91,11 +148,16 @@ public class SoundPool {
 		}
 
 		public SoundPool build() {
-			return new SoundPool(0, 0, 0); // FIXME
+			return new SoundPool(0, 0, 0);
 		}
 	}
 
-	public void release() {}
+	public final void release() {
+		synchronized (paths) {
+			for (int i = 0; i < paths.size(); i++)
+				paths.set(i, null);
+		}
+	}
 
 	private static native long native_constructor();
 	private static native int nativeLoad(long nativePool, String path);

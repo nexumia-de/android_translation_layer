@@ -168,6 +168,8 @@ public final class ContextImpl extends Context {
 				return AccountManager.get(this);
 			case "usb":
 				return new UsbManager();
+			case "midi":
+				return new android.media.midi.MidiManager();
 			case "vibrator":
 				return (vibrator != null) ? vibrator : (vibrator = new Vibrator());
 			case "vibrator_manager":
