@@ -240,4 +240,8 @@ public final class Debug {
 	public static void startNativeTracing() {}
 
 	public static void stopNativeTracing() {}
+
+	public static String getRuntimeStat(String statName) {
+		return "fixme getRuntimeStat";
+	}
 }
