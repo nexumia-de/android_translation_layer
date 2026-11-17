@@ -27,9 +27,9 @@ public class SoundPool {
 
 	private OnLoadCompleteListener loadCompleteListener;
 
-	/* A sound's GtkMediaFile (a GStreamer pipeline with its threads) is created on the
-	 * first play() and on the main thread. Apps load many sounds at once from worker
-	 * threads; creating the pipelines there made GStreamer abort in decodebin3. */
+	/* A sound's native player (a GStreamer pipeline with its threads) is created on the
+	 * first play() and on the main thread; apps load many sounds at once from worker
+	 * threads. */
 	private final ArrayList<String> paths = new ArrayList<String>();     // index: sample id - 1
 	private final ArrayList<Integer> nativeIds = new ArrayList<Integer>(); // -1: not created yet
 	private final Handler mainHandler = new Handler(Looper.getMainLooper());

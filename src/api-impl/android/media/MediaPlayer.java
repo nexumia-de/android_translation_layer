@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.util.Map;
 
 public class MediaPlayer {
-	/* the GtkMediaFile; created on the first call that needs it, so a player
+	/* the native player; created on the first call that needs it, so a player
 	 * that is only prepared (sound effects) costs no GStreamer pipeline */
 	private long gtk_media_stream;
 	private String path;
@@ -80,7 +80,7 @@ public class MediaPlayer {
 		setDataSource(src, 0, Long.MAX_VALUE);
 	}
 
-	/* GtkMediaFile needs a name: copy what the descriptor holds */
+	/* the native player needs a name: copy what the descriptor holds */
 	public void setDataSource(FileDescriptor src, long offset, long length) throws IOException {
 		File file = File.createTempFile("mediaplayer", null);
 		file.deleteOnExit();
@@ -105,7 +105,7 @@ public class MediaPlayer {
 		this.path = path;
 	}
 
-	/* returns the GtkMediaFile, created on first use; 0 without a data source */
+	/* returns the native player, created on first use; 0 without a data source */
 	private long stream() {
 		if (gtk_media_stream == 0) {
 			if (path == null) {

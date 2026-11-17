@@ -219,6 +219,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/audio/android_media_AudioRecord.c',
                                                                   	'src/api-impl-jni/audio/android_media_AudioTrack.c',
                                                                   	'src/api-impl-jni/audio/android_media_SoundPool.c',
+                                                                  	'src/api-impl-jni/audio/atl_player.c',
                                                                   	'src/api-impl-jni/audio/audio.c',
                                                                   	'src/api-impl-jni/com_google_android_gles_jni_GLImpl.c',
                                                                   	'src/api-impl-jni/content/android_atl_ATLMediaContentProvider.c',
@@ -302,7 +303,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                         extra_deps,
                                                                   	dependency('gtk4', version: '>=4.14'), dependency('gl'), dependency('egl'), dependency('wayland-client'), dependency('jni'),
                                                                   	dependency('libportal'), dependency('sqlite3'), dependency('libavcodec', version: '>=59'), dependency('libdrm'),
-                                                                  	dependency('gudev-1.0'), dependency('xkbcommon'), dependency('libswscale'), dependency('fontconfig'), dependency('pangoft2'), dependency('libsecret-1'),
+                                                                  	dependency('gudev-1.0'), dependency('xkbcommon'), dependency('libswscale'), dependency('fontconfig'), dependency('pangoft2'), dependency('libsecret-1'), dependency('gstreamer-1.0'),
                                                                         libart_dep, wayland_protos_dep, upcalls_header
                                                                   ],
                                                                   link_with: [ libandroid_so ],
