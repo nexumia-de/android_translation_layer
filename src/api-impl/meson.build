@@ -554,6 +554,8 @@ srcs = [
 	'android/service/media/MediaBrowserService.java',
 	'android/service/notification/NotificationListenerService.java',
 	'android/service/notification/StatusBarNotification.java',
+	'android/speech/RecognitionListener.java',
+	'android/speech/SpeechRecognizer.java',
 	'android/speech/tts/TextToSpeech.java',
 	'android/speech/tts/UtteranceProgressListener.java',
 	'android/speech/tts/Voice.java',
