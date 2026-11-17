@@ -98,6 +98,10 @@ public class Drawable {
 			return newDrawable(res);
 		}
 
+		public boolean canApplyTheme() {
+			return false;
+		}
+
 		public abstract int getChangingConfigurations();
 	}
 
@@ -198,6 +202,13 @@ public class Drawable {
 
 	public Drawable mutate() {
 		return this;
+	}
+
+	public void applyTheme(Theme t) {
+	}
+
+	public boolean canApplyTheme() {
+		return false;
 	}
 
 	@Export
