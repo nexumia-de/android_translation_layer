@@ -209,7 +209,7 @@ struct _ATLSurface {
 		uint32_t gl_framebuffer;
 		int width;
 		int height;
-	} buffers[NUM_BUFFERS];
+	} buffers[NUM_BUFFERS + 1]; // the last one is never shown, see acquire_back_buffer
 	struct atl_surface_buffer *back_buffer;
 	struct atl_surface_buffer *front_buffer;
 	GAsyncQueue *vsync;
@@ -341,7 +341,7 @@ EGLBoolean bionic_eglDestroySurface(EGLDisplay display, EGLSurface surface)
 	} else {
 		ATLSurface *atl_surface = surface;
 		atl_surface->destroyed = TRUE;
-		for (int i = 0; i < NUM_BUFFERS; i++) {
+		for (int i = 0; i < NUM_BUFFERS + 1; i++) {
 			if (atl_surface->buffers[i].egl_image)
 				eglDestroyImage(display, atl_surface->buffers[i].egl_image);
 			atl_surface->buffers[i].egl_image = 0;
@@ -405,21 +405,23 @@ static void atl_surface_buffer_alloc(ATLSurface *atl_surface, struct atl_surface
 }
 
 /*
- * Takes a free buffer as the back buffer and binds its framebuffer, or the
- * default framebuffer when none got free in time (timeout in µs, -1 waits).
+ * Takes a free buffer as the back buffer and binds its framebuffer (timeout
+ * in µs). GTK gives a buffer back when it has drawn a newer one, which it
+ * does not do for a widget that is not drawn (hidden, covered) or while the
+ * main thread is busy. When none got free in time the app renders into a
+ * buffer that is never shown: the frame is dropped. Waiting longer would
+ * stop every view that renders on the same thread.
  */
 static void acquire_back_buffer(ATLSurface *atl_surface, struct ANativeWindow *native_window, gint64 timeout)
 {
 	struct atl_surface_buffer *buffer;
-	if (timeout < 0)
-		buffer = g_async_queue_pop(atl_surface->unused_buffers);
-	else
+	if (timeout > 0)
 		buffer = g_async_queue_timeout_pop(atl_surface->unused_buffers, timeout);
+	else
+		buffer = g_async_queue_try_pop(atl_surface->unused_buffers);
+	if (!buffer)
+		buffer = &atl_surface->buffers[NUM_BUFFERS];
 	atl_surface->back_buffer = buffer;
-	if (!buffer) {
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		return;
-	}
 	if (buffer->width != native_window->width || buffer->height != native_window->height)
 		atl_surface_buffer_alloc(atl_surface, buffer, native_window->width, native_window->height);
 	else
@@ -457,7 +459,7 @@ EGLBoolean bionic_eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface
 		}
 	}
 	if (!atl_surface->back_buffer)
-		acquire_back_buffer(atl_surface, native_window, -1);
+		acquire_back_buffer(atl_surface, native_window, 100000); // 100ms
 	else
 		glBindFramebuffer(GL_FRAMEBUFFER, atl_surface->back_buffer->gl_framebuffer);
 	return ret;
@@ -479,12 +481,17 @@ static void frame_callback(SurfaceViewWidget *surface_view_widget)
 static gboolean queue_texture(gpointer data)
 {
 	static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES = NULL;
-	ATLSurface *atl_surface = data;
+	struct atl_surface_buffer *buffer = data;
+	ATLSurface *atl_surface = buffer->surface;
 	if (atl_surface->destroyed) {
 		g_object_unref(atl_surface);
 		return G_SOURCE_REMOVE;
 	}
-	struct atl_surface_buffer *buffer = atl_surface->front_buffer;
+	if (buffer != atl_surface->front_buffer) {
+		/* the app has swapped again since: this frame is not shown */
+		destroy_texture(buffer);
+		return G_SOURCE_REMOVE;
+	}
 	if (buffer->texture_builder && (gdk_gl_texture_builder_get_width(buffer->texture_builder) != buffer->width ||
 	                                gdk_gl_texture_builder_get_height(buffer->texture_builder) != buffer->height)) {
 		/* the buffer was reallocated at a new size */
@@ -533,11 +540,17 @@ EGLBoolean bionic_eglSwapBuffers(EGLDisplay display, EGLSurface surface)
 	ATLSurface *atl_surface = surface;
 
 	glFlush();
+	if (atl_surface->back_buffer == &atl_surface->buffers[NUM_BUFFERS]) {
+		/* a dropped frame: continue with a buffer GTK gave back meanwhile, if any */
+		acquire_back_buffer(atl_surface, native_window, 0);
+		return EGL_TRUE;
+	}
 	if (atl_surface->back_buffer) {
 		g_async_queue_timeout_pop(atl_surface->vsync, 50000); // 50ms
 		atl_surface->front_buffer = atl_surface->back_buffer;
 		atl_surface->back_buffer = NULL;
-		g_idle_add_full(G_PRIORITY_HIGH_IDLE + 20, queue_texture, g_object_ref(atl_surface), NULL);
+		g_object_ref(atl_surface);
+		g_idle_add_full(G_PRIORITY_HIGH_IDLE + 20, queue_texture, atl_surface->front_buffer, NULL);
 	}
 	acquire_back_buffer(atl_surface, native_window, 100000); // 100ms
 
@@ -580,7 +593,6 @@ void bionic_glBindFramebuffer(GLenum target, GLuint framebuffer)
 	ATLSurface *atl_surface = g_hash_table_lookup(draw_surface_hashtable, eglGetCurrentContext());
 	if (!atl_surface)
 		return glBindFramebuffer(target, 0);
-	/* eglSwapBuffers gives up waiting for a free buffer after 100 ms */
 	if (!atl_surface->back_buffer) {
 		acquire_back_buffer(atl_surface, g_hash_table_lookup(egl_surface_hashtable, atl_surface), 100000);
 		return;
