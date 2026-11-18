@@ -138,8 +138,11 @@ public class PopupMenu {
 	// callback from native code
 	@Export
 	protected void menuItemClickCallback(final int id) {
+		MenuItemImpl item = (MenuItemImpl)getMenu().findItem(id);
+		if (item != null && item.clickListener != null && item.clickListener.onMenuItemClick(item))
+			return;
 		if (mMenuItemClickListener != null) {
-			mMenuItemClickListener.onMenuItemClick(getMenu().findItem(id));
+			mMenuItemClickListener.onMenuItemClick(item);
 		}
 	}
 
@@ -355,6 +358,7 @@ public class PopupMenu {
 		private String title;
 		SubMenuImpl subMenu;
 		int position; // position in list of visible items, or -1 if not visible
+		private OnMenuItemClickListener clickListener;
 
 		private MenuItemImpl(int id, MenuImpl parent, String title, SubMenuImpl subMenu) {
 			this.id = id;
@@ -461,8 +465,8 @@ public class PopupMenu {
 
 		@Override
 		public MenuItem setOnMenuItemClickListener(OnMenuItemClickListener listener) {
-			// TODO Auto-generated method stub
-			throw new UnsupportedOperationException("Unimplemented method 'setOnMenuItemClickListener'");
+			clickListener = listener;
+			return this;
 		}
 
 		@Override
