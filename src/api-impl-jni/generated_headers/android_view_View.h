@@ -431,6 +431,14 @@ JNIEXPORT void JNICALL Java_android_view_View_nativeSetOnLongClickListener
 
 /*
  * Class:     android_view_View
+ * Method:    nativeHasFocus
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_android_view_View_nativeHasFocus
+  (JNIEnv *, jclass, jlong);
+
+/*
+ * Class:     android_view_View
  * Method:    nativeIsFocused
  * Signature: (J)Z
  */

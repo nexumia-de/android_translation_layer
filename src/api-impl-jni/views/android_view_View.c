@@ -985,6 +985,16 @@ JNIEXPORT void JNICALL Java_android_view_View_nativeRequestFocus(JNIEnv *env, jo
 		gtk_widget_grab_focus(wrapper);
 }
 
+JNIEXPORT jboolean JNICALL Java_android_view_View_nativeHasFocus(JNIEnv *env, jclass class, jlong widget_ptr)
+{
+	GtkWidget *wrapper = gtk_widget_get_parent(GTK_WIDGET(_PTR(widget_ptr)));
+	GtkRoot *root = gtk_widget_get_root(wrapper);
+	if (!root)
+		return FALSE;
+	GtkWidget *focus = gtk_root_get_focus(root);
+	return focus && (focus == wrapper || gtk_widget_is_ancestor(focus, wrapper));
+}
+
 JNIEXPORT jboolean JNICALL Java_android_view_View_nativeIsFocused(JNIEnv *env, jobject this, jlong widget_ptr)
 {
 	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));

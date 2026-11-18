@@ -2094,7 +2094,10 @@ public class View implements Drawable.Callback {
 	public void bringToFront() {}
 
 	public boolean isEnabled() { return atl_enabled; }
-	public boolean hasFocus() { return false; }
+	private static native boolean nativeHasFocus(long widget);
+	public boolean hasFocus() {
+		return nativeHasFocus(widget);
+	}
 	public boolean isLayoutRequested() { return layoutRequested; }
 	public int getBaseline() { return -1; }
 	public boolean hasFocusable() { return false; }
