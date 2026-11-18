@@ -120,7 +120,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/nexumia-de/art_standalone.git
-        commit: 4acccadb06869fa8bae86c65ae7ea99cfbfde240
+        commit: 524c70b6d0e269cfc682dbe08921ec960fea0e81
 
   - name: libopensles-standalone
     buildsystem: meson
@@ -212,14 +212,10 @@ modules:
         --dex-location=/app/lib/java/dex/art/hamcrest-hostdex.jar --dex-file=/app/lib/java/dex/art/junit-runner-hostdex.jar
         --dex-location=/app/lib/java/dex/art/junit-runner-hostdex.jar --dex-file=/app/lib/java/dex/art/okhttp-hostdex.jar
         --dex-location=/app/lib/java/dex/art/okhttp-hostdex.jar --dex-file=/app/lib/java/dex/art/wolfssljni-hostdex.jar
-        --dex-location=/app/lib/java/dex/art/wolfssljni-hostdex.jar --oat-file=/app/lib/java/dex/art/oat/$arch/boot.oat
+        --dex-location=/app/lib/java/dex/art/wolfssljni-hostdex.jar --dex-file=/app/lib/java/dex/android_translation_layer/api-impl.jar
+        --dex-location=/app/lib/java/dex/android_translation_layer/api-impl.jar --oat-file=/app/lib/java/dex/art/oat/$arch/boot.oat
         --base=0x60cf8000 --host
       - chmod +x /app/lib/java/dex/art/oat/$arch/*.oat
-      - mkdir -p /app/lib/java/dex/android_translation_layer/oat/$arch
-      - dex2oat --dex-file=/app/lib/java/dex/android_translation_layer/api-impl.jar
-        --oat-file=/app/lib/java/dex/android_translation_layer/oat/$arch/api-impl.odex
-        --host
-      - chmod +x /app/lib/java/dex/android_translation_layer/oat/$arch/*.odex
 
   - name: strip-jars
     buildsystem: simple

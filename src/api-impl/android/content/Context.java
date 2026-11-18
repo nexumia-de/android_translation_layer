@@ -218,6 +218,10 @@ public abstract class Context {
 	@Export
 	static Application createApplication(long native_window) throws Exception {
 		setDefaultUserAgent();
+		/* Android preloads Uri in the zygote. When two threads of the app are the first to
+		 * use Uri and its inner class Builder at the same time, the static initializers of
+		 * Uri and of its subclass HierarchicalUri wait for each other forever */
+		android.net.Uri.EMPTY.getClass();
 		ATLLoadedApp loaded_app = ATLLoadedApp.getPrimaryApplication();
 		/* apps made for Android before 6 never ask: one review before their code runs */
 		android.atl.ATLPermissions.legacyReviewIfNeeded(loaded_app.effective_sdk_compat);

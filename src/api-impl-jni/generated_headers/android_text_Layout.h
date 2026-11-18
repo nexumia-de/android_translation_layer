@@ -106,10 +106,18 @@ JNIEXPORT jint JNICALL Java_android_text_Layout_native_1get_1line_1right
 /*
  * Class:     android_text_Layout
  * Method:    native_get_line_width
- * Signature: (JI)I
+ * Signature: (JI)F
  */
-JNIEXPORT jint JNICALL Java_android_text_Layout_native_1get_1line_1width
+JNIEXPORT jfloat JNICALL Java_android_text_Layout_native_1get_1line_1width
   (JNIEnv *, jobject, jlong, jint);
+
+/*
+ * Class:     android_text_Layout
+ * Method:    native_set_replacement
+ * Signature: (JIIIII)V
+ */
+JNIEXPORT void JNICALL Java_android_text_Layout_native_1set_1replacement
+  (JNIEnv *, jobject, jlong, jint, jint, jint, jint, jint);
 
 /*
  * Class:     android_text_Layout

@@ -45,6 +45,9 @@ public class Button extends TextView {
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
+		/* the GtkButton would not get the event: do the click in Java */
+		if (isCoveredForGtk(event.getX(), event.getY()))
+			return super.onTouchEvent(event);
 		return native_gtkEventPropagation();
 	}
 

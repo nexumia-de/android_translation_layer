@@ -120,12 +120,44 @@ JNIEXPORT void JNICALL Java_android_text_Layout_native_1set_1alignment(JNIEnv *e
 		pango_layout_set_alignment(PANGO_LAYOUT(_PTR(layout)), alignments[align]);
 }
 
-JNIEXPORT jint JNICALL Java_android_text_Layout_native_1get_1line_1width(JNIEnv *env, jobject object, jlong layout, jint line)
+/* with its fraction: apps round the widest line up to size a view that must not wrap again */
+JNIEXPORT jfloat JNICALL Java_android_text_Layout_native_1get_1line_1width(JNIEnv *env, jobject object, jlong layout, jint line)
 {
 	PangoLayoutLine *pango_line = pango_layout_get_line_readonly(PANGO_LAYOUT(_PTR(layout)), line);
 	PangoRectangle logical_rect;
 	pango_layout_line_get_extents(pango_line, NULL, &logical_rect);
-	return logical_rect.width / PANGO_SCALE;
+	return (float)logical_rect.width / PANGO_SCALE;
+}
+
+/* The characters start to end (a ReplacementSpan) are not drawn and take width; ascent
+ * and descent are relative to the baseline. The first character gets the whole width. */
+JNIEXPORT void JNICALL Java_android_text_Layout_native_1set_1replacement(JNIEnv *env, jobject object, jlong layout, jint start, jint end, jint width, jint ascent, jint descent)
+{
+	PangoLayout *pango_layout = PANGO_LAYOUT(_PTR(layout));
+	const char *text = pango_layout_get_text(pango_layout);
+	glong length = g_utf8_strlen(text, -1);
+	if (start < 0 || start >= end || end > length)
+		return;
+
+	PangoAttrList *attrs = pango_layout_get_attributes(pango_layout);
+	attrs = attrs ? pango_attr_list_copy(attrs) : pango_attr_list_new();
+	const char *first = g_utf8_offset_to_pointer(text, start);
+	const char *second = g_utf8_next_char(first);
+	const char *last = g_utf8_offset_to_pointer(text, end);
+	PangoRectangle rect = {0, ascent * PANGO_SCALE, width * PANGO_SCALE, (descent - ascent) * PANGO_SCALE};
+	PangoAttribute *attr = pango_attr_shape_new(&rect, &rect);
+	attr->start_index = first - text;
+	attr->end_index = second - text;
+	pango_attr_list_insert(attrs, attr);
+	if (second < last) {
+		rect.width = 0;
+		attr = pango_attr_shape_new(&rect, &rect);
+		attr->start_index = second - text;
+		attr->end_index = last - text;
+		pango_attr_list_insert(attrs, attr);
+	}
+	pango_layout_set_attributes(pango_layout, attrs);
+	pango_attr_list_unref(attrs);
 }
 
 JNIEXPORT jint JNICALL Java_android_text_Layout_native_1get_1line_1baseline(JNIEnv *env, jobject object, jlong layout, jint line)
