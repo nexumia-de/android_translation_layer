@@ -120,7 +120,17 @@ public class GskCanvas extends RecordingCanvas {
 		Shader shader = paint != null ? paint.getShader() : null;
 		float[] geometry = new float[4];
 		int gradient = shader != null ? shader.getGradient(geometry) : Shader.GRADIENT_NONE;
-		if (gradient != Shader.GRADIENT_NONE)
+		if (shader instanceof BitmapShader && ((BitmapShader)shader).getBitmap() != null && paint.getStyle() == Paint.Style.FILL) {
+			/* the bitmap in the shader's coordinates, clipped to the path; CLAMP only draws the bitmap once */
+			Bitmap bitmap = ((BitmapShader)shader).getBitmap();
+			Matrix local = new Matrix();
+			save();
+			clipPath(path);
+			if (shader.getLocalMatrix(local))
+				concat(local);
+			drawBitmap(bitmap, null, new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight()), paint);
+			restore();
+		} else if (gradient != Shader.GRADIENT_NONE)
 			native_drawPathGradient(snapshot, path.getGskPath(), path.getFillType().fill_rule, paint.paint, gradient, geometry,
 			                        shader.getGradientColors(), shader.getGradientOffsets(), shader.isGradientRepeating());
 		else
@@ -141,10 +151,10 @@ public class GskCanvas extends RecordingCanvas {
 		native_drawRect(snapshot, left, top, right, bottom, paint != null ? paint.paint : default_paint.paint);
 	}
 
-	/* the native rect calls only use the paint's colour; gradients go through drawPath */
+	/* the native rect calls only use the paint's colour; gradients and bitmaps go through drawPath */
 	private static boolean hasGradient(Paint paint) {
 		Shader shader = paint != null ? paint.getShader() : null;
-		return shader != null && shader.getGradient(new float[4]) != Shader.GRADIENT_NONE;
+		return shader != null && (shader instanceof BitmapShader || shader.getGradient(new float[4]) != Shader.GRADIENT_NONE);
 	}
 
 	@Override
