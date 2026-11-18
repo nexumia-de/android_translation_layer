@@ -562,6 +562,10 @@ public abstract class Context {
 		return registerReceiver(receiver, filter);
 	}
 
+	public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter, String broadcastPermission, Handler scheduler, int flags) {
+		return registerReceiver(receiver, filter);
+	}
+
 	public String[] fileList() {
 		return new String[0];
 	}

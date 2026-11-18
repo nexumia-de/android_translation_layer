@@ -4,6 +4,7 @@ import android.content.res.Resources;
 import android.content.res.Resources.Theme;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -12,6 +13,7 @@ import android.graphics.Shader;
 import android.util.AttributeSet;
 import com.android.internal.R;
 import java.io.IOException;
+import java.io.InputStream;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -32,6 +34,10 @@ public class BitmapDrawable extends Drawable {
 		this.bitmap = bitmap;
 		if (bitmap != null)
 			setPaintable(bitmap.getTexture());
+	}
+
+	public BitmapDrawable(Resources res, InputStream inputStream) {
+		this(res, BitmapFactory.decodeStream(inputStream));
 	}
 
 	public Bitmap getBitmap() {

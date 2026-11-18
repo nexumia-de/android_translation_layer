@@ -113,6 +113,10 @@ public class PopupWindow {
 		native_showAsDropDown(popover, anchor.widget, xoff, yoff, Gravity.NO_GRAVITY);
 	}
 
+	public void showAsDropDown(View anchor) {
+		showAsDropDown(anchor, 0, 0);
+	}
+
 	public void showAtLocation(View parent, int gravity, int x, int y) {
 		native_showAsDropDown(popover, parent.widget, x, y, gravity);
 	}
