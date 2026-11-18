@@ -28,13 +28,23 @@ public class ScrollView extends FrameLayout {
 	@Override
 	protected native void native_removeView(long widget, long child);
 
+	/* whether the current touch cannot reach the GtkScrolledWindow, see isCoveredForGtk */
+	private boolean coveredForGtk;
+
 	@Override
 	public boolean onInterceptTouchEvent(MotionEvent event) {
+		if (event.getActionMasked() == MotionEvent.ACTION_DOWN)
+			coveredForGtk = isCoveredForGtk(event.getX(), event.getY());
+		/* the children get the touch from Java then, so that at least they can be tapped */
+		if (coveredForGtk)
+			return false;
 		return native_gtkEventPropagation();
 	}
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
+		if (coveredForGtk)
+			return super.onTouchEvent(event);
 		return native_gtkEventPropagation();
 	}
 

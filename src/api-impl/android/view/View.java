@@ -1232,6 +1232,11 @@ public class View implements Drawable.Callback {
 		int gravity = params.gravity;
 		if (gravity == -1 && parent instanceof View)
 			gravity = ((View)parent).gravity;
+		/* A parent with the Android layout manager gives the child its final position and
+		 * size. With an alignment other than fill, GTK would shrink that allocation to the
+		 * natural size of the widget, e.g. the background of a centered button to its text */
+		if (parent instanceof View && hasAndroidLayout(parent.getClass()))
+			gravity = -1;
 
 		int leftMargin = 0;
 		int topMargin = 0;
@@ -1375,6 +1380,36 @@ public class View implements Drawable.Callback {
 
 	/* should be called from onTouchEvent() of GtkWidget implementations */
 	protected native boolean native_gtkEventPropagation();
+
+	/**
+	 * GTK sends a pointer event to the topmost widget at that point and from there up
+	 * through its parents only. A view that leaves its touch events to GTK
+	 * (native_gtkEventPropagation) gets none while a later sibling of it or of one of
+	 * its parents covers the point, even one that ignores touches as on Android, like
+	 * a full screen overlay that is empty most of the time.
+	 *
+	 * @param x, y  point in the coordinates of this view
+	 * @return whether GTK would deliver an event at that point to another branch of the view tree
+	 */
+	protected boolean isCoveredForGtk(float x, float y) {
+		View view = this;
+		while (view.parent instanceof ViewGroup) {
+			ViewGroup group = (ViewGroup)view.parent;
+			x += view.getLeft() + view.getTranslationX() - group.getScrollX();
+			y += view.getTop() + view.getTranslationY() - group.getScrollY();
+			for (int i = group.indexOfChild(view) + 1; i < group.getChildCount(); i++) {
+				View sibling = group.getChildAt(i);
+				if (sibling.getVisibility() != VISIBLE || sibling.getAlpha() == 0.0f)
+					continue;
+				float siblingX = x - sibling.getLeft() - sibling.getTranslationX();
+				float siblingY = y - sibling.getTop() - sibling.getTranslationY();
+				if (siblingX >= 0 && siblingX < sibling.getWidth() && siblingY >= 0 && siblingY < sibling.getHeight())
+					return true;
+			}
+			view = group;
+		}
+		return false;
+	}
 	/* used by the DecorView to register a GtkEventController and wire it to dispatchTouchEvent() */
 	protected native void native_registerTouchEventPropagation(long widget);
 
@@ -1934,6 +1969,10 @@ public class View implements Drawable.Callback {
 			backgroundDrawable.setCallback(this);
 			if (backgroundTint != 0)
 				backgroundDrawable.setTint(backgroundTint);
+			/* as on Android: a new background starts in the current state of the view, not
+			 * in the empty state (which a state list takes for disabled) */
+			if (backgroundDrawable.isStateful())
+				backgroundDrawable.setState(getDrawableState());
 		}
 		native_setBackgroundDrawable(widget, backgroundDrawable != null ? backgroundDrawable.paintable : 0);
 	}
