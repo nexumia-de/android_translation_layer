@@ -388,4 +388,86 @@ public class BaseBundle {
 			return null;
 		}
 	}
+
+	/**
+	 * Inserts a double value into the mapping of this Bundle, replacing
+	 * any existing value for the given key.
+	 *
+	 * @param key a String, or null
+	 * @param value a double
+	 */
+	public void putDouble(String key, double value) {
+		mMap.put(key, value);
+	}
+
+	/**
+	 * Inserts a boolean array value into the mapping of this Bundle, replacing
+	 * any existing value for the given key.  Either key or value may be null.
+	 *
+	 * @param key a String, or null
+	 * @param value a boolean array object, or null
+	 */
+	public void putBooleanArray(String key, boolean[] value) {
+		mMap.put(key, value);
+	}
+
+	/**
+	 * Inserts a double array value into the mapping of this Bundle, replacing
+	 * any existing value for the given key.  Either key or value may be null.
+	 *
+	 * @param key a String, or null
+	 * @param value a double array object, or null
+	 */
+	public void putDoubleArray(String key, double[] value) {
+		mMap.put(key, value);
+	}
+
+	/**
+	 * Returns the value associated with the given key, or null if
+	 * no mapping of the desired type exists for the given key or a null
+	 * value is explicitly associated with the key.
+	 *
+	 * @param key a String, or null
+	 * @return a boolean[] value, or null
+	 */
+	public boolean[] getBooleanArray(String key) {
+		Object o = mMap.get(key);
+		if (o == null) {
+			return null;
+		}
+		try {
+			return (boolean[])o;
+		} catch (ClassCastException e) {
+			typeWarning(key, o, "byte[]", e);
+			return null;
+		}
+	}
+
+	/**
+	 * Returns the value associated with the given key, or null if
+	 * no mapping of the desired type exists for the given key or a null
+	 * value is explicitly associated with the key.
+	 *
+	 * @param key a String, or null
+	 * @return a double[] value, or null
+	 */
+	public double[] getDoubleArray(String key) {
+		Object o = mMap.get(key);
+		if (o == null) {
+			return null;
+		}
+		try {
+			return (double[])o;
+		} catch (ClassCastException e) {
+			typeWarning(key, o, "double[]", e);
+			return null;
+		}
+	}
+
+	/**
+	 * Removes all elements from the mapping of this Bundle.
+	 */
+	public void clear() {
+		mMap.clear();
+	}
 }
