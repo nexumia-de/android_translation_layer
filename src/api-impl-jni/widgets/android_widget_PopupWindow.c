@@ -93,6 +93,29 @@ JNIEXPORT void JNICALL Java_android_widget_PopupWindow_native_1setTouchModal(JNI
 	gtk_popover_set_autohide(popover, touch_modal);
 }
 
+extern GtkWidget *window;
+
+static void outside_controller_destroy(gpointer controller)
+{
+	gtk_widget_remove_controller(window, GTK_EVENT_CONTROLLER(controller));
+}
+
+JNIEXPORT void JNICALL Java_android_widget_PopupWindow_native_1setOutsideTouchable(JNIEnv *env, jobject this, jlong popover_ptr, jboolean outside_touchable)
+{
+	GtkWidget *popover = GTK_WIDGET(_PTR(popover_ptr));
+	GtkEventController *controller = g_object_get_data(G_OBJECT(popover), "atl-outside-controller");
+
+	if (outside_touchable && !controller) {
+		controller = GTK_EVENT_CONTROLLER(gtk_gesture_click_new());
+		gtk_event_controller_set_propagation_phase(controller, GTK_PHASE_CAPTURE);
+		g_signal_connect_swapped(controller, "pressed", G_CALLBACK(gtk_popover_popdown), popover);
+		g_object_set_data_full(G_OBJECT(popover), "atl-outside-controller", controller, outside_controller_destroy);
+		gtk_widget_add_controller(window, controller);
+	} else if (!outside_touchable && controller) {
+		g_object_set_data(G_OBJECT(popover), "atl-outside-controller", NULL);
+	}
+}
+
 static void on_closed_cb(GtkPopover *popover, jobject listener)
 {
 	JNIEnv *env = get_jni_env();

@@ -40,6 +40,8 @@ public class PopupWindow {
 	private View contentView;
 	private Drawable background;
 	private long popover; // native pointer to GtkPopover
+	private boolean focusable;
+	private boolean touchModal;
 
 	public interface OnDismissListener {
 		@Export
@@ -66,7 +68,10 @@ public class PopupWindow {
 		return native_isShowing(popover);
 	}
 
-	public void setFocusable(boolean focusable) {}
+	public void setFocusable(boolean focusable) {
+		this.focusable = focusable;
+		setTouchModal(focusable || touchModal);
+	}
 
 	public Drawable getBackground() {
 		return background;
@@ -85,10 +90,7 @@ public class PopupWindow {
 	public int getMaxAvailableHeight(View anchor, int yOffset, boolean ignoreKeyboard) { return 500; }
 
 	public void setOutsideTouchable(boolean touchable) {
-		/* FIXME: the semantics are different, this seems to specifically exist for cases
-		 * where the popup is *not* modal, so that in addition to the window behind getting
-		 * the real event, the popup gets a special MotionEvent.ACTION_OUTSIDE event */
-		native_setTouchModal(popover, touchable);
+		native_setOutsideTouchable(popover, touchable);
 	}
 
 	public void setTouchInterceptor(View.OnTouchListener listener) {}
@@ -128,7 +130,8 @@ public class PopupWindow {
 	public void setAnimationStyle(int animationStyle) {}
 
 	public void setTouchModal(boolean touchModal) {
-		native_setTouchModal(popover, touchModal);
+		this.touchModal = touchModal;
+		native_setTouchModal(popover, focusable || touchModal);
 	}
 
 	public void setElevation(float elevation) {}
@@ -187,6 +190,7 @@ public class PopupWindow {
 	protected native boolean native_isShowing(long widget);
 	protected native void native_setTouchable(long widget, boolean touchable);
 	protected native void native_setTouchModal(long widget, boolean touchable);
+	protected native void native_setOutsideTouchable(long widget, boolean touchable);
 	protected native void native_dismiss(long widget);
 	protected native void native_update(long widget, long anchor, int xoff, int yoff, int width, int height);
 	public native void setOnDismissListener(OnDismissListener listener);
