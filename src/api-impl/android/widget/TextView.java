@@ -25,6 +25,7 @@ import android.text.method.KeyListener;
 import android.text.method.MovementMethod;
 import android.text.method.PasswordTransformationMethod;
 import android.text.method.TransformationMethod;
+import android.text.style.LeadingMarginSpan;
 import android.text.style.URLSpan;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -150,12 +151,56 @@ public class TextView extends View {
 
 	public void setText(CharSequence text, BufferType type) {
 		this.text = text == null ? "" : text;
-		native_setText(text != null ? text.toString() : null);
+		/* apps add spans later to a text they set as spannable */
+		if (type == BufferType.SPANNABLE && !(this.text instanceof android.text.Spannable))
+			this.text = new android.text.SpannableString(this.text);
+		leadingMargin = getLeadingMargin();
+		leadingMarginPrefix = makeLeadingMarginPrefix(leadingMargin);
+		native_setText(text != null ? leadingMarginPrefix + text : null);
 		showHintIfEmpty();
 
 		if (text instanceof android.text.Spanned)
 			native_set_markup(1);
 		requestLayout();
+	}
+
+	/* GtkLabel has no indent for the first line (LeadingMarginSpan, e.g. to leave room for
+	 * an icon the app puts there): the label gets that many no-break spaces before the text */
+	private int leadingMargin = 0;
+	private String leadingMarginPrefix = "";
+
+	private int getLeadingMargin() {
+		if (!(text instanceof android.text.Spanned) || text.length() == 0)
+			return 0;
+		int margin = 0;
+		for (LeadingMarginSpan span : ((android.text.Spanned)text).getSpans(0, 0, LeadingMarginSpan.class))
+			margin += span.getLeadingMargin(true);
+		return margin;
+	}
+
+	private String makeLeadingMarginPrefix(int margin) {
+		if (margin <= 0)
+			return "";
+		StringBuilder prefix = new StringBuilder();
+		float remaining = margin;
+		for (String space : new String[] {"\u00a0", "\u202f"}) {
+			float width = Layout.getDesiredWidth(space, paint);
+			for (; width > 0 && remaining >= width && prefix.length() < 100; remaining -= width)
+				prefix.append(space);
+		}
+		return prefix.toString();
+	}
+
+	@Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+		/* a LeadingMarginSpan added to the text after setText, followed by requestLayout */
+		int margin = getLeadingMargin();
+		if (margin != leadingMargin && text.length() != 0) {
+			leadingMargin = margin;
+			leadingMarginPrefix = makeLeadingMarginPrefix(margin);
+			native_setText(leadingMarginPrefix + text);
+		}
+		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 	}
 
 	public void setText(char[] text, int start, int len) {
@@ -177,7 +222,13 @@ public class TextView extends View {
 	public void setTextSize(int unit, float size) {
 		setTextSize(TypedValue.applyDimension(unit, size, getResources().getDisplayMetrics()));
 	}
-	public native void setTextSize(float size);
+
+	public void setTextSize(float size) {
+		/* the paint is what getLayout() measures with */
+		paint.setTextSize(size);
+		native_setTextSize(size);
+	}
+	private native void native_setTextSize(float size);
 
 	public native final void native_setTextColor(int color);
 	public void setTextColor(int color) {
@@ -213,6 +264,7 @@ public class TextView extends View {
 	/* the family comes from fontconfig, bold and italic from CSS */
 	public void setTypeface(Typeface tf) {
 		typeface = tf;
+		paint.setTypeface(tf);
 		native_setFontFamily(widget, tf != null ? tf.getFamily() : null);
 		String[] classesToRemove = {"ATL-font-bold", "ATL-font-italic"};
 		native_removeClasses(widget, classesToRemove);
@@ -294,7 +346,9 @@ public class TextView extends View {
 
 	public Typeface getTypeface() { return typeface; }
 
-	public float getTextSize() { return 10; }
+	public float getTextSize() {
+		return paint.getTextSize();
+	}
 
 	public void setGravity(int gravity) {
 		this.gravity = gravity;
@@ -426,8 +480,12 @@ public class TextView extends View {
 		SPANNABLE,
 	}
 
+	/* As on Android, the layout of the last measure pass: apps read its lines in their
+	 * onMeasure (to shrink the view to its longest line), before the view has a width. */
 	public Layout getLayout() {
-		return new BoringLayout(getText(), getPaint(), getWidth(), Layout.Alignment.ALIGN_NORMAL, 1, 0, new BoringLayout.Metrics(), false);
+		int width = getMeasuredWidth() != 0 ? getMeasuredWidth() : getWidth();
+		width = Math.max(width - getPaddingLeft() - getPaddingRight(), 0);
+		return new BoringLayout(leadingMarginPrefix + getText(), getPaint(), width, Layout.Alignment.ALIGN_NORMAL, 1, 0, new BoringLayout.Metrics(), false);
 	}
 
 	public int getCurrentTextColor() {
@@ -614,7 +672,8 @@ public class TextView extends View {
 	public void setPaintFlags(int flags) {}
 
 	public int getLineHeight() {
-		return 10; // FIXME
+		android.graphics.Paint.FontMetricsInt metrics = paint.getFontMetricsInt();
+		return metrics.descent - metrics.ascent;
 	}
 
 	public int getMaxHeight() {

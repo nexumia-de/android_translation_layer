@@ -38,6 +38,20 @@ public class Layout {
 		this.spacing_mult = spacingMult;
 		this.spacing_add = spacingAdd;
 		layout = native_constructor(str, paint.paint, width);
+		if (text instanceof Spanned) {
+			/* the text of a ReplacementSpan takes the room the span asks for, e.g. the
+			 * placeholder of an icon that Compose draws inside a text */
+			Spanned spanned = (Spanned)text;
+			for (ReplacementSpan span : spanned.getSpans(0, spanned.length(), ReplacementSpan.class)) {
+				int start = spanned.getSpanStart(span);
+				int end = spanned.getSpanEnd(span);
+				if (start < 0 || end <= start)
+					continue;
+				Paint.FontMetricsInt metrics = paint.getFontMetricsInt();
+				int size = span.getSize(paint, text, start, end, metrics);
+				native_set_replacement(layout, start, end, size, metrics.ascent, metrics.descent);
+			}
+		}
 		setAlignment(align);
 	}
 
@@ -284,7 +298,8 @@ public class Layout {
 	protected native int native_get_line_bottom(long layout, int line);
 	protected native int native_get_line_left(long layout, int line);
 	protected native int native_get_line_right(long layout, int line);
-	protected native int native_get_line_width(long layout, int line);
+	protected native float native_get_line_width(long layout, int line);
+	protected native void native_set_replacement(long layout, int start, int end, int width, int ascent, int descent);
 	protected native int native_get_line_baseline(long layout, int line);
 	protected native int native_get_line_ascent(long layout, int line);
 	protected native int native_get_line_descent(long layout, int line);
