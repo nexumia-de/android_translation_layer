@@ -217,28 +217,63 @@ struct _ATLSurface {
 	gboolean destroyed;
 };
 G_DECLARE_FINAL_TYPE(ATLSurface, atl_surface, ATL, SURFACE, GObject);
+G_DEFINE_TYPE(ATLSurface, atl_surface, G_TYPE_OBJECT)
+
+/*
+ * The textures GTK draws are created and deleted in this one context, on the
+ * main thread. GDK's contexts share their objects, so the renderer sees them.
+ */
+static GdkGLContext *import_context(GtkWidget *widget)
+{
+	static GdkGLContext *context = NULL;
+	if (!context)
+		context = gdk_display_create_gl_context(gtk_widget_get_display(widget), NULL);
+	return context;
+}
+
+struct atl_surface_gtk_side {
+	SurfaceViewWidget *surface_view_widget;
+	GdkGLTextureBuilder *texture_builders[NUM_BUFFERS];
+};
+
+/* from the main loop: not while GTK renders, and not on the app's thread, whose context must stay current */
+static gboolean atl_surface_free_gtk_side(gpointer data)
+{
+	struct atl_surface_gtk_side *gtk_side = data;
+	GdkGLContext *context = import_context(GTK_WIDGET(gtk_side->surface_view_widget));
+	gdk_gl_context_make_current(context);
+	for (int i = 0; i < NUM_BUFFERS; i++) {
+		if (gtk_side->texture_builders[i]) {
+			GLuint texture_id = gdk_gl_texture_builder_get_id(gtk_side->texture_builders[i]);
+			glDeleteTextures(1, &texture_id);
+			g_object_unref(gtk_side->texture_builders[i]);
+		}
+	}
+	gdk_gl_context_clear_current();
+	g_object_unref(gtk_side->surface_view_widget);
+	g_free(gtk_side);
+	return G_SOURCE_REMOVE;
+}
+
 static void atl_surface_dispose(GObject *object)
 {
 	ATLSurface *atl_surface = ATL_SURFACE(object);
-	GdkGLContext *gtk_gl_context = gdk_surface_create_gl_context(gtk_native_get_surface(gtk_widget_get_native(GTK_WIDGET(atl_surface->surface_view_widget))), NULL);
-	gdk_gl_context_make_current(gtk_gl_context);
-	for (int i = 0; i < NUM_BUFFERS; i++) {
-		if (atl_surface->buffers[i].texture_builder) {
-			GLuint texture_id = gdk_gl_texture_builder_get_id(atl_surface->buffers[i].texture_builder);
-			glDeleteTextures(1, &texture_id);
-			g_object_unref(atl_surface->buffers[i].texture_builder);
-		}
+	if (atl_surface->surface_view_widget) {
+		struct atl_surface_gtk_side *gtk_side = g_new0(struct atl_surface_gtk_side, 1);
+		gtk_side->surface_view_widget = g_steal_pointer(&atl_surface->surface_view_widget);
+		for (int i = 0; i < NUM_BUFFERS; i++)
+			gtk_side->texture_builders[i] = g_steal_pointer(&atl_surface->buffers[i].texture_builder);
+		g_idle_add(atl_surface_free_gtk_side, gtk_side);
 	}
-	g_async_queue_unref(atl_surface->unused_buffers);
-	g_async_queue_unref(atl_surface->vsync);
-	g_object_unref(atl_surface->surface_view_widget);
+	g_clear_pointer(&atl_surface->unused_buffers, g_async_queue_unref);
+	g_clear_pointer(&atl_surface->vsync, g_async_queue_unref);
+	G_OBJECT_CLASS(atl_surface_parent_class)->dispose(object);
 }
 static void atl_surface_class_init(ATLSurfaceClass *class)
 {
 	G_OBJECT_CLASS(class)->dispose = atl_surface_dispose;
 }
 static void atl_surface_init(ATLSurface *self) {}
-G_DEFINE_TYPE(ATLSurface, atl_surface, G_TYPE_OBJECT)
 
 /*
  * Android exports eglCreateImageKHR (with EGLAttrib) as a direct libEGL.so symbol,
@@ -492,10 +527,10 @@ static gboolean queue_texture(gpointer data)
 		destroy_texture(buffer);
 		return G_SOURCE_REMOVE;
 	}
+	GdkGLContext *gtk_gl_context = import_context(GTK_WIDGET(atl_surface->surface_view_widget));
 	if (buffer->texture_builder && (gdk_gl_texture_builder_get_width(buffer->texture_builder) != buffer->width ||
 	                                gdk_gl_texture_builder_get_height(buffer->texture_builder) != buffer->height)) {
 		/* the buffer was reallocated at a new size */
-		GdkGLContext *gtk_gl_context = gdk_gl_texture_builder_get_context(buffer->texture_builder);
 		GLuint texture_id = gdk_gl_texture_builder_get_id(buffer->texture_builder);
 		gdk_gl_context_make_current(gtk_gl_context);
 		glDeleteTextures(1, &texture_id);
@@ -504,7 +539,6 @@ static gboolean queue_texture(gpointer data)
 	}
 	if (!buffer->texture_builder) {
 		GLuint texture_id;
-		GdkGLContext *gtk_gl_context = gdk_surface_create_gl_context(gtk_native_get_surface(gtk_widget_get_native(GTK_WIDGET(atl_surface->surface_view_widget))), NULL);
 		gdk_gl_context_make_current(gtk_gl_context);
 		glGenTextures(1, &texture_id);
 		glBindTexture(GL_TEXTURE_2D, texture_id);
