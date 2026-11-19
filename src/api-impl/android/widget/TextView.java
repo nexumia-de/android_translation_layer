@@ -446,7 +446,7 @@ public class TextView extends View {
 
 	public void setCompoundDrawablePadding(int pad) {}
 
-	protected native void native_setCompoundDrawables(long widget, long left, long top, long right, long bottom);
+	protected native void native_setCompoundDrawables(long widget, Drawable left, Drawable top, Drawable right, Drawable bottom);
 
 	// just to prevent garbage collection while native side uses it
 	private Drawable drawableLeft = null;
@@ -455,11 +455,11 @@ public class TextView extends View {
 	private Drawable drawableBottom = null;
 
 	public void setCompoundDrawables(Drawable left, Drawable top, Drawable right, Drawable bottom) {
-		native_setCompoundDrawables(widget,
-		                            left != null ? left.paintable : 0,
-		                            top != null ? top.paintable : 0,
-		                            right != null ? right.paintable : 0,
-		                            bottom != null ? bottom.paintable : 0);
+		native_setCompoundDrawables(widget, left, top, right, bottom);
+		rememberCompoundDrawables(left, top, right, bottom);
+	}
+
+	void rememberCompoundDrawables(Drawable left, Drawable top, Drawable right, Drawable bottom) {
 		drawableLeft = left;
 		drawableTop = top;
 		drawableRight = right;
@@ -566,17 +566,31 @@ public class TextView extends View {
 
 	public float getLetterSpacing() { return 0.f; }
 
-	public void setCompoundDrawablesRelativeWithIntrinsicBounds(int start, int top, int end, int bottom) {}
+	public void setCompoundDrawablesRelativeWithIntrinsicBounds(int start, int top, int end, int bottom) {
+		setCompoundDrawablesWithIntrinsicBounds(start, top, end, bottom);
+	}
 
-	public void setCompoundDrawablesRelativeWithIntrinsicBounds(Drawable start, Drawable top, Drawable end, Drawable bottom) {}
+	public void setCompoundDrawablesRelativeWithIntrinsicBounds(Drawable start, Drawable top, Drawable end, Drawable bottom) {
+		setCompoundDrawablesWithIntrinsicBounds(start, top, end, bottom);
+	}
 
 	public boolean getLinksClickable() { return true; }
 
 	public boolean isTextSelectable() { return true; }
 
-	public void setCompoundDrawablesWithIntrinsicBounds(int left, int top, int right, int bottom) {}
+	public void setCompoundDrawablesWithIntrinsicBounds(int left, int top, int right, int bottom) {
+		setCompoundDrawablesWithIntrinsicBounds(left != 0 ? getContext().getDrawable(left) : null,
+		                                        top != 0 ? getContext().getDrawable(top) : null,
+		                                        right != 0 ? getContext().getDrawable(right) : null,
+		                                        bottom != 0 ? getContext().getDrawable(bottom) : null);
+	}
 
-	public void setCompoundDrawablesWithIntrinsicBounds(Drawable left, Drawable top, Drawable right, Drawable bottom) {}
+	public void setCompoundDrawablesWithIntrinsicBounds(Drawable left, Drawable top, Drawable right, Drawable bottom) {
+		for (Drawable drawable : new Drawable[] {left, top, right, bottom})
+			if (drawable != null)
+				drawable.setBounds(0, 0, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
+		setCompoundDrawables(left, top, right, bottom);
+	}
 
 	public void setHint(CharSequence s) {
 		hint = s;
@@ -595,9 +609,13 @@ public class TextView extends View {
 			applyTextColor(color.getColorForState(getDrawableState(), color.getDefaultColor()));
 	}
 
-	public Drawable[] getCompoundDrawablesRelative() { return new Drawable[4]; }
+	public Drawable[] getCompoundDrawablesRelative() {
+		return getCompoundDrawables();
+	}
 
-	public Drawable[] getCompoundDrawables() { return new Drawable[4]; }
+	public Drawable[] getCompoundDrawables() {
+		return new Drawable[] {drawableLeft, drawableTop, drawableRight, drawableBottom};
+	}
 
 	public void setTextAppearance(int appearance) {
 		TypedArray aa = getContext().obtainStyledAttributes(appearance, com.android.internal.R.styleable.TextAppearance);

@@ -152,26 +152,37 @@ JNIEXPORT void JNICALL Java_android_widget_TextView_native_1set_1markup(JNIEnv *
 	gtk_label_set_use_markup(label, value);
 }
 
-JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setCompoundDrawables(JNIEnv *env, jobject this, jlong widget_ptr, jlong left, jlong top, jlong right, jlong bottom)
+JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setCompoundDrawables(JNIEnv *env, jobject this, jlong widget_ptr, jobject left, jobject top, jobject right, jobject bottom)
 {
 	GtkWidget *box = GTK_WIDGET(_PTR(widget_ptr));
 	gtk_orientable_set_orientation(GTK_ORIENTABLE(box), (left || right) ? GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL);
 
-	GdkPaintable *paintable = _PTR(left ?: top); // paintable before text
+	/* drawn at their bounds, as on Android (e.g. an icon an app scales down) */
+	GdkPaintable *before = atl_drawable_paintable_at_bounds(env, left ?: top);
+	GdkPaintable *after = atl_drawable_paintable_at_bounds(env, right ?: bottom);
+	GdkPaintable *paintable = before; // paintable before text
 	GtkWidget *picture = gtk_widget_get_first_child(box);
 	if (GTK_IS_PICTURE(picture)) {
 		gtk_picture_set_paintable(GTK_PICTURE(picture), paintable);
 	} else if (paintable) {
 		picture = gtk_picture_new_for_paintable(paintable);
+		/* at its own size, centered beside the text, as on Android */
+		gtk_widget_set_halign(picture, GTK_ALIGN_CENTER);
+		gtk_widget_set_valign(picture, GTK_ALIGN_CENTER);
 		gtk_widget_insert_after(picture, box, NULL);
 	}
 
-	paintable = _PTR(right ?: bottom); // paintable after text
+	paintable = after; // paintable after text
 	picture = gtk_widget_get_last_child(box);
 	if (GTK_IS_PICTURE(picture)) {
 		gtk_picture_set_paintable(GTK_PICTURE(picture), paintable);
 	} else if (paintable) {
 		picture = gtk_picture_new_for_paintable(paintable);
+		/* at its own size, centered beside the text, as on Android */
+		gtk_widget_set_halign(picture, GTK_ALIGN_CENTER);
+		gtk_widget_set_valign(picture, GTK_ALIGN_CENTER);
 		gtk_widget_insert_before(picture, box, NULL);
 	}
+	g_clear_object(&before);
+	g_clear_object(&after);
 }

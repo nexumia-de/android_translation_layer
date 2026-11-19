@@ -41,7 +41,7 @@ public class Button extends TextView {
 	public native void native_setText(long widget, String text);
 	@Override
 	protected native void nativeSetOnClickListener(long widget);
-	protected native void native_setCompoundDrawables(long widget, long paintable);
+	protected native void native_setCompoundDrawables(long widget, Drawable drawable);
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
@@ -78,6 +78,7 @@ public class Button extends TextView {
 	@Override
 	public void setCompoundDrawables(Drawable left, Drawable top, Drawable right, Drawable bottom) {
 		compoundDrawableLeft = left;
-		native_setCompoundDrawables(widget, left != null ? left.paintable : 0);
+		native_setCompoundDrawables(widget, left);
+		rememberCompoundDrawables(left, top, right, bottom);
 	}
 }

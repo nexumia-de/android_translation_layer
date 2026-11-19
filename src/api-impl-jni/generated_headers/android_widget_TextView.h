@@ -288,10 +288,10 @@ JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setMaxLines
 /*
  * Class:     android_widget_TextView
  * Method:    native_setCompoundDrawables
- * Signature: (JJJJJ)V
+ * Signature: (JLandroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;Landroid/graphics/drawable/Drawable;)V
  */
 JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setCompoundDrawables
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong);
+  (JNIEnv *, jobject, jlong, jobject, jobject, jobject, jobject);
 
 #ifdef __cplusplus
 }
