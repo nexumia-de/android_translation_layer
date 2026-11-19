@@ -80,6 +80,12 @@ public final class BluetoothAdapter {
 		return defaultAdapter;
 	}
 
+	/* whether the app can reach an adapter now, without asking the user: for checkPermission and
+	 * hasSystemFeature, which Android answers silently */
+	public static synchronized boolean atlReachable() {
+		return defaultAdapter != null || (BlueZ.init() && BlueZ.adapterPath() != null);
+	}
+
 	/* In its own Flatpak an app reaches BlueZ only after the user allowed Bluetooth: asked here, when
 	 * the app first uses it, at any SDK level (apps run at SDK 26, where Android grants Bluetooth at
 	 * install). The permission service asks, opens the sandbox and restarts the app; until then

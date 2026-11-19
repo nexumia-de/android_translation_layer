@@ -1919,7 +1919,7 @@ public class PackageManager {
 			case "android.permission.BLUETOOTH_ADMIN":
 			case "android.permission.BLUETOOTH_CONNECT":
 			case "android.permission.BLUETOOTH_SCAN":
-				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null ? PERMISSION_GRANTED : PERMISSION_DENIED;
+				return android.bluetooth.BluetoothAdapter.atlReachable() ? PERMISSION_GRANTED : PERMISSION_DENIED;
 			// ATL's own consent to contact Google's servers (FCM push and the like), denied by
 			// default. Until the consent dialog exists only ATL_GOOGLE_SERVICES=1 grants it.
 			case android.atl.ATLToggles.GOOGLE_SERVICES_PERMISSION:
@@ -2278,7 +2278,7 @@ public class PackageManager {
 			case FEATURE_BLUETOOTH_LE:
 				/* a device feature, not the caller's access: an app store in a Flatpak cannot reach
 				 * BlueZ on the system bus but still has to see that the phone has Bluetooth */
-				return android.bluetooth.BluetoothAdapter.getDefaultAdapter() != null || hasBluetoothController();
+				return android.bluetooth.BluetoothAdapter.atlReachable() || hasBluetoothController();
 			case FEATURE_TELEPHONY:
 				return android.telephony.TelephonyManager.hasModem();
 			default:
