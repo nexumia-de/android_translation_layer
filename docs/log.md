@@ -1,6 +1,7 @@
 # Directory Update Log
 
 ## 2026-11-19
+* **FAIRTIQ login, hCaptcha**: after Continue on the email page FAIRTIQ shows hCaptcha's Compose dialog with a WebView; it stayed black. Three causes: the wrapping dialog was allocated 0x0 once and from then on measured with that (`oldWidthMeasureSpec` was overwritten; the default from `Dialog.show()` now stays), `requestLayout` never reached Compose's `AndroidViewsHandler.requestLayout()` (now called through the parents, `cleanupLayoutState` implemented), and the WebView's wrap_content height came once after loading from a page of height:100% (now reported by the page script on every change). Checked for regressions: Duolingo and DB Navigator start screens unchanged.
 * **FAIRTIQ start**: FAIRTIQ 7.6.20 aborted in `Application.onCreate` on a `null` `usagestats` service and then waited on the main thread for a Bluetooth dialog that `checkPermission` opened. `checkPermission` and `hasSystemFeature` for Bluetooth now check BlueZ without asking; `usagestats`, `MediaDrm` (no scheme), `TaskStackBuilder` and the members the app's own code uses at start were added. Headless it reaches onboarding, login and the email page ([apps](apps.md)).
 
 ## 2026-11-15

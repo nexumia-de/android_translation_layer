@@ -613,7 +613,10 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 		return false;
 	}
 
-	protected void cleanupLayoutState(View child) {}
+	/* as on Android: the child no longer has a layout requested */
+	protected void cleanupLayoutState(View child) {
+		child.atlClearLayoutRequested();
+	}
 
 	public boolean shouldDelayChildPressedState() { return false; }
 

@@ -62,6 +62,8 @@ public class WebView extends ViewGroup {
 	private WebChromeClient webChromeClient;
 	private boolean ownLoadPending;
 	private final HashMap<String, Object> javascriptInterfaces = new HashMap<>();
+	/* ATL's own calls through the bridge, not visible to the page as an object */
+	private static final String BRIDGE_INTERNAL = "atl-internal";
 
 	public void setDownloadListener(DownloadListener downloadListener) {}
 
@@ -104,6 +106,15 @@ public class WebView extends ViewGroup {
 	// to be used by native code
 	@Export
 	void internalContentHeightChanged(int height) {
+		// the page script reports changes itself (updateBridgeScript); the one-off measure after loading would undo it
+		if (heightFromPage)
+			return;
+		setContentHeight(height);
+	}
+
+	private boolean heightFromPage;
+
+	private void setContentHeight(int height) {
 		if (height != contentHeight) {
 			contentHeight = height;
 			requestLayout();
@@ -263,8 +274,10 @@ public class WebView extends ViewGroup {
 	/* Android's interfaces answer synchronously, WebKit's script messages only asynchronously,
 	 * so each call is a synchronous request to the atl-bridge scheme, see internalBridgeCall */
 	private void updateBridgeScript() {
-		if (javascriptInterfaces.isEmpty())
+		if (!settings.getJavaScriptEnabled()) {
+			heightFromPage = false;
 			return;
+		}
 		StringBuilder script = new StringBuilder("(function(){function call(n,m,a){var x=new XMLHttpRequest();"
 		    + "x.open('GET','atl-bridge:///'+encodeURIComponent(n)+'/'+encodeURIComponent(m)+'?'+encodeURIComponent(JSON.stringify(Array.prototype.slice.call(a))),false);"
 		    + "x.send();return JSON.parse(x.responseText)}"
@@ -275,6 +288,15 @@ public class WebView extends ViewGroup {
 					script.append("add(").append(JSONObject.quote(entry.getKey())).append(",").append(JSONObject.quote(method.getName())).append(");");
 			}
 		}
+		/* The page height for wrap_content, followed as the page changes, like Android's WebView: the
+		 * document's height, or for a page of height:100% (equal to the viewport, 0 while the view is 0
+		 * high) the height of its content. hCaptcha's challenge appears long after loading, in such a page. */
+		script.append("if(window===window.top){var h=-1,q=0;function r(){q=0;var e=document.documentElement;if(!e)return;"
+		    + "var n=Math.ceil(e.getBoundingClientRect().height);if(n<=window.innerHeight)n=Math.max(n,e.scrollHeight);"
+		    + "if(n!==h){h=n;call('" + BRIDGE_INTERNAL + "','contentHeight',[n])}}"
+		    + "function s(){if(!q)q=setTimeout(r,16)}" // not requestAnimationFrame: WebKit runs no frames while the view is 0 high
+		    + "new MutationObserver(s).observe(document,{childList:true,subtree:true,attributes:true,characterData:true});"
+		    + "addEventListener('load',s);addEventListener('resize',s)}");
 		native_setUserScript(widget, script.append("})()").toString(), settings.getJavaScriptEnabled());
 	}
 
@@ -299,6 +321,11 @@ public class WebView extends ViewGroup {
 	String internalBridgeCall(String uri) {
 		try {
 			Uri parsed = Uri.parse(uri);
+			if (BRIDGE_INTERNAL.equals(parsed.getPathSegments().get(0))) {
+				heightFromPage = true;
+				setContentHeight(new JSONArray(parsed.getQuery()).getInt(0));
+				return "null";
+			}
 			Object object = javascriptInterfaces.get(parsed.getPathSegments().get(0));
 			String methodName = parsed.getPathSegments().get(1);
 			JSONArray args = new JSONArray(parsed.getQuery());
