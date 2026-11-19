@@ -45,6 +45,14 @@ public class WebView extends ViewGroup {
 
 	private static void loadWebKit() {
 		if (!webkitLoaded) {
+			/* With WebKit's DMA-BUF renderer the page stays black on the phone's GPU (FAIRTIQ's
+			 * hCaptcha challenge; headless too with a GLES compositor); its fallback renderer
+			 * shows it. Before WebKit starts its processes; a value set by the user wins. */
+			try {
+				android.system.Os.setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "1", false);
+			} catch (android.system.ErrnoException e) {
+				e.printStackTrace();
+			}
 			System.loadLibrary("translation_layer_webkit");
 			webkitLoaded = true;
 		}
