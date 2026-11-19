@@ -81,14 +81,6 @@ JNIEXPORT void JNICALL Java_android_widget_PopupWindow_native_1update
 
 /*
  * Class:     android_widget_PopupWindow
- * Method:    setOnDismissListener
- * Signature: (Landroid/widget/PopupWindow/OnDismissListener;)V
- */
-JNIEXPORT void JNICALL Java_android_widget_PopupWindow_setOnDismissListener
-  (JNIEnv *, jobject, jobject);
-
-/*
- * Class:     android_widget_PopupWindow
  * Method:    native_setWidth
  * Signature: (JI)V
  */
@@ -125,6 +117,14 @@ JNIEXPORT jint JNICALL Java_android_widget_PopupWindow_native_1getHeight
  * Signature: (J)Z
  */
 JNIEXPORT jboolean JNICALL Java_android_widget_PopupWindow_native_1isTouchable
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     android_widget_PopupWindow
+ * Method:    native_destructor
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_PopupWindow_native_1destructor
   (JNIEnv *, jobject, jlong);
 
 #ifdef __cplusplus

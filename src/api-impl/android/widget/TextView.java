@@ -5,7 +5,6 @@ import android.atl.annotation.Export;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -30,6 +29,7 @@ import android.view.ActionMode;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
+import java.util.ArrayList;
 
 public class TextView extends View {
 	private ColorStateList colors = new ColorStateList(new int[][] {new int[0]}, new int[1]);
@@ -40,6 +40,8 @@ public class TextView extends View {
 	private int break_strategy = 0 /*BREAK_STRATEGY_SIMPLE*/;
 	private int hyphenation_frequency = 0 /*HYPHENATION_FREQUENCY_NONE*/;
 	private int gravity = Gravity.CENTER;
+	private OnEditorActionListener onEditorActionListener;
+	private ArrayList<TextWatcher> textChangeListeners;
 
 	public TextView(Context context, AttributeSet attrs) {
 		this(context, attrs, 0);
@@ -218,9 +220,38 @@ public class TextView extends View {
 		return paint;
 	}
 
-	public void addTextChangedListener(TextWatcher watcher) {}
-	public void removeTextChangedListener(TextWatcher watcher) {}
-	public void setOnEditorActionListener(TextView.OnEditorActionListener l) {}
+	public void addTextChangedListener(TextWatcher watcher) {
+		if (textChangeListeners == null)
+			textChangeListeners = new ArrayList<>();
+		textChangeListeners.add(watcher);
+	}
+
+	public void removeTextChangedListener(TextWatcher watcher) {
+		if (textChangeListeners != null)
+			textChangeListeners.remove(watcher);
+	}
+
+	public void setOnEditorActionListener(TextView.OnEditorActionListener l) {
+		onEditorActionListener = l;
+	}
+
+	@Export
+	protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
+		if (textChangeListeners == null)
+			return;
+		for (TextWatcher listener : textChangeListeners)
+			listener.onTextChanged(text, start, lengthBefore, lengthAfter);
+		for (TextWatcher listener : textChangeListeners)
+			listener.afterTextChanged((Editable)text);
+	}
+
+	@Export
+	public void onEditorAction(int actionCode) {
+		if (onEditorActionListener != null) {
+			KeyEvent keyEvent = new KeyEvent(3 /* IME_ACTION_SEARCH */, KeyEvent.KEYCODE_ENTER);
+			onEditorActionListener.onEditorAction(this, actionCode, keyEvent);
+		}
+	}
 
 	public TransformationMethod getTransformationMethod() {
 		return null;

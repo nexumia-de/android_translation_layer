@@ -9,7 +9,7 @@
 
 JNIEXPORT jlong JNICALL Java_android_widget_PopupWindow_native_1constructor(JNIEnv *env, jobject this)
 {
-	GtkWidget *popover = gtk_popover_new();
+	GtkWidget *popover = g_object_ref(gtk_popover_new());
 	gtk_widget_set_name(popover, "PopupWindow");
 	/* autohiding works by the widget grabbing events, which is not something apps expect */
 	gtk_popover_set_autohide(GTK_POPOVER(popover), false);
@@ -29,6 +29,15 @@ static inline void set_offset(GtkPopover *popover, GtkWidget *anchor, int x, int
 	gtk_popover_set_pointing_to(popover, &(GdkRectangle){.x = 0, .y = 0, .width = gtk_widget_get_width(anchor), .height = gtk_widget_get_height(anchor)});
 }
 
+static void on_closed_cb(GtkWidget *popover, jobject this)
+{
+	g_signal_handlers_disconnect_matched(popover, G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA, 0, 0, NULL, on_closed_cb, this);
+	JNIEnv *env = get_jni_env();
+	J__PopupWindow__performDismiss(env, this);
+	_UNREF(this);
+	gtk_widget_unparent(popover);
+}
+
 JNIEXPORT void JNICALL Java_android_widget_PopupWindow_native_1showAsDropDown(JNIEnv *env, jobject this, jlong popover_ptr, jlong anchor_ptr, jint x, jint y, jint gravity)
 {
 	GtkPopover *popover = GTK_POPOVER(_PTR(popover_ptr));
@@ -36,6 +45,8 @@ JNIEXPORT void JNICALL Java_android_widget_PopupWindow_native_1showAsDropDown(JN
 
 	gtk_widget_insert_before(GTK_WIDGET(popover), GTK_WIDGET(anchor), NULL);
 	set_offset(popover, GTK_WIDGET(anchor), x, y);
+	if (!gtk_widget_is_visible(GTK_WIDGET(popover)))
+		g_signal_connect(popover, "closed", G_CALLBACK(on_closed_cb), _REF(this));
 	gtk_popover_present(GTK_POPOVER(popover));
 	gtk_popover_popup(popover);
 }
@@ -116,19 +127,6 @@ JNIEXPORT void JNICALL Java_android_widget_PopupWindow_native_1setOutsideTouchab
 	}
 }
 
-static void on_closed_cb(GtkPopover *popover, jobject listener)
-{
-	JNIEnv *env = get_jni_env();
-	J__PopupWindow__OnDismissListener__onDismiss(env, listener);
-}
-
-JNIEXPORT void JNICALL Java_android_widget_PopupWindow_setOnDismissListener(JNIEnv *env, jobject this, jobject listener)
-{
-	GtkWidget *popover = GTK_WIDGET(_PTR(_GET_LONG_FIELD(this, "popover")));
-	if (listener)
-		g_signal_connect(popover, "closed", G_CALLBACK(on_closed_cb), _REF(listener));
-}
-
 JNIEXPORT jboolean JNICALL Java_android_widget_PopupWindow_native_1isShowing(JNIEnv *env, jobject this, jlong popover_ptr)
 {
 	return gtk_widget_get_visible(GTK_WIDGET(_PTR(popover_ptr)));
@@ -146,6 +144,13 @@ JNIEXPORT void JNICALL Java_android_widget_PopupWindow_native_1update(JNIEnv *en
 	gtk_widget_set_size_request(GTK_WIDGET(popover), width, height);
 	set_offset(popover, GTK_WIDGET(anchor), x, y);
 	gtk_widget_insert_before(GTK_WIDGET(popover), GTK_WIDGET(anchor), NULL);
+	if (!gtk_widget_is_visible(GTK_WIDGET(popover)))
+		g_signal_connect(popover, "closed", G_CALLBACK(on_closed_cb), _REF(this));
 	gtk_popover_present(GTK_POPOVER(popover));
 	gtk_popover_popup(popover);
+}
+
+JNIEXPORT void JNICALL Java_android_widget_PopupWindow_native_1destructor(JNIEnv *env, jobject this, jlong popover_ptr)
+{
+	g_object_unref(_PTR(popover_ptr));
 }

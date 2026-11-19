@@ -42,6 +42,7 @@ public class PopupWindow {
 	private long popover; // native pointer to GtkPopover
 	private boolean focusable;
 	private boolean touchModal;
+	private OnDismissListener onDismissListener;
 
 	public interface OnDismissListener {
 		@Export
@@ -184,6 +185,25 @@ public class PopupWindow {
 
 	public void setSoftInputMode(int mode) {}
 
+	public void setOnDismissListener(OnDismissListener listener) {
+		onDismissListener = listener;
+	}
+
+	@Export
+	private void performDismiss() {
+		if (onDismissListener != null)
+			onDismissListener.onDismiss();
+	}
+
+	@Override
+	protected void finalize() throws Throwable {
+		try {
+			native_destructor(popover);
+		} finally {
+			super.finalize();
+		}
+	}
+
 	protected native long native_constructor();
 	protected native void native_setContentView(long widget, long contentView);
 	protected native void native_showAsDropDown(long widget, long anchor, int xoff, int yoff, int gravity);
@@ -193,10 +213,10 @@ public class PopupWindow {
 	protected native void native_setOutsideTouchable(long widget, boolean touchable);
 	protected native void native_dismiss(long widget);
 	protected native void native_update(long widget, long anchor, int xoff, int yoff, int width, int height);
-	public native void setOnDismissListener(OnDismissListener listener);
 	public native void native_setWidth(long widget, int width);
 	public native void native_setHeight(long widget, int height);
 	public native int native_getWidth(long widget);
 	public native int native_getHeight(long widget);
 	public native boolean native_isTouchable(long widget);
+	protected native void native_destructor(long widget);
 }

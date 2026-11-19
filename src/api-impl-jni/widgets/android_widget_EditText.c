@@ -7,6 +7,28 @@
 
 #include "../generated_headers/android_widget_EditText.h"
 
+static void changed_cb(GtkEditable *self)
+{
+	WrapperWidget *wrapper = WRAPPER_WIDGET(gtk_widget_get_parent(GTK_WIDGET(self)));
+	JNIEnv *env = get_jni_env();
+
+	const char *text = gtk_editable_get_text(self);
+	jobject text_obj = J_new__SpannableStringBuilder(env, _JSTRING(text));
+	J__TextView__onTextChanged(env, wrapper->jobj, text_obj, 0, 0, strlen(text));
+	if ((*env)->ExceptionCheck(env))
+		(*env)->ExceptionDescribe(env);
+}
+
+static void on_activate(GtkText *gtk_text)
+{
+	WrapperWidget *wrapper = WRAPPER_WIDGET(gtk_widget_get_parent(GTK_WIDGET(gtk_text)));
+	JNIEnv *env = get_jni_env();
+
+	J__TextView__onEditorAction(env, wrapper->jobj, 0);
+	if ((*env)->ExceptionCheck(env))
+		(*env)->ExceptionDescribe(env);
+}
+
 JNIEXPORT jlong JNICALL Java_android_widget_EditText_native_1constructor(JNIEnv *env, jobject this, jobject context, jobject attrs)
 {
 	GtkWidget *wrapper = g_object_ref(wrapper_widget_new());
@@ -14,6 +36,8 @@ JNIEXPORT jlong JNICALL Java_android_widget_EditText_native_1constructor(JNIEnv 
 	wrapper_widget_set_child(WRAPPER_WIDGET(wrapper), gtk_text);
 	wrapper_widget_set_jobject(WRAPPER_WIDGET(wrapper), env, this);
 	wrapper_widget_register_invalidation_listener(WRAPPER_WIDGET(wrapper));
+	g_signal_connect(gtk_text, "changed", G_CALLBACK(changed_cb), NULL);
+	g_signal_connect(gtk_text, "activate", G_CALLBACK(on_activate), NULL);
 	return _INTPTR(gtk_text);
 }
 
@@ -22,82 +46,6 @@ JNIEXPORT jstring JNICALL Java_android_widget_EditText_native_1getText(JNIEnv *e
 	GtkText *gtk_text = GTK_TEXT(_PTR(widget_ptr));
 	const char *text = gtk_entry_buffer_get_text(gtk_text_get_buffer(gtk_text));
 	return _JSTRING(text);
-}
-
-struct changed_callback_data {
-	jobject this;
-	jobject listener;
-	jmethodID getText;
-};
-
-static void changed_cb(GtkEditable *self, jobject listener)
-{
-	JNIEnv *env = get_jni_env();
-
-	const char *text = gtk_editable_get_text(self);
-	jobject text_obj = J_new__SpannableStringBuilder(env, _JSTRING(text));
-	J__TextWatcher__onTextChanged(env, listener, text_obj, 0, 0, strlen(text));
-	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
-	J__TextWatcher__afterTextChanged(env, listener, text_obj);
-	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
-}
-
-JNIEXPORT void JNICALL Java_android_widget_EditText_native_1addTextChangedListener(JNIEnv *env, jobject this, jlong widget_ptr, jobject listener)
-{
-	GtkText *gtk_text = GTK_TEXT(_PTR(widget_ptr));
-	listener = _REF(listener);
-
-	GList *listeners = g_object_get_data(G_OBJECT(gtk_text), "text_changed_listeners");
-	listeners = g_list_append(listeners, listener);
-	g_object_set_data(G_OBJECT(gtk_text), "text_changed_listeners", listeners);
-	g_signal_connect(GTK_EDITABLE(gtk_text), "changed", G_CALLBACK(changed_cb), listener);
-}
-
-JNIEXPORT void JNICALL Java_android_widget_EditText_native_1removeTextChangedListener(JNIEnv *env, jobject this, jlong widget_ptr, jobject listener)
-{
-	GtkText *gtk_text = GTK_TEXT(_PTR(widget_ptr));
-
-	GList *listeners = g_object_get_data(G_OBJECT(gtk_text), "text_changed_listeners");
-	GList *l;
-	for (l = listeners; l != NULL; l = l->next) {
-		if ((*env)->IsSameObject(env, l->data, listener)) {
-			g_signal_handlers_disconnect_by_func(GTK_EDITABLE(gtk_text), changed_cb, l->data);
-			_UNREF(l->data);
-			listeners = g_list_delete_link(listeners, l);
-			break;
-		}
-	}
-	g_object_set_data(G_OBJECT(gtk_text), "text_changed_listeners", listeners);
-}
-
-#define IME_ACTION_SEARCH 3
-#define KEYCODE_ENTER     66
-
-static void on_activate(GtkText *gtk_text, struct changed_callback_data *d)
-{
-	JNIEnv *env = get_jni_env();
-
-	jobject key_event = J_new__KeyEvent(env, (jlong)0, (jlong)0, IME_ACTION_SEARCH, KEYCODE_ENTER, 0, 0);
-	J__TextView__OnEditorActionListener__onEditorAction(env, d->listener, d->this, 0, key_event);
-	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
-}
-
-JNIEXPORT void JNICALL Java_android_widget_EditText_native_1setOnEditorActionListener(JNIEnv *env, jobject this, jlong widget_ptr, jobject listener)
-{
-	GtkText *gtk_text = GTK_TEXT(_PTR(widget_ptr));
-
-	if (!listener)
-		return;
-
-	struct changed_callback_data *callback_data = malloc(sizeof(struct changed_callback_data));
-	callback_data->this = _WEAK_REF(this);
-	callback_data->listener = _REF(listener);
-
-	g_signal_handlers_disconnect_matched(gtk_text, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, on_activate, NULL);
-	g_signal_connect(gtk_text, "activate", G_CALLBACK(on_activate), callback_data);
 }
 
 JNIEXPORT void JNICALL Java_android_widget_EditText_native_1setText(JNIEnv *env, jobject this, jlong widget_ptr, jstring text_jstr)
