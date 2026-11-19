@@ -1197,7 +1197,14 @@ public class View implements Drawable.Callback {
 
 	@Export
 	protected void dispatchDraw(Canvas canvas) {
-		if (canvas instanceof GskCanvas)
+		if (!(canvas instanceof GskCanvas))
+			return;
+		if (this instanceof ViewGroup && ((ViewGroup)this).getClipChildren()) {
+			int count = canvas.save();
+			canvas.clipRect(0, 0, getWidth(), getHeight());
+			native_drawChildren(widget, ((GskCanvas)canvas).snapshot);
+			canvas.restoreToCount(count);
+		} else
 			native_drawChildren(widget, ((GskCanvas)canvas).snapshot);
 	}
 
