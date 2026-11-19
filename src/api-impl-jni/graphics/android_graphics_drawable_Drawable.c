@@ -207,6 +207,13 @@ static int sized_paintable_get_intrinsic_width(GdkPaintable *gdk_paintable)
 	return SIZED_PAINTABLE(gdk_paintable)->width;
 }
 
+/* none: a GtkPicture would otherwise scale it to the height it is given, e.g. a
+ * logo in a toolbar button to the toolbar's height */
+static double sized_paintable_get_intrinsic_aspect_ratio(GdkPaintable *gdk_paintable)
+{
+	return 0;
+}
+
 static int sized_paintable_get_intrinsic_height(GdkPaintable *gdk_paintable)
 {
 	return SIZED_PAINTABLE(gdk_paintable)->height;
@@ -221,6 +228,7 @@ static void sized_paintable_paintable_init(GdkPaintableInterface *iface)
 	iface->snapshot = sized_paintable_snapshot;
 	iface->get_intrinsic_width = sized_paintable_get_intrinsic_width;
 	iface->get_intrinsic_height = sized_paintable_get_intrinsic_height;
+	iface->get_intrinsic_aspect_ratio = sized_paintable_get_intrinsic_aspect_ratio;
 }
 
 static void sized_paintable_dispose(GObject *object)

@@ -166,6 +166,9 @@ JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setCompoundDrawables
 		gtk_picture_set_paintable(GTK_PICTURE(picture), paintable);
 	} else if (paintable) {
 		picture = gtk_picture_new_for_paintable(paintable);
+		/* at its own size, centered beside the text, as on Android */
+		gtk_widget_set_halign(picture, GTK_ALIGN_CENTER);
+		gtk_widget_set_valign(picture, GTK_ALIGN_CENTER);
 		gtk_widget_insert_after(picture, box, NULL);
 	}
 
@@ -175,6 +178,9 @@ JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setCompoundDrawables
 		gtk_picture_set_paintable(GTK_PICTURE(picture), paintable);
 	} else if (paintable) {
 		picture = gtk_picture_new_for_paintable(paintable);
+		/* at its own size, centered beside the text, as on Android */
+		gtk_widget_set_halign(picture, GTK_ALIGN_CENTER);
+		gtk_widget_set_valign(picture, GTK_ALIGN_CENTER);
 		gtk_widget_insert_before(picture, box, NULL);
 	}
 	g_clear_object(&before);
