@@ -20,6 +20,12 @@ extern GtkWindow *window; // TODO: how do we get rid of this? the app won't pass
 
 static GHashTable *egl_surface_hashtable;
 
+/* NULL for a surface that is not one of ours (a pbuffer), also before the first window surface exists */
+static struct ANativeWindow *native_window_of_surface(EGLSurface surface)
+{
+	return egl_surface_hashtable ? g_hash_table_lookup(egl_surface_hashtable, surface) : NULL;
+}
+
 // temporary for debugging
 static void PrintConfigAttributes(EGLDisplay display, EGLConfig config)
 {
@@ -190,7 +196,8 @@ EGLSurface bionic_eglCreatePbufferSurface(EGLDisplay display, EGLConfig config, 
 	}
 }
 
-#define NUM_BUFFERS 3
+/* a TextureView has one more buffer than a SurfaceView, see bionic_eglSwapBuffers */
+#define NUM_BUFFERS 4
 
 struct _ATLSurface {
 	GObject parent;
@@ -215,30 +222,66 @@ struct _ATLSurface {
 	GAsyncQueue *vsync;
 	GAsyncQueue *unused_buffers;
 	gboolean destroyed;
+	gboolean blocks;
 };
 G_DECLARE_FINAL_TYPE(ATLSurface, atl_surface, ATL, SURFACE, GObject);
+G_DEFINE_TYPE(ATLSurface, atl_surface, G_TYPE_OBJECT)
+
+/*
+ * The textures GTK draws are created and deleted in this one context, on the
+ * main thread. GDK's contexts share their objects, so the renderer sees them.
+ */
+static GdkGLContext *import_context(GtkWidget *widget)
+{
+	static GdkGLContext *context = NULL;
+	if (!context)
+		context = gdk_display_create_gl_context(gtk_widget_get_display(widget), NULL);
+	return context;
+}
+
+struct atl_surface_gtk_side {
+	SurfaceViewWidget *surface_view_widget;
+	GdkGLTextureBuilder *texture_builders[NUM_BUFFERS];
+};
+
+/* from the main loop: not while GTK renders, and not on the app's thread, whose context must stay current */
+static gboolean atl_surface_free_gtk_side(gpointer data)
+{
+	struct atl_surface_gtk_side *gtk_side = data;
+	GdkGLContext *context = import_context(GTK_WIDGET(gtk_side->surface_view_widget));
+	gdk_gl_context_make_current(context);
+	for (int i = 0; i < NUM_BUFFERS; i++) {
+		if (gtk_side->texture_builders[i]) {
+			GLuint texture_id = gdk_gl_texture_builder_get_id(gtk_side->texture_builders[i]);
+			glDeleteTextures(1, &texture_id);
+			g_object_unref(gtk_side->texture_builders[i]);
+		}
+	}
+	gdk_gl_context_clear_current();
+	g_object_unref(gtk_side->surface_view_widget);
+	g_free(gtk_side);
+	return G_SOURCE_REMOVE;
+}
+
 static void atl_surface_dispose(GObject *object)
 {
 	ATLSurface *atl_surface = ATL_SURFACE(object);
-	GdkGLContext *gtk_gl_context = gdk_surface_create_gl_context(gtk_native_get_surface(gtk_widget_get_native(GTK_WIDGET(atl_surface->surface_view_widget))), NULL);
-	gdk_gl_context_make_current(gtk_gl_context);
-	for (int i = 0; i < NUM_BUFFERS; i++) {
-		if (atl_surface->buffers[i].texture_builder) {
-			GLuint texture_id = gdk_gl_texture_builder_get_id(atl_surface->buffers[i].texture_builder);
-			glDeleteTextures(1, &texture_id);
-			g_object_unref(atl_surface->buffers[i].texture_builder);
-		}
+	if (atl_surface->surface_view_widget) {
+		struct atl_surface_gtk_side *gtk_side = g_new0(struct atl_surface_gtk_side, 1);
+		gtk_side->surface_view_widget = g_steal_pointer(&atl_surface->surface_view_widget);
+		for (int i = 0; i < NUM_BUFFERS; i++)
+			gtk_side->texture_builders[i] = g_steal_pointer(&atl_surface->buffers[i].texture_builder);
+		g_idle_add(atl_surface_free_gtk_side, gtk_side);
 	}
-	g_async_queue_unref(atl_surface->unused_buffers);
-	g_async_queue_unref(atl_surface->vsync);
-	g_object_unref(atl_surface->surface_view_widget);
+	g_clear_pointer(&atl_surface->unused_buffers, g_async_queue_unref);
+	g_clear_pointer(&atl_surface->vsync, g_async_queue_unref);
+	G_OBJECT_CLASS(atl_surface_parent_class)->dispose(object);
 }
 static void atl_surface_class_init(ATLSurfaceClass *class)
 {
 	G_OBJECT_CLASS(class)->dispose = atl_surface_dispose;
 }
 static void atl_surface_init(ATLSurface *self) {}
-G_DEFINE_TYPE(ATLSurface, atl_surface, G_TYPE_OBJECT)
 
 /*
  * Android exports eglCreateImageKHR (with EGLAttrib) as a direct libEGL.so symbol,
@@ -294,6 +337,7 @@ EGLSurface bionic_eglCreateWindowSurface(EGLDisplay display, EGLConfig config, s
 			atl_surface->renderbuffer_format = GL_STENCIL_INDEX8;
 			atl_surface->renderbuffer_attachment = GL_STENCIL_ATTACHMENT;
 		}
+		atl_surface->blocks = !atl_surface->surface_view_widget->texture_callback;
 		surface = atl_surface;
 	}
 
@@ -330,7 +374,7 @@ static void forget_context(EGLContext context)
 
 EGLBoolean bionic_eglDestroySurface(EGLDisplay display, EGLSurface surface)
 {
-	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, surface);
+	struct ANativeWindow *native_window = native_window_of_surface(surface);
 
 	if (!native_window)
 		return eglDestroySurface(display, surface);
@@ -432,7 +476,7 @@ EGLBoolean bionic_eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface
 {
 	if (getenv("ATL_DIRECT_EGL"))
 		return eglMakeCurrent(display, draw, read, context);
-	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, draw);
+	struct ANativeWindow *native_window = native_window_of_surface(draw);
 	if (!native_window) {
 		EGLBoolean ret = eglMakeCurrent(display, draw, read, context);
 		if (ret)
@@ -453,7 +497,7 @@ EGLBoolean bionic_eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface
 		atl_surface->unused_buffers = g_async_queue_new();
 		if (atl_surface->renderbuffer_format)
 			glGenRenderbuffers(1, &atl_surface->renderbuffer);
-		for (int i = 0; i < NUM_BUFFERS; i++) {
+		for (int i = 0; i < (atl_surface->blocks ? NUM_BUFFERS - 1 : NUM_BUFFERS); i++) {
 			atl_surface->buffers[i].surface = atl_surface;
 			g_async_queue_push(atl_surface->unused_buffers, &atl_surface->buffers[i]);
 		}
@@ -469,13 +513,50 @@ EGLBoolean bionic_eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface
 static void destroy_texture(void *data)
 {
 	struct atl_surface_buffer *buffer = data;
-	g_async_queue_push(buffer->surface->unused_buffers, buffer);
+	/* to the front: the buffer used last is used next, and one that is not needed is never allocated */
+	g_async_queue_push_front(buffer->surface->unused_buffers, buffer);
 	g_object_unref(buffer->surface);
 }
 
 static void frame_callback(SurfaceViewWidget *surface_view_widget)
 {
 	g_async_queue_push(surface_view_widget->frame_callback_data, GINT_TO_POINTER(1));
+}
+
+/*
+ * An app draws its TextureViews one after the other, so their frames arrive a few
+ * milliseconds apart. Asking GTK to draw each one as it arrives gave every view its own
+ * GTK frame (and pass through Java, see queue_texture). So the views of a pass are
+ * collected, and they are drawn at most every 15 ms: the Choreographer does not make
+ * an app render more often.
+ */
+static GPtrArray *redraw_widgets;
+static guint redraw_source;
+static gint64 last_redraw_batch;
+
+static gboolean redraw_batch(gpointer data)
+{
+	GPtrArray *widgets = g_steal_pointer(&redraw_widgets);
+	redraw_source = 0;
+	last_redraw_batch = g_get_monotonic_time();
+	for (guint i = 0; i < widgets->len; i++)
+		surface_view_widget_redraw(widgets->pdata[i]);
+	g_ptr_array_unref(widgets);
+	return G_SOURCE_REMOVE;
+}
+
+/* main thread */
+static void redraw_later(SurfaceViewWidget *surface_view_widget)
+{
+	if (!redraw_widgets)
+		redraw_widgets = g_ptr_array_new_with_free_func(g_object_unref);
+	if (!g_ptr_array_find(redraw_widgets, surface_view_widget, NULL))
+		g_ptr_array_add(redraw_widgets, g_object_ref(surface_view_widget));
+	if (!redraw_source) {
+		gint64 now = g_get_monotonic_time();
+		gint64 delay = MAX(5000, last_redraw_batch + 15000 - now);
+		redraw_source = g_timeout_add_full(G_PRIORITY_HIGH_IDLE + 10, (delay + 999) / 1000, redraw_batch, NULL, NULL);
+	}
 }
 
 static gboolean queue_texture(gpointer data)
@@ -492,10 +573,10 @@ static gboolean queue_texture(gpointer data)
 		destroy_texture(buffer);
 		return G_SOURCE_REMOVE;
 	}
+	GdkGLContext *gtk_gl_context = import_context(GTK_WIDGET(atl_surface->surface_view_widget));
 	if (buffer->texture_builder && (gdk_gl_texture_builder_get_width(buffer->texture_builder) != buffer->width ||
 	                                gdk_gl_texture_builder_get_height(buffer->texture_builder) != buffer->height)) {
 		/* the buffer was reallocated at a new size */
-		GdkGLContext *gtk_gl_context = gdk_gl_texture_builder_get_context(buffer->texture_builder);
 		GLuint texture_id = gdk_gl_texture_builder_get_id(buffer->texture_builder);
 		gdk_gl_context_make_current(gtk_gl_context);
 		glDeleteTextures(1, &texture_id);
@@ -504,7 +585,6 @@ static gboolean queue_texture(gpointer data)
 	}
 	if (!buffer->texture_builder) {
 		GLuint texture_id;
-		GdkGLContext *gtk_gl_context = gdk_surface_create_gl_context(gtk_native_get_surface(gtk_widget_get_native(GTK_WIDGET(atl_surface->surface_view_widget))), NULL);
 		gdk_gl_context_make_current(gtk_gl_context);
 		glGenTextures(1, &texture_id);
 		glBindTexture(GL_TEXTURE_2D, texture_id);
@@ -522,9 +602,22 @@ static gboolean queue_texture(gpointer data)
 		gdk_gl_texture_builder_set_height(buffer->texture_builder, buffer->height);
 		gdk_gl_context_clear_current();
 	}
-	atl_surface->surface_view_widget->frame_callback_data = atl_surface->vsync;
-	atl_surface->surface_view_widget->frame_callback = frame_callback;
-	surface_view_widget_set_texture(atl_surface->surface_view_widget, gdk_gl_texture_builder_build(buffer->texture_builder, destroy_texture, buffer), TRUE);
+	SurfaceViewWidget *surface_view_widget = atl_surface->surface_view_widget;
+	/*
+	 * GTK has not drawn the previous frame: the widget is hidden or covered, or the
+	 * main thread is behind. The redraw asked for with that frame is still due and will
+	 * show this one, so do not ask again for every frame (in Compose that is a pass
+	 * through Java), only often enough to recover should that redraw have been lost.
+	 */
+	gint64 now = g_get_monotonic_time();
+	gboolean redraw = !surface_view_widget->frame_callback || now - surface_view_widget->last_redraw > 250000; // 250ms
+	if (redraw)
+		surface_view_widget->last_redraw = now;
+	surface_view_widget->frame_callback_data = atl_surface->vsync;
+	surface_view_widget->frame_callback = frame_callback;
+	surface_view_widget_set_texture(surface_view_widget, gdk_gl_texture_builder_build(buffer->texture_builder, destroy_texture, buffer), TRUE, redraw && atl_surface->blocks);
+	if (redraw && !atl_surface->blocks)
+		redraw_later(surface_view_widget);
 	// atl_surface reference will be dropped in destroy_texture
 	return G_SOURCE_REMOVE;
 }
@@ -533,11 +626,25 @@ EGLBoolean bionic_eglSwapBuffers(EGLDisplay display, EGLSurface surface)
 {
 	if (getenv("ATL_DIRECT_EGL"))
 		return eglSwapBuffers(display, surface);
-	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, surface);
+	struct ANativeWindow *native_window = native_window_of_surface(surface);
 	if (!native_window) {
 		return eglSwapBuffers(display, surface);
 	}
 	ATLSurface *atl_surface = surface;
+	/*
+	 * The producer of a TextureView never blocks on Android: the buffer queue of a
+	 * SurfaceTexture is in the app's own process, so a frame the consumer did not take
+	 * in time is replaced. Apps count on that. Rive renders all its views in one thread;
+	 * waiting for a view that GTK does not draw (hidden, covered) or has not drawn yet
+	 * left Duolingo's home screen with three frames per second for each of them.
+	 * A SurfaceView still waits: that paces an app that renders in a loop.
+	 *
+	 * GTK gives a buffer back when it has drawn the frame after it. Without waiting,
+	 * that is often just after the app needs it for the frame after next (shown, queued
+	 * and being drawn are three), and every other frame would be dropped: hence the
+	 * fourth buffer of a TextureView.
+	 */
+	gboolean blocks = atl_surface->blocks;
 
 	glFlush();
 	if (atl_surface->back_buffer == &atl_surface->buffers[NUM_BUFFERS]) {
@@ -546,13 +653,16 @@ EGLBoolean bionic_eglSwapBuffers(EGLDisplay display, EGLSurface surface)
 		return EGL_TRUE;
 	}
 	if (atl_surface->back_buffer) {
-		g_async_queue_timeout_pop(atl_surface->vsync, 50000); // 50ms
+		if (blocks)
+			g_async_queue_timeout_pop(atl_surface->vsync, 50000); // 50ms
+		else
+			g_async_queue_try_pop(atl_surface->vsync);
 		atl_surface->front_buffer = atl_surface->back_buffer;
 		atl_surface->back_buffer = NULL;
 		g_object_ref(atl_surface);
 		g_idle_add_full(G_PRIORITY_HIGH_IDLE + 20, queue_texture, atl_surface->front_buffer, NULL);
 	}
-	acquire_back_buffer(atl_surface, native_window, 100000); // 100ms
+	acquire_back_buffer(atl_surface, native_window, blocks ? 100000 : 0); // 100ms
 
 	return EGL_TRUE;
 }
@@ -561,7 +671,7 @@ EGLBoolean bionic_eglQuerySurface(EGLDisplay display, EGLSurface surface, EGLint
 {
 	if (getenv("ATL_DIRECT_EGL"))
 		return eglQuerySurface(display, surface, attribute, value);
-	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, surface);
+	struct ANativeWindow *native_window = native_window_of_surface(surface);
 	if (!native_window)
 		return eglQuerySurface(display, surface, attribute, value);
 	if (attribute == EGL_WIDTH) {
@@ -590,11 +700,11 @@ void bionic_glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
 	if (getenv("ATL_DIRECT_EGL") || framebuffer != 0)
 		return glBindFramebuffer(target, framebuffer);
-	ATLSurface *atl_surface = g_hash_table_lookup(draw_surface_hashtable, eglGetCurrentContext());
+	ATLSurface *atl_surface = draw_surface_hashtable ? g_hash_table_lookup(draw_surface_hashtable, eglGetCurrentContext()) : NULL;
 	if (!atl_surface)
 		return glBindFramebuffer(target, 0);
 	if (!atl_surface->back_buffer) {
-		acquire_back_buffer(atl_surface, g_hash_table_lookup(egl_surface_hashtable, atl_surface), 100000);
+		acquire_back_buffer(atl_surface, native_window_of_surface(atl_surface), 100000);
 		return;
 	}
 	return glBindFramebuffer(target, atl_surface->back_buffer->gl_framebuffer);

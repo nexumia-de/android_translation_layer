@@ -101,12 +101,18 @@ GtkWidget *surface_view_widget_new(void)
 	return g_object_new(surface_view_widget_get_type(), NULL);
 }
 
-void surface_view_widget_set_texture(SurfaceViewWidget *surface_view_widget, GdkTexture *texture, gboolean needs_flip)
+void surface_view_widget_set_texture(SurfaceViewWidget *surface_view_widget, GdkTexture *texture, gboolean needs_flip, gboolean redraw)
 {
 	if (surface_view_widget->texture)
 		g_object_unref(surface_view_widget->texture);
 	surface_view_widget->texture = texture;
 	surface_view_widget->needs_flip = needs_flip;
+	if (redraw)
+		surface_view_widget_redraw(surface_view_widget);
+}
+
+void surface_view_widget_redraw(SurfaceViewWidget *surface_view_widget)
+{
 	gtk_widget_queue_draw(GTK_WIDGET(surface_view_widget));
 	if (surface_view_widget->texture_callback)
 		surface_view_widget->texture_callback(surface_view_widget, surface_view_widget->texture_callback_data);
@@ -213,7 +219,7 @@ JNIEXPORT void JNICALL Java_android_view_SurfaceView_native_1postSnapshot(JNIEnv
 	gsk_renderer_unrealize(renderer);
 	g_object_unref(renderer);
 
-	surface_view_widget_set_texture(surface_view_widget, texture, FALSE);
+	surface_view_widget_set_texture(surface_view_widget, texture, FALSE, TRUE);
 }
 
 // --- TextureView: the same widget, with TextureView's callbacks

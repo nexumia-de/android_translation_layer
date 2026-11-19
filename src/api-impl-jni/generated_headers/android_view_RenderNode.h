@@ -26,10 +26,10 @@ JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeCreateNode
 /*
  * Class:     android_view_RenderNode
  * Method:    nativePatchNode
- * Signature: (JJJ)J
+ * Signature: (J[J[J)J
  */
 JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativePatchNode
-  (JNIEnv *, jobject, jlong, jlong, jlong);
+  (JNIEnv *, jobject, jlong, jlongArray, jlongArray);
 
 /*
  * Class:     android_view_RenderNode

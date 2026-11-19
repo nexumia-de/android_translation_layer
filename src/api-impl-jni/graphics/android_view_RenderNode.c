@@ -18,10 +18,30 @@ JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativeCreateNode(JNIEnv *en
 	return _INTPTR(node);
 }
 
-static GskRenderNode *patch_node(GskRenderNode *node, GskRenderNode *old_child, GskRenderNode *new_child)
+struct patch {
+	jlong *old_children;
+	jlong *new_children;
+	jsize n_children;
+	GHashTable *index; // old child -> its position + 1, for many children
+};
+
+/*
+ * Returns the node with every old child replaced by its new one. The node of a child
+ * is never looked into, changed or not: a child is drawn at this level only, and its
+ * subtree (with those of its own children) is most of the tree.
+ */
+static GskRenderNode *patch_node(GskRenderNode *node, const struct patch *patch)
 {
-	if (node == old_child)
-		return gsk_render_node_ref(new_child);
+	if (patch->index) {
+		jsize i = GPOINTER_TO_INT(g_hash_table_lookup(patch->index, node));
+		if (i)
+			return gsk_render_node_ref(_PTR(patch->new_children[i - 1]));
+	} else {
+		for (jsize i = 0; i < patch->n_children; i++) {
+			if (_PTR(patch->old_children[i]) == node)
+				return gsk_render_node_ref(_PTR(patch->new_children[i]));
+		}
+	}
 	GskRenderNode *new_node;
 	GskRenderNodeType type = gsk_render_node_get_node_type(node);
 	switch (type) {
@@ -30,7 +50,7 @@ static GskRenderNode *patch_node(GskRenderNode *node, GskRenderNode *old_child, 
 			GskRenderNode *children[n_children];
 			gboolean modified = FALSE;
 			for (guint i = 0; i < n_children; i++) {
-				children[i] = patch_node(gsk_container_node_get_child(node, i), old_child, new_child);
+				children[i] = patch_node(gsk_container_node_get_child(node, i), patch);
 				modified |= children[i] != gsk_container_node_get_child(node, i);
 			}
 			if (modified)
@@ -42,7 +62,7 @@ static GskRenderNode *patch_node(GskRenderNode *node, GskRenderNode *old_child, 
 			break;
 		}
 		case GSK_TRANSFORM_NODE: {
-			GskRenderNode *child = patch_node(gsk_transform_node_get_child(node), old_child, new_child);
+			GskRenderNode *child = patch_node(gsk_transform_node_get_child(node), patch);
 			if (child != gsk_transform_node_get_child(node))
 				new_node = gsk_transform_node_new(child, gsk_transform_node_get_transform(node));
 			else
@@ -51,7 +71,7 @@ static GskRenderNode *patch_node(GskRenderNode *node, GskRenderNode *old_child, 
 			break;
 		}
 		case GSK_CLIP_NODE: {
-			GskRenderNode *child = patch_node(gsk_clip_node_get_child(node), old_child, new_child);
+			GskRenderNode *child = patch_node(gsk_clip_node_get_child(node), patch);
 			if (child != gsk_clip_node_get_child(node))
 				new_node = gsk_clip_node_new(child, gsk_clip_node_get_clip(node));
 			else
@@ -60,7 +80,7 @@ static GskRenderNode *patch_node(GskRenderNode *node, GskRenderNode *old_child, 
 			break;
 		}
 		case GSK_OPACITY_NODE: {
-			GskRenderNode *child = patch_node(gsk_opacity_node_get_child(node), old_child, new_child);
+			GskRenderNode *child = patch_node(gsk_opacity_node_get_child(node), patch);
 			if (child != gsk_opacity_node_get_child(node))
 				new_node = gsk_opacity_node_new(child, gsk_opacity_node_get_opacity(node));
 			else
@@ -74,10 +94,25 @@ static GskRenderNode *patch_node(GskRenderNode *node, GskRenderNode *old_child, 
 	return new_node;
 }
 
-JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativePatchNode(JNIEnv *env, jobject this, jlong node_ptr, jlong old_child_ptr, jlong new_child_ptr)
+JNIEXPORT jlong JNICALL Java_android_view_RenderNode_nativePatchNode(JNIEnv *env, jobject this, jlong node_ptr, jlongArray old_children, jlongArray new_children)
 {
 	GskRenderNode *old_node = _PTR(node_ptr);
-	GskRenderNode *new_node = patch_node(old_node, _PTR(old_child_ptr), _PTR(new_child_ptr));
+	struct patch patch = {
+		.old_children = (*env)->GetLongArrayElements(env, old_children, NULL),
+		.new_children = (*env)->GetLongArrayElements(env, new_children, NULL),
+		.n_children = (*env)->GetArrayLength(env, old_children),
+	};
+	if (patch.n_children > 8) {
+		patch.index = g_hash_table_new(NULL, NULL);
+		/* backwards: a node drawn twice is found at its first position, as without the table */
+		for (jsize i = patch.n_children; i > 0; i--)
+			g_hash_table_insert(patch.index, _PTR(patch.old_children[i - 1]), GINT_TO_POINTER(i));
+	}
+	GskRenderNode *new_node = patch_node(old_node, &patch);
+	if (patch.index)
+		g_hash_table_unref(patch.index);
+	(*env)->ReleaseLongArrayElements(env, old_children, patch.old_children, JNI_ABORT);
+	(*env)->ReleaseLongArrayElements(env, new_children, patch.new_children, JNI_ABORT);
 	gsk_render_node_unref(old_node);
 	return _INTPTR(new_node);
 }
