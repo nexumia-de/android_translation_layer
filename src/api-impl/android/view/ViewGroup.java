@@ -209,12 +209,18 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	}
 
 	protected boolean addViewInLayout(View child, int index, LayoutParams params) {
-		addViewInternal(child, index, params, true);
+		if (detachedChildren.contains(child))
+			attachViewToParent(child, index, params);
+		else
+			addViewInternal(child, index, params, true);
 		return true;
 	}
 
 	protected boolean addViewInLayout(View child, int index, LayoutParams params, boolean preventRequestLayout) {
-		addViewInternal(child, index, params, true);
+		if (detachedChildren.contains(child))
+			attachViewToParent(child, index, params);
+		else
+			addViewInternal(child, index, params, true);
 		if (!preventRequestLayout)
 			requestLayout();
 		return true;
