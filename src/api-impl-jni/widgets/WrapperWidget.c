@@ -92,6 +92,7 @@ static void wrapper_widget_get_property(GObject *object, guint property_id, GVal
 
 static void wrapper_widget_init(WrapperWidget *wrapper_widget)
 {
+	wrapper_widget->clip_children = true;
 }
 
 static void wrapper_widget_dispose(GObject *wrapper_widget)

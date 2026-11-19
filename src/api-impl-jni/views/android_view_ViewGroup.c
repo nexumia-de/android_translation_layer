@@ -82,7 +82,10 @@ JNIEXPORT void JNICALL Java_android_view_ViewGroup_native_1offsetRect(JNIEnv *en
 JNIEXPORT void JNICALL Java_android_view_ViewGroup_native_1setClipChildren(JNIEnv *env, jobject this, jlong widget_ptr, jboolean clip)
 {
 	GtkWidget *wrapper = gtk_widget_get_parent(GTK_WIDGET(_PTR(widget_ptr)));
+	if (!WRAPPER_IS_WIDGET(wrapper))
+		return;
+	WRAPPER_WIDGET(wrapper)->clip_children = clip;
 	/* only wrappers that GTK allocates itself (touch handling) clip at all */
-	if (WRAPPER_IS_WIDGET(wrapper) && WRAPPER_WIDGET(wrapper)->needs_allocation)
+	if (WRAPPER_WIDGET(wrapper)->needs_allocation)
 		gtk_widget_set_overflow(wrapper, clip ? GTK_OVERFLOW_HIDDEN : GTK_OVERFLOW_VISIBLE);
 }

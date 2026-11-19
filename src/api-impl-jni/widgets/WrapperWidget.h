@@ -24,6 +24,7 @@ struct _WrapperWidget {
 	int hover_y;
 	bool have_custom_draw_method;
 	bool have_custom_computeScroll;
+	bool clip_children; // ViewGroup.clipChildren, applied while GTK allocates the wrapper
 };
 
 struct _WrapperWidgetClass {

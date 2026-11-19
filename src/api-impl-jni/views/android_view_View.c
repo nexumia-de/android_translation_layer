@@ -549,12 +549,7 @@ void _setOnTouchListener(JNIEnv *env, jobject this, GtkWidget *widget)
 	wrapper->needs_allocation = true;
 	/* a ViewGroup with clipChildren false lets its children draw outside its bounds
 	 * (e.g. a speech bubble that reaches beyond its character view) */
-	jboolean clip = JNI_TRUE;
-	jclass view_group_class = (*env)->FindClass(env, "android/view/ViewGroup");
-	if ((*env)->IsInstanceOf(env, this, view_group_class))
-		clip = (*env)->CallBooleanMethod(env, this, _METHOD(view_group_class, "getClipChildren", "()Z"));
-	(*env)->DeleteLocalRef(env, view_group_class);
-	gtk_widget_set_overflow(GTK_WIDGET(wrapper), clip ? GTK_OVERFLOW_HIDDEN : GTK_OVERFLOW_VISIBLE);
+	gtk_widget_set_overflow(GTK_WIDGET(wrapper), wrapper->clip_children ? GTK_OVERFLOW_HIDDEN : GTK_OVERFLOW_VISIBLE);
 }
 
 JNIEXPORT void JNICALL Java_android_view_View_nativeSetOnTouchListener(JNIEnv *env, jobject this, jlong widget_ptr)
