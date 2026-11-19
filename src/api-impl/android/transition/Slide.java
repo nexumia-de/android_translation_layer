@@ -1,6 +1,22 @@
 package android.transition;
 
-public class Slide extends Transition {
+import android.view.Gravity;
 
-	public Slide(int gravity) {}
+public class Slide extends Visibility {
+
+	private int slideEdge = Gravity.BOTTOM;
+
+	public Slide() {}
+
+	public Slide(int slideEdge) {
+		setSlideEdge(slideEdge);
+	}
+
+	public void setSlideEdge(int slideEdge) {
+		this.slideEdge = slideEdge;
+	}
+
+	public int getSlideEdge() {
+		return slideEdge;
+	}
 }
