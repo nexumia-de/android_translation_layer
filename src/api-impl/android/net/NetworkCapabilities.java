@@ -75,6 +75,24 @@ public final class NetworkCapabilities {
 		return isValidTransport(transportType) && ((mTransportTypes & (1L << transportType)) != 0);
 	}
 
+	public int[] getCapabilities() {
+		return bitsToArray(mNetworkCapabilities);
+	}
+
+	public int[] getTransportTypes() {
+		return bitsToArray(mTransportTypes);
+	}
+
+	private static int[] bitsToArray(long bits) {
+		int[] array = new int[Long.bitCount(bits)];
+		int i = 0;
+		for (int bit = 0; bit < 64; bit++) {
+			if ((bits & (1L << bit)) != 0)
+				array[i++] = bit;
+		}
+		return array;
+	}
+
 	public NetworkCapabilities addCapability(int capability) {
 		checkValidCapability(capability);
 		mNetworkCapabilities |= 1L << capability;
@@ -115,6 +133,12 @@ public final class NetworkCapabilities {
 	private static void checkValidTransportType(int transportType) {
 		if (!isValidTransport(transportType))
 			throw new IllegalArgumentException("Invalid TransportType " + transportType);
+	}
+
+	public static final int SIGNAL_STRENGTH_UNSPECIFIED = Integer.MIN_VALUE;
+
+	public int getSignalStrength() {
+		return SIGNAL_STRENGTH_UNSPECIFIED;
 	}
 
 	/* unknown, like Android when the network does not report it */
