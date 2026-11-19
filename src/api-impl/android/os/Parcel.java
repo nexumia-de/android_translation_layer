@@ -150,20 +150,14 @@ public class Parcel {
 		}
 	}
 
+	/* an int like on Android: typed arrays and lists mark each item with it, and
+	 * SafeParcel writers of client libraries write that marker with writeInt */
 	public void writeBoolean(boolean value) {
-		try {
-			os.writeBoolean(value);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		writeInt(value ? 1 : 0);
 	}
 
 	public boolean readBoolean() {
-		try {
-			return is.readBoolean();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		return readInt() != 0;
 	}
 
 	public void writeIntArray(int[] value) {
