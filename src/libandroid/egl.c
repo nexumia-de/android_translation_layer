@@ -196,7 +196,8 @@ EGLSurface bionic_eglCreatePbufferSurface(EGLDisplay display, EGLConfig config, 
 	}
 }
 
-#define NUM_BUFFERS 3
+/* a TextureView has one more buffer than a SurfaceView, see bionic_eglSwapBuffers */
+#define NUM_BUFFERS 4
 
 struct _ATLSurface {
 	GObject parent;
@@ -221,6 +222,7 @@ struct _ATLSurface {
 	GAsyncQueue *vsync;
 	GAsyncQueue *unused_buffers;
 	gboolean destroyed;
+	gboolean blocks;
 };
 G_DECLARE_FINAL_TYPE(ATLSurface, atl_surface, ATL, SURFACE, GObject);
 G_DEFINE_TYPE(ATLSurface, atl_surface, G_TYPE_OBJECT)
@@ -335,6 +337,7 @@ EGLSurface bionic_eglCreateWindowSurface(EGLDisplay display, EGLConfig config, s
 			atl_surface->renderbuffer_format = GL_STENCIL_INDEX8;
 			atl_surface->renderbuffer_attachment = GL_STENCIL_ATTACHMENT;
 		}
+		atl_surface->blocks = !atl_surface->surface_view_widget->texture_callback;
 		surface = atl_surface;
 	}
 
@@ -494,7 +497,7 @@ EGLBoolean bionic_eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface
 		atl_surface->unused_buffers = g_async_queue_new();
 		if (atl_surface->renderbuffer_format)
 			glGenRenderbuffers(1, &atl_surface->renderbuffer);
-		for (int i = 0; i < NUM_BUFFERS; i++) {
+		for (int i = 0; i < (atl_surface->blocks ? NUM_BUFFERS - 1 : NUM_BUFFERS); i++) {
 			atl_surface->buffers[i].surface = atl_surface;
 			g_async_queue_push(atl_surface->unused_buffers, &atl_surface->buffers[i]);
 		}
@@ -510,7 +513,8 @@ EGLBoolean bionic_eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface
 static void destroy_texture(void *data)
 {
 	struct atl_surface_buffer *buffer = data;
-	g_async_queue_push(buffer->surface->unused_buffers, buffer);
+	/* to the front: the buffer used last is used next, and one that is not needed is never allocated */
+	g_async_queue_push_front(buffer->surface->unused_buffers, buffer);
 	g_object_unref(buffer->surface);
 }
 
@@ -596,8 +600,13 @@ EGLBoolean bionic_eglSwapBuffers(EGLDisplay display, EGLSurface surface)
 	 * waiting for a view that GTK does not draw (hidden, covered) or has not drawn yet
 	 * left Duolingo's home screen with three frames per second for each of them.
 	 * A SurfaceView still waits: that paces an app that renders in a loop.
+	 *
+	 * GTK gives a buffer back when it has drawn the frame after it. Without waiting,
+	 * that is often just after the app needs it for the frame after next (shown, queued
+	 * and being drawn are three), and every other frame would be dropped: hence the
+	 * fourth buffer of a TextureView.
 	 */
-	gboolean blocks = !atl_surface->surface_view_widget->texture_callback;
+	gboolean blocks = atl_surface->blocks;
 
 	glFlush();
 	if (atl_surface->back_buffer == &atl_surface->buffers[NUM_BUFFERS]) {
