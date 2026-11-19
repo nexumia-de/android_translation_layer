@@ -38,7 +38,7 @@ public class RenderNode {
 
 	private native long nativeCreateSnapshot();
 	private native long nativeCreateNode(long snapshot);
-	private native long nativePatchNode(long node, long old_child, long new_child);
+	private native long nativePatchNode(long node, long[] old_children, long[] new_children);
 	private native long nativeTransform(long node, float scaleX, float scaleY, float translationX, float translationY, float rotation, float pivotX, float pivotY);
 	private native long nativeClip(long node, float left, float top, float right, float bottom);
 	private native long nativeClipRounded(long node, float left, float top, float right, float bottom, float radius);
@@ -320,12 +320,26 @@ public class RenderNode {
 		if (render_node == 0)
 			render_node = nativeCreateEmpyNode();
 		long old_render_node = render_node;
+		/* all changed children in one pass over the node: with one pass per child, a frame in
+		 * which one view deep in a Compose tree changed walked the tree at every level above it */
+		long[] new_children_nodes = null;
 		for (int i = 0; i < children.size(); i++) {
 			long new_child_node = children.get(i).getGskNode();
-			if (new_child_node != children_nodes.get(i)) {
-				render_node = nativePatchNode(render_node, children_nodes.get(i), new_child_node);
-				children_nodes.set(i, new_child_node);
+			if (new_children_nodes == null && new_child_node != children_nodes.get(i)) {
+				new_children_nodes = new long[children.size()];
+				for (int j = 0; j < i; j++)
+					new_children_nodes[j] = children_nodes.get(j);
 			}
+			if (new_children_nodes != null)
+				new_children_nodes[i] = new_child_node;
+		}
+		if (new_children_nodes != null) {
+			long[] old_children_nodes = new long[new_children_nodes.length];
+			for (int i = 0; i < old_children_nodes.length; i++) {
+				old_children_nodes[i] = children_nodes.get(i);
+				children_nodes.set(i, new_children_nodes[i]);
+			}
+			render_node = nativePatchNode(render_node, old_children_nodes, new_children_nodes);
 		}
 		if (transformed_node == 0 || old_render_node != render_node) {
 			nativeUnref(transformed_node);
