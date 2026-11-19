@@ -120,7 +120,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/nexumia-de/art_standalone.git
-        commit: 524c70b6d0e269cfc682dbe08921ec960fea0e81
+        commit: ae057dbfcbb97a0dcd2fb36539577cbbb7ca7c95
 
   - name: libopensles-standalone
     buildsystem: meson
