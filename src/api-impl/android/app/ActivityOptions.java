@@ -1,5 +1,6 @@
 package android.app;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Pair;
 import android.view.View;
@@ -21,6 +22,20 @@ public class ActivityOptions {
 	public static ActivityOptions makeScaleUpAnimation(View source, int startX, int startY, int startWidth, int startHeight) {
 		return new ActivityOptions();
 	}
+
+	public static ActivityOptions makeCustomAnimation(Context context, int enterResId, int exitResId) {
+		return new ActivityOptions();
+	}
+
+	public ActivityOptions setPendingIntentBackgroundActivityStartMode(int state) {
+		return this;
+	}
+
+	public ActivityOptions setShareIdentityEnabled(boolean shareIdentity) {
+		return this;
+	}
+
+	public void setAllowPassThroughOnTouchOutside(boolean allowPassThrough) {}
 
 	public Bundle toBundle() {
 		return null;
