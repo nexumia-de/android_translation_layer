@@ -1275,6 +1275,9 @@ public class View implements Drawable.Callback {
 		native_setLayoutParams(widget, params.width, params.height, gravity, params.weight, leftMargin, topMargin, rightMargin, bottomMargin);
 
 		layout_params = params;
+		/* as on Android: new parameters are measured again, also when the parent's
+		 * measure specs stay the same (e.g. a width set after the first layout) */
+		requestLayout();
 	}
 
 	public ViewGroup.LayoutParams getLayoutParams() {
