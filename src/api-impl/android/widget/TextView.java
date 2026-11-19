@@ -136,6 +136,10 @@ public class TextView extends View {
 
 		a.recycle();
 		haveCustomMeasure = false;
+		constructed = true;
+		/* the text alignment View's constructor read could not be applied yet */
+		if (getTextAlignment() != TEXT_ALIGNMENT_GRAVITY)
+			native_setGravity(widget, getEffectiveGravity());
 	}
 
 	@Override
@@ -373,7 +377,39 @@ public class TextView extends View {
 
 	public void setGravity(int gravity) {
 		this.gravity = gravity;
-		native_setGravity(widget, gravity);
+		native_setGravity(widget, getEffectiveGravity());
+	}
+
+	/* the label is aligned by the text alignment where it is not GRAVITY (e.g. a
+	 * button with gravity center_vertical and textAlignment center) */
+	@Override
+	public void setTextAlignment(int textAlignment) {
+		super.setTextAlignment(textAlignment);
+		if (constructed)
+			native_setGravity(widget, getEffectiveGravity());
+	}
+
+	/* false while View's constructor runs: the fields of TextView are not set yet */
+	private boolean constructed;
+
+	private int getEffectiveGravity() {
+		int horizontal;
+		switch (getTextAlignment()) {
+			case TEXT_ALIGNMENT_CENTER:
+				horizontal = Gravity.CENTER_HORIZONTAL;
+				break;
+			case TEXT_ALIGNMENT_TEXT_START:
+			case TEXT_ALIGNMENT_VIEW_START:
+				horizontal = Gravity.LEFT;
+				break;
+			case TEXT_ALIGNMENT_TEXT_END:
+			case TEXT_ALIGNMENT_VIEW_END:
+				horizontal = Gravity.RIGHT;
+				break;
+			default:
+				return gravity;
+		}
+		return (gravity & ~Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) | horizontal;
 	}
 
 	private native void native_setGravity(long widget, int gravity);

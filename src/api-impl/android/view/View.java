@@ -2623,7 +2623,10 @@ public class View implements Drawable.Callback {
 
 	public boolean hasOnClickListeners() { return false; }
 
+	private int textAlignment = TEXT_ALIGNMENT_INHERIT;
+
 	public void setTextAlignment(int textAlignment) {
+		this.textAlignment = textAlignment;
 		String[] classesToRemove = {"ATL-text-align-left", "ATL-text-align-center", "ATL-text-align-right"};
 		native_removeClasses(widget, classesToRemove);
 
@@ -2728,7 +2731,13 @@ public class View implements Drawable.Callback {
 		pendingLongClick = null;
 	}
 
-	public int getTextAlignment() { return 0; }
+	/* resolved as on Android: inherited from the parent, GRAVITY at the top */
+	public int getTextAlignment() {
+		for (View view = this; view != null; view = view.parent instanceof View ? (View)view.parent : null)
+			if (view.textAlignment != TEXT_ALIGNMENT_INHERIT)
+				return view.textAlignment;
+		return TEXT_ALIGNMENT_GRAVITY;
+	}
 
 	public View findViewWithTag(Object tag) {
 		if (Objects.equals(tag, this.tag))
