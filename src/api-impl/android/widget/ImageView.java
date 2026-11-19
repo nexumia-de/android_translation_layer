@@ -24,6 +24,9 @@ public class ImageView extends View {
 	private ColorStateList tintList = null;
 	private PorterDuff.Mode tintMode = PorterDuff.Mode.SRC_IN;
 	private int level = 0;
+	private boolean adjustViewBounds = false;
+	private int maxWidth = Integer.MAX_VALUE;
+	private int maxHeight = Integer.MAX_VALUE;
 
 	public ImageView(Context context) {
 		this(context, null);
@@ -54,7 +57,84 @@ public class ImageView extends View {
 		}
 		if (a.hasValue(com.android.internal.R.styleable.ImageView_scaleType))
 			setScaleType(scaletype_from_int[a.getInt(com.android.internal.R.styleable.ImageView_scaleType, 3 /*CENTER*/)]);
+		adjustViewBounds = a.getBoolean(com.android.internal.R.styleable.ImageView_adjustViewBounds, false);
+		maxWidth = a.getDimensionPixelSize(com.android.internal.R.styleable.ImageView_maxWidth, Integer.MAX_VALUE);
+		maxHeight = a.getDimensionPixelSize(com.android.internal.R.styleable.ImageView_maxHeight, Integer.MAX_VALUE);
 		a.recycle();
+	}
+
+	/* as ImageView.onMeasure in AOSP: the image's own size, not GTK's height for width,
+	 * which would scale every image up to the width it is given (as if adjustViewBounds) */
+	@Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+		int w = 0;
+		int h = 0;
+		float desiredAspect = 0.0f;
+		boolean resizeWidth = false;
+		boolean resizeHeight = false;
+		final int widthSpecMode = MeasureSpec.getMode(widthMeasureSpec);
+		final int heightSpecMode = MeasureSpec.getMode(heightMeasureSpec);
+		if (drawable != null || bitmap != null) {
+			w = drawable != null ? drawable.getIntrinsicWidth() : bitmap.getWidth();
+			h = drawable != null ? drawable.getIntrinsicHeight() : bitmap.getHeight();
+			if (w <= 0)
+				w = 1;
+			if (h <= 0)
+				h = 1;
+			if (adjustViewBounds) {
+				resizeWidth = widthSpecMode != MeasureSpec.EXACTLY;
+				resizeHeight = heightSpecMode != MeasureSpec.EXACTLY;
+				desiredAspect = (float)w / (float)h;
+			}
+		}
+		final int pleft = getPaddingLeft();
+		final int pright = getPaddingRight();
+		final int ptop = getPaddingTop();
+		final int pbottom = getPaddingBottom();
+		int widthSize;
+		int heightSize;
+		if (resizeWidth || resizeHeight) {
+			widthSize = resolveAdjustedSize(w + pleft + pright, maxWidth, widthMeasureSpec);
+			heightSize = resolveAdjustedSize(h + ptop + pbottom, maxHeight, heightMeasureSpec);
+			final float actualAspect = (float)(widthSize - pleft - pright) / (heightSize - ptop - pbottom);
+			if (Math.abs(actualAspect - desiredAspect) > 0.0000001) {
+				boolean done = false;
+				if (resizeWidth) {
+					int newWidth = (int)(desiredAspect * (heightSize - ptop - pbottom)) + pleft + pright;
+					if (!resizeHeight)
+						widthSize = resolveAdjustedSize(newWidth, maxWidth, widthMeasureSpec);
+					if (newWidth <= widthSize) {
+						widthSize = newWidth;
+						done = true;
+					}
+				}
+				if (!done && resizeHeight) {
+					int newHeight = (int)((widthSize - pleft - pright) / desiredAspect) + ptop + pbottom;
+					if (!resizeWidth)
+						heightSize = resolveAdjustedSize(newHeight, maxHeight, heightMeasureSpec);
+					if (newHeight <= heightSize)
+						heightSize = newHeight;
+				}
+			}
+		} else {
+			w = Math.max(w + pleft + pright, getSuggestedMinimumWidth());
+			h = Math.max(h + ptop + pbottom, getSuggestedMinimumHeight());
+			widthSize = resolveSizeAndState(w, widthMeasureSpec, 0);
+			heightSize = resolveSizeAndState(h, heightMeasureSpec, 0);
+		}
+		setMeasuredDimension(widthSize, heightSize);
+	}
+
+	private static int resolveAdjustedSize(int desiredSize, int maxSize, int measureSpec) {
+		int specSize = MeasureSpec.getSize(measureSpec);
+		switch (MeasureSpec.getMode(measureSpec)) {
+			case MeasureSpec.UNSPECIFIED:
+				return Math.min(desiredSize, maxSize);
+			case MeasureSpec.AT_MOST:
+				return Math.min(Math.min(desiredSize, specSize), maxSize);
+			default:
+				return specSize;
+		}
 	}
 
 	public void setImageResource(final int resid) {
@@ -62,12 +142,24 @@ public class ImageView extends View {
 			setImageDrawable(getContext().getDrawable(resid));
 			return;
 		}
+		if (drawable != null)
+			drawable.setCallback(null);
+		drawable = null;
 		bitmap = BitmapFactory.decodeResource(this.getResources(), resid);
 		native_setDrawable(widget, bitmap != null ? bitmap.getTexture() : 0);
 		/* as on Android: the new image may have another size */
 		requestLayout();
 	}
-	public void setAdjustViewBounds(boolean adjustViewBounds) {}
+	public void setAdjustViewBounds(boolean adjustViewBounds) {
+		if (this.adjustViewBounds != adjustViewBounds) {
+			this.adjustViewBounds = adjustViewBounds;
+			requestLayout();
+		}
+	}
+
+	public boolean getAdjustViewBounds() {
+		return adjustViewBounds;
+	}
 
 	public void setScaleType(ScaleType scaleType) {
 		this.scaleType = scaleType;
@@ -89,6 +181,7 @@ public class ImageView extends View {
 			this.drawable.setCallback(null);
 		}
 		this.drawable = drawable;
+		bitmap = null;
 		if (drawable != null) {
 			drawable.setCallback(this);
 		}
@@ -122,7 +215,12 @@ public class ImageView extends View {
 	}
 
 	public void setImageBitmap(Bitmap bitmap) {
+		if (drawable != null)
+			drawable.setCallback(null);
+		drawable = null;
+		this.bitmap = bitmap;
 		native_setDrawable(widget, bitmap != null ? bitmap.getTexture() : 0);
+		requestLayout();
 	}
 
 	/**
@@ -229,9 +327,15 @@ public class ImageView extends View {
 		setImageAlpha(alpha);
 	}
 
-	public void setMaxWidth(int width) {}
+	public void setMaxWidth(int width) {
+		maxWidth = width;
+		requestLayout();
+	}
 
-	public void setMaxHeight(int height) {}
+	public void setMaxHeight(int height) {
+		maxHeight = height;
+		requestLayout();
+	}
 
 	public void setImageState(int[] state, boolean merge) {}
 
