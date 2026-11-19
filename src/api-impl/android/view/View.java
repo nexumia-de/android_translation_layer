@@ -1203,16 +1203,32 @@ public class View implements Drawable.Callback {
 
 	@Export
 	public void draw(Canvas canvas) {
-		if (canvas instanceof GskCanvas)
-			native_drawBackground(widget, ((GskCanvas)canvas).snapshot);
-		onDraw(canvas);
-		// HACK: catch non critical exceptions happening in some composeUI apps
+		in_draw = true;
 		try {
-			dispatchDraw(canvas);
-		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
+			if (canvas instanceof GskCanvas)
+				native_drawBackground(widget, ((GskCanvas)canvas).snapshot);
+			onDraw(canvas);
+			// HACK: catch non critical exceptions happening in some composeUI apps
+			try {
+				dispatchDraw(canvas);
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			}
+		} finally {
+			in_draw = false;
+			atlAfterDraw();
 		}
 	}
+
+	private boolean in_draw;
+
+	/* for TextView: whether draw() is running, and a call when it has returned. Not overrides of
+	 * draw(), which would make every view of the class draw through Java */
+	public boolean atlIsInDraw() {
+		return in_draw;
+	}
+
+	protected void atlAfterDraw() {}
 
 	public View(Context context) {
 		this(context, null);

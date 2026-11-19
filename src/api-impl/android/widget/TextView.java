@@ -5,7 +5,6 @@ import android.atl.annotation.Export;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
@@ -234,14 +233,13 @@ public class TextView extends View {
 	private native final void native_setTextColor(int color);
 	private int current_text_color;
 	private boolean has_text_color;
-	private boolean in_draw;
 	private int native_text_color;
 	private void applyTextColor(int color) {
 		current_text_color = color;
 		has_text_color = true;
 		/* GTK draws the text after draw() with the colour last set: a colour that onDraw sets and
 		 * sets back, e.g. for outlined text, would end up as the text colour */
-		if (!in_draw)
+		if (!atlIsInDraw())
 			setNativeTextColor(color);
 	}
 	private void setNativeTextColor(int color) {
@@ -250,13 +248,7 @@ public class TextView extends View {
 	}
 
 	@Override
-	public void draw(Canvas canvas) {
-		in_draw = true;
-		try {
-			super.draw(canvas);
-		} finally {
-			in_draw = false;
-		}
+	protected void atlAfterDraw() {
 		if (has_text_color && current_text_color != native_text_color)
 			setNativeTextColor(current_text_color);
 	}
