@@ -69,7 +69,29 @@ public class GskCanvas extends RecordingCanvas {
 	@Override
 	public void concat(Matrix matrix) {
 		if (matrix != null) {
-			native_concat(snapshot, matrix.native_instance);
+			float[] v = new float[9];
+			matrix.getValues(v);
+			if (v[Matrix.MPERSP_0] != 0 || v[Matrix.MPERSP_1] != 0 || v[Matrix.MPERSP_2] != 1) {
+				native_concat(snapshot, matrix.native_instance);
+			} else {
+				/* GTK gives a transform from a matrix the category "unknown", and GSK's cairo renderer
+				 * (used for bitmaps drawn off the main thread) fills such a node with pink. An affine
+				 * matrix is a translation, rotation, scale and rotation (singular value decomposition). */
+				float a = v[Matrix.MSCALE_X], b = v[Matrix.MSKEW_X], c = v[Matrix.MSKEW_Y], d = v[Matrix.MSCALE_Y];
+				if (v[Matrix.MTRANS_X] != 0 || v[Matrix.MTRANS_Y] != 0)
+					native_translate(snapshot, v[Matrix.MTRANS_X], v[Matrix.MTRANS_Y]);
+				if (b == 0 && c == 0) {
+					if (a != 1 || d != 1)
+						native_scale(snapshot, a, d);
+				} else {
+					double e = (a + d) / 2, f = (a - d) / 2, g = (c + b) / 2, h = (c - b) / 2;
+					double q = Math.hypot(e, h), r = Math.hypot(f, g);
+					double a1 = Math.atan2(g, f), a2 = Math.atan2(h, e);
+					native_rotate(snapshot, (float)Math.toDegrees((a2 + a1) / 2));
+					native_scale(snapshot, (float)(q + r), (float)(q - r));
+					native_rotate(snapshot, (float)Math.toDegrees((a2 - a1) / 2));
+				}
+			}
 			state_stack.peek().preConcat(matrix);
 		}
 	}
