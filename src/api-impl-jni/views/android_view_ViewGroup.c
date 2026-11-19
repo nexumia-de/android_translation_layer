@@ -40,7 +40,10 @@ JNIEXPORT void JNICALL Java_android_view_ViewGroup_native_1addView(JNIEnv *env, 
 			break;
 	}
 
-	gtk_widget_insert_before(gtk_widget_get_parent(GTK_WIDGET(_PTR(child))), parent, iter);
+	GtkWidget *child_wrapper = gtk_widget_get_parent(GTK_WIDGET(_PTR(child)));
+	gtk_widget_insert_before(child_wrapper, parent, iter);
+	if (WRAPPER_IS_WIDGET(child_wrapper))
+		wrapper_widget_update_overflow(WRAPPER_WIDGET(child_wrapper));
 }
 
 JNIEXPORT void JNICALL Java_android_view_ViewGroup_native_1removeView(JNIEnv *env, jobject this, jlong widget, jlong child)
@@ -81,11 +84,13 @@ JNIEXPORT void JNICALL Java_android_view_ViewGroup_native_1offsetRect(JNIEnv *en
 
 JNIEXPORT void JNICALL Java_android_view_ViewGroup_native_1setClipChildren(JNIEnv *env, jobject this, jlong widget_ptr, jboolean clip)
 {
-	GtkWidget *wrapper = gtk_widget_get_parent(GTK_WIDGET(_PTR(widget_ptr)));
+	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
+	GtkWidget *wrapper = gtk_widget_get_parent(widget);
 	if (!WRAPPER_IS_WIDGET(wrapper))
 		return;
 	WRAPPER_WIDGET(wrapper)->clip_children = clip;
-	/* only wrappers that GTK allocates itself (touch handling) clip at all */
-	if (WRAPPER_WIDGET(wrapper)->needs_allocation)
-		gtk_widget_set_overflow(wrapper, clip ? GTK_OVERFLOW_HIDDEN : GTK_OVERFLOW_VISIBLE);
+	for (GtkWidget *child = gtk_widget_get_first_child(widget); child; child = gtk_widget_get_next_sibling(child))
+		if (WRAPPER_IS_WIDGET(child))
+			wrapper_widget_update_overflow(WRAPPER_WIDGET(child));
+	gtk_widget_queue_draw(wrapper);
 }

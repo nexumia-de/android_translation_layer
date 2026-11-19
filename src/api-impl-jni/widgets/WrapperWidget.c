@@ -180,6 +180,22 @@ void wrapper_widget_allocate(GtkWidget *widget, int width, int height, int basel
 		gtk_widget_size_allocate(wrapper->background, &allocation, baseline);
 }
 
+/* As on Android, a view is clipped to its bounds when its parent clips its
+ * children (ViewGroup.clipChildren, true unless the app says otherwise) */
+bool wrapper_widget_clipped_by_parent(WrapperWidget *wrapper)
+{
+	GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(wrapper));
+	GtkWidget *parent_wrapper = parent ? gtk_widget_get_parent(parent) : NULL;
+	return !WRAPPER_IS_WIDGET(parent_wrapper) || WRAPPER_WIDGET(parent_wrapper)->clip_children;
+}
+
+/* a wrapper that GTK allocates itself (touch handling) clips with its overflow */
+void wrapper_widget_update_overflow(WrapperWidget *wrapper)
+{
+	if (wrapper->needs_allocation)
+		gtk_widget_set_overflow(GTK_WIDGET(wrapper), wrapper_widget_clipped_by_parent(wrapper) ? GTK_OVERFLOW_HIDDEN : GTK_OVERFLOW_VISIBLE);
+}
+
 /* this is used to avoid queing layout changes in the middle of snapshotting */
 int snapshot_in_progress = 0;
 static void wrapper_widget_snapshot(GtkWidget *widget, GdkSnapshot *snapshot)
@@ -187,7 +203,8 @@ static void wrapper_widget_snapshot(GtkWidget *widget, GdkSnapshot *snapshot)
 	snapshot_in_progress++;
 
 	WrapperWidget *wrapper = WRAPPER_WIDGET(widget);
-	if (wrapper->real_height > 0 && wrapper->real_width > 0) {
+	bool clip = wrapper->real_height > 0 && wrapper->real_width > 0 && wrapper_widget_clipped_by_parent(wrapper);
+	if (clip) {
 		gtk_snapshot_push_clip(snapshot, &GRAPHENE_RECT_INIT(0, 0, wrapper->real_width, wrapper->real_height));
 	}
 	if (wrapper->have_custom_draw_method) {
@@ -204,7 +221,7 @@ static void wrapper_widget_snapshot(GtkWidget *widget, GdkSnapshot *snapshot)
 			child = gtk_widget_get_next_sibling(child);
 		}
 	}
-	if (wrapper->real_height > 0 && wrapper->real_width > 0) {
+	if (clip) {
 		gtk_snapshot_pop(snapshot);
 	}
 
