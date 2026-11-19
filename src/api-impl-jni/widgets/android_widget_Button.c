@@ -85,12 +85,13 @@ JNIEXPORT jobject JNICALL Java_android_widget_Button_getText(JNIEnv *env, jobjec
 	return (*env)->NewStringUTF(env, gtk_label_get_text(box_get_label(env, gtk_button_get_child(button))));
 }
 
-JNIEXPORT void JNICALL Java_android_widget_Button_native_1setCompoundDrawables(JNIEnv *env, jobject this, jlong widget_ptr, jlong paintable_ptr)
+JNIEXPORT void JNICALL Java_android_widget_Button_native_1setCompoundDrawables(JNIEnv *env, jobject this, jlong widget_ptr, jobject drawable)
 {
 	if (!GTK_IS_BUTTON(_PTR(widget_ptr))) // CompoundButton
 		return;
 	GtkButton *button = GTK_BUTTON(_PTR(widget_ptr));
-	GdkPaintable *paintable = GDK_PAINTABLE(_PTR(paintable_ptr));
+	/* drawn at its bounds, as on Android (e.g. an icon an app scales down) */
+	g_autoptr(GdkPaintable) paintable = atl_drawable_paintable_at_bounds(env, drawable);
 	GtkWidget *box = gtk_button_get_child(button);
 	GtkWidget *picture = gtk_widget_get_first_child(box);
 	if (GTK_IS_PICTURE(picture)) {

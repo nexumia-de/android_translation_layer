@@ -186,3 +186,76 @@ JNIEXPORT void JNICALL Java_android_graphics_drawable_Drawable_native_1set_1colo
 	FilterPaintable *paintable = FILTER_PAINTABLE(_PTR(paintable_ptr));
 	paintable->use_color_filter = color_filter_from_java(env, matrix, &paintable->color_matrix, &paintable->color_offset);
 }
+
+/* A paintable with a fixed intrinsic size that draws its child at that size: a drawable
+ * at its bounds, as TextView draws its compound drawables */
+struct _SizedPaintable {
+	GObject parent_instance;
+	GdkPaintable *child;
+	int width;
+	int height;
+};
+G_DECLARE_FINAL_TYPE(SizedPaintable, sized_paintable, SIZED, PAINTABLE, GObject)
+
+static void sized_paintable_snapshot(GdkPaintable *gdk_paintable, GdkSnapshot *snapshot, double width, double height)
+{
+	gdk_paintable_snapshot(SIZED_PAINTABLE(gdk_paintable)->child, snapshot, width, height);
+}
+
+static int sized_paintable_get_intrinsic_width(GdkPaintable *gdk_paintable)
+{
+	return SIZED_PAINTABLE(gdk_paintable)->width;
+}
+
+static int sized_paintable_get_intrinsic_height(GdkPaintable *gdk_paintable)
+{
+	return SIZED_PAINTABLE(gdk_paintable)->height;
+}
+
+static void sized_paintable_init(SizedPaintable *paintable)
+{
+}
+
+static void sized_paintable_paintable_init(GdkPaintableInterface *iface)
+{
+	iface->snapshot = sized_paintable_snapshot;
+	iface->get_intrinsic_width = sized_paintable_get_intrinsic_width;
+	iface->get_intrinsic_height = sized_paintable_get_intrinsic_height;
+}
+
+static void sized_paintable_dispose(GObject *object)
+{
+	g_clear_object(&SIZED_PAINTABLE(object)->child);
+	G_OBJECT_CLASS(g_type_class_peek(G_TYPE_OBJECT))->dispose(object);
+}
+
+static void sized_paintable_class_init(SizedPaintableClass *class)
+{
+	G_OBJECT_CLASS(class)->dispose = sized_paintable_dispose;
+}
+
+G_DEFINE_TYPE_WITH_CODE(SizedPaintable, sized_paintable, G_TYPE_OBJECT,
+                        G_IMPLEMENT_INTERFACE(GDK_TYPE_PAINTABLE, sized_paintable_paintable_init))
+
+/* the paintable of a drawable, sized by its bounds (by its own size while the bounds are
+ * empty); a new reference, NULL without a drawable */
+GdkPaintable *atl_drawable_paintable_at_bounds(JNIEnv *env, jobject drawable)
+{
+	if (!drawable)
+		return NULL;
+	GdkPaintable *child = _PTR(_GET_LONG_FIELD(drawable, "paintable"));
+	if (!child)
+		return NULL;
+	jobject bounds = (*env)->CallObjectMethod(env, drawable, _METHOD(_CLASS(drawable), "getBounds", "()Landroid/graphics/Rect;"));
+	int width = _GET_INT_FIELD(bounds, "right") - _GET_INT_FIELD(bounds, "left");
+	int height = _GET_INT_FIELD(bounds, "bottom") - _GET_INT_FIELD(bounds, "top");
+	(*env)->DeleteLocalRef(env, bounds);
+	if (width <= 0 || height <= 0)
+		return g_object_ref(child);
+	SizedPaintable *paintable = g_object_new(sized_paintable_get_type(), NULL);
+	paintable->child = g_object_ref(child);
+	paintable->width = width;
+	paintable->height = height;
+	g_signal_connect_object(child, "invalidate-contents", G_CALLBACK(gdk_paintable_invalidate_contents), paintable, G_CONNECT_SWAPPED);
+	return GDK_PAINTABLE(paintable);
+}

@@ -52,6 +52,8 @@ void release_nio_buffer(JNIEnv *env, jarray array_ref, jbyte *array);
 int get_nio_buffer_size(JNIEnv *env, jobject buffer);
 
 void atl_ensure_widget_snapshotability(GtkWidget *widget);
+/* defined in graphics/android_graphics_drawable_Drawable.c */
+GdkPaintable *atl_drawable_paintable_at_bounds(JNIEnv *env, jobject drawable);
 void atl_safe_gtk_label_set_text(GtkLabel *label, const char *str);
 void atl_safe_gtk_widget_set_visible(GtkWidget *widget, gboolean visible);
 void atl_safe_gtk_widget_queue_allocate(GtkWidget *widget);
