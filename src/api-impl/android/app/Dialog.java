@@ -185,6 +185,15 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 
 				nativeShow(nativePtr);
 				showing = true;
+				/* GTK can allocate a new layer 0x0 in the frame it is added (FAIRTIQ's Compose hCaptcha
+				 * dialog); measure it again once it is in place */
+				final View decor = getWindow().getDecorView();
+				new Handler(Looper.getMainLooper()).post(new Runnable() {
+					@Override
+					public void run() {
+						decor.requestLayout();
+					}
+				});
 				if (onShowListener != null)
 					onShowListener.onShow(Dialog.this);
 			}
