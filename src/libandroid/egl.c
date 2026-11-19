@@ -523,6 +523,42 @@ static void frame_callback(SurfaceViewWidget *surface_view_widget)
 	g_async_queue_push(surface_view_widget->frame_callback_data, GINT_TO_POINTER(1));
 }
 
+/*
+ * An app draws its TextureViews one after the other, so their frames arrive a few
+ * milliseconds apart. Asking GTK to draw each one as it arrives gave every view its own
+ * GTK frame (and pass through Java, see queue_texture). So the views of a pass are
+ * collected, and they are drawn at most every 15 ms: the Choreographer does not make
+ * an app render more often.
+ */
+static GPtrArray *redraw_widgets;
+static guint redraw_source;
+static gint64 last_redraw_batch;
+
+static gboolean redraw_batch(gpointer data)
+{
+	GPtrArray *widgets = g_steal_pointer(&redraw_widgets);
+	redraw_source = 0;
+	last_redraw_batch = g_get_monotonic_time();
+	for (guint i = 0; i < widgets->len; i++)
+		surface_view_widget_redraw(widgets->pdata[i]);
+	g_ptr_array_unref(widgets);
+	return G_SOURCE_REMOVE;
+}
+
+/* main thread */
+static void redraw_later(SurfaceViewWidget *surface_view_widget)
+{
+	if (!redraw_widgets)
+		redraw_widgets = g_ptr_array_new_with_free_func(g_object_unref);
+	if (!g_ptr_array_find(redraw_widgets, surface_view_widget, NULL))
+		g_ptr_array_add(redraw_widgets, g_object_ref(surface_view_widget));
+	if (!redraw_source) {
+		gint64 now = g_get_monotonic_time();
+		gint64 delay = MAX(5000, last_redraw_batch + 15000 - now);
+		redraw_source = g_timeout_add_full(G_PRIORITY_HIGH_IDLE + 10, (delay + 999) / 1000, redraw_batch, NULL, NULL);
+	}
+}
+
 static gboolean queue_texture(gpointer data)
 {
 	static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES = NULL;
@@ -579,7 +615,9 @@ static gboolean queue_texture(gpointer data)
 		surface_view_widget->last_redraw = now;
 	surface_view_widget->frame_callback_data = atl_surface->vsync;
 	surface_view_widget->frame_callback = frame_callback;
-	surface_view_widget_set_texture(surface_view_widget, gdk_gl_texture_builder_build(buffer->texture_builder, destroy_texture, buffer), TRUE, redraw);
+	surface_view_widget_set_texture(surface_view_widget, gdk_gl_texture_builder_build(buffer->texture_builder, destroy_texture, buffer), TRUE, redraw && atl_surface->blocks);
+	if (redraw && !atl_surface->blocks)
+		redraw_later(surface_view_widget);
 	// atl_surface reference will be dropped in destroy_texture
 	return G_SOURCE_REMOVE;
 }

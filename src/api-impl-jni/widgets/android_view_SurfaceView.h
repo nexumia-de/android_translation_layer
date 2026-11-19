@@ -19,5 +19,7 @@ struct _SurfaceViewWidgetClass {
 	GtkWidgetClass parent_class;
 };
 
-/* redraw: draw the widget again and tell a TextureView about the frame */
+/* redraw: also call surface_view_widget_redraw */
 void surface_view_widget_set_texture(SurfaceViewWidget *surface_view_widget, GdkTexture *texture, gboolean needs_flip, gboolean redraw);
+/* draw the widget again and tell a TextureView about the new frame */
+void surface_view_widget_redraw(SurfaceViewWidget *surface_view_widget);

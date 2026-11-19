@@ -107,8 +107,12 @@ void surface_view_widget_set_texture(SurfaceViewWidget *surface_view_widget, Gdk
 		g_object_unref(surface_view_widget->texture);
 	surface_view_widget->texture = texture;
 	surface_view_widget->needs_flip = needs_flip;
-	if (!redraw)
-		return;
+	if (redraw)
+		surface_view_widget_redraw(surface_view_widget);
+}
+
+void surface_view_widget_redraw(SurfaceViewWidget *surface_view_widget)
+{
 	gtk_widget_queue_draw(GTK_WIDGET(surface_view_widget));
 	if (surface_view_widget->texture_callback)
 		surface_view_widget->texture_callback(surface_view_widget, surface_view_widget->texture_callback_data);
