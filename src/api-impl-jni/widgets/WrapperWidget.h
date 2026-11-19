@@ -24,6 +24,7 @@ struct _WrapperWidget {
 	int hover_y;
 	bool have_custom_draw_method;
 	bool have_custom_computeScroll;
+	bool clip_children; // ViewGroup.clipChildren: whether the children's wrappers clip
 };
 
 struct _WrapperWidgetClass {
@@ -40,6 +41,9 @@ void wrapper_widget_set_layout_params(WrapperWidget *wrapper, int width, int hei
 void wrapper_widget_set_background(WrapperWidget *wrapper, GdkPaintable *paintable);
 void wrapper_widget_consume_touch_events(WrapperWidget *wrapper);
 void wrapper_widget_register_invalidation_listener(WrapperWidget *wrapper);
+
+bool wrapper_widget_clipped_by_parent(WrapperWidget *wrapper);
+void wrapper_widget_update_overflow(WrapperWidget *wrapper);
 
 void _setOnTouchListener(JNIEnv *env, jobject this, GtkWidget *widget);
 void view_cancel_touch_sequence(GtkWidget *target, GdkEvent *event);

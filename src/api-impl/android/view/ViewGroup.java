@@ -68,6 +68,8 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 			android.content.res.TypedArray a = context.obtainStyledAttributes(attrs, com.android.internal.R.styleable.ViewGroup, defStyleAttr, defStyleRes);
 			clipChildren = a.getBoolean(com.android.internal.R.styleable.ViewGroup_clipChildren, true);
 			a.recycle();
+			if (!clipChildren)
+				native_setClipChildren(widget, false);
 		}
 	}
 
@@ -333,6 +335,7 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	@Override
 	protected native void native_drawChildren(long widget, long snapshot);
 	protected native void native_drawChild(long widget, long child, long snapshot);
+	protected native void native_setClipChildren(long widget, boolean clip);
 	@Override
 	protected void native_drawContent(long widget, long snapshot) {}
 
@@ -568,6 +571,7 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	public void setClipChildren(boolean clipChildren) {
 		if (this.clipChildren != clipChildren) {
 			this.clipChildren = clipChildren;
+			native_setClipChildren(widget, clipChildren);
 			invalidate();
 		}
 	}

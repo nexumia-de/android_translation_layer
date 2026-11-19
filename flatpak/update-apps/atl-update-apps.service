@@ -7,6 +7,10 @@ Description=Update Android apps (ATL) to the installed engine
 [Service]
 Type=oneshot
 ExecStart=@SCRIPT@ -b @BASE@
+# the path unit fires while Flatpak still removes the old deployment, and a
+# copy from it fails: try again a little later
+Restart=on-failure
+RestartSec=30
 # a lower priority than the session: it copies the engine for every app
 Nice=10
 IOSchedulingClass=idle
