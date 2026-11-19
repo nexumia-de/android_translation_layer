@@ -1964,8 +1964,13 @@ public class View implements Drawable.Callback {
 		in_layout = false;
 	}
 
-	/** Prefill the measureSpec cache, so that AndroidLayout can use it from native code if GTK measure spec is incomplete */
+	/** The measureSpec AndroidLayout uses from native code if the GTK measure spec is incomplete.
+	 * It stays when GTK allocates another size: a dialog that wraps its content once allocated
+	 * 0x0 (Compose's hCaptcha dialog in FAIRTIQ, shown before its content had a size) otherwise
+	 * measured with EXACTLY 0 from then on and stayed invisible. */
 	public void internalSetDefaultMeasureSpec(int widthMeasureSpec, int heightMeasureSpec) {
+		this.defaultWidthMeasureSpec = widthMeasureSpec;
+		this.defaultHeightMeasureSpec = heightMeasureSpec;
 		this.oldWidthMeasureSpec = widthMeasureSpec;
 		this.oldHeightMeasureSpec = heightMeasureSpec;
 		requestLayout();
@@ -2031,17 +2036,27 @@ public class View implements Drawable.Callback {
 		 * this view: one that was never measured (e.g. while GONE) keeps the flag set,
 		 * and its parents would never measure it again */
 		layoutRequested = true;
-		View view = this;
-		for (; view.parent instanceof View && !((View)view.parent).layoutRequested; view = (View)view.parent)
-			((View)view.parent).layoutRequested = true;
+		/* like Android, through the parent's own requestLayout(), which ViewGroups override:
+		 * Compose's AndroidViewsHandler remeasures the node of the child that asked (FAIRTIQ's
+		 * hCaptcha WebView kept the height it had before its page grew) */
+		if (parent instanceof View && !((View)parent).isLayoutRequested()) {
+			((View)parent).requestLayout();
+			return;
+		}
 		/* GTK stops passing a resize up at a widget that still has one queued (e.g. one
 		 * that was hidden since), so the parents would never measure again: queue it on
 		 * the topmost view as well */
+		View view = this;
 		while (view.parent instanceof View)
 			view = (View)view.parent;
 		if (view != this)
 			native_requestLayout(view.widget);
 	};
+
+	/* for ViewGroup.cleanupLayoutState */
+	void atlClearLayoutRequested() {
+		layoutRequested = false;
+	}
 
 	public void setOverScrollMode(int mode) {}
 
