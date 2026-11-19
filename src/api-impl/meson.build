@@ -647,6 +647,7 @@ srcs = [
 	'android/transition/Slide.java',
 	'android/transition/Transition.java',
 	'android/transition/TransitionInflater.java',
+	'android/transition/TransitionManager.java',
 	'android/transition/TransitionSet.java',
 	'android/transition/Visibility.java',
 	'android/util/AndroidException.java',
