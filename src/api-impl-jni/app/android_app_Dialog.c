@@ -32,9 +32,15 @@ static void dialog_dismiss(GtkWidget *dialog)
 		(*env)->ExceptionDescribe(env);
 }
 
-/* a tap on the scrim, outside the content */
-static void on_scrim_pressed(GtkGestureClick *gesture, int n_press, double x, double y, GtkWidget *dialog)
+/* a tap on the scrim, outside the content: like Android (ACTION_UP outside the window), on the
+ * release of a press that began on the scrim, and not while the content has no size yet, when
+ * the scrim covers the whole layer (FAIRTIQ's hCaptcha dialog closed by a touch right after
+ * it appeared) */
+static void on_scrim_released(GtkGestureClick *gesture, int n_press, double x, double y, GtkWidget *dialog)
 {
+	GtkWidget *content = g_object_get_data(G_OBJECT(dialog), "content");
+	if (content && (gtk_widget_get_width(content) == 0 || gtk_widget_get_height(content) == 0))
+		return;
 	if (g_object_get_data(G_OBJECT(dialog), "cancel-on-touch-outside"))
 		dialog_dismiss(dialog);
 }
@@ -110,7 +116,7 @@ JNIEXPORT jlong JNICALL Java_android_app_Dialog_nativeInit(JNIEnv *env, jobject 
 	gtk_overlay_set_child(GTK_OVERLAY(dialog), scrim);
 	g_object_set_data(G_OBJECT(dialog), "scrim", scrim);
 	GtkGesture *gesture = gtk_gesture_click_new();
-	g_signal_connect(gesture, "pressed", G_CALLBACK(on_scrim_pressed), dialog);
+	g_signal_connect(gesture, "released", G_CALLBACK(on_scrim_released), dialog);
 	gtk_widget_add_controller(scrim, GTK_EVENT_CONTROLLER(gesture));
 	g_object_set_data(G_OBJECT(dialog), "dialog-jobject", _REF(this));
 	atl_dialog_set_child(dialog, gtk_widget_get_parent(decor_view));
