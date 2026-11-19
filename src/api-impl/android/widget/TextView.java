@@ -230,9 +230,30 @@ public class TextView extends View {
 	}
 	private native void native_setTextSize(float size);
 
-	public native final void native_setTextColor(int color);
-	public void setTextColor(int color) {
+	private native final void native_setTextColor(int color);
+	private int current_text_color;
+	private boolean has_text_color;
+	private int native_text_color;
+	private void applyTextColor(int color) {
+		current_text_color = color;
+		has_text_color = true;
+		/* GTK draws the text after draw() with the colour last set: a colour that onDraw sets and
+		 * sets back, e.g. for outlined text, would end up as the text colour */
+		if (!atlIsInDraw())
+			setNativeTextColor(color);
+	}
+	private void setNativeTextColor(int color) {
+		native_text_color = color;
 		native_setTextColor(color);
+	}
+
+	@Override
+	protected void atlAfterDraw() {
+		if (has_text_color && current_text_color != native_text_color)
+			setNativeTextColor(current_text_color);
+	}
+	public void setTextColor(int color) {
+		applyTextColor(color);
 	}
 	public void setTextColor(ColorStateList colors) {
 		if (colors != null) {
@@ -248,7 +269,7 @@ public class TextView extends View {
 	}
 
 	private void updateTextColor() {
-		native_setTextColor(colors.getColorForState(getDrawableState(), colors.getDefaultColor()));
+		applyTextColor(colors.getColorForState(getDrawableState(), colors.getDefaultColor()));
 		showHintIfEmpty();
 	}
 	@Override
@@ -488,8 +509,14 @@ public class TextView extends View {
 		return new BoringLayout(leadingMarginPrefix + getText(), getPaint(), width, Layout.Alignment.ALIGN_NORMAL, 1, 0, new BoringLayout.Metrics(), false);
 	}
 
+	/* the colour last set; before any, the theme's primary text colour */
 	public int getCurrentTextColor() {
-		return Color.CYAN;
+		if (has_text_color)
+			return current_text_color;
+		TypedArray a = getContext().obtainStyledAttributes(new int[] {android.R.attr.textColorPrimary});
+		ColorStateList primary = a.getColorStateList(0);
+		a.recycle();
+		return primary != null ? primary.getColorForState(getDrawableState(), primary.getDefaultColor()) : Color.BLACK;
 	}
 
 
@@ -529,7 +556,7 @@ public class TextView extends View {
 			native_setText(hint.toString());
 		ColorStateList color = empty && hintColors != null ? hintColors : colors;
 		if (color != null)
-			native_setTextColor(color.getColorForState(getDrawableState(), color.getDefaultColor()));
+			applyTextColor(color.getColorForState(getDrawableState(), color.getDefaultColor()));
 	}
 
 	public Drawable[] getCompoundDrawablesRelative() { return new Drawable[4]; }

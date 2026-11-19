@@ -187,8 +187,9 @@ public class Canvas {
 		}*/
 	}
 
-	public void drawText(char text[], int start, int end, float x, float y, Paint paint) {
-		drawText(new String(text), start, end, x, y, paint);
+	/* as on Android: index and count, not start and end */
+	public void drawText(char text[], int index, int count, float x, float y, Paint paint) {
+		drawText(new String(text, index, count), x, y, paint);
 	}
 
 	public void drawTextOnPath(String text, Path path, float x_offset, float y_offset, Paint paint) {
@@ -685,7 +686,20 @@ public class Canvas {
 	}
 
 	public void drawPicture(Picture picture) {
-		Log.w("Canvas", "STUB: drawPicture");
+		picture.draw(this);
+	}
+
+	public void drawPicture(Picture picture, RectF dst) {
+		save();
+		translate(dst.left, dst.top);
+		if (picture.getWidth() > 0 && picture.getHeight() > 0)
+			scale(dst.width() / picture.getWidth(), dst.height() / picture.getHeight());
+		drawPicture(picture);
+		restore();
+	}
+
+	public void drawPicture(Picture picture, Rect dst) {
+		drawPicture(picture, new RectF(dst));
 	}
 
 	public void drawPoint(float x, float y, Paint paint) {

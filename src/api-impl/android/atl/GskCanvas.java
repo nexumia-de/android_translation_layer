@@ -69,7 +69,29 @@ public class GskCanvas extends RecordingCanvas {
 	@Override
 	public void concat(Matrix matrix) {
 		if (matrix != null) {
-			native_concat(snapshot, matrix.native_instance);
+			float[] v = new float[9];
+			matrix.getValues(v);
+			if (v[Matrix.MPERSP_0] != 0 || v[Matrix.MPERSP_1] != 0 || v[Matrix.MPERSP_2] != 1) {
+				native_concat(snapshot, matrix.native_instance);
+			} else {
+				/* GTK gives a transform from a matrix the category "unknown", and GSK's cairo renderer
+				 * (used for bitmaps drawn off the main thread) fills such a node with pink. An affine
+				 * matrix is a translation, rotation, scale and rotation (singular value decomposition). */
+				float a = v[Matrix.MSCALE_X], b = v[Matrix.MSKEW_X], c = v[Matrix.MSKEW_Y], d = v[Matrix.MSCALE_Y];
+				if (v[Matrix.MTRANS_X] != 0 || v[Matrix.MTRANS_Y] != 0)
+					native_translate(snapshot, v[Matrix.MTRANS_X], v[Matrix.MTRANS_Y]);
+				if (b == 0 && c == 0) {
+					if (a != 1 || d != 1)
+						native_scale(snapshot, a, d);
+				} else {
+					double e = (a + d) / 2, f = (a - d) / 2, g = (c + b) / 2, h = (c - b) / 2;
+					double q = Math.hypot(e, h), r = Math.hypot(f, g);
+					double a1 = Math.atan2(g, f), a2 = Math.atan2(h, e);
+					native_rotate(snapshot, (float)Math.toDegrees((a2 + a1) / 2));
+					native_scale(snapshot, (float)(q + r), (float)(q - r));
+					native_rotate(snapshot, (float)Math.toDegrees((a2 - a1) / 2));
+				}
+			}
 			state_stack.peek().preConcat(matrix);
 		}
 	}
@@ -120,7 +142,17 @@ public class GskCanvas extends RecordingCanvas {
 		Shader shader = paint != null ? paint.getShader() : null;
 		float[] geometry = new float[4];
 		int gradient = shader != null ? shader.getGradient(geometry) : Shader.GRADIENT_NONE;
-		if (gradient != Shader.GRADIENT_NONE)
+		if (shader instanceof BitmapShader && ((BitmapShader)shader).getBitmap() != null && paint.getStyle() == Paint.Style.FILL) {
+			/* the bitmap in the shader's coordinates, clipped to the path; CLAMP only draws the bitmap once */
+			Bitmap bitmap = ((BitmapShader)shader).getBitmap();
+			Matrix local = new Matrix();
+			save();
+			clipPath(path);
+			if (shader.getLocalMatrix(local))
+				concat(local);
+			drawBitmap(bitmap, null, new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight()), paint);
+			restore();
+		} else if (gradient != Shader.GRADIENT_NONE)
 			native_drawPathGradient(snapshot, path.getGskPath(), path.getFillType().fill_rule, paint.paint, gradient, geometry,
 			                        shader.getGradientColors(), shader.getGradientOffsets(), shader.isGradientRepeating());
 		else
@@ -141,10 +173,10 @@ public class GskCanvas extends RecordingCanvas {
 		native_drawRect(snapshot, left, top, right, bottom, paint != null ? paint.paint : default_paint.paint);
 	}
 
-	/* the native rect calls only use the paint's colour; gradients go through drawPath */
+	/* the native rect calls only use the paint's colour; gradients and bitmaps go through drawPath */
 	private static boolean hasGradient(Paint paint) {
 		Shader shader = paint != null ? paint.getShader() : null;
-		return shader != null && shader.getGradient(new float[4]) != Shader.GRADIENT_NONE;
+		return shader != null && (shader instanceof BitmapShader || shader.getGradient(new float[4]) != Shader.GRADIENT_NONE);
 	}
 
 	@Override

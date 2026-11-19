@@ -64,7 +64,16 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 
 		children = new ArrayList<View>();
 		detachedChildren = new ArrayList<View>();
+		if (attrs != null) {
+			android.content.res.TypedArray a = context.obtainStyledAttributes(attrs, com.android.internal.R.styleable.ViewGroup, defStyleAttr, defStyleRes);
+			clipChildren = a.getBoolean(com.android.internal.R.styleable.ViewGroup_clipChildren, true);
+			a.recycle();
+		}
 	}
+
+	/* as on Android, children are clipped to the bounds of their parent unless it says otherwise;
+	 * View.dispatchDraw clips (only views drawn through Java draw their children there) */
+	private boolean clipChildren = true;
 
 	public void addView(View child) {
 		addView(child, -1);
@@ -556,7 +565,12 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 
 	public void setTouchscreenBlocksFocus(boolean touchscreenBlocksFocus) {}
 
-	public void setClipChildren(boolean clipChildren) {}
+	public void setClipChildren(boolean clipChildren) {
+		if (this.clipChildren != clipChildren) {
+			this.clipChildren = clipChildren;
+			invalidate();
+		}
+	}
 
 	@Override
 	protected void dispatchSetPressed(boolean pressed) {}
@@ -814,7 +828,7 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	public void requestChildFocus(View child, View focused) {}
 
 	public boolean getClipChildren() {
-		return false;
+		return clipChildren;
 	}
 
 	@Override

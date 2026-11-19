@@ -224,6 +224,37 @@ JNIEXPORT void JNICALL Java_android_text_Layout_native_1draw_1custom_1canvas(JNI
 
 	const gchar *text = pango_layout_get_text(pango_layout);
 	PangoLayoutIter *pango_iter = pango_layout_get_iter(pango_layout);
+
+	/* The only attributes are the shapes of replacement spans: their text is not drawn
+	 * and the text after them starts behind their width, so draw run by run. */
+	if (pango_layout_get_attributes(pango_layout)) {
+		do {
+			PangoLayoutRun *run = pango_layout_iter_get_run_readonly(pango_iter);
+			if (!run) // the end of a line
+				continue;
+			gboolean is_shape = FALSE;
+			for (GSList *l = run->item->analysis.extra_attrs; l; l = l->next)
+				if (((PangoAttribute *)l->data)->klass->type == PANGO_ATTR_SHAPE)
+					is_shape = TRUE;
+			if (is_shape)
+				continue;
+			gchar *run_text = g_strndup(text + run->item->offset, run->item->length);
+			jstring text_jstr = (*env)->NewStringUTF(env, run_text);
+			jint end = 0;
+			for (const gchar *p = run_text; *p; p = g_utf8_next_char(p))
+				end += g_utf8_get_char(p) > 0xFFFF ? 2 : 1;
+			PangoRectangle logical_rect;
+			pango_layout_iter_get_run_extents(pango_iter, NULL, &logical_rect);
+			jfloat x = (float)logical_rect.x / PANGO_SCALE;
+			jfloat y = (float)pango_layout_iter_get_baseline(pango_iter) / PANGO_SCALE;
+			J__Canvas__drawText(env, canvas, text_jstr, (jint)0, end, x, y, paint);
+			(*env)->DeleteLocalRef(env, text_jstr);
+			g_free(run_text);
+		} while (pango_layout_iter_next_run(pango_iter));
+		pango_layout_iter_free(pango_iter);
+		return;
+	}
+
 	do {
 		PangoLayoutLine *pango_line = pango_layout_iter_get_line_readonly(pango_iter);
 

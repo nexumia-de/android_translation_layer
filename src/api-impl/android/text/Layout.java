@@ -117,9 +117,11 @@ public class Layout {
 	}
 
 	public static float getDesiredWidth(CharSequence source, TextPaint paint) {
-		long layout = native_constructor(source != null ? source.toString() : "", paint.paint, -1);
-		float width = native_get_desired_width(layout);
-		native_free(layout);
+		/* through the constructor, for the widths of replacement spans */
+		Layout layout = new Layout(source, paint, -1, null, 1, 0);
+		float width = native_get_desired_width(layout.layout);
+		native_free(layout.layout);
+		layout.layout = 0;
 		return width;
 	}
 
