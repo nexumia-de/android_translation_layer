@@ -421,7 +421,7 @@ static gboolean render_frame(void *data)
 	AVDRMFrameDescriptor *drm_frame_desc = (void *)drm_frame->data[0];
 
 	GdkTexture *texture = import_drm_frame_desc_as_texture(drm_frame_desc, drm_frame->width, drm_frame->height, drm_frame);
-	surface_view_widget_set_texture(d->surface_view_widget, texture, FALSE);
+	surface_view_widget_set_texture(d->surface_view_widget, texture, FALSE, TRUE);
 	free(d);
 
 	return G_SOURCE_REMOVE;
@@ -431,7 +431,7 @@ static gboolean render_texture(void *data)
 {
 	struct render_frame_data *d = (struct render_frame_data *)data;
 
-	surface_view_widget_set_texture(d->surface_view_widget, d->texture, FALSE);
+	surface_view_widget_set_texture(d->surface_view_widget, d->texture, FALSE, TRUE);
 
 	free(d);
 	return G_SOURCE_REMOVE;

@@ -20,6 +20,12 @@ extern GtkWindow *window; // TODO: how do we get rid of this? the app won't pass
 
 static GHashTable *egl_surface_hashtable;
 
+/* NULL for a surface that is not one of ours (a pbuffer), also before the first window surface exists */
+static struct ANativeWindow *native_window_of_surface(EGLSurface surface)
+{
+	return egl_surface_hashtable ? g_hash_table_lookup(egl_surface_hashtable, surface) : NULL;
+}
+
 // temporary for debugging
 static void PrintConfigAttributes(EGLDisplay display, EGLConfig config)
 {
@@ -365,7 +371,7 @@ static void forget_context(EGLContext context)
 
 EGLBoolean bionic_eglDestroySurface(EGLDisplay display, EGLSurface surface)
 {
-	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, surface);
+	struct ANativeWindow *native_window = native_window_of_surface(surface);
 
 	if (!native_window)
 		return eglDestroySurface(display, surface);
@@ -467,7 +473,7 @@ EGLBoolean bionic_eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface
 {
 	if (getenv("ATL_DIRECT_EGL"))
 		return eglMakeCurrent(display, draw, read, context);
-	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, draw);
+	struct ANativeWindow *native_window = native_window_of_surface(draw);
 	if (!native_window) {
 		EGLBoolean ret = eglMakeCurrent(display, draw, read, context);
 		if (ret)
@@ -556,9 +562,20 @@ static gboolean queue_texture(gpointer data)
 		gdk_gl_texture_builder_set_height(buffer->texture_builder, buffer->height);
 		gdk_gl_context_clear_current();
 	}
-	atl_surface->surface_view_widget->frame_callback_data = atl_surface->vsync;
-	atl_surface->surface_view_widget->frame_callback = frame_callback;
-	surface_view_widget_set_texture(atl_surface->surface_view_widget, gdk_gl_texture_builder_build(buffer->texture_builder, destroy_texture, buffer), TRUE);
+	SurfaceViewWidget *surface_view_widget = atl_surface->surface_view_widget;
+	/*
+	 * GTK has not drawn the previous frame: the widget is hidden or covered, or the
+	 * main thread is behind. The redraw asked for with that frame is still due and will
+	 * show this one, so do not ask again for every frame (in Compose that is a pass
+	 * through Java), only often enough to recover should that redraw have been lost.
+	 */
+	gint64 now = g_get_monotonic_time();
+	gboolean redraw = !surface_view_widget->frame_callback || now - surface_view_widget->last_redraw > 250000; // 250ms
+	if (redraw)
+		surface_view_widget->last_redraw = now;
+	surface_view_widget->frame_callback_data = atl_surface->vsync;
+	surface_view_widget->frame_callback = frame_callback;
+	surface_view_widget_set_texture(surface_view_widget, gdk_gl_texture_builder_build(buffer->texture_builder, destroy_texture, buffer), TRUE, redraw);
 	// atl_surface reference will be dropped in destroy_texture
 	return G_SOURCE_REMOVE;
 }
@@ -567,11 +584,20 @@ EGLBoolean bionic_eglSwapBuffers(EGLDisplay display, EGLSurface surface)
 {
 	if (getenv("ATL_DIRECT_EGL"))
 		return eglSwapBuffers(display, surface);
-	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, surface);
+	struct ANativeWindow *native_window = native_window_of_surface(surface);
 	if (!native_window) {
 		return eglSwapBuffers(display, surface);
 	}
 	ATLSurface *atl_surface = surface;
+	/*
+	 * The producer of a TextureView never blocks on Android: the buffer queue of a
+	 * SurfaceTexture is in the app's own process, so a frame the consumer did not take
+	 * in time is replaced. Apps count on that. Rive renders all its views in one thread;
+	 * waiting for a view that GTK does not draw (hidden, covered) or has not drawn yet
+	 * left Duolingo's home screen with three frames per second for each of them.
+	 * A SurfaceView still waits: that paces an app that renders in a loop.
+	 */
+	gboolean blocks = !atl_surface->surface_view_widget->texture_callback;
 
 	glFlush();
 	if (atl_surface->back_buffer == &atl_surface->buffers[NUM_BUFFERS]) {
@@ -580,13 +606,16 @@ EGLBoolean bionic_eglSwapBuffers(EGLDisplay display, EGLSurface surface)
 		return EGL_TRUE;
 	}
 	if (atl_surface->back_buffer) {
-		g_async_queue_timeout_pop(atl_surface->vsync, 50000); // 50ms
+		if (blocks)
+			g_async_queue_timeout_pop(atl_surface->vsync, 50000); // 50ms
+		else
+			g_async_queue_try_pop(atl_surface->vsync);
 		atl_surface->front_buffer = atl_surface->back_buffer;
 		atl_surface->back_buffer = NULL;
 		g_object_ref(atl_surface);
 		g_idle_add_full(G_PRIORITY_HIGH_IDLE + 20, queue_texture, atl_surface->front_buffer, NULL);
 	}
-	acquire_back_buffer(atl_surface, native_window, 100000); // 100ms
+	acquire_back_buffer(atl_surface, native_window, blocks ? 100000 : 0); // 100ms
 
 	return EGL_TRUE;
 }
@@ -595,7 +624,7 @@ EGLBoolean bionic_eglQuerySurface(EGLDisplay display, EGLSurface surface, EGLint
 {
 	if (getenv("ATL_DIRECT_EGL"))
 		return eglQuerySurface(display, surface, attribute, value);
-	struct ANativeWindow *native_window = g_hash_table_lookup(egl_surface_hashtable, surface);
+	struct ANativeWindow *native_window = native_window_of_surface(surface);
 	if (!native_window)
 		return eglQuerySurface(display, surface, attribute, value);
 	if (attribute == EGL_WIDTH) {
@@ -624,11 +653,11 @@ void bionic_glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
 	if (getenv("ATL_DIRECT_EGL") || framebuffer != 0)
 		return glBindFramebuffer(target, framebuffer);
-	ATLSurface *atl_surface = g_hash_table_lookup(draw_surface_hashtable, eglGetCurrentContext());
+	ATLSurface *atl_surface = draw_surface_hashtable ? g_hash_table_lookup(draw_surface_hashtable, eglGetCurrentContext()) : NULL;
 	if (!atl_surface)
 		return glBindFramebuffer(target, 0);
 	if (!atl_surface->back_buffer) {
-		acquire_back_buffer(atl_surface, g_hash_table_lookup(egl_surface_hashtable, atl_surface), 100000);
+		acquire_back_buffer(atl_surface, native_window_of_surface(atl_surface), 100000);
 		return;
 	}
 	return glBindFramebuffer(target, atl_surface->back_buffer->gl_framebuffer);

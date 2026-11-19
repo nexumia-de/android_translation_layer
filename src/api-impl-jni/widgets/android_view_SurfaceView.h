@@ -11,10 +11,13 @@ struct _SurfaceViewWidget {
 	/* called on the main thread for every new texture (a TextureView tells its Java side) */
 	void (*texture_callback)(SurfaceViewWidget *surface_view_widget, gpointer data);
 	gpointer texture_callback_data;
+	/* when a redraw was last asked for with a new texture (monotonic time) */
+	gint64 last_redraw;
 };
 
 struct _SurfaceViewWidgetClass {
 	GtkWidgetClass parent_class;
 };
 
-void surface_view_widget_set_texture(SurfaceViewWidget *surface_view_widget, GdkTexture *texture, gboolean needs_flip);
+/* redraw: draw the widget again and tell a TextureView about the frame */
+void surface_view_widget_set_texture(SurfaceViewWidget *surface_view_widget, GdkTexture *texture, gboolean needs_flip, gboolean redraw);
