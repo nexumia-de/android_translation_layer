@@ -67,14 +67,11 @@ public final class Choreographer {
 	private static final String TAG = "Choreographer";
 	private static final boolean DEBUG = false;
 	// The default amount of time in ms between animation frames.
-	// When vsync is not enabled, we want to have some idea of how long we should
-	// wait before posting the next animation message.  It is important that the
-	// default value be less than the true inter-frame delay on all devices to avoid
-	// situations where we might skip frames by waiting too long (we must compensate
-	// for jitter and hardware variations).  Regardless of this value, the animation
-	// and display loop is ultimately rate-limited by how fast new graphics buffers can
-	// be dequeued.
-	private static final long DEFAULT_FRAME_DELAY = 10;
+	// There is no vsync here (USE_VSYNC is off), so this timer alone sets the pace of
+	// everything an app animates. AOSP has 10 ms, which relies on the buffer queue to
+	// limit the rate; here it made apps render 100 frames per second, more than the
+	// 60 Hz getRefreshRate() reports, and each of them costs a pass on the main thread.
+	private static final long DEFAULT_FRAME_DELAY = 16;
 	// The number of milliseconds between animation frames.
 	private static volatile long sFrameDelay = DEFAULT_FRAME_DELAY;
 	// Thread local storage for the choreographer.
