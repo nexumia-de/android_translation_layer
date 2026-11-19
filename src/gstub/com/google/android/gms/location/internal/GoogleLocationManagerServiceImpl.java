@@ -8,6 +8,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Parcel;
@@ -40,6 +41,8 @@ public class GoogleLocationManagerServiceImpl extends Service {
 	private static final int GET_LOCATION_AVAILABILITY = 34;
 	private static final int UPDATE_LOCATION_REQUEST = 59;
 	private static final int REQUEST_LOCATION_SETTINGS_DIALOG = 63;
+	private static final int IS_GOOGLE_LOCATION_ACCURACY_ENABLED = 95;
+	static final String BOOLEAN_STATUS_CALLBACK = "com.google.android.gms.location.internal.IBooleanStatusCallback";
 	static final String SETTINGS_CALLBACKS = "com.google.android.gms.location.internal.ISettingsCallbacks";
 	private static final int SETTINGS_CHANGE_UNAVAILABLE = 8502;
 
@@ -52,10 +55,33 @@ public class GoogleLocationManagerServiceImpl extends Service {
 		IBinder callback;
 		int remaining;
 		LocationManager lm;
+		long interval;
+		Location last;
+		final Handler handler = new Handler(Looper.getMainLooper());
+		final Runnable repeat = new Runnable() {
+			@Override
+			public void run() {
+				repeatLast(Request.this);
+			}
+		};
 
 		@Override
 		public void onLocationChanged(Location location) {
+			last = location;
 			deliver(this, location);
+			schedule();
+		}
+
+		/* like Google's fused provider, which reports at the interval also while the position
+		 * stays the same; GeoClue only reports changes. Apps such as FAIRTIQ wait for those. */
+		void schedule() {
+			handler.removeCallbacks(repeat);
+			if (interval > 0)
+				handler.postDelayed(repeat, interval);
+		}
+
+		void cancel() {
+			handler.removeCallbacks(repeat);
 		}
 
 		@Override
@@ -110,19 +136,42 @@ public class GoogleLocationManagerServiceImpl extends Service {
 					if (reply != null)
 						reply.writeNoException();
 					return true;
+				case IS_GOOGLE_LOCATION_ACCURACY_ENABLED:
+					googleLocationAccuracyEnabled(data);
+					if (reply != null)
+						reply.writeNoException();
+					return true;
 				case UPDATE_LOCATION_REQUEST:
 					updateLocationRequest(data);
 					if (reply != null)
 						reply.writeNoException();
 					return true;
 				default:
-					Log.w(TAG, "not implemented: transaction " + code);
+					Log.w(TAG, "not implemented: transaction " + code + ", " + (data == null ? 0 : data.dataSize()) + " bytes");
 					if (reply != null)
 						reply.writeNoException();
 					return true;
 			}
 		}
 	};
+
+	/* the "Google Location Accuracy" switch: on, ATL's location is the best there is */
+	private void googleLocationAccuracyEnabled(Parcel data) {
+		if (data.readInt() != 0) /* the request */
+			data.setDataPosition(beginRead(data));
+		IBinder callback = data.readStrongBinder();
+		if (callback == null) {
+			Log.w(TAG, "isGoogleLocationAccuracyEnabled without callback");
+			return;
+		}
+		Parcel p = Parcel.obtain();
+		p.writeInterfaceToken(BOOLEAN_STATUS_CALLBACK);
+		p.writeInt(1);
+		writeStatus(p, 0);
+		p.writeInt(1); /* enabled */
+		p.writeInt(0); /* no ApiMetadata */
+		transact(callback, 1, p);
+	}
 
 	private static boolean locationAllowed() {
 		return LocationManager.atlLocationAllowed();
@@ -191,12 +240,14 @@ public class GoogleLocationManagerServiceImpl extends Service {
 				if (old != null) {
 					requests.remove(old);
 					old.lm.removeUpdates(old);
+					old.cancel();
 				}
 				if (opCode == 1) {
 					Request r = new Request();
 					r.listener = listener;
 					r.callback = callback;
 					r.remaining = maxUpdates > 0 ? maxUpdates : Integer.MAX_VALUE;
+					r.interval = Math.max(interval, 0);
 					r.lm = locationManager();
 					requests.add(r);
 					/* power and low power requests still get positions; ATL asks the portal for its accuracy */
@@ -256,6 +307,20 @@ public class GoogleLocationManagerServiceImpl extends Service {
 		return null;
 	}
 
+	/* the last fix again, timed now */
+	private static void repeatLast(Request r) {
+		synchronized (requests) {
+			if (!requests.contains(r) || r.last == null)
+				return;
+		}
+		long now = SystemClock.elapsedRealtimeNanos();
+		Location l = new Location(r.last);
+		l.setTime(r.last.getTime() + (now - r.last.getElapsedRealtimeNanos()) / 1000000);
+		l.setElapsedRealtimeNanos(now);
+		deliver(r, l);
+		r.schedule();
+	}
+
 	private static void deliver(Request r, Location l) {
 		synchronized (requests) {
 			if (!requests.contains(r))
@@ -263,6 +328,7 @@ public class GoogleLocationManagerServiceImpl extends Service {
 			if (--r.remaining <= 0) {
 				requests.remove(r);
 				r.lm.removeUpdates(r);
+				r.cancel();
 			}
 		}
 		if (r.listener != null) {
@@ -354,6 +420,33 @@ public class GoogleLocationManagerServiceImpl extends Service {
 		endWrite(p, start);
 	}
 
+	/* features the client may use, by name and version: it calls those methods only then */
+	private static final String[] FEATURES = {"google_location_accuracy_enabled"};
+
+	private static void writeConnectionInfo(Parcel p) {
+		int start = beginWrite(p);
+		int features = beginField(p, 2);
+		p.writeInt(FEATURES.length);
+		for (String name : FEATURES) {
+			int sizePos = p.dataPosition();
+			p.writeInt(1);
+			int itemStart = p.dataPosition();
+			int feature = beginWrite(p);
+			int nameField = beginField(p, 1);
+			p.writeString(name);
+			endField(p, nameField);
+			writeIntField(p, 2, -1);
+			writeLongField(p, 3, 1);
+			endWrite(p, feature);
+			int end = p.dataPosition();
+			p.setDataPosition(sizePos);
+			p.writeInt(end - itemStart);
+			p.setDataPosition(end);
+		}
+		endField(p, features);
+		endWrite(p, start);
+	}
+
 	private static void writeAvailability(Parcel p, boolean available) {
 		int start = beginWrite(p);
 		writeIntField(p, 1, 1); /* cell status: unknown */
@@ -377,8 +470,9 @@ public class GoogleLocationManagerServiceImpl extends Service {
 			p.writeInterfaceToken(CALLBACKS);
 			p.writeInt(0); /* SUCCESS */
 			p.writeStrongBinder(location);
-			p.writeInt(0); /* no Bundle */
-			callbacks.transact(1, p, Parcel.obtain(), 0); /* onPostInitComplete */
+			p.writeInt(1);
+			writeConnectionInfo(p);
+			callbacks.transact(3, p, Parcel.obtain(), 0); /* onPostInitCompleteWithConnectionInfo */
 			return true;
 		}
 	};

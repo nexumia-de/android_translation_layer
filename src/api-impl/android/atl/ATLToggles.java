@@ -6,6 +6,8 @@ public final class ATLToggles {
 	 * services" error without it (DB Navigator, 2026-11-03), see docs/gms-compat.md. */
 	private static final java.util.Set<String> GMS_STUB_APPS = new java.util.HashSet<>(java.util.Arrays.asList(new String[] {
 	    "de.hafas.android.db",
+	    /* gets location only through Google's fused location client (2026-11-19) */
+	    "com.fairtiq.android",
 	}));
 
 	/** ATL's permission for an app to contact Google's servers (FCM push and the like). */
