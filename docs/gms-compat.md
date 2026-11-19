@@ -74,6 +74,12 @@ library's failed location and messaging connections ended in Google's
 error "DB Navigator won't run without Google Play services, which are
 not supported by your device" (`SERVICE_INVALID`) on the phone, while
 with it (upstream's behaviour, as on 2026-10-28..30) the app ran.
+FAIRTIQ is the second (2026-11-19): it asks for positions only through
+the fused location client and kept "Searching for stations" without
+the stub. It also needs the feature `google_location_accuracy_enabled`
+(announced in the broker's `ConnectionInfo`, answered "on") and
+updates at the requested interval while the position stays the same,
+as Google's provider sends them; GeoClue reports only changes.
 
 `ghax.jar` stays: it replaces `AdvertisingIdClient` in the app with one
 that returns a zero advertising ID and "limit ad tracking", locally.
@@ -92,7 +98,7 @@ download).
 |---|---|---|---|
 | Availability check (`GoogleApiAvailability`, `GooglePlayServicesUtil`) | DB, DHL, Duolingo, WhatsApp | local | ATL reports no GMS; the apps log "requires the Google Play Store, but it is missing" and get `SERVICE_INVALID` (9) or `SERVICE_MISSING` (1), as on a phone without GMS |
 | Tasks (`com.google.android.gms.tasks`) | DB, DHL, Duolingo, WhatsApp | local, in the app | runs inside the app's own copy, nothing to do |
-| Fused location, settings, geofencing (`gms.location`) | DB, DHL, Duolingo, WhatsApp | local | `gstub.jar` service on `LocationManager` (2026-11-07, steps 1 to 3 of the [plan](#plan-fused-location-and-maps)): last location, updates through `updateLocationRequest`, availability, `checkLocationSettings`; geofencing and the newer `LocationReceiver` calls are not answered yet (logged as "not implemented"). Reached only by apps with the GMS stub (DB). Without it apps use `LocationManager`: DB and WhatsApp request updates, DHL and Duolingo only read the last known location. ATL's `LocationManager` is the work of the CoMaps agent |
+| Fused location, settings, geofencing (`gms.location`) | DB, DHL, Duolingo, WhatsApp | local | `gstub.jar` service on `LocationManager` (2026-11-07, steps 1 to 3 of the [plan](#plan-fused-location-and-maps)): last location, updates through `updateLocationRequest` (repeated at the interval while unchanged), availability, `checkLocationSettings`, `isGoogleLocationAccuracyEnabled`; geofencing and the newer `LocationReceiver` calls are not answered yet (logged as "not implemented"). Reached only by apps with the GMS stub (DB, FAIRTIQ). Without it apps use `LocationManager`: DB and WhatsApp request updates, DHL and Duolingo only read the last known location. ATL's `LocationManager` is the work of the CoMaps agent |
 | Maps (`gms.maps`) | DB, DHL, WhatsApp | local in principle (MapLibre and OpenStreetMap, as in microG) | later, see [plan](#plan-fused-location-and-maps); today the app shows its "no Google Play services" placeholder |
 | ML Kit barcode, bundled model (`mlkit.vision.barcode.bundled`, `libbarhopper_v3.so`) | DB | local, in the app | runs without GMS[^mlkit-bundled]; not tested yet |
 | ML Kit unbundled (barcode, document scanner, GenAI) | WhatsApp | model from GMS | not reachable; out |
