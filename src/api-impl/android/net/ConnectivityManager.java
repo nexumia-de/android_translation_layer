@@ -16,6 +16,12 @@ public class ConnectivityManager {
 		public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {}
 
 		public void onLinkPropertiesChanged(Network network, LinkProperties linkProperties) {}
+
+		public void onUnavailable() {}
+
+		public void onLosing(Network network, int maxMsToLive) {}
+
+		public void onBlockedStatusChanged(Network network, boolean blocked) {}
 	}
 
 	/* like Android: onAvailable, then the network's capabilities */
