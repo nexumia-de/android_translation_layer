@@ -967,8 +967,15 @@ public class View implements Drawable.Callback {
 
 	public long widget; // pointer
 
+	/* what AndroidLayout measures with when GTK gives no size: the last specs, or the
+	 * default of internalSetDefaultMeasureSpec, which allocations do not overwrite */
 	private int oldWidthMeasureSpec = -1;
 	private int oldHeightMeasureSpec = -1;
+	private int defaultWidthMeasureSpec = -1;
+	private int defaultHeightMeasureSpec = -1;
+	/* the specs of the last onMeasure, to skip measuring again */
+	private int lastWidthMeasureSpec = -1;
+	private int lastHeightMeasureSpec = -1;
 	private boolean layoutRequested = true;
 	private int oldWidth;
 	private int oldHeight;
@@ -1776,11 +1783,13 @@ public class View implements Drawable.Callback {
 
 	@Export
 	public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
-		if (layoutRequested || widthMeasureSpec != oldWidthMeasureSpec || heightMeasureSpec != oldHeightMeasureSpec) {
+		if (layoutRequested || widthMeasureSpec != lastWidthMeasureSpec || heightMeasureSpec != lastHeightMeasureSpec) {
 			layoutRequested = false;
 			layoutRequired = true;
-			oldWidthMeasureSpec = widthMeasureSpec;
-			oldHeightMeasureSpec = heightMeasureSpec;
+			lastWidthMeasureSpec = widthMeasureSpec;
+			lastHeightMeasureSpec = heightMeasureSpec;
+			oldWidthMeasureSpec = defaultWidthMeasureSpec != -1 ? defaultWidthMeasureSpec : widthMeasureSpec;
+			oldHeightMeasureSpec = defaultHeightMeasureSpec != -1 ? defaultHeightMeasureSpec : heightMeasureSpec;
 			onMeasure(widthMeasureSpec, heightMeasureSpec);
 		}
 	}
