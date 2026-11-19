@@ -210,6 +210,16 @@ public class Notification implements Parcelable {
 
 		public Builder addExtras(Bundle bundle) { return this; }
 
+		public Builder addPerson(String uri) { return this; }
+
+		public Builder setAllowSystemGeneratedContextualActions(boolean allowed) { return this; }
+
+		public Builder setBubbleMetadata(BubbleMetadata data) { return this; }
+
+		public Builder setForegroundServiceBehavior(int behavior) { return this; }
+
+		public Builder setShortCriticalText(String shortCriticalText) { return this; }
+
 		public Notification build() {
 			return notification;
 		}
@@ -263,11 +273,24 @@ public class Notification implements Parcelable {
 
 			public Builder setAllowGeneratedReplies(boolean allowGeneratedReplies) { return this; }
 
+			public Builder setSemanticAction(int semanticAction) { return this; }
+
+			public Builder setContextual(boolean isContextual) { return this; }
+
+			public Builder setAuthenticationRequired(boolean authenticationRequired) { return this; }
+
+			public Builder setEmphasisHint(int emphasisHint) { return this; }
+
+			public Builder setStyleHint(int styleHint) { return this; }
+
 			public Action build() {
 				return action;
 			}
 		}
 	}
+
+	/* bubbles are not shown */
+	public static final class BubbleMetadata {}
 
 	public static abstract class Style {}
 

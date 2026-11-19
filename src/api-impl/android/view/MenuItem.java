@@ -6,6 +6,14 @@ import android.graphics.drawable.Drawable;
 
 public interface MenuItem {
 
+	default MenuItem setContentDescription(CharSequence contentDescription) {
+		return this;
+	}
+
+	default CharSequence getContentDescription() {
+		return null;
+	}
+
 	public interface OnMenuItemClickListener {
 		public boolean onMenuItemClick(MenuItem item);
 	}

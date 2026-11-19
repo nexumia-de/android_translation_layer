@@ -50,6 +50,11 @@ public class TelephonyManager {
 		return new ArrayList(0);
 	}
 
+	/* no cell information is passed to apps */
+	public List<CellInfo> getAllCellInfo() {
+		return new ArrayList<>(0);
+	}
+
 	public CellLocation getCellLocation() {
 		return new CellLocation();
 	}

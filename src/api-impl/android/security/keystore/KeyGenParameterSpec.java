@@ -13,6 +13,7 @@ public class KeyGenParameterSpec {
 	private String[] blockModes;
 	private String[] encryptionPaddings;
 	private boolean userAuthenticationRequired;
+	private int userAuthenticationValidityDurationSeconds = -1;
 	private AlgorithmParameterSpec algorithmParameterSpec;
 	private byte[] attestationChallenge;
 
@@ -41,6 +42,11 @@ public class KeyGenParameterSpec {
 
 		public Builder setUserAuthenticationRequired(boolean userAuthenticationRequired) {
 			spec.userAuthenticationRequired = userAuthenticationRequired;
+			return this;
+		}
+
+		public Builder setUserAuthenticationValidityDurationSeconds(int seconds) {
+			spec.userAuthenticationValidityDurationSeconds = seconds;
 			return this;
 		}
 
@@ -98,10 +104,6 @@ public class KeyGenParameterSpec {
 			return this;
 		}
 
-		public Builder setUserAuthenticationValidityDurationSeconds(int seconds) {
-			return this;
-		}
-
 		public Builder setRandomizedEncryptionRequired(boolean required) {
 			return this;
 		}
@@ -129,6 +131,10 @@ public class KeyGenParameterSpec {
 
 	public boolean isUserAuthenticationRequired() {
 		return userAuthenticationRequired;
+	}
+
+	public int getUserAuthenticationValidityDurationSeconds() {
+		return userAuthenticationValidityDurationSeconds;
 	}
 
 	public AlgorithmParameterSpec getAlgorithmParameterSpec() {

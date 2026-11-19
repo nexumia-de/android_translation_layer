@@ -113,6 +113,8 @@ public class NotificationManager {
 		return null;
 	}
 
+	public void setNotificationDelegate(String delegate) {}
+
 	public static final int INTERRUPTION_FILTER_UNKNOWN = 0;
 	public static final int INTERRUPTION_FILTER_ALL = 1;
 	public static final int INTERRUPTION_FILTER_PRIORITY = 2;

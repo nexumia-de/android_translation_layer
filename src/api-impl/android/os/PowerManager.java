@@ -166,6 +166,13 @@ public final class PowerManager {
 		return false;
 	}
 
+	public static final int LOCATION_MODE_NO_CHANGE = 0;
+
+	/* no battery saver, so location is never limited by it */
+	public int getLocationPowerSaveMode() {
+		return LOCATION_MODE_NO_CHANGE;
+	}
+
 	private static native boolean nativeIsScreenOn();
 	private static native void nativeInhibit(int flags, boolean inhibit, String reason);
 
