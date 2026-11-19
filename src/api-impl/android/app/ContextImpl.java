@@ -7,6 +7,7 @@ import android.app.AlertDialog;
 import android.app.SearchManager;
 import android.app.job.JobScheduler;
 import android.app.usage.StorageStatsManager;
+import android.app.usage.UsageStatsManager;
 import android.atl.ATLLoadedApp;
 import android.atl.ATLLoadedAppManager;
 import android.atl.ATLPaths;
@@ -220,6 +221,8 @@ public final class ContextImpl extends Context {
 				return new SearchManager();
 			case "storage":
 				return new StorageManager();
+			case "usagestats":
+				return new UsageStatsManager();
 			case "storagestats":
 				return new StorageStatsManager();
 			case "batterymanager":

@@ -10,6 +10,11 @@ public class PhoneNumberUtils {
 		return phoneNumber != null && (phoneNumber.startsWith("+") || phoneNumber.startsWith("00"));
 	}
 
+	/* returned as given: no per-country formatting */
+	public static String formatNumber(String phoneNumber, String defaultCountryIso) {
+		return phoneNumber;
+	}
+
 	public static String stripSeparators(String phoneNumber) {
 		return phoneNumber.replaceAll("[ \t\n\r-]", "");
 	}

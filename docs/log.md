@@ -1,5 +1,8 @@
 # Directory Update Log
 
+## 2026-11-19
+* **FAIRTIQ start**: FAIRTIQ 7.6.20 aborted in `Application.onCreate` on a `null` `usagestats` service and then waited on the main thread for a Bluetooth dialog that `checkPermission` opened. `checkPermission` and `hasSystemFeature` for Bluetooth now check BlueZ without asking; `usagestats`, `MediaDrm` (no scheme), `TaskStackBuilder` and the members the app's own code uses at start were added. Headless it reaches onboarding, login and the email page ([apps](apps.md)).
+
 ## 2026-11-15
 * **DB Navigator current journey and ticket**: With the owner's logged-in data (headless), the current journey bar stayed without text because ATL's view animations never reported repeats, and the ticket's QR code was covered at the top by a page included as gone, because `<include android:visibility>` was ignored. Both fixed ([apps](apps.md), DB Navigator 22 and 23). [Development environment](dev-environment.md): testing a logged-in Flatpak app headless with `tools/portal-secret-forward.py`, and Java-only test builds in a Flatpak.
 

@@ -46,6 +46,9 @@ public class ActivityManager {
 
 	public boolean isLowRamDevice() { return false; }
 
+	/* there is no per-app background restriction */
+	public boolean isBackgroundRestricted() { return false; }
+
 	public static class MemoryInfo implements Parcelable {
 		/* For now, just always report there's 10GB free RAM */
 		public long availMem = 10000;
@@ -157,7 +160,9 @@ public class ActivityManager {
 		};
 	}
 
-	public static class AppTask {}
+	public static class AppTask {
+		public void finishAndRemoveTask() {}
+	}
 	public List<ActivityManager.AppTask> getAppTasks() {
 		return new ArrayList<>();
 	}
