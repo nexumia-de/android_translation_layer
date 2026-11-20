@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import java.lang.Runnable;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -57,11 +58,14 @@ public class LocationManager {
 	}
 
 	public List<String> getAllProviders() {
-		return Collections.emptyList();
+		if (System.getenv("ATL_UGLY_ENABLE_LOCATION") != null)
+			return Arrays.asList("xdgportal");
+		else
+			return Collections.emptyList();
 	}
 
 	public List<String> getProviders(boolean enabledOnly) {
-		return Collections.emptyList();
+		return getAllProviders();
 	}
 
 	public boolean registerGnssStatusCallback(GnssStatus.Callback callback, Handler handler) {
