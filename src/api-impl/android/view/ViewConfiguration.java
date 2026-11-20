@@ -60,7 +60,7 @@ public class ViewConfiguration {
 	}
 
 	public float getScaledVerticalScrollFactor() {
-		return 1;
+		return 64; // matching android.R.attr.listPreferredItemHeight which androidx uses as scroll factor when sdk_int < 26
 	}
 
 	public static int getScrollBarFadeDuration() {
