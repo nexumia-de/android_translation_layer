@@ -2600,14 +2600,18 @@ public class View implements Drawable.Callback {
 		return measuredWidth;
 	}
 
+	/* like Android, only this view is marked, nothing goes up to the parents: TableLayout's
+	 * requestLayout() forces its children before its own flag is set, so going through
+	 * requestLayout() here came back to the TableLayout forever (Duolingo, StackOverflowError) */
 	public void forceLayout() {
+		layoutRequested = true;
 		if (Looper.myLooper() == Looper.getMainLooper()) {
-			requestLayout();
+			native_requestLayout(widget);
 		} else {
 			getHandler().post(new Runnable() {
 				@Override
 				public void run() {
-					requestLayout();
+					native_requestLayout(widget);
 				}
 			});
 		}
