@@ -149,6 +149,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/android_os_MessageQueue.c',
                                                                   	'src/api-impl-jni/android_os_SystemClock.c',
                                                                   	'src/api-impl-jni/android_os_Vibrator.c',
+                                                                  	'src/api-impl-jni/android_speech_tts_TextToSpeech.c',
                                                                   	'src/api-impl-jni/android_util_Log.c',
                                                                   	'src/api-impl-jni/android_view_Window.c',
                                                                   	'src/api-impl-jni/accounts/android_accounts_AccountManager.c',
@@ -242,7 +243,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                         extra_deps,
                                                                   	dependency('gtk4', version: '>=4.14'), dependency('gl'), dependency('egl'), dependency('wayland-client'), dependency('jni'),
                                                                   	dependency('libportal'), dependency('sqlite3'), dependency('libavcodec', version: '>=59'), dependency('libdrm'),
-                                                                  	dependency('gudev-1.0'), dependency('libswscale'), dependency('webkitgtk-6.0'), dependency('libsecret-1'),
+                                                                  	dependency('gudev-1.0'), dependency('libswscale'), dependency('webkitgtk-6.0'), dependency('libsecret-1'), dependency('speech-dispatcher'),
                                                                         libart_dep, wayland_protos_dep, upcalls_header
                                                                   ],
                                                                   link_with: [ libandroid_so ],
