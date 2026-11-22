@@ -318,6 +318,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
 # page, so apps without a WebView page do not load WebKit and its dependencies
 shared_library('translation_layer_webkit', [
                                            	'src/api-impl-jni/widgets/android_webkit_WebView.c',
+                                           	'src/api-impl-jni/widgets/android_webkit_CookieManager.c',
                                            ],
                                            include_directories: shared_includes_dir,
                                            install: true,

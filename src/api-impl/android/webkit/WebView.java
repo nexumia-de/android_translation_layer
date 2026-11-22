@@ -55,6 +55,8 @@ public class WebView extends ViewGroup {
 			}
 			System.loadLibrary("translation_layer_webkit");
 			webkitLoaded = true;
+			/* the cookies the app set so far, before the first page */
+			CookieManager.attachWebKit();
 		}
 	}
 

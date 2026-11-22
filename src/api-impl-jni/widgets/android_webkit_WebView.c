@@ -13,6 +13,7 @@
 
 #include "../AssetInputStream.h"
 #include "WrapperWidget.h"
+#include "webkit_cookies.h"
 
 #include "../generated_headers/android_view_View.h"
 #include "../generated_headers/android_webkit_WebView.h"
@@ -152,6 +153,8 @@ JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadUrl(JNIEnv *env, 
 	if (!webview)
 		return;
 
+	if (atl_cookies_defer_load(webview, _CSTRING(url)))
+		return;
 	webkit_web_view_load_uri(webview, _CSTRING(url));
 }
 
