@@ -473,6 +473,25 @@ owner test: Chooser's choice sound plays, also twice in a row and again
 after more than five seconds; Duolingo's GET STARTED still works
 (`MediaPlayer.setDataSource(AssetFileDescriptor)`), and the smoke test.
 
+### Transparent huge pages off (R1): implemented, not measured
+
+`disable_transparent_huge_pages()` (`src/main-executable/memory.c`,
+2026-11-22, cloud session without the phone) calls
+`prctl(PR_SET_THP_DISABLE, 1)` first thing in `main()`; the flag is
+inherited by dex2oat. `ATL_TRANSPARENT_HUGE_PAGES=1` keeps the system
+setting, so the A/B needs no second build. Why: section "Transparent
+huge pages: the growth while idle" below.
+
+Checked in the cloud container only (kernel setting `madvise`, so a
+range that asks for huge pages with `madvise(MADV_HUGEPAGE)` stands in
+for the phone's `always`): a test program that maps 128 MiB, asks for
+huge pages and writes one byte every 2 MiB holds 130 MiB RSS
+(`AnonHugePages` 128 MiB) with the system setting and with
+`ATL_TRANSPARENT_HUGE_PAGES=1`, and 1.9 MiB with the function called;
+`THP_enabled` in `/proc/self/status` reads 0. ATL itself was not built
+or run there. On the phone: the A/B in [owner-checks.md](owner-checks.md),
+before the merge.
+
 ## Measurements of the evaluation (2026-11-09, second session on the phone)
 
 Run one after the other with `systemd-run --user`, on ATL `069812e0`
@@ -832,7 +851,7 @@ anonymous memory including swap, in MB):
   without an A/B.
 - **Android** does not run apps this way: its kernels ship with
   transparent huge pages off or on request only (`madvise`).
-- **Fix, not implemented**: ATL calls `prctl(PR_SET_THP_DISABLE, 1)`
+- **Fix, implemented 2026-11-22, not measured** (see "Transparent huge pages off (R1)" above): ATL calls `prctl(PR_SET_THP_DISABLE, 1)`
   first thing in `main()`; the flag covers page faults and
   `khugepaged`, and child processes (dex2oat) inherit it. One line, no
   root, works on every distribution. The system-wide alternative is the
@@ -1787,7 +1806,7 @@ and "Transparent huge pages" under the measurements):
 
 | # | What | RAM per app | Who | Size | Certainty |
 |---|---|---|---|---|---|
-| R1 | **Transparent huge pages off for the ATL process** (`prctl(PR_SET_THP_DISABLE)` in `main()`) | -7 to -20 MB after some idle minutes, plus a part of 6 to 22 MB at start | every app | S, one line | the growth and its tie to `khugepaged` are measured in 26 stored runs; the fix itself needs the A/B `scripts/run-thp.sh` |
+| R1 | **Transparent huge pages off for the ATL process** (`prctl(PR_SET_THP_DISABLE)` in `main()`) | -7 to -20 MB after some idle minutes, plus a part of 6 to 22 MB at start | every app | S, one line | the growth and its tie to `khugepaged` are measured in 26 stored runs; implemented (`memory.c`), the A/B `scripts/run-thp.sh` is open ([owner-checks.md](owner-checks.md)) |
 | R2 | **Item 4** (PR #134) | -21 MB anonymous for Gadgetbridge, -4 MB Chooser (file pages +44 MB, droppable) | apps whose oat is rejected today, 9 of 16 | done | measured |
 | R3 | **Bitmap path without the second display** (cairo renderer) | -13.6 to -15.1 MB GPU resident, about -2 MB private | every app | S + verification | the cost is measured, the fix is not built |
 | R4 | **`SoundPool` without `GtkMediaFile`** | Chooser: -8 MB GPU resident, about -12 MB private (more with the pipelines gone) | apps with UI sounds | S / M | the GL part is measured with `GDK_DISABLE=gl` |

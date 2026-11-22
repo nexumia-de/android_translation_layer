@@ -16,6 +16,7 @@ Change history is in [log.md](log.md).
 * [Development environment](dev-environment.md) - The owner's phone as test device: separate user, build into `~/.local`, headless test display, required hosts.
 * [Back navigation](navigation.md) - Header bar button, edge swipe and Escape/Alt+Left as Android back (KEYCODE_BACK), the ATL_NAVIGATION setting, headless tests with wl-pointer key.
 * [Base cost of ATL apps](performance.md) - Plan to lower memory and idle cost of every ATL app (Gadgetbridge first): measures, order of work, the code analysis of the base cost, the measured fixes, and the evaluation of all measurements with what can still be implemented (GPU memory, app image, anonymous memory), with what apps can share in per-app Flatpaks.
+* [Checks only the phone can do](owner-checks.md) - Measurements and tests cloud sessions left for the phone, with what to run, what to look at and which change waits for each.
 
 # Apps
 

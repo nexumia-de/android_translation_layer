@@ -1,5 +1,8 @@
 # Directory Update Log
 
+## 2026-11-22
+* **#118 base cost**: The measurements A to G, the RAM view and the transparent huge pages analysis of the second phone session (2026-11-09) were on a branch without a pull request; now merged into the docs ([performance](performance.md)). R1 implemented: ATL turns transparent huge pages off for its process (`src/main-executable/memory.c`, `ATL_TRANSPARENT_HUGE_PAGES=1` to keep them), checked only with a test program in the cloud. What needs the phone, including the A/B before the merge, is in [owner checks](owner-checks.md).
+
 ## 2026-11-19
 * **FAIRTIQ login, hCaptcha**: after Continue on the email page FAIRTIQ shows hCaptcha's Compose dialog with a WebView; it stayed black. Three causes: the wrapping dialog was allocated 0x0 once and from then on measured with that (`oldWidthMeasureSpec` was overwritten; the default from `Dialog.show()` now stays), `requestLayout` never reached Compose's `AndroidViewsHandler.requestLayout()` (now called through the parents, `cleanupLayoutState` implemented), and the WebView's wrap_content height came once after loading from a page of height:100% (now reported by the page script on every change). Checked for regressions: Duolingo and DB Navigator start screens unchanged.
 * **FAIRTIQ start**: FAIRTIQ 7.6.20 aborted in `Application.onCreate` on a `null` `usagestats` service and then waited on the main thread for a Bluetooth dialog that `checkPermission` opened. `checkPermission` and `hasSystemFeature` for Bluetooth now check BlueZ without asking; `usagestats`, `MediaDrm` (no scheme), `TaskStackBuilder` and the members the app's own code uses at start were added. Headless it reaches onboarding, login and the email page ([apps](apps.md)).

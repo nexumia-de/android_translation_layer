@@ -200,3 +200,14 @@ the table "Ranked for RAM" in "What to optimise next". Scripts
   and CPU.
 - **Nothing is implemented.** The fix would be one line in ATL's
   `main()`, a separate PR from `phosh`.
+
+## Cloud session, 2026-11-22
+
+No phone. The branch `claude/perf-measure-118` (A to G, RAM view) is
+merged with the pull request that implements R1 (transparent huge pages
+off in `main()`, `src/main-executable/memory.c`). `run-thp.sh` now sets
+`ATL_TRANSPARENT_HUGE_PAGES=1` in its "default" arm, so it works on
+builds with and without R1. The phone checks are in
+[../owner-checks.md](../owner-checks.md). Next without the phone: R3
+(bitmap path with the cairo renderer) and R4 (`SoundPool` without
+`GtkMediaFile`), each needing the 16-app smoke test on the phone.

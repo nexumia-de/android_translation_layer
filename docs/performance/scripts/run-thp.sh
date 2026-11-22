@@ -1,6 +1,8 @@
 #!/bin/sh
 # A/B for #118: transparent huge pages off for the ATL process (tools/perf-thp-off.c) against the system's
 # setting ("always" on the phone). Gadgetbridge and Chooser, covered, 10 min idle, 2 rounds alternating.
+# ATL builds with disable_transparent_huge_pages() (main-executable/memory.c) turn them off themselves; the
+# "default" arm sets ATL_TRANSPARENT_HUGE_PAGES=1 so it keeps the system setting on old and new builds alike.
 # Raw smaps of start and end are needed (AnonHugePages): scripts/thp-idle-growth.py DIR...
 export PATH=$HOME/.local/bin:$PATH
 T=$HOME/work/atl-perf-results/tools
@@ -14,9 +16,9 @@ mkdir -p $O
 cc -O1 -o $W $T/perf-thp-off.c || exit 1
 echo "$(date +%T) THP start, system: $(cat /sys/kernel/mm/transparent_hugepage/enabled)" >> $O/suite.log
 for i in 1 2; do
-	$T/perf-run.sh -o $O/gadgetbridge-default-$i -c -i 600 -x "tap 24 23" -- $GB >> $O/suite.log 2>&1
+	ATL_TRANSPARENT_HUGE_PAGES=1 $T/perf-run.sh -o $O/gadgetbridge-default-$i -c -i 600 -x "tap 24 23" -- $GB >> $O/suite.log 2>&1
 	PERF_CMD=$W $T/perf-run.sh -o $O/gadgetbridge-thpoff-$i -c -i 600 -x "tap 24 23" -- android-translation-layer $GB >> $O/suite.log 2>&1
-	$T/perf-run.sh -o $O/chooser-default-$i -c -i 600 -- $CH >> $O/suite.log 2>&1
+	ATL_TRANSPARENT_HUGE_PAGES=1 $T/perf-run.sh -o $O/chooser-default-$i -c -i 600 -- $CH >> $O/suite.log 2>&1
 	PERF_CMD=$W $T/perf-run.sh -o $O/chooser-thpoff-$i -c -i 600 -- android-translation-layer $CH >> $O/suite.log 2>&1
 done
 echo "$(date +%T) THP done" >> $O/suite.log
