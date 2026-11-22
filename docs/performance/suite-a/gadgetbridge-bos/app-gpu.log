@@ -1,0 +1,741 @@
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:        vkAllocateMemory(212kb):    1 bos, 212 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info: submitted 12 bos (6 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:        vkAllocateMemory(212kb):    1 bos, 212 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:         vkAllocateMemory(16kb):    1 bos, 16 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info: submitted 13 bos (6 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 17 bos (23 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                         dmabuf:    1 bos, 212 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 18 bos (23 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                         dmabuf:    1 bos, 212 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 18 bos (23 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                         dmabuf:    1 bos, 212 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 18 bos (23 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                         dmabuf:    1 bos, 212 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 20 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:                         dmabuf:    2 bos, 228 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 21 bos (24 MB)
+Periodic GskVulkanDevice GC (timestamp 120106802254)
+Cached items:
+  Class        Items Stale      Pixels       Stale      Info
+  Fill             4     4        6364        6364 100% 
+  Atlas            1     0     1048576           0   0% filled: 0%
+Periodic GskVulkanDevice GC (timestamp 120106802688)
+Cached items:
+  Class        Items Stale      Pixels       Stale      Info
+  Fill             2     2         918         918 100% 
+  Glyph          208   208       91959       91959 100% 
+  Atlas            1     0     1048576           0   0% filled: 0%
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 19 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 19 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:        vkAllocateMemory(312kb):    1 bos, 312 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info: submitted 13 bos (7 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:         vkAllocateMemory(12kb):    1 bos, 12 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:        vkAllocateMemory(312kb):    1 bos, 312 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info: submitted 14 bos (7 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 19 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:       vkAllocateMemory(1024kb):    1 bos, 1024 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 19 bos (24 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+TU: info:                         cmd cs:    1 bos, 16 kb
+TU: info:                         global:    1 bos, 20 kb
+TU: info:                    draw sub cs:    1 bos, 8 kb
+TU: info:                  device sub cs:    1 bos, 4 kb
+TU: info:              visibility stream:    1 bos, 648 kb
+TU: info:              autotune_suballoc:    1 bos, 128 kb
+TU: info:                        draw cs:    1 bos, 16 kb
+TU: info:                descriptor pool:    1 bos, 16 kb
+TU: info:              autotune fence cs:    1 bos, 4 kb
+TU: info:                  tile store cs:    1 bos, 8 kb
+TU: info:       vkAllocateMemory(4112kb):    1 bos, 4112 kb
+TU: info:       vkAllocateMemory(1024kb):    2 bos, 2048 kb
+TU: info:                         dmabuf:    2 bos, 324 kb
+TU: info:              pipeline_suballoc:    3 bos, 384 kb
+TU: info:       vkAllocateMemory(4344kb):    4 bos, 17376 kb
+TU: info: submitted 22 bos (25 MB)
+Periodic GskVulkanDevice GC (timestamp 120121805020)
+Cached items:
+  Class        Items Stale      Pixels       Stale      Info
+  Fill             5     4        6620        6364  96% 
+  Texture          2     0       60576           0   0% in hash: 0
+  Atlas            1     0     1048576           0   0% filled: 0%
+Periodic GskVulkanDevice GC (timestamp 120121805317)
+Cached items:
+  Class        Items Stale      Pixels       Stale      Info
+  Fill             2     1         918         342  37% 
+  Glyph          216   191       95009       81750  86% 
+  Texture          2     0       60576           0   0% in hash: 2
+  Atlas            1     0     1048576           0   0% filled: 1%
+Periodic GskVulkanDevice GC (timestamp 120136810576)
+Cached items:
+  Class        Items Stale      Pixels       Stale      Info
+  Fill             5     5        6620        6620 100% 
+  Atlas            1     0     1048576           0   0% filled: 0%
+Periodic GskVulkanDevice GC (timestamp 120136811418)
+Cached items:
+  Class        Items Stale      Pixels       Stale      Info
+  Fill             2     2         918         918 100% 
+  Glyph          216   216       95009       95009 100% 
+  Atlas            1     0     1048576           0   0% filled: 0%
+Periodic GskVulkanDevice GC (timestamp 120151808199)
+Cached items:
+  Class        Items Stale      Pixels       Stale      Info
+  Fill             5     5        6620        6620 100% 
+  Atlas            1     0     1048576           0   0% filled: 0%
+Periodic GskVulkanDevice GC (timestamp 120151808410)
+Cached items:
+  Class        Items Stale      Pixels       Stale      Info
+  Fill             2     2         918         918 100% 
+  Glyph          216   216       95009       95009 100% 
+  Atlas            1     0     1048576           0   0% filled: 0%
+Periodic GskVulkanDevice GC (timestamp 120166817994)
+Cached items:
+  none
+Periodic GskVulkanDevice GC (timestamp 120166818647)
+Cached items:
+  none

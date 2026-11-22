@@ -1,0 +1,54 @@
+tid	name	cpu_ms	vol_cs	nonvol_cs
+902689	main	4430	2457	140
+902690	pool-spawner	0	23	0
+902691	gmain	0	1	0
+902692	gdbus	10	75	11
+902756	[pango] fontcon	30	20	2
+902758	Jit thread pool	830	94	56
+902759	Runtime worker 	0	5	0
+902760	Runtime worker 	0	2	2
+902761	Runtime worker 	0	2	0
+902762	Runtime worker 	0	2	0
+902763	Signal Catcher	0	3	0
+902764	ReferenceQueueD	0	4	0
+902765	FinalizerDaemon	0	7	1
+902766	FinalizerWatchd	0	4	0
+902767	HeapTaskDaemon	50	13	1
+902770	android:disk$0	0	8	6
+902772	androi:traceq0	0	1	0
+902773	android:disk$1	0	8	0
+902774	android:disk$2	0	6	0
+902775	android:disk$3	0	7	0
+902777	DefaultDispatch	0	2	1
+902778	DefaultDispatch	10	12	0
+902779	DefaultDispatch	0	7	0
+902780	DefaultDispatch	0	1	0
+902781	DefaultDispatch	0	5	0
+902782	DefaultDispatch	0	1	0
+902783	GstPlay	20	80	0
+902791	GstPlay	0	71	0
+902792	GstPlay	0	66	1
+902793	typefindelement	0	21	0
+902794	typefindelement	0	28	0
+902795	typefindelement	0	9	0
+902796	typefind:sink	0	28	2
+902797	typefind:sink	0	55	0
+902798	typefind:sink	0	15	0
+902799	oggdemux0:sink	0	85	0
+902800	oggdemux1:sink	0	47	0
+902801	oggdemux2:sink	0	42	0
+902802	multiqueue4:src	0	42	0
+902803	multiqueue3:src	0	158	0
+902804	multiqueue5:src	0	21	0
+902805	multiqueue2:src	80	119	3
+902806	multiqueue1:src	60	171	3
+902807	multiqueue0:src	40	167	9
+902816	threaded-ml	0	2	0
+902822	android:disk$0	0	15	0
+902824	aqueue:src	0	50	3
+902827	aqueue:src	0	32	0
+902828	androi:traceq0	0	1	0
+902829	android:disk$1	0	17	0
+902830	android:disk$2	0	12	1
+902831	android:disk$3	0	17	0
+902832	aqueue:src	0	15	0

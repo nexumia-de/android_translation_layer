@@ -1,0 +1,4 @@
+elapsed_s	utime_ms	stime_ms	vol_cs	nonvol_cs	threads	pss_kb	uss_kb	rss_kb	swap_kb	gpu_total_kb	gpu_resident_kb	bat_current_ma	bat_power_mw	bat_status	clock
+0	4590	830	4219	557	91	174979	150756	258840	0	53588	45396	-399	52099	Discharging	18:01:19
+20	6150	1050	5437	650	91	176183	151956	260048	0	49476	41284	-357	52290	Discharging	18:01:39
+40	7810	1200	6663	705	91	175355	151128	259220	0	49476	41284	-644	52298	Discharging	18:01:59
