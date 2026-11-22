@@ -32,4 +32,8 @@ public class CheckedTextView extends TextView {
 	}
 
 	public void setCheckMarkDrawable(Drawable d) {}
+
+	public Drawable getCheckMarkDrawable() {
+		return null;
+	}
 }

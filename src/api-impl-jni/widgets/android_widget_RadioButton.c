@@ -6,6 +6,11 @@
 #include "../generated_headers/android_widget_RadioButton.h"
 #include "jni.h"
 
+static void on_checked_state_changed(GObject *self, GParamSpec *pspec, WrapperWidget *wrapper)
+{
+	J__View__refreshDrawableState(get_jni_env(), wrapper->jobj);
+}
+
 JNIEXPORT jlong JNICALL Java_android_widget_RadioButton_native_1constructor(JNIEnv *env, jobject this, jobject context, jobject attrs)
 {
 	GtkWidget *wrapper = g_object_ref(wrapper_widget_new());
@@ -14,6 +19,7 @@ JNIEXPORT jlong JNICALL Java_android_widget_RadioButton_native_1constructor(JNIE
 	gtk_check_button_set_group(GTK_CHECK_BUTTON(button), GTK_CHECK_BUTTON(gtk_check_button_new()));
 	wrapper_widget_set_child(WRAPPER_WIDGET(wrapper), button);
 	wrapper_widget_set_jobject(WRAPPER_WIDGET(wrapper), env, this);
+	g_signal_connect(button, "notify::active", G_CALLBACK(on_checked_state_changed), wrapper);
 	return _INTPTR(button);
 }
 

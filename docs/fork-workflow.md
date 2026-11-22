@@ -50,6 +50,17 @@ git checkout phosh && git merge origin/master && git push
 
 Merge, never rebase `phosh`: it is shared between sessions and devices.
 
+Overlaps settled in the 2026-11-22 sync (upstream implemented what the
+fork already had):
+
+- Activity lifecycle callbacks: the fork's `performX()` wrappers stay;
+  upstream's `dispatchActivity*` exports were dropped.
+- TextToSpeech: the fork's spd-say engine stays; upstream's libspeechd
+  file (`android_speech_tts_TextToSpeech.c`) is not built. Switching to
+  it needs a progress listener and the modern `speak()` first.
+- View drawable state: upstream's AOSP code replaced the fork's.
+- CookieManager: the fork's jar stays, without the NewPipe hack.
+
 # Sending a fix upstream
 
 Upstream code follows upstream's `doc/CodeStyle.md` and clang-format

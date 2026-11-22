@@ -13,6 +13,8 @@ public abstract class CompoundButton extends Button implements Checkable {
 	Drawable button_drawable = null;
 	public Drawable mButtonDrawable; // directly accessed by androidx
 
+	private static final int[] CHECKED_STATE_SET = {R.attr.state_checked};
+
 	public CompoundButton(Context context) {
 		this(context, null);
 	}
@@ -52,6 +54,28 @@ public abstract class CompoundButton extends Button implements Checkable {
 
 	@Override
 	public native boolean isChecked();
+
+	@Override
+	/* Copyright (C) 2007 The Android Open Source Project */
+	protected int[] onCreateDrawableState(int extraSpace) {
+		final int[] drawableState = super.onCreateDrawableState(extraSpace + 1);
+		if (isChecked()) {
+			mergeDrawableStates(drawableState, CHECKED_STATE_SET);
+		}
+		return drawableState;
+	}
+
+	@Override
+	/* Copyright (C) 2007 The Android Open Source Project */
+	protected void drawableStateChanged() {
+		super.drawableStateChanged();
+
+		final Drawable buttonDrawable = button_drawable;
+		if (buttonDrawable != null && buttonDrawable.isStateful()
+		    && buttonDrawable.setState(getDrawableState())) {
+			invalidateDrawable(buttonDrawable);
+		}
+	}
 
 	public void toggle() {
 		setChecked(!isChecked());

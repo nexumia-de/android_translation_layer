@@ -170,6 +170,18 @@ public class ImageView extends View {
 		return scaleType;
 	}
 
+	@Override
+	/* Copyright (C) 2006 The Android Open Source Project */
+	protected void drawableStateChanged() {
+		super.drawableStateChanged();
+
+		final Drawable drawable = this.drawable;
+		if (drawable != null && drawable.isStateful()
+		    && drawable.setState(getDrawableState())) {
+			invalidateDrawable(drawable);
+		}
+	}
+
 	public Drawable getDrawable() {
 		return drawable;
 	}
@@ -184,6 +196,9 @@ public class ImageView extends View {
 		bitmap = null;
 		if (drawable != null) {
 			drawable.setCallback(this);
+			if (drawable.isStateful()) {
+				drawable.setState(getDrawableState());
+			}
 		}
 		native_setDrawable(widget, drawable != null ? drawable.paintable : 0);
 		if (drawable != null && level != 0) {

@@ -6,6 +6,11 @@
 #include "../generated_headers/android_widget_CompoundButton.h"
 #include "jni.h"
 
+static void on_checked_state_changed(GObject *self, GParamSpec *pspec, WrapperWidget *wrapper)
+{
+	J__View__refreshDrawableState(get_jni_env(), wrapper->jobj);
+}
+
 JNIEXPORT jlong JNICALL Java_android_widget_CompoundButton_native_1constructor(JNIEnv *env, jobject this, jobject context, jobject attrs)
 {
 	GtkWidget *wrapper = g_object_ref(wrapper_widget_new());
@@ -14,9 +19,11 @@ JNIEXPORT jlong JNICALL Java_android_widget_CompoundButton_native_1constructor(J
 	gtk_widget_set_hexpand(label, TRUE);
 	gtk_widget_set_halign(label, GTK_ALIGN_START);
 	gtk_box_append(GTK_BOX(box), label);
-	gtk_box_append(GTK_BOX(box), gtk_switch_new());
+	GtkWidget *switcher = gtk_switch_new();
+	gtk_box_append(GTK_BOX(box), switcher);
 	wrapper_widget_set_child(WRAPPER_WIDGET(wrapper), box);
 	wrapper_widget_set_jobject(WRAPPER_WIDGET(wrapper), env, this);
+	g_signal_connect(switcher, "notify::active", G_CALLBACK(on_checked_state_changed), wrapper);
 	return _INTPTR(box);
 }
 

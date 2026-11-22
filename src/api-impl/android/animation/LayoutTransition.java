@@ -19,4 +19,6 @@ public class LayoutTransition {
 	public void setInterpolator(int transitionType, TimeInterpolator interpolator) {}
 
 	public void disableTransitionType(int transitionType) {}
+
+	public void setAnimateParentHierarchy(boolean animateParentHierarchy) {}
 }

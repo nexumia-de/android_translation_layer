@@ -33,16 +33,6 @@ public class CookieManager {
 	private static CookieManager instance;
 
 	public static synchronized CookieManager getInstance() {
-		// HACK: disable NewPipe's WebView based PoToken generator for now
-		if (ATLLoadedApp.getPrimaryApplication().pkg.packageName.equals("org.schabi.newpipe")) {
-			throw new RuntimeException("CookieManager not yet fully implemented");
-		}
-		try { // also handle NewPipe forks which can have a different packagename
-			ATLLoadedApp.getPrimaryApplication().loadClass(
-			    "org.schabi.newpipe.util.potoken.PoTokenWebView");
-			throw new RuntimeException("CookieManager not yet fully implemented");
-		} catch (ClassNotFoundException e) {
-		}
 		if (instance == null)
 			instance = new CookieManager();
 		return instance;
@@ -448,12 +438,7 @@ public class CookieManager {
 
 	/* called by WebView right after it loaded WebKit, before its first page */
 	static void attachWebKit() {
-		CookieManager manager;
-		try {
-			manager = getInstance();
-		} catch (RuntimeException e) { // the NewPipe hack above
-			return;
-		}
+		CookieManager manager = getInstance();
 		synchronized (manager) {
 			if (manager.webkitAttached)
 				return;
