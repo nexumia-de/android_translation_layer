@@ -1,0 +1,62 @@
+== aurora.harness
+== aurora
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== blokish.harness
+== blokish
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== chooser.harness
+== chooser
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== comaps.harness
+== comaps
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== dbnavigator.harness
+== dbnavigator
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/de.hafas.android.db_240000860/base.apk
+Found duplicated class when checking oat files: 'Lcom/google/android/gms/ads/identifier/AdvertisingIdClient$Info;' in /home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar and /home/claude/work/apks/de.hafas.android.db_240000860/base.apk
+== dhl.harness
+== dhl
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== duolingo.harness
+== duolingo
+== fdroid.harness
+== fdroid
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== fluffychat.harness
+== fluffychat
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== gadgetbridge.harness
+== gadgetbridge
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== gpslogger.harness
+== gpslogger
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== heliboard.harness
+== heliboard
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== komoot.harness
+== komoot
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/de.komoot.android_264028003/base.apk
+Found duplicated class when checking oat files: 'Lcom/google/android/gms/ads/identifier/AdvertisingIdClient;' in /home/claude/work/apks/de.komoot.android_264028003/base.apk!classes2.dex and /home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar
+== owntracks.harness
+== owntracks
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== superproductivity.harness
+== superproductivity
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1416271768])
+== whatsapp.harness
+== whatsapp

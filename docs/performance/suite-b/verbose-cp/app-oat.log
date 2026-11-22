@@ -1,0 +1,6 @@
+I/android-translation-layer(864969): /home/claude/work/perf-runs/suite-b/cache-cp/art//arm64/home@claude@.local@lib@art@..@java@dex@android_translation_layer@api-impl.jar@classes.dex is kOatUpToDate with filter speed
+I/android-translation-layer(864969): /home/claude/work/perf-runs/suite-b/cache-cp/art//arm64/home@claude@.local@lib@art@..@java@dex@android_translation_layer@ghax.jar@classes.dex is kOatUpToDate with filter speed
+I/android-translation-layer(864969): Loading /home/claude/work/perf-runs/suite-b/cache-cp/art//arm64/home@claude@work@apks@nodomain.freeyourgadget.gadgetbridge@nodomain.freeyourgadget.gadgetbridge_255.apk@classes.dex with executable: 1
+I/android-translation-layer(864969): Successfully loaded /home/claude/work/perf-runs/suite-b/cache-cp/art//arm64/home@claude@work@apks@nodomain.freeyourgadget.gadgetbridge@nodomain.freeyourgadget.gadgetbridge_255.apk@classes.dex with executable: 1
+I/android-translation-layer(864969): /home/claude/work/perf-runs/suite-b/cache-cp/art//arm64/home@claude@work@apks@nodomain.freeyourgadget.gadgetbridge@nodomain.freeyourgadget.gadgetbridge_255.apk@classes.dex is kOatUpToDate with filter speed
+I/android-translation-layer(864969): OatFileAssistant(/home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk).GetBestOatFile()=281472847454640 (executable=1)

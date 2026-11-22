@@ -1,0 +1,134 @@
+tid	name	cpu_ms	vol_cs	nonvol_cs
+911304	main	4850	6717	426
+911308	pool-spawner	0	4	0
+911309	gmain	0	7	2
+911310	gdbus	70	715	58
+911379	Jit thread pool	1300	1254	234
+911380	Runtime worker 	0	3	0
+911381	Runtime worker 	0	1	0
+911382	Runtime worker 	0	2	0
+911383	Runtime worker 	0	3	0
+911384	Signal Catcher	0	1	0
+911385	ReferenceQueueD	0	27	3
+911386	FinalizerDaemon	0	30	1
+911387	FinalizerWatchd	0	3	0
+911388	HeapTaskDaemon	820	953	178
+911400	Firebase Backgr	140	590	8
+911401	Firebase Backgr	140	1033	20
+911402	Firebase Backgr	130	781	3
+911403	Firebase Blocki	100	1195	26
+911404	Firebase Blocki	110	816	9
+911406	pool-2-thread-1	30	202	0
+911407	Firebase Backgr	50	261	13
+911408	Firebase Blocki	20	237	0
+911409	GoogleApiHandle	60	477	11
+911410	Firebase-Messag	0	46	4
+911411	Firebase-Messag	0	42	1
+911414	TAG	10	231	0
+911415	Thread-2	0	27	0
+911416	PackageInstalle	0	3	0
+911420	DefaultDispatch	200	610	35
+911421	DefaultDispatch	70	178	30
+911422	DefaultDispatch	30	171	122
+911423	Firebase Blocki	0	99	0
+911425	MessengerIpcCli	0	22	0
+911436	pool-12-thread-	60	190	13
+911442	WM.task-1	160	266	35
+911443	pool-15-thread-	0	2	2
+911445	pool-16-thread-	0	2	0
+911447	WM.task-2	180	131	27
+911448	WM.task-3	170	127	40
+911450	DefaultDispatch	130	483	16
+911451	pool-18-thread-	0	3	7
+911452	WM.task-4	290	384	33
+911457	pool-21-thread-	0	6	14
+911461	BlueZ signals	0	13	2
+911464	process reaper	0	14	4
+911468	android:disk$0	0	7	0
+911470	androi:traceq0	0	1	0
+911471	android:disk$1	0	3	4
+911472	android:disk$2	0	7	3
+911473	android:disk$3	0	4	0
+911475	DefaultDispatch	10	103	142
+911476	arch_disk_io_0	0	20	0
+911481	arch_disk_io_1	60	128	0
+911482	arch_disk_io_2	0	5	5
+911484	async-io	10	908	9
+911485	gly-global-exec	40	515	61
+911486	main	110	594	80
+911508	DefaultDispatch	140	368	160
+911509	DefaultDispatch	110	166	28
+911510	CYFMotionListen	0	1	0
+911511	CYFOrientationL	0	1	0
+911512	CYFTouchManager	0	1	0
+911513	DefaultDispatch	0	77	175
+911514	DefaultDispatch	0	107	131
+911515	DefaultDispatch	10	50	19
+911516	DefaultDispatch	60	224	17
+911517	DefaultDispatch	0	68	128
+911518	DefaultDispatch	0	40	175
+911519	DefaultDispatch	0	57	176
+911520	DefaultDispatch	0	111	219
+911556	pool-13-thread-	0	2	0
+911557	Okio Watchdog	0	6	0
+911558	Firebase-Messag	0	2	1
+911560	main	20	105	6
+911562	OkHttp Dispatch	30	54	1
+911563	android:disk$0	0	1	0
+911564	android-:ir3q0	0	1	0
+911565	PressureMonitor	0	9	2
+911566	ebsiteDataStore	0	2	2
+911576	DefaultDispatch	0	68	206
+911577	DefaultDispatch	0	73	10
+911578	DefaultDispatch	0	21	2
+911579	DefaultDispatch	10	151	19
+911580	DefaultDispatch	0	178	56
+911581	DefaultDispatch	0	23	4
+911582	DefaultDispatch	0	20	0
+911583	DefaultDispatch	0	7	2
+911585	DefaultDispatch	0	11	1
+911586	DefaultDispatch	0	8	4
+911587	DefaultDispatch	0	9	0
+911588	DefaultDispatch	0	20	4
+911589	DefaultDispatch	0	18	1
+911590	DefaultDispatch	0	20	1
+911591	DefaultDispatch	40	94	12
+911592	DefaultDispatch	0	13	3
+911593	DefaultDispatch	30	48	22
+911594	DefaultDispatch	0	17	2
+911595	DefaultDispatch	0	43	12
+911596	DefaultDispatch	0	16	0
+911597	DefaultDispatch	50	344	63
+911598	DefaultDispatch	0	10	3
+911599	DefaultDispatch	0	9	2
+911600	DefaultDispatch	0	41	3
+911601	DefaultDispatch	0	13	0
+911602	DefaultDispatch	0	7	0
+911603	DefaultDispatch	20	225	30
+911604	DefaultDispatch	0	14	2
+911605	DefaultDispatch	0	18	0
+911606	DefaultDispatch	0	9	1
+911607	DefaultDispatch	0	12	5
+911608	DefaultDispatch	30	215	24
+911609	DefaultDispatch	0	5	0
+911610	DefaultDispatch	0	3	0
+911611	DefaultDispatch	0	9	4
+911612	DefaultDispatch	20	224	18
+911613	DefaultDispatch	0	3	0
+911614	DefaultDispatch	0	2	0
+911616	ReceiveQueue	0	23	2
+911641	android:disk$0	0	6	1
+911643	androi:traceq0	0	1	0
+911644	android:disk$1	0	4	0
+911645	android:disk$2	0	3	0
+911646	android:disk$3	0	3	0
+911648	Okio Watchdog	0	4	0
+911650	ReceiveQueue	0	119	14
+911661	OkHttp Connecti	0	4	3
+911686	ReceiveQueue	0	76	10
+911703	pool-14-thread-	0	2	0
+911746	OkHttp Connecti	0	7	0
+911947	pool-2	0	21	1
+911948	Debouncer	0	3	0
+911951	arch_disk_io_3	0	6	0
+911960	[pango] fontcon	0	8	0

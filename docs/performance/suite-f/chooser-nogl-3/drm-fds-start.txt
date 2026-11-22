@@ -1,0 +1,34 @@
+== fd 41 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4292
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	0
+drm-shared-memory:	0
+== fd 42 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4293
+drm-engine-gpu:	414270 ns
+drm-cycles-gpu:	266240
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	23124 KiB
+drm-shared-memory:	17392 KiB
+drm-resident-memory:	23124 KiB
+== fd 75 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4294
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	0
+drm-shared-memory:	0
+== fd 77 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4295
+drm-engine-gpu:	33229 ns
+drm-cycles-gpu:	22528
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	5600 KiB
+drm-shared-memory:	0
+drm-resident-memory:	5600 KiB

@@ -1,0 +1,94 @@
+== aurora.harness
+== aurora
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/com.aurora.store_76.apk
+Found duplicated class when checking oat files: 'Landroid/util/FloatProperty;' in /home/claude/work/apks/com.aurora.store_76.apk!classes2.dex and /home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar
+== blokish.harness
+== blokish
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+== chooser.harness
+== chooser
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/com.uravgcode.chooser_26.apk
+Found duplicated class when checking oat files: 'Landroid/view/WindowInsetsAnimation$Callback;' in /home/claude/work/apks/com.uravgcode.chooser_26.apk and /home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar
+== comaps.harness
+== comaps
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+== dbnavigator.harness
+== dbnavigator
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/de.hafas.android.db_240000860/base.apk
+Found duplicated class when checking oat files: 'Landroid/view/WindowInsetsAnimation$Callback;' in /home/claude/work/apks/de.hafas.android.db_240000860/base.apk and /home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar
+== dhl.harness
+== dhl
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/de.dhl.paket_921502244/base.apk
+Found duplicated class when checking oat files: 'Landroid/view/WindowInsetsAnimation$Callback;' in /home/claude/work/apks/de.dhl.paket_921502244/base.apk and /home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar
+== duolingo.harness
+== duolingo
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+== fdroid.harness
+== fdroid
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/org.fdroid.fdroid_2.0.2.apk
+Found duplicated class when checking oat files: 'Landroid/view/WindowInsetsAnimation$Callback;' in /home/claude/work/apks/org.fdroid.fdroid_2.0.2.apk and /home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar
+== fluffychat.harness
+== fluffychat
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/chat.fluffy.fluffychat/chat.fluffy.fluffychat_3574.apk
+Found duplicated class when checking oat files: 'Landroid/view/WindowInsetsAnimation$Callback;' in /home/claude/work/apks/chat.fluffy.fluffychat/chat.fluffy.fluffychat_3574.apk and /home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar
+== gadgetbridge.harness
+== gadgetbridge
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk
+Found duplicated class when checking oat files: 'Landroid/companion/CompanionDeviceManager$Callback;' in /home/claude/work/apks/nodomain.freeyourgadget.gadgetbridge/nodomain.freeyourgadget.gadgetbridge_255.apk and /home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar
+== gpslogger.harness
+== gpslogger
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+== heliboard.harness
+== heliboard
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+== komoot.harness
+== komoot
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/de.komoot.android_264028003/base.apk
+Found duplicated class when checking oat files: 'Landroid/view/WindowInsetsAnimation$Callback;' in /home/claude/work/apks/de.komoot.android_264028003/base.apk!classes2.dex and /home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar
+== owntracks.harness
+== owntracks
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+Found duplicate classes, falling back to extracting from APK : /home/claude/work/apks/org.owntracks.android_420509001.apk
+Found duplicated class when checking oat files: 'Landroid/view/WindowInsetsAnimation$Callback;' in /home/claude/work/apks/org.owntracks.android_420509001.apk and /home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar
+== superproductivity.harness
+== superproductivity
+
+ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[] | PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/ghax.jar*1539354383];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])
+== whatsapp.harness
+== whatsapp
+ClassLoaderContext parent mismatch.  (PCL[] | PCL[];PCL[/home/claude/.local/lib/art/../java/dex/android_translation_layer/api-impl.jar*1984994534])

@@ -1,0 +1,94 @@
+== fd 57 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4721
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	0
+drm-shared-memory:	0
+== fd 58 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4722
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	408 KiB
+drm-shared-memory:	0
+drm-resident-memory:	408 KiB
+== fd 60 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4723
+drm-engine-gpu:	38906076 ns
+drm-cycles-gpu:	11055104
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	33180 KiB
+drm-shared-memory:	10 MiB
+drm-resident-memory:	33180 KiB
+drm-purgeable-memory:	304 KiB
+== fd 61 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4723
+drm-engine-gpu:	38906076 ns
+drm-cycles-gpu:	11055104
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	33180 KiB
+drm-shared-memory:	10 MiB
+drm-resident-memory:	33180 KiB
+drm-purgeable-memory:	304 KiB
+== fd 62 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4723
+drm-engine-gpu:	38906076 ns
+drm-cycles-gpu:	11055104
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	33180 KiB
+drm-shared-memory:	10 MiB
+drm-resident-memory:	33180 KiB
+drm-purgeable-memory:	304 KiB
+== fd 89 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4724
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	0
+drm-shared-memory:	0
+== fd 90 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4725
+drm-engine-gpu:	0 ns
+drm-cycles-gpu:	0
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	408 KiB
+drm-shared-memory:	0
+drm-resident-memory:	408 KiB
+== fd 91 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4726
+drm-engine-gpu:	363017 ns
+drm-cycles-gpu:	194560
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	19132 KiB
+drm-shared-memory:	572 KiB
+drm-resident-memory:	19132 KiB
+drm-purgeable-memory:	1068 KiB
+== fd 92 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4726
+drm-engine-gpu:	363017 ns
+drm-cycles-gpu:	194560
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	19132 KiB
+drm-shared-memory:	572 KiB
+drm-resident-memory:	19132 KiB
+drm-purgeable-memory:	1068 KiB
+== fd 93 -> /dev/dri/renderD128
+drm-driver:	msm
+drm-client-id:	4726
+drm-engine-gpu:	363017 ns
+drm-cycles-gpu:	194560
+drm-maxfreq-gpu:	1050000000 Hz
+drm-total-memory:	19132 KiB
+drm-shared-memory:	572 KiB
+drm-resident-memory:	19132 KiB
+drm-purgeable-memory:	1068 KiB
