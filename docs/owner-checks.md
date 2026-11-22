@@ -21,9 +21,10 @@ Setup and how to run long series without the login being killed:
 [dev-environment.md](dev-environment.md),
 [performance.md](performance.md#how-it-is-measured).
 
-1. **Transparent huge pages off (R1), before merging it.** Build the
-   branch of the pull request that adds `disable_transparent_huge_pages()`
-   (`src/main-executable/memory.c`) into `~/.local`, then run the A/B
+1. **Transparent huge pages off (R1), merged without a phone test.**
+   The owner merged #174 to test it in use. Build `phosh` with
+   `disable_transparent_huge_pages()` (`src/main-executable/memory.c`)
+   into `~/.local`, then run the A/B
    (about 50 minutes):
    `systemd-run --user --unit=perf-thp --collect ~/work/perf-runs/run-thp.sh`
    (copy of `docs/performance/scripts/run-thp.sh`; its "default" arm
@@ -35,8 +36,9 @@ Setup and how to run long series without the login being killed:
      idle growth gone, `AnonHugePages` 0), first frame in `start.tsv`
      and CPU in `idle.tsv` (must not get worse beyond the ~15 % drift).
    - Smoke test of all apps in [apps.md](apps.md) on the branch.
-   - Merge only if memory falls and start/CPU do not get worse; write the
-     numbers into performance.md under "Transparent huge pages off".
+   - Write the numbers into performance.md under "Transparent huge pages
+     off". If memory does not fall or start/CPU get worse, revert the
+     commit `main: turn transparent huge pages off for the app process`.
 2. **Item 11 (MediaPlayer pipeline on first use), merged but not
    measured**: Chooser `-i 0` against the commit before it, then the
    sound test (performance.md, "Item 11").

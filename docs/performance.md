@@ -473,7 +473,7 @@ owner test: Chooser's choice sound plays, also twice in a row and again
 after more than five seconds; Duolingo's GET STARTED still works
 (`MediaPlayer.setDataSource(AssetFileDescriptor)`), and the smoke test.
 
-### Transparent huge pages off (R1): implemented, not measured
+### Transparent huge pages off (R1): merged, not measured
 
 `disable_transparent_huge_pages()` (`src/main-executable/memory.c`,
 2026-11-22, cloud session without the phone) calls
@@ -489,8 +489,8 @@ huge pages and writes one byte every 2 MiB holds 130 MiB RSS
 (`AnonHugePages` 128 MiB) with the system setting and with
 `ATL_TRANSPARENT_HUGE_PAGES=1`, and 1.9 MiB with the function called;
 `THP_enabled` in `/proc/self/status` reads 0. ATL itself was not built
-or run there. On the phone: the A/B in [owner-checks.md](owner-checks.md),
-before the merge.
+or run there. Merged in #174 on the owner's decision to test it in use; the A/B in
+[owner-checks.md](owner-checks.md) is still open.
 
 ## Measurements of the evaluation (2026-11-09, second session on the phone)
 
