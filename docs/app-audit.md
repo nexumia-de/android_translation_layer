@@ -58,7 +58,7 @@ Ordered by how much they broke. All were found in this audit; fixed rows say so.
 | 7 | **Mostly fixed.** `MediaPlayer` has pause, stop, seek, loop, volume, release, `isPlaying`, the prepared callback and descriptors as sources; `SoundPool` reports loads. Error, buffering and info listeners stay empty, `PlaybackParams` and video surfaces are missing. | Duolingo runs through this code; **sound itself is unheard headless, owner test** | Audio in apps using `MediaPlayer` | small |
 | 8 | **No camera.** `CameraManager.getCameraIdList` is empty, the `camera2` classes are absent and `Camera` is a stub. | Lists, code | QR and barcode scanning | large: weeks, needs a libcamera or portal backend |
 | 9 | **`TextView.setEllipsize` is empty**, so long text is cut instead of ending in "...". | Stub log: DB Navigator, Post & DHL | Toolbars, lists | small |
-| 10 | **WebView has gaps.** `loadUrl` with headers is absent, `CookieManager.setCookie` is a stub, and all `WebSettings` setters but JavaScript do nothing, as do `stopLoading`, `clearHistory`, `clearCache` and `destroy`. | Lists; `WebSettings` and clear calls in DB Navigator's stub log | Hybrid pages in Post & DHL and DB Navigator; a login that sets cookies may fail | medium |
+| 10 | **WebView has gaps.** `loadUrl` with headers is absent, `CookieManager` was a stub until 2026-11-22, and all `WebSettings` setters but JavaScript do nothing, as do `stopLoading`, `clearHistory`, `clearCache` and `destroy`. | Lists; `WebSettings` and clear calls in DB Navigator's stub log | Hybrid pages in Post & DHL and DB Navigator; a login that sets cookies may fail | medium |
 
 Not problems, but the lists are full of them: accessibility, autofill, status
 bar colours and `WindowInsets` zeros are stubs on purpose today. NFC and
@@ -163,7 +163,7 @@ Result: the core works on the phone. The date picker is the biggest unknown.
 | Standorte | `wrong` | List empty; location is off (problem 2), likely the cause, not proven |
 | Packstation | `wrong` | Compose cards 200 px wide |
 | Mehr, login button | `wrong` | No arrows, white button without text |
-| Login | `untested` | `WebView.loadUrl` with headers missing (3 own calls), cookie stubs (problem 10) |
+| Login | `owner` | Owner logged in on 2026-11-20: tokens stored, but shipment list and Kundenkonto (dhl.de pages in a WebView) stayed anonymous, because the app hands its dhl.de session to the WebView through `CookieManager`, a stub then. Real `CookieManager` since 2026-11-22: headless, the app's own cookies (CSRF, session) reach WebKit and the page's cookies come back (OneTrust, Adobe). Logged-in shipment list: owner test |
 | Identity check (AusweisApp) | `missing` | NFC |
 | Device check | `untested` | RootBeer's effect still open |
 | Whatever needs Bluetooth LE | `missing` | `bluetooth.le` absent; what uses it was not traced |
