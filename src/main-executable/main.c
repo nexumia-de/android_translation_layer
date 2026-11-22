@@ -18,6 +18,7 @@
 #include "back_button.h"
 #include "navigation.h"
 #include "libc_bio_path_overrides.h"
+#include "memory.h"
 #include "prompt_page.h"
 
 #include <dlfcn.h>
@@ -2385,6 +2386,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "error: cannot change to RUN_FROM_BUILDDIR %s: %s\n", builddir, strerror(errno));
 		exit(1);
 	}
+
+	disable_transparent_huge_pages();
 
 	pregrow_stack();
 
