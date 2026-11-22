@@ -642,6 +642,7 @@ srcs = [
 	'android/text/style/UpdateLayout.java',
 	'android/text/style/URLSpan.java',
 	'android/text/util/Linkify.java',
+	'android/transition/AutoTransition.java',
 	'android/transition/ChangeBounds.java',
 	'android/transition/Fade.java',
 	'android/transition/Slide.java',

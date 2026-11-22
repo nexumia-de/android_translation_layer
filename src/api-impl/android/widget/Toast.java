@@ -42,4 +42,6 @@ public class Toast {
 	public void setGravity(int gravity, int xOffset, int yOffset) {}
 
 	public void cancel() {}
+
+	public void setDuration(int duration) {}
 }

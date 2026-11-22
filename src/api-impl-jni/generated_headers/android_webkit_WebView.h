@@ -221,6 +221,16 @@ extern "C" {
 #define android_webkit_WebView_TEXT_DIRECTION_LTR 3L
 #undef android_webkit_WebView_TEXT_DIRECTION_RTL
 #define android_webkit_WebView_TEXT_DIRECTION_RTL 4L
+#undef android_webkit_WebView_PFLAG_SELECTED
+#define android_webkit_WebView_PFLAG_SELECTED 4L
+#undef android_webkit_WebView_PFLAG_DRAWABLE_STATE_DIRTY
+#define android_webkit_WebView_PFLAG_DRAWABLE_STATE_DIRTY 1024L
+#undef android_webkit_WebView_PFLAG_PRESSED
+#define android_webkit_WebView_PFLAG_PRESSED 16384L
+#undef android_webkit_WebView_PFLAG_HOVERED
+#define android_webkit_WebView_PFLAG_HOVERED 268435456L
+#undef android_webkit_WebView_PFLAG_ACTIVATED
+#define android_webkit_WebView_PFLAG_ACTIVATED 1073741824L
 #undef android_webkit_WebView_FLAG_CLIP_CHILDREN
 #define android_webkit_WebView_FLAG_CLIP_CHILDREN 1L
 #undef android_webkit_WebView_FLAG_INVALIDATE_REQUIRED

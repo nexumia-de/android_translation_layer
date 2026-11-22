@@ -257,6 +257,8 @@ public class TextView extends View {
 			setNativeTextColor(current_text_color);
 	}
 	public void setTextColor(int color) {
+		/* like Android, a later state change keeps this colour */
+		colors = ColorStateList.valueOf(color);
 		applyTextColor(color);
 	}
 	public void setTextColor(ColorStateList colors) {
@@ -266,10 +268,17 @@ public class TextView extends View {
 		}
 	}
 	@Override
-	public void drawableStateChanged() {
+	protected void drawableStateChanged() {
 		super.drawableStateChanged();
 		if (colors != null && colors.isStateful())
 			updateTextColor();
+
+		final int[] state = getDrawableState();
+		for (Drawable dr : new Drawable[] {drawableLeft, drawableTop, drawableRight, drawableBottom}) {
+			if (dr != null && dr.isStateful() && dr.setState(state)) {
+				invalidateDrawable(dr);
+			}
+		}
 	}
 
 	private void updateTextColor() {

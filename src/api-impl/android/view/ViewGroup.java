@@ -577,18 +577,50 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	}
 
 	@Override
-	protected void dispatchSetPressed(boolean pressed) {}
+	/* Copyright (C) 2006 The Android Open Source Project */
+	protected void drawableStateChanged() {
+		super.drawableStateChanged();
 
-	@Override
-	protected void dispatchSetSelected(boolean selected) {
-		for (int i = 0; i < getChildCount(); i++)
-			getChildAt(i).setSelected(selected);
+		if (children == null)
+			return;
+		for (View child : children) {
+			if (child.isDuplicateParentStateEnabled()) {
+				child.refreshDrawableState();
+			}
+		}
 	}
 
 	@Override
-	protected void dispatchSetActivated(boolean activated) {
-		for (int i = 0; i < getChildCount(); i++)
-			getChildAt(i).setActivated(activated);
+	/* Copyright (C) 2006 The Android Open Source Project */
+	public void dispatchSetSelected(boolean selected) {
+		if (children == null)
+			return;
+		for (View child : children)
+			child.setSelected(selected);
+	}
+
+	@Override
+	/* Copyright (C) 2006 The Android Open Source Project */
+	public void dispatchSetActivated(boolean activated) {
+		if (children == null)
+			return;
+		for (View child : children)
+			child.setActivated(activated);
+	}
+
+	@Override
+	/* Copyright (C) 2006 The Android Open Source Project */
+	protected void dispatchSetPressed(boolean pressed) {
+		if (children == null)
+			return;
+		for (View child : children) {
+			// Children that are clickable on their own should not
+			// show a pressed state when their parent view does.
+			// Clearing a pressed state always propagates.
+			if (!pressed || (!child.isClickable() && !child.isLongClickable())) {
+				child.setPressed(pressed);
+			}
+		}
 	}
 
 	@Override
