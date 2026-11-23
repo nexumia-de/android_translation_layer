@@ -92,3 +92,13 @@ JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetItems(JNIEnv *env, 
 	g_object_set_data(G_OBJECT(list), "this", _REF(this));
 	g_object_set_data(G_OBJECT(list), "on_click", _REF(on_click));
 }
+
+JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetView(JNIEnv *env, jobject this, jlong ptr, jlong widget_ptr)
+{
+	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
+	GtkWidget *widget = gtk_widget_get_parent(GTK_WIDGET(_PTR(widget_ptr)));
+	GtkWidget *content_area = gtk_window_get_child(dialog);
+	GtkWidget *label = g_object_get_data(G_OBJECT(dialog), "label");
+
+	gtk_widget_insert_after(widget, content_area, label);
+}

@@ -31,6 +31,14 @@ JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetMessage
 JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetItems
   (JNIEnv *, jobject, jlong, jobjectArray, jobject);
 
+/*
+ * Class:     android_app_AlertDialog
+ * Method:    nativeSetView
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetView
+  (JNIEnv *, jobject, jlong, jlong);
+
 #ifdef __cplusplus
 }
 #endif
