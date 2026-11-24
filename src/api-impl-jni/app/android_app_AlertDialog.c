@@ -69,9 +69,10 @@ JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetMessage(JNIEnv *env
 {
 	GtkWindow *dialog = GTK_WINDOW(_PTR(ptr));
 	GtkLabel *label = g_object_get_data(G_OBJECT(dialog), "label");
-	const char *nativeMessage = (*env)->GetStringUTFChars(env, message, NULL);
+	const char *nativeMessage = message ? (*env)->GetStringUTFChars(env, message, NULL) : NULL;
 	gtk_label_set_text(label, nativeMessage);
-	(*env)->ReleaseStringUTFChars(env, message, nativeMessage);
+	if (message)
+		(*env)->ReleaseStringUTFChars(env, message, nativeMessage);
 }
 
 JNIEXPORT void JNICALL Java_android_app_AlertDialog_nativeSetItems(JNIEnv *env, jobject this, jlong ptr, jobjectArray items, jobject on_click)

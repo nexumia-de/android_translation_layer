@@ -33,7 +33,7 @@ public class AlertDialog extends Dialog implements DialogInterface {
 
 	public void setMessage(CharSequence message) {
 		System.out.println("AlertDialog setMessage called with: '" + message + "'");
-		nativeSetMessage(nativePtr, String.valueOf(message));
+		nativeSetMessage(nativePtr, message != null ? String.valueOf(message) : null);
 	}
 
 	public void setButton(int whichButton, CharSequence text, OnClickListener listener) {
@@ -46,7 +46,7 @@ public class AlertDialog extends Dialog implements DialogInterface {
 				dismiss();
 			}
 		});
-		button.setVisibility(View.VISIBLE);
+		button.setVisibility(text == null ? View.GONE : View.VISIBLE);
 	}
 
 	public Button getButton(int whichButton) {
