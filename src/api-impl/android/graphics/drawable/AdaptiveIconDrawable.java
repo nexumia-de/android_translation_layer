@@ -20,7 +20,6 @@ package android.graphics.drawable;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 //import android.annotation.TestApi;
-import android.app.ActivityThread;
 //import android.content.pm.ActivityInfo.Config;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
@@ -153,11 +152,10 @@ public class AdaptiveIconDrawable extends Drawable implements Drawable.Callback 
 	 */
 	AdaptiveIconDrawable(@Nullable LayerState state, @Nullable Resources res) {
 		mLayerState = createConstantState(state, res);
-		// config_icon_mask from context bound resource may have been chaged using
-		// OverlayManager. Read that one first.
-		Resources r = ActivityThread.currentActivityThread() == null
-		                ? Resources.getSystem()
-		                : ActivityThread.currentActivityThread().getApplication().getResources();
+		// ATL has no OverlayManager, so config_icon_mask always comes from the framework. Asking
+		// ActivityThread for the application here would construct the app's own Application class
+		// (native libraries, protectors) in the middle of drawing an icon, e.g. while installing.
+		Resources r = Resources.getSystem();
 		// TODO: either make sMask update only when config_icon_mask changes OR
 		// get rid of it all-together in layoutlib
 		sMask = PathParser.createPathFromPathData(r.getString(R.string.config_icon_mask));

@@ -20,7 +20,7 @@ static void on_network_changed(GNetworkMonitor *self, gboolean network_available
 	JNIEnv *env = get_jni_env();
 	J__ConnectivityManager__onNetworkChanged(env, callback, network_available);
 	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 }
 
 JNIEXPORT void JNICALL Java_android_net_ConnectivityManager_nativeRegisterNetworkCallback(JNIEnv *env, jobject this, jobject callback)

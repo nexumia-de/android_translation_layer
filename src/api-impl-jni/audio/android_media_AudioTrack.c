@@ -164,7 +164,7 @@ void periodic_update_callback(snd_async_handler_t *pcm_callback)
 		J__AudioTrack__OnPlaybackPositionUpdateListener__onPeriodicNotification(env, d->listener, d->this);
 
 	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 
 	if (attach_ret == JNI_OK) // if we (succesfully) attached a thread, we should probably detach it now
 		(*d->jvm)->DetachCurrentThread(d->jvm);

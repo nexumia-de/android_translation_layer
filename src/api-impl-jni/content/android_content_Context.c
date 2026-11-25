@@ -72,7 +72,7 @@ static gboolean apply_window_size(gpointer user_data)
 		set_screen_size(env, sys_config);
 		(*env)->CallStaticVoidMethod(env, context, (*env)->GetStaticMethodID(env, context, "atlScreenSizeChanged", "()V"));
 		if ((*env)->ExceptionCheck(env))
-			(*env)->ExceptionDescribe(env);
+			atl_callback_exception(env);
 		activities_screen_size_changed(env);
 	}
 	(*env)->PopLocalFrame(env, NULL);
@@ -469,7 +469,7 @@ static gboolean on_new_endpoint(Connector1 *connector, GDBusMethodInvocation *in
 	jobject context = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "this_application", "Landroid/app/Application;");
 	J__Context__sendBroadcast(env, context, intent);
 	if ((*env)->ExceptionCheck(env)) {
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 	}
 	return TRUE;
 }
@@ -497,7 +497,7 @@ static gboolean on_message(Connector1 *connector, GDBusMethodInvocation *invocat
 	jobject context = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "this_application", "Landroid/app/Application;");
 	J__Context__sendBroadcast(env, context, intent);
 	if ((*env)->ExceptionCheck(env)) {
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 	}
 	connector1_complete_message(connector, invocation);
 	return TRUE;
@@ -517,7 +517,7 @@ static gboolean on_unregistered(Connector1 *connector, GDBusMethodInvocation *in
 	jobject context = _GET_STATIC_OBJ_FIELD(_CACHED_CLASS(Context), "this_application", "Landroid/app/Application;");
 	J__Context__sendBroadcast(env, context, intent);
 	if ((*env)->ExceptionCheck(env)) {
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 	}
 	return TRUE;
 }

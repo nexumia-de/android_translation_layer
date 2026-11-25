@@ -19,6 +19,12 @@ char *get_app_data_dir();
 
 void prepare_main_looper(JNIEnv *env);
 
+/* For native code that calls into Java from a GLib/GTK callback (no Java caller to propagate to):
+ * prints and clears a pending Java exception, so it does not stay pending and abort the app at the
+ * next JNI call. ATL_ABORT_ON_CALLBACK_EXCEPTION=1 aborts instead, for debugging. */
+void _atl_callback_exception(JNIEnv *env, const char *where);
+#define atl_callback_exception(env) _atl_callback_exception(env, __func__)
+
 /* we don't (currently?) install the headers for liblog */
 typedef enum {
 	LOG_ID_MAIN = 0,

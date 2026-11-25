@@ -106,9 +106,53 @@ static const char *get_cacerts_dir(void)
 	return dir;
 }
 
+/* the Android process name (the package name), set once the app is parsed */
+char *atl_process_name = NULL;
+
+/* Android sets a process's argv[0] to its process name, and libraries (Firebase sessions, WorkManager
+ * on old SDKs) read it from /proc/<pid>/cmdline. Here that file holds ATL's whole command line, which
+ * Firebase base64-encodes into a file name longer than NAME_MAX, so its datastore can never be
+ * written. Serve a file that holds only the process name instead. */
+static bool is_own_cmdline(const char *path)
+{
+	if (!strcmp(path, "/proc/self/cmdline") || !strcmp(path, "/proc/thread-self/cmdline"))
+		return true;
+	char own[64];
+	snprintf(own, sizeof(own), "/proc/%d/cmdline", getpid());
+	return !strcmp(path, own);
+}
+
+static const char *get_cmdline_file(void)
+{
+	static char *file = NULL;
+	static bool tried = false;
+
+	if (tried)
+		return file;
+	tried = true;
+	char *name = g_strdup_printf("atl-cmdline-%s", atl_process_name);
+	char *candidate = g_build_filename(g_get_user_cache_dir(), name, NULL);
+	g_free(name);
+	g_mkdir_with_parents(g_get_user_cache_dir(), 0700);
+	/* "name\0", like Android's cmdline */
+	if (g_file_set_contents(candidate, atl_process_name, strlen(atl_process_name) + 1, NULL))
+		file = candidate;
+	else
+		g_free(candidate);
+	return file;
+}
+
 bool apply_path_overrides(char **path)
 {
 	bool free_path = false;
+
+	if (atl_process_name && is_own_cmdline(*path)) {
+		const char *cmdline_file = get_cmdline_file();
+		if (cmdline_file) {
+			*path = (char *)cmdline_file;
+			return false;
+		}
+	}
 
 	/* TODO: read the overrides from a config file */
 	/* TODO: compare with canonicalized path */

@@ -226,6 +226,15 @@ public final class ATLLoadedApp {
 		return Class.forName(name, false, class_loader);
 	}
 
+	/* for installing: a plain Application in place of the app's own, so that framework code asking
+	 * for the application (e.g. AdaptiveIconDrawable) never loads and runs the app's class */
+	public void setPlainApplication(Application application) {
+		synchronized (this.init_lock) {
+			if (this.application == null)
+				this.application = application;
+		}
+	}
+
 	public Application getApplication() {
 		try {
 			return this.getApplicationUnsafe();

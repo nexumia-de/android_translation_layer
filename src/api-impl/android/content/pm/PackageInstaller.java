@@ -289,6 +289,10 @@ public class PackageInstaller {
 	 * like on Android: its cached package is dropped and it gets ACTION_PACKAGE_ADDED/REMOVED.
 	 */
 	public static void watchInstalledApks() {
+		/* in a Flatpak the directory exists only for apps that may list installed apps through the
+		 * installer service (app stores); for every other app there is nothing to watch */
+		if (ATLPaths.in_flatpak && !ATLPaths.installed_apks_dir.isDirectory())
+			return; // checked again after the next refresh
 		synchronized (seenApks) {
 			if (watching)
 				return;
@@ -305,6 +309,7 @@ public class PackageInstaller {
 		}
 		final WatchService watcher;
 		try {
+			ATLPaths.installed_apks_dir.mkdirs();
 			watcher = FileSystems.getDefault().newWatchService();
 			ATLPaths.installed_apks_dir.toPath().register(watcher, StandardWatchEventKinds.ENTRY_CREATE,
 			                                              StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);

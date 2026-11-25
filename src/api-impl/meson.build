@@ -512,6 +512,7 @@ srcs = [
 	'android/os/ParcelFormatException.java',
 	'android/os/PatternMatcher.java',
 	'android/os/PersistableBundle.java',
+	'android/os/PerformanceHintManager.java',
 	'android/os/PowerManager.java',
 	'android/os/Process.java',
 	'android/os/RemoteCallbackList.java',

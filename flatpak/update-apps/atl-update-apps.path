@@ -6,6 +6,10 @@ Description=Watch the ATL engine for updates
 
 [Path]
 PathChanged=@BASE_DEPLOY_DIR@
+# Flatpak writes this file when a transaction is done: the deploy directory
+# changes while the new engine is still being deployed, and a change that
+# happens while the service runs does not start it again
+PathChanged=@FLATPAK_USER_DIR@/.changed
 
 [Install]
 WantedBy=default.target

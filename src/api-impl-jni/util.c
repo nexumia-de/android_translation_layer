@@ -1,6 +1,9 @@
 #include <dlfcn.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <gtk/gtk.h>
 
@@ -49,6 +52,22 @@ void _gdb_get_java_stack_trace(void)
 {
 	JNIEnv *env = get_jni_env();
 	(*env)->ExceptionDescribe(env);
+}
+
+void _atl_callback_exception(JNIEnv *env, const char *where)
+{
+	if (!(*env)->ExceptionCheck(env))
+		return;
+	fprintf(stderr, "ATL: uncaught Java exception in %s:\n", where);
+	(*env)->ExceptionDescribe(env);
+	static int abort_on_exception = -1;
+	if (abort_on_exception < 0) {
+		const char *value = getenv("ATL_ABORT_ON_CALLBACK_EXCEPTION");
+		abort_on_exception = value && *value && strcmp(value, "0");
+	}
+	if (abort_on_exception)
+		abort();
+	(*env)->ExceptionClear(env);
 }
 
 void _gdb_force_java_stack_trace(void)

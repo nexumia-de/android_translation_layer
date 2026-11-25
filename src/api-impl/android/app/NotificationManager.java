@@ -16,6 +16,34 @@ public class NotificationManager {
 
 	public void cancelAll() {}
 
+	/* importance of the app's channels, and the ids shown so far (for setOnlyAlertOnce) */
+	private static final java.util.Map<String, Integer> channel_importance = new java.util.HashMap<>();
+	private static final java.util.Set<Integer> shown_ids = new java.util.HashSet<>();
+
+	/* GNotificationPriority: 0 LOW, 1 NORMAL, 2 HIGH, 3 URGENT. A notification that is updated
+	 * while it is shown (progress, setOnlyAlertOnce, ongoing) or that the app marks as unimportant
+	 * becomes LOW, so the shell (and a watch bridge) does not alert at every update, as on Android. */
+	private static int gnotification_priority(int id, Notification notification) {
+		boolean already_shown;
+		synchronized (shown_ids) {
+			already_shown = !shown_ids.add(id);
+		}
+		Integer importance = null;
+		if (notification.channelId != null)
+			synchronized (channel_importance) {
+				importance = channel_importance.get(notification.channelId);
+			}
+		if (importance != null && importance <= 2) // IMPORTANCE_LOW, MIN, NONE
+			return 0;
+		if (notification.priority < 0) // PRIORITY_LOW, PRIORITY_MIN
+			return 0;
+		if (notification.hasProgress || (notification.onlyAlertOnce && already_shown) || (notification.ongoing && already_shown))
+			return 0;
+		if ((importance != null && importance >= 4) || notification.priority > 0) // IMPORTANCE_HIGH, PRIORITY_HIGH/MAX
+			return 2;
+		return 1;
+	}
+
 	public void notify(String tag, int id, Notification notification) {
 		if (notification.style instanceof MediaStyle) { // MPRIS content is handled by MediaSession implementation
 			if (mpris_notification_id == -1) {
@@ -44,7 +72,7 @@ public class NotificationManager {
 			intent = notification.intent.intent;
 		}
 		String iconPath = notification.iconPath == null || notification.iconPath.endsWith(".xml") ? null : notification.iconPath;
-		nativeShowNotification(builder, id, notification.title, notification.text, iconPath, notification.ongoing, intentType, intent);
+		nativeShowNotification(builder, id, notification.title, notification.text, iconPath, notification.ongoing, gnotification_priority(id, notification), intentType, intent);
 	}
 
 	public void notify(int id, Notification notification) {
@@ -57,6 +85,9 @@ public class NotificationManager {
 		new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
 			@Override
 			public void run() {
+				synchronized (shown_ids) {
+					shown_ids.remove(id);
+				}
 				if (mpris_notification_id == id) {
 					mpris_notification_id = -1;
 					nativeCancelMPRIS();
@@ -71,11 +102,16 @@ public class NotificationManager {
 		cancel(null, id);
 	}
 
-	public void createNotificationChannel(NotificationChannel channel) {}
+	public void createNotificationChannel(NotificationChannel channel) {
+		if (channel != null && channel.getId() != null)
+			synchronized (channel_importance) {
+				channel_importance.put(channel.getId(), channel.getImportance());
+			}
+	}
 
 	protected native long nativeInitBuilder();
 	protected native void nativeAddAction(long builder, String title, int intentType, Intent intent);
-	protected native void nativeShowNotification(long builder, int id, String title, String text, String iconPath, boolean ongoing, int intentType, Intent intent);
+	protected native void nativeShowNotification(long builder, int id, String title, String text, String iconPath, boolean ongoing, int priority, int intentType, Intent intent);
 	protected native void nativeShowMPRIS(String packageName, String identiy);
 	protected native void nativeCancel(int id);
 	protected native void nativeCancelMPRIS();

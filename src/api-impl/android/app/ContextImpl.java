@@ -233,6 +233,8 @@ public final class ContextImpl extends Context {
 				return new RestrictionsManager();
 			case "textservices":
 				return new android.view.textservice.TextServicesManager();
+			case "performance_hint":
+				return new android.os.PerformanceHintManager();
 			default:
 				Slog.e(TAG, "!!!!!!! getSystemService: case >" + name + "< is not implemented yet");
 				return null;

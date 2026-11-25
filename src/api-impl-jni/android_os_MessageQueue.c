@@ -30,7 +30,7 @@ static gboolean dispatch_func(GSource *source, GSourceFunc callback, gpointer us
 	g_source_set_ready_time(source, -1); // clear previous timeout
 	J__Looper__loop(env);
 	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 
 	return G_SOURCE_CONTINUE;
 }
@@ -46,7 +46,7 @@ void prepare_main_looper(JNIEnv *env)
 
 	J__Looper__prepareMainLooper(env);
 	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 	source = g_source_new(&source_funcs, sizeof(GSource));
 	JavaVM *jvm;
 	(*env)->GetJavaVM(env, &jvm);

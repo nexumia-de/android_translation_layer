@@ -96,6 +96,26 @@ char *construct_classpath(char *prefix, char **cp_array, size_t len)
 #define JDWP_ARG    "-XjdwpOptions:transport=dt_socket,server=y,suspend=y,address="
 #define SDK_INT_ARG "-DBuild.VERSION.SDK_INT="
 
+extern char *atl_process_name;
+
+/* for /proc/self/cmdline (see libc_bio_path_overrides.c); before any app code runs */
+static void set_process_name(JNIEnv *env)
+{
+	jclass application_class = (*env)->FindClass(env, "android/app/Application");
+	jmethodID get_process_name = application_class ? (*env)->GetStaticMethodID(env, application_class, "getProcessName", "()Ljava/lang/String;") : NULL;
+	jstring name = get_process_name ? (*env)->CallStaticObjectMethod(env, application_class, get_process_name) : NULL;
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+		return;
+	}
+	if (name) {
+		const char *chars = (*env)->GetStringUTFChars(env, name, NULL);
+		atl_process_name = g_strdup(chars);
+		(*env)->ReleaseStringUTFChars(env, name, chars);
+	}
+}
+
 JNIEnv *create_vm(char *api_impl_jar, char *apk_classpath, char *framework_res_apk, char *test_runner_jar, char *api_impl_natives_dir, char *app_lib_dir, char *sdk_int, char **extra_jvm_options)
 {
 	JavaVM *jvm;
@@ -1354,6 +1374,18 @@ static GDBusMessage *dbus_request_filter(GDBusConnection *connection, GDBusMessa
 		dbus_request = request;
 	g_cond_signal(&dbus_request_cond);
 	g_mutex_unlock(&dbus_request_mutex);
+	/* Activate is what the launcher sends to start the app, which this process does anyway, and
+	 * activate() ignores it while the app starts. Answer it here: dispatched as usual, the answer
+	 * would wait until the app has started, and on the first start after an engine update (dex2oat,
+	 * about a minute) Phosh gives up after 25 s and shows "Failed to launch". */
+	if (!g_strcmp0(g_dbus_message_get_member(message), "Activate") &&
+	    !(g_dbus_message_get_flags(message) & G_DBUS_MESSAGE_FLAGS_NO_REPLY_EXPECTED)) {
+		GDBusMessage *reply = g_dbus_message_new_method_reply(message);
+		g_dbus_connection_send_message(connection, reply, G_DBUS_SEND_MESSAGE_FLAGS_NONE, NULL, NULL);
+		g_object_unref(reply);
+		g_object_unref(message);
+		return NULL;
+	}
 	return message;
 }
 
@@ -1949,6 +1981,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		if (d->install_flatpak && !d->install_ask)
 			install_flatpak(d, env, application_object, files, nfiles, app_data_dir_existed);
 	} else {
+		set_process_name(env);
 		// construct Application
 		application_object = J__Context__createApplication(env, _INTPTR(window));
 		if ((*env)->ExceptionCheck(env))

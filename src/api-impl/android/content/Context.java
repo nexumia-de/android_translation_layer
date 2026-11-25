@@ -92,6 +92,7 @@ public abstract class Context {
 	public static final String LOCATION_SERVICE = "location";
 	public static final String MEDIA_ROUTER_SERVICE = "media_router";
 	public static final String POWER_SERVICE = "power";
+	public static final String PERFORMANCE_HINT_SERVICE = "performance_hint";
 	public static final String VIBRATOR_SERVICE = "vibrator";
 	public static final String VIBRATOR_MANAGER_SERVICE = "vibrator_manager";
 	public static final String WINDOW_SERVICE = "window";
