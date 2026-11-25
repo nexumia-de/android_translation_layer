@@ -82,6 +82,7 @@ if [ -n "$install_units" ]; then
 	changed=
 	for unit in atl-update-apps.service atl-update-apps.path; do
 		sed -e "s|@SCRIPT@|$script|" -e "s|@BASE@|$base|" -e "s|@BASE_DEPLOY_DIR@|$(dirname "$base_dir")|" \
+			-e "s|@FLATPAK_USER_DIR@|${FLATPAK_USER_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/flatpak}|" \
 			"$units_dir/$unit" > "$config/$unit.new"
 		if cmp -s "$config/$unit.new" "$config/$unit"; then
 			rm "$config/$unit.new"
@@ -110,6 +111,7 @@ exec 9>"$lock"
 flock 9
 settle_base || exit 1
 
+update_all() {
 status=0
 for id in "$@"; do
 	app_dir=$user_dir/app/$id/current/active
@@ -170,5 +172,19 @@ for id in "$@"; do
 		status=1
 	fi
 	rm -rf "$work"
+done
+}
+
+# Flatpak may deploy a newer engine while the apps are copied (the path unit
+# does not start this again while it runs): repeat until the engine stays
+rounds=0
+while :; do
+	used_commit=$base_commit
+	update_all "$@"
+	settle_base || exit 1
+	[ "$base_commit" = "$used_commit" ] && break
+	rounds=$((rounds + 1))
+	[ $rounds -lt 3 ] || { echo "$base: engine keeps changing, giving up" >&2; exit 1; }
+	echo "engine changed to ${base_commit%"${base_commit#????????????}"} during the update, again"
 done
 exit $status
