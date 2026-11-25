@@ -105,9 +105,10 @@ JNIEXPORT void JNICALL Java_android_app_NotificationManager_nativeAddAction(JNIE
 		(*env)->ReleaseStringUTFChars(env, name_jstr, name);
 }
 
-JNIEXPORT void JNICALL Java_android_app_NotificationManager_nativeShowNotification(JNIEnv *env, jobject this, jlong builder_ptr, jint id, jstring title_jstr, jstring text_jstr, jstring icon_jstr, jboolean ongoing, jint type, jobject intent)
+JNIEXPORT void JNICALL Java_android_app_NotificationManager_nativeShowNotification(JNIEnv *env, jobject this, jlong builder_ptr, jint id, jstring title_jstr, jstring text_jstr, jstring icon_jstr, jboolean ongoing, jint priority, jint type, jobject intent)
 {
 	GNotification *notification = _PTR(builder_ptr);
+	g_notification_set_priority(notification, CLAMP(priority, G_NOTIFICATION_PRIORITY_LOW, G_NOTIFICATION_PRIORITY_URGENT));
 
 	if (title_jstr) {
 		const char *title = (*env)->GetStringUTFChars(env, title_jstr, NULL);

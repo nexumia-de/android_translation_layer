@@ -36,10 +36,10 @@ JNIEXPORT void JNICALL Java_android_app_NotificationManager_nativeAddAction
 /*
  * Class:     android_app_NotificationManager
  * Method:    nativeShowNotification
- * Signature: (JILjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILandroid/content/Intent;)V
+ * Signature: (JILjava/lang/String;Ljava/lang/String;Ljava/lang/String;ZIILandroid/content/Intent;)V
  */
 JNIEXPORT void JNICALL Java_android_app_NotificationManager_nativeShowNotification
-  (JNIEnv *, jobject, jlong, jint, jstring, jstring, jstring, jboolean, jint, jobject);
+  (JNIEnv *, jobject, jlong, jint, jstring, jstring, jstring, jboolean, jint, jint, jobject);
 
 /*
  * Class:     android_app_NotificationManager

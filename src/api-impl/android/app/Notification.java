@@ -73,6 +73,8 @@ public class Notification implements Parcelable {
 	String iconPath;
 	boolean ongoing;
 	Style style;
+	boolean onlyAlertOnce;
+	boolean hasProgress;
 
 	public String toString() {
 		return "Notification [" + title + ", " + text + ", " + actions + "]";
@@ -89,8 +91,14 @@ public class Notification implements Parcelable {
 			notification = new Notification();
 		}
 
-		public Builder(Context context, String tag) {
+		public Builder(Context context, String channelId) {
 			this(context);
+			notification.channelId = channelId;
+		}
+
+		public Builder setChannelId(String channelId) {
+			notification.channelId = channelId;
+			return this;
 		}
 
 		public Builder setWhen(long when) { return this; }
@@ -113,7 +121,10 @@ public class Notification implements Parcelable {
 			return this;
 		}
 
-		public Builder setOnlyAlertOnce(boolean onlyAlertOnce) { return this; }
+		public Builder setOnlyAlertOnce(boolean onlyAlertOnce) {
+			notification.onlyAlertOnce = onlyAlertOnce;
+			return this;
+		}
 
 		public Builder setAutoCancel(boolean autoCancel) { return this; }
 
@@ -145,13 +156,19 @@ public class Notification implements Parcelable {
 
 		public Builder setNumber(int number) { return this; }
 
-		public Builder setProgress(int max, int progress, boolean indeterminate) { return this; }
+		public Builder setProgress(int max, int progress, boolean indeterminate) {
+			notification.hasProgress = max > 0 || indeterminate;
+			return this;
+		}
 
 		public Builder setSubText(CharSequence subText) { return this; }
 
 		public Builder setUsesChronometer(boolean useChronometer) { return this; }
 
-		public Builder setPriority(int priority) { return this; }
+		public Builder setPriority(int priority) {
+			notification.priority = priority;
+			return this;
+		}
 
 		public Builder setShowWhen(boolean showWhen) { return this; }
 
