@@ -27,6 +27,7 @@ public class Application extends ContextWrapper {
 		ATLLoadedApp app = ATLLoadedApp.getPrimaryApplication();
 		Application application = new Application();
 		application.atl_attach_base_context(new ContextImpl(app.createDefaultResources(), app, app.pkg.applicationInfo.theme));
+		app.setPlainApplication(application);
 		return application;
 	}
 
