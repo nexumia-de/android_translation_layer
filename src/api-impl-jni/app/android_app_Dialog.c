@@ -29,7 +29,7 @@ static void dialog_dismiss(GtkWidget *dialog)
 	jmethodID dismiss = _METHOD(_CLASS(jobj), "dismiss", "()V");
 	(*env)->CallVoidMethod(env, jobj, dismiss);
 	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 }
 
 /* a tap on the scrim, outside the content: like Android (ACTION_UP outside the window), on the

@@ -43,7 +43,7 @@ static void popupmenu_activated(GSimpleAction *action, GVariant *parameter, gpoi
 	jobject this = (jobject)user_data;
 	J__PopupMenu__menuItemClickCallback(env, this, id);
 	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 }
 
 static const GActionEntry action_entry = {"clicked", popupmenu_activated, "i", NULL, NULL};

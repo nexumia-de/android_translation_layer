@@ -87,7 +87,7 @@ static void android_layout_allocate(GtkLayoutManager *layout_manager, GtkWidget 
 
 	J__View__layoutInternal(env, layout->view, width, height);
 	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 }
 
 static GtkSizeRequestMode android_layout_get_request_mode(GtkLayoutManager *layout_manager, GtkWidget *widget)

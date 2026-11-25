@@ -28,7 +28,7 @@ static void clicked_cb(GtkWidget *button, gpointer user_data)
 	J__View__performClick(env, wrapper->jobj);
 
 	if ((*env)->ExceptionCheck(env))
-		(*env)->ExceptionDescribe(env);
+		atl_callback_exception(env);
 }
 
 JNIEXPORT void JNICALL Java_android_widget_ImageButton_nativeSetOnClickListener(JNIEnv *env, jobject this, jlong widget_ptr)
