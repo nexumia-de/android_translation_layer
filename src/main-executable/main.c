@@ -1374,6 +1374,18 @@ static GDBusMessage *dbus_request_filter(GDBusConnection *connection, GDBusMessa
 		dbus_request = request;
 	g_cond_signal(&dbus_request_cond);
 	g_mutex_unlock(&dbus_request_mutex);
+	/* Activate is what the launcher sends to start the app, which this process does anyway, and
+	 * activate() ignores it while the app starts. Answer it here: dispatched as usual, the answer
+	 * would wait until the app has started, and on the first start after an engine update (dex2oat,
+	 * about a minute) Phosh gives up after 25 s and shows "Failed to launch". */
+	if (!g_strcmp0(g_dbus_message_get_member(message), "Activate") &&
+	    !(g_dbus_message_get_flags(message) & G_DBUS_MESSAGE_FLAGS_NO_REPLY_EXPECTED)) {
+		GDBusMessage *reply = g_dbus_message_new_method_reply(message);
+		g_dbus_connection_send_message(connection, reply, G_DBUS_SEND_MESSAGE_FLAGS_NONE, NULL, NULL);
+		g_object_unref(reply);
+		g_object_unref(message);
+		return NULL;
+	}
 	return message;
 }
 
