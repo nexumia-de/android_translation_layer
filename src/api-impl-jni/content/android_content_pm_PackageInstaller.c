@@ -200,7 +200,11 @@ JNIEXPORT void JNICALL Java_android_content_pm_PackageInstaller_nativeRefreshIns
 	GError *err = NULL;
 	GVariant *reply = call_service("List", NULL, "(a(sh))", NULL, &fds, &err);
 	if (!reply) {
-		fprintf(stderr, "list through the installer service: %s\n", err->message);
+		/* the same answer at every refresh (apps without REQUEST_INSTALL_PACKAGES), say it once */
+		static gboolean reported = FALSE;
+		if (!reported)
+			fprintf(stderr, "list through the installer service: %s\n", err->message);
+		reported = TRUE;
 		g_error_free(err);
 		return;
 	}

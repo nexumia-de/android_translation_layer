@@ -96,6 +96,26 @@ char *construct_classpath(char *prefix, char **cp_array, size_t len)
 #define JDWP_ARG    "-XjdwpOptions:transport=dt_socket,server=y,suspend=y,address="
 #define SDK_INT_ARG "-DBuild.VERSION.SDK_INT="
 
+extern char *atl_process_name;
+
+/* for /proc/self/cmdline (see libc_bio_path_overrides.c); before any app code runs */
+static void set_process_name(JNIEnv *env)
+{
+	jclass application_class = (*env)->FindClass(env, "android/app/Application");
+	jmethodID get_process_name = application_class ? (*env)->GetStaticMethodID(env, application_class, "getProcessName", "()Ljava/lang/String;") : NULL;
+	jstring name = get_process_name ? (*env)->CallStaticObjectMethod(env, application_class, get_process_name) : NULL;
+	if ((*env)->ExceptionCheck(env)) {
+		(*env)->ExceptionDescribe(env);
+		(*env)->ExceptionClear(env);
+		return;
+	}
+	if (name) {
+		const char *chars = (*env)->GetStringUTFChars(env, name, NULL);
+		atl_process_name = g_strdup(chars);
+		(*env)->ReleaseStringUTFChars(env, name, chars);
+	}
+}
+
 JNIEnv *create_vm(char *api_impl_jar, char *apk_classpath, char *framework_res_apk, char *test_runner_jar, char *api_impl_natives_dir, char *app_lib_dir, char *sdk_int, char **extra_jvm_options)
 {
 	JavaVM *jvm;
@@ -1949,6 +1969,7 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 		if (d->install_flatpak && !d->install_ask)
 			install_flatpak(d, env, application_object, files, nfiles, app_data_dir_existed);
 	} else {
+		set_process_name(env);
 		// construct Application
 		application_object = J__Context__createApplication(env, _INTPTR(window));
 		if ((*env)->ExceptionCheck(env))
