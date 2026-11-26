@@ -10,9 +10,11 @@ import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Rect;
+import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Slog;
+import android.util.SparseArray;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -676,6 +678,16 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 
 	public boolean isTransitionGroup() { return false; }
 
+	/* drawing order = child order; ATL does not call this, but subclasses chain to it */
+	protected int getChildDrawingOrder(int childCount, int drawingPosition) {
+		return drawingPosition;
+	}
+
+	/* the view hierarchy is not saved yet (see View.saveHierarchyState) */
+	protected void dispatchFreezeSelfOnly(SparseArray<Parcelable> container) {}
+
+	protected void dispatchThawSelfOnly(SparseArray<Parcelable> container) {}
+
 	public static class LayoutParams {
 		public static final int FILL_PARENT = -1;
 		public static final int MATCH_PARENT = -1;
@@ -688,6 +700,13 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 
 		public LayoutParams() {
 			// FIXME
+		}
+
+		public LayoutParams(LayoutParams source) {
+			this.width = source.width;
+			this.height = source.height;
+			this.weight = source.weight;
+			this.gravity = source.gravity;
 		}
 
 		public LayoutParams(int width, int height) {

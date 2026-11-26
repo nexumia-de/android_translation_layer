@@ -639,6 +639,20 @@ public class GradientDrawable extends Drawable {
 	 * @see #mutate()
 	 * @see #setColors(int[])
 	 */
+	/* API 21: only the default colour of the list is used; the drawable does not follow state changes */
+	public void setColor(ColorStateList colorStateList) {
+		setColor(colorStateList != null ? colorStateList.getColorForState(getState(), colorStateList.getDefaultColor()) : Color.TRANSPARENT);
+	}
+
+	public void setStroke(int width, ColorStateList colorStateList) {
+		setStroke(width, colorStateList, 0, 0);
+	}
+
+	public void setStroke(int width, ColorStateList colorStateList, float dashWidth, float dashGap) {
+		int color = colorStateList != null ? colorStateList.getColorForState(getState(), colorStateList.getDefaultColor()) : Color.TRANSPARENT;
+		setStroke(width, color, dashWidth, dashGap);
+	}
+
 	public void setColor(int argb) {
 		mGradientState.setSolidColor(argb);
 		mFillPaint.setColor(argb);

@@ -245,6 +245,10 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 		}
 	}
 
+	public void onAttachedToWindow() {}
+
+	public void onDetachedFromWindow() {}
+
 	@Override
 	public void onContentChanged() {
 	}

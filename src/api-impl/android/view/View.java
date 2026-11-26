@@ -2418,6 +2418,12 @@ public class View implements Drawable.Callback {
 		return factory.inflate(resource, root);
 	}
 
+	public boolean onKeyPreIme(int keyCode, KeyEvent event) {
+		return false;
+	}
+
+	protected void onCreateContextMenu(ContextMenu menu) {}
+
 	public void saveHierarchyState(SparseArray<Parcelable> array) {}
 
 	public void setDuplicateParentStateEnabled(boolean enabled) {

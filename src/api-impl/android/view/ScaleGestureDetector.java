@@ -19,6 +19,11 @@ public class ScaleGestureDetector {
 		return false;
 	}
 
+	/* ATL never reports a scale gesture, so the factor stays neutral */
+	public float getScaleFactor() {
+		return 1.0f;
+	}
+
 	public boolean isInProgress() {
 		return false;
 	}

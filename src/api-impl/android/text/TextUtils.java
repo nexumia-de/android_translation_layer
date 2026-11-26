@@ -24,6 +24,23 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 public class TextUtils {
+
+	/* CharSequences go through a Parcel as plain strings: their spans are lost */
+	public static final android.os.Parcelable.Creator<CharSequence> CHAR_SEQUENCE_CREATOR = new android.os.Parcelable.Creator<CharSequence>() {
+		@Override
+		public CharSequence createFromParcel(android.os.Parcel p) {
+			return p.readString();
+		}
+
+		@Override
+		public CharSequence[] newArray(int size) {
+			return new CharSequence[size];
+		}
+	};
+
+	public static void writeToParcel(CharSequence cs, android.os.Parcel p, int parcelableFlags) {
+		p.writeString(cs != null ? cs.toString() : null);
+	}
 	public static int getLayoutDirectionFromLocale(Locale locale) {
 		return 0 /*LTR*/; // FIXME
 	}

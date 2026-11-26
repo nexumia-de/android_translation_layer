@@ -819,6 +819,26 @@ public final class Bundle extends BaseBundle implements Cloneable, Parcelable {
 	 * @param key a String, or null
 	 * @return a Serializable value, or null
 	 */
+	/* typed getters of API 33: null unless the value is an instance of clazz */
+	public <T> T getParcelable(String key, Class<T> clazz) {
+		Object o = mMap.get(key);
+		return clazz.isInstance(o) ? clazz.cast(o) : null;
+	}
+
+	public <T extends Serializable> T getSerializable(String key, Class<T> clazz) {
+		Object o = mMap.get(key);
+		return clazz.isInstance(o) ? clazz.cast(o) : null;
+	}
+
+	public <T> ArrayList<T> getParcelableArrayList(String key, Class<? extends T> clazz) {
+		Object o = mMap.get(key);
+		return o instanceof ArrayList ? (ArrayList<T>)o : null;
+	}
+
+	public <T> T[] getParcelableArray(String key, Class<T> clazz) {
+		return (T[])getParcelableArray(key);
+	}
+
 	public Serializable getSerializable(String key) {
 		Object o = mMap.get(key);
 		if (o == null) {

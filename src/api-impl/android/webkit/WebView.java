@@ -269,6 +269,9 @@ public class WebView extends ViewGroup {
 
 	public void clearFormData() {}
 
+	/* deprecated since API 18 */
+	public void clearView() {}
+
 	public void clearHistory() {}
 
 	public void clearMatches() {}

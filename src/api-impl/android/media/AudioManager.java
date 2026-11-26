@@ -133,6 +133,10 @@ public class AudioManager {
 
 	public void setBluetoothScoOn(boolean on) {}
 
+	public boolean isBluetoothScoAvailableOffCall() {
+		return false;
+	}
+
 	public boolean isBluetoothScoOn() {
 		return false;
 	}
