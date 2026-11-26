@@ -87,12 +87,35 @@ static void update_content_height(WebKitWebView *web_view, WrapperWidget *wrappe
 	webkit_web_view_evaluate_javascript(web_view, CONTENT_HEIGHT_SCRIPT, -1, NULL, NULL, NULL, content_height_cb, g_object_ref(wrapper));
 }
 
+struct page_finished {
+	WrapperWidget *wrapper;
+	char *uri;
+};
+
+static void page_finished_cb(gpointer user_data)
+{
+	struct page_finished *p = user_data;
+	JNIEnv *env = get_jni_env();
+	J__WebView__internalLoadChanged(env, p->wrapper->jobj, WEBKIT_LOAD_FINISHED, _JSTRING(p->uri));
+	g_object_unref(p->wrapper);
+	g_free(p->uri);
+	g_free(p);
+}
+
 static void web_view_load_changed(WebKitWebView *web_view, WebKitLoadEvent load_event, WrapperWidget *wrapper)
 {
+	if (load_event == WEBKIT_LOAD_FINISHED) {
+		/* onPageFinished once the page's cookies are in CookieManager:
+		 * Aurora Store reads its login token there */
+		struct page_finished *p = g_new(struct page_finished, 1);
+		p->wrapper = g_object_ref(wrapper);
+		p->uri = g_strdup(webkit_web_view_get_uri(web_view));
+		atl_cookies_fetch_then(page_finished_cb, p);
+		update_content_height(web_view, wrapper);
+		return;
+	}
 	JNIEnv *env = get_jni_env();
 	J__WebView__internalLoadChanged(env, wrapper->jobj, load_event, _JSTRING(webkit_web_view_get_uri(web_view)));
-	if (load_event == WEBKIT_LOAD_FINISHED)
-		update_content_height(web_view, wrapper);
 }
 
 static gboolean decide_policy(WebKitWebView *web_view, WebKitPolicyDecision *decision, WebKitPolicyDecisionType type, WrapperWidget *wrapper)

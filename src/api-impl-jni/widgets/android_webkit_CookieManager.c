@@ -103,9 +103,8 @@ static void clear_done_cb(GObject *source, GAsyncResult *result, gpointer user_d
 
 /* ---- cookies a page set come back to CookieManager.java ---- */
 
-static void get_all_done_cb(GObject *source, GAsyncResult *result, gpointer user_data)
+static void deliver_cookies(GObject *source, GAsyncResult *result, int generation)
 {
-	int generation = GPOINTER_TO_INT(user_data);
 	GList *list = webkit_cookie_manager_get_all_cookies_finish(WEBKIT_COOKIE_MANAGER(source), result, NULL);
 	JNIEnv *env = get_jni_env();
 	jobjectArray entries = (*env)->NewObjectArray(env, g_list_length(list), (*env)->FindClass(env, "java/lang/String"), NULL);
@@ -138,6 +137,35 @@ static void get_all_done_cb(GObject *source, GAsyncResult *result, gpointer user
 		(*env)->ExceptionClear(env);
 	}
 	(*env)->DeleteLocalRef(env, entries);
+}
+
+static void get_all_done_cb(GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	deliver_cookies(source, result, GPOINTER_TO_INT(user_data));
+}
+
+/* Android's onPageFinished sees the cookies the page set, so the page's
+ * cookies are copied to CookieManager.java first. Generation -1 never
+ * matches, so this only adds and updates cookies. */
+struct fetch_then {
+	void (*cb)(gpointer);
+	gpointer data;
+};
+
+static void fetch_then_cb(GObject *source, GAsyncResult *result, gpointer user_data)
+{
+	struct fetch_then *f = user_data;
+	deliver_cookies(source, result, -1);
+	f->cb(f->data);
+	g_free(f);
+}
+
+void atl_cookies_fetch_then(void (*cb)(gpointer), gpointer data)
+{
+	struct fetch_then *f = g_new(struct fetch_then, 1);
+	f->cb = cb;
+	f->data = data;
+	webkit_cookie_manager_get_all_cookies(cookie_manager(), NULL, fetch_then_cb, f);
 }
 
 /* a page sets several cookies at once, so ask for the list once they are in */
