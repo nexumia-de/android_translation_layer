@@ -29,4 +29,9 @@ public class TextDirectionHeuristics {
 			return true;
 		}
 	};
+
+	/* ATL lays out left to right only (like LTR above), so these never report RTL */
+	public static final TextDirectionHeuristic ANYRTL_LTR = LTR;
+
+	public static final TextDirectionHeuristic LOCALE = LTR;
 }

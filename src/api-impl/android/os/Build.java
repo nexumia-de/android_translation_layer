@@ -102,6 +102,10 @@ public class Build {
 	 */
 	public static final String HARDWARE = getString("ro.hardware");
 
+	/* API 31 */
+	public static final String SOC_MANUFACTURER = UNKNOWN;
+	public static final String SOC_MODEL = UNKNOWN;
+
 	/**
 	 * A hardware serial number, if available.  Alphanumeric only, case-insensitive.
 	 */

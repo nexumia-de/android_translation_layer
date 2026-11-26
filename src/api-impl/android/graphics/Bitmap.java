@@ -110,6 +110,18 @@ public final class Bitmap implements Parcelable {
 		return dest;
 	}
 
+	public boolean sameAs(Bitmap other) {
+		if (other == this)
+			return true;
+		if (other == null || other.getWidth() != getWidth() || other.getHeight() != getHeight())
+			return false;
+		for (int y = 0; y < getHeight(); y++)
+			for (int x = 0; x < getWidth(); x++)
+				if (getPixel(x, y) != other.getPixel(x, y))
+					return false;
+		return true;
+	}
+
 	public int getWidth() {
 		return width;
 	}

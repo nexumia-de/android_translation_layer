@@ -18,4 +18,11 @@ public interface IBinder {
 	public default boolean pingBinder() {
 		return true;
 	}
+
+	/* there is no remote process whose death could be reported */
+	public default void linkToDeath(DeathRecipient recipient, int flags) throws RemoteException {}
+
+	public default boolean unlinkToDeath(DeathRecipient recipient, int flags) {
+		return true;
+	}
 }

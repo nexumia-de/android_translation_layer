@@ -31,6 +31,10 @@ public class TelephonyManager {
 		return "";
 	}
 
+	public boolean hasCarrierPrivileges() {
+		return false;
+	}
+
 	public String getSimOperator() {
 		return "";
 	}
