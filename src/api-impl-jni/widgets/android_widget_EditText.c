@@ -147,3 +147,13 @@ JNIEXPORT void JNICALL Java_android_widget_EditText_native_1setInputKind(JNIEnv 
 		purpose = GTK_INPUT_PURPOSE_PASSWORD;
 	gtk_text_set_input_purpose(gtk_text, purpose);
 }
+
+JNIEXPORT void JNICALL Java_android_widget_EditText_native_1setTextSize(JNIEnv *env, jobject this, jlong widget_ptr, jfloat size)
+{
+	GtkText *gtk_text = GTK_TEXT(_PTR(widget_ptr));
+	PangoAttrList *old_attrs = gtk_text_get_attributes(gtk_text);
+	PangoAttrList *attrs = old_attrs ? pango_attr_list_copy(old_attrs) : pango_attr_list_new();
+	pango_attr_list_change(attrs, pango_attr_size_new_absolute(size * PANGO_SCALE)); // pixels, as TextView
+	gtk_text_set_attributes(gtk_text, attrs); // also used for the placeholder (hint)
+	pango_attr_list_unref(attrs);
+}

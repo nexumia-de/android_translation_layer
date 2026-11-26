@@ -303,6 +303,14 @@ JNIEXPORT void JNICALL Java_android_widget_EditText_native_1setHint
 JNIEXPORT jobject JNICALL Java_android_widget_EditText_native_1getHint
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     android_widget_EditText
+ * Method:    native_setTextSize
+ * Signature: (JF)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_EditText_native_1setTextSize
+  (JNIEnv *, jobject, jlong, jfloat);
+
 #ifdef __cplusplus
 }
 #endif
