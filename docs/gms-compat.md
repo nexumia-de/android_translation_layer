@@ -80,6 +80,9 @@ the stub. It also needs the feature `google_location_accuracy_enabled`
 (announced in the broker's `ConnectionInfo`, answered "on") and
 updates at the requested interval while the position stays the same,
 as Google's provider sends them; GeoClue reports only changes.
+Bumble is the third (2026-11-26): without the stub it has no location,
+and its People and Liked You pages showed "Something went wrong" while
+Chats and the profile worked; with the stub both pages load.
 
 `ghax.jar` stays: it replaces `AdvertisingIdClient` in the app with one
 that returns a zero advertising ID and "limit ad tracking", locally.
