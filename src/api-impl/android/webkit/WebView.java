@@ -260,6 +260,11 @@ public class WebView extends ViewGroup {
 		native_evaluateJavascript(widget, script, resultCallback, settings.getJavaScriptEnabled());
 	}
 
+	/* WebKitGTK is not an Android package */
+	public static android.content.pm.PackageInfo getCurrentWebViewPackage() {
+		return null;
+	}
+
 	public static void setWebContentsDebuggingEnabled(boolean enabled) {}
 
 	public void clearFormData() {}
