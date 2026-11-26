@@ -36,6 +36,7 @@ srcs = [
 	'android/annotation/Widget.java',
 	'android/app/ActionBar.java',
 	'android/app/Activity.java',
+	'android/app/ViewDump.java',
 	'android/app/ActivityGroup.java',
 	'android/app/ActivityManager.java',
 	'android/app/ActivityOptions.java',
