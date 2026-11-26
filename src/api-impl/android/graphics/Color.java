@@ -85,6 +85,18 @@ public class Color {
 		return color >>> 24;
 	}
 
+	/* relative luminance of an sRGB color, as Android computes it (API 24) */
+	public static float luminance(int color) {
+		double r = linear(red(color) / 255.0);
+		double g = linear(green(color) / 255.0);
+		double b = linear(blue(color) / 255.0);
+		return (float)(0.2126 * r + 0.7152 * g + 0.0722 * b);
+	}
+
+	private static double linear(double c) {
+		return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+	}
+
 	/**
 	 * Return the red component of a color int. This is the same as saying
 	 * (color >> 16) & 0xFF

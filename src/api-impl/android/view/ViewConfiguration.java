@@ -47,6 +47,11 @@ public class ViewConfiguration {
 		return 300;
 	}
 
+	/* hidden in Android, AppsFlyer calls it anyway */
+	public static int getJumpTapTimeout() {
+		return 500;
+	}
+
 	public int getScaledDoubleTapSlop() {
 		return 100;
 	}
