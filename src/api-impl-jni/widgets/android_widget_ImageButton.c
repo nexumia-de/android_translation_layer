@@ -6,6 +6,7 @@
 #include "WrapperWidget.h"
 
 #include "../generated_headers/android_widget_ImageButton.h"
+#include "../generated_headers/android_widget_ImageView.h"
 
 JNIEXPORT jlong JNICALL Java_android_widget_ImageButton_native_1constructor(JNIEnv *env, jobject this, jobject context, jobject attrs)
 {
@@ -14,7 +15,7 @@ JNIEXPORT jlong JNICALL Java_android_widget_ImageButton_native_1constructor(JNIE
 	GtkWidget *image = gtk_picture_new_for_resource("/org/gtk/libgtk/icons/16x16/status/image-missing.png"); // show "broken image" icon
 	gtk_button_set_child(GTK_BUTTON(button), image);
 	/* the view's Android background is the button's look; GTK's frame and shadow would show around it */
-	gtk_widget_add_css_class(button, "ATL-image-button");
+	gtk_widget_add_css_class(button, "ATL-android-button");
 	wrapper_widget_set_child(WRAPPER_WIDGET(wrapper), button);
 	wrapper_widget_set_jobject(WRAPPER_WIDGET(wrapper), env, this);
 
@@ -51,4 +52,12 @@ JNIEXPORT void JNICALL Java_android_widget_ImageButton_native_1setDrawable(JNIEn
 	gtk_picture_set_paintable(picture, paintable);
 
 	gtk_widget_add_css_class(GTK_WIDGET(button), "ATL-no-border");
+}
+
+/* the button's image follows the scale type as an ImageView's: a toolbar's navigation button
+ * (scaleType center) showed its arrow stretched over the whole button */
+JNIEXPORT void JNICALL Java_android_widget_ImageButton_native_1setScaleType(JNIEnv *env, jobject this, jlong widget_ptr, jint scale_type)
+{
+	GtkButton *button = _PTR(widget_ptr);
+	Java_android_widget_ImageView_native_1setScaleType(env, this, _INTPTR(gtk_button_get_child(button)), scale_type);
 }
