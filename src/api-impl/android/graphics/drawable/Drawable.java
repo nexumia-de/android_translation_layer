@@ -386,7 +386,11 @@ public class Drawable {
 				return drawable;
 			}
 			/* without its transitions, which only animate between the states (Material's switch thumb) */
-			case "animated-selector":
+			case "animated-selector": {
+				AnimatedStateListDrawable drawable = new AnimatedStateListDrawable();
+				drawable.inflate(resources, parser, attrs, theme);
+				return drawable;
+			}
 			case "selector": {
 				StateListDrawable drawable = new StateListDrawable();
 				drawable.inflate(resources, parser, attrs, theme);
