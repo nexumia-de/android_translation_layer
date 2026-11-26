@@ -98,6 +98,10 @@ class ViewDump {
 				s.append(" ctx=").append(v.getContext().getClass().getSimpleName()).append(" ccn=").append(ok ? Integer.toHexString(tv2.data) + "/t" + tv2.type + "/r" + Integer.toHexString(tv2.resourceId) : "unresolved");
 			} catch (Throwable e) { s.append(" ccnErr=" + e); }
 		}
+		if (v instanceof android.widget.CompoundButton) {
+			android.content.res.ColorStateList bt = ((android.widget.CompoundButton)v).getButtonTintList();
+			s.append(" btint=").append(bt == null ? "null" : Integer.toHexString(bt.getColorForState(new int[] {android.R.attr.state_checked, android.R.attr.state_enabled}, 0)));
+		}
 		try {
 			java.lang.reflect.Method m = v.getClass().getMethod("getThumbDrawable");
 			android.graphics.drawable.Drawable d = (android.graphics.drawable.Drawable)m.invoke(v);
