@@ -48,6 +48,20 @@ class ViewDump {
 		} catch (Throwable e) { e.printStackTrace(); }
 	}
 
+	static String descr(android.graphics.drawable.Drawable d) {
+		if (d == null) return "null";
+		String r = d.getClass().getSimpleName() + d.getBounds().toShortString() + "i" + d.getIntrinsicWidth() + "x" + d.getIntrinsicHeight() + "a" + d.getAlpha() + (d.isVisible() ? "" : "INVIS");
+		if (d instanceof android.graphics.drawable.LayerDrawable) {
+			android.graphics.drawable.LayerDrawable l = (android.graphics.drawable.LayerDrawable)d;
+			r += "{";
+			for (int i = 0; i < l.getNumberOfLayers(); i++) r += descr(l.getDrawable(i)) + ";";
+			r += "}";
+		}
+		if (d instanceof android.graphics.drawable.DrawableContainer)
+			try { r += "<" + descr(d.getCurrent() != d ? d.getCurrent() : null) + ">"; } catch (Throwable e) {}
+		return r;
+	}
+
 	static void walk(FileWriter w, View v, int depth, int px, int py) throws Exception {
 		int x = px + v.getLeft() - (v.getParent() instanceof View ? ((View)v.getParent()).getScrollX() : 0);
 		int y = py + v.getTop() - (v.getParent() instanceof View ? ((View)v.getParent()).getScrollY() : 0);
@@ -84,6 +98,13 @@ class ViewDump {
 				s.append(" ctx=").append(v.getContext().getClass().getSimpleName()).append(" ccn=").append(ok ? Integer.toHexString(tv2.data) + "/t" + tv2.type + "/r" + Integer.toHexString(tv2.resourceId) : "unresolved");
 			} catch (Throwable e) { s.append(" ccnErr=" + e); }
 		}
+		try {
+			java.lang.reflect.Method m = v.getClass().getMethod("getThumbDrawable");
+			android.graphics.drawable.Drawable d = (android.graphics.drawable.Drawable)m.invoke(v);
+			s.append(" thumb=").append(descr(d));
+			m = v.getClass().getMethod("getTrackDrawable");
+			s.append(" track=").append(descr((android.graphics.drawable.Drawable)m.invoke(v)));
+		} catch (Throwable e) {}
 		w.write(s.append('\n').toString());
 		if (v instanceof ViewGroup && v.getVisibility() != View.GONE) {
 			ViewGroup g = (ViewGroup)v;
