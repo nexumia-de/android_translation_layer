@@ -102,7 +102,16 @@ public abstract class CompoundButton extends Button implements Checkable {
 	public void setTextSize(float size) {}
 	@Override
 	public CharSequence getText() {
-		return super.getText();
+		return label;
+	}
+
+	/* Button's getText reads a GtkButton, which a CompoundButton is not */
+	private CharSequence label = "";
+
+	@Override
+	public void setText(CharSequence text) {
+		label = text == null ? "" : text;
+		native_setText(widget, label.toString());
 	}
 
 	/* as TextView.onMeasure in AOSP, which adds the compound padding: SwitchCompat reserves the
