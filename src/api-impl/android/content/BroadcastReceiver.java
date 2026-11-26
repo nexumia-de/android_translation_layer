@@ -25,6 +25,11 @@ public abstract class BroadcastReceiver {
 		abortBroadcast = false;
 	}
 
+	/* ATL has no sticky broadcasts */
+	public final boolean isInitialStickyBroadcast() {
+		return false;
+	}
+
 	public boolean isOrderedBroadcast() {
 		return true;
 	}

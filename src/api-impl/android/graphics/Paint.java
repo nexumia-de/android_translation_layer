@@ -474,4 +474,8 @@ public class Paint {
 	public void setTextLocale(java.util.Locale locale) {}
 
 	public void setTextLocales(android.os.LocaleList locales) {}
+
+	public android.os.LocaleList getTextLocales() {
+		return android.os.LocaleList.getDefault();
+	}
 }

@@ -21,6 +21,11 @@ import java.util.Collections;
 import java.util.List;
 
 public class ContentResolver {
+	/* no URI permissions are kept across starts; content from the file portal stays readable */
+	public void takePersistableUriPermission(Uri uri, int modeFlags) {}
+
+	public void releasePersistableUriPermission(Uri uri, int modeFlags) {}
+
 	public static final String SCHEME_CONTENT = "content";
 
 	public static final String SYNC_EXTRAS_IGNORE_SETTINGS = "ignore_settings";

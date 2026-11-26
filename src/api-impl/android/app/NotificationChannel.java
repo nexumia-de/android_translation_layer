@@ -23,7 +23,15 @@ public class NotificationChannel {
 
 	public void setLockscreenVisibility(int a) {}
 	public void setShowBadge(boolean a) {}
-	public void setGroup(String grp) {}
+	public void setGroup(String grp) {
+		this.group = grp;
+	}
+
+	public String getGroup() {
+		return group;
+	}
+
+	private String group;
 	public void enableLights(boolean en) {}
 	public void setLightColor(int color) {}
 	public void setVibrationPattern(long[] pattern) {}

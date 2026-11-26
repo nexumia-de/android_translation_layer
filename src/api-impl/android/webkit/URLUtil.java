@@ -34,4 +34,8 @@ public class URLUtil {
 		return isHttpUrl(url) || isHttpsUrl(url) || url.startsWith("file://") || url.startsWith("about:")
 		    || url.startsWith("data:") || url.startsWith("javascript:");
 	}
+
+	public static boolean isNetworkUrl(String url) {
+		return url != null && url.length() != 0 && (isHttpUrl(url) || isHttpsUrl(url));
+	}
 }
