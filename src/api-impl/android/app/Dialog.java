@@ -186,7 +186,9 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 				a.recycle();
 
 				LayoutParams lp = getWindow().getAttributes();
-				int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(lp.width >= 0 ? lp.width : (int)(displayFrame.width() * windowWidthFraction),
+				/* MATCH_PARENT is the full width also for a floating dialog, as on Android (Bumble's
+				 * profile viewer); the windowMinWidth* share applies to WRAP_CONTENT */
+				int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(lp.width >= 0 ? lp.width : lp.width == LayoutParams.MATCH_PARENT ? displayFrame.width() : (int)(displayFrame.width() * windowWidthFraction),
 				                                                        lp.width == LayoutParams.WRAP_CONTENT ? View.MeasureSpec.AT_MOST : View.MeasureSpec.EXACTLY);
 
 				int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(lp.height >= 0 ? lp.height : (int)(displayFrame.height()),
