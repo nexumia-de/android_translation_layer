@@ -281,6 +281,14 @@ JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1setButtonTint
 
 /*
  * Class:     android_widget_CompoundButton
+ * Method:    native_setButtonDrawable
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1setButtonDrawable
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     android_widget_CompoundButton
  * Method:    native_hideButton
  * Signature: (J)V
  */

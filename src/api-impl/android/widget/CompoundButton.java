@@ -129,6 +129,8 @@ public abstract class CompoundButton extends Button implements Checkable {
 	 * check boxes were GTK's accent colour instead of the app's */
 	public void setButtonTintList(ColorStateList list) {
 		button_tint = list;
+		if (button_drawable != null)
+			button_drawable.setTintList(list);
 		if (list == null)
 			return;
 		int checked = list.getColorForState(new int[] {R.attr.state_checked, R.attr.state_enabled}, list.getDefaultColor());
@@ -136,6 +138,7 @@ public abstract class CompoundButton extends Button implements Checkable {
 		native_setButtonTint(widget, checked, unchecked);
 	}
 	private native void native_setButtonTint(long widget, int checked, int unchecked);
+	private native void native_setButtonDrawable(long widget, long paintable);
 
 	private boolean drawsItself() {
 		for (Class<?> c = getClass(); c != CompoundButton.class; c = c.getSuperclass()) {
@@ -149,7 +152,25 @@ public abstract class CompoundButton extends Button implements Checkable {
 	}
 	private native void native_hideButton(long widget);
 
+	/* A check box or radio button shows GTK's indicator for its usual state list drawables (checked
+	 * or not). A drawable without states is an icon the app shows instead (CoMaps' travel modes are
+	 * radio buttons with icons): it replaces the indicator, tinted like on Android */
 	public void setButtonDrawable(Drawable drawable) {
+		if (drawable != null && (this instanceof CheckBox || this instanceof RadioButton)
+		    && !(drawable instanceof android.graphics.drawable.DrawableContainer)
+		    && !(drawable instanceof android.graphics.drawable.LayerDrawable)) {
+			if (drawable != button_drawable) {
+				drawable = drawable.mutate();
+				if (button_tint != null)
+					drawable.setTintList(button_tint);
+				drawable.setCallback(this);
+				if (drawable.isStateful())
+					drawable.setState(getDrawableState());
+			}
+			native_setButtonDrawable(widget, drawable.paintable);
+		} else if (button_drawable != null) {
+			native_setButtonDrawable(widget, 0);
+		}
 		button_drawable = drawable;
 	}
 

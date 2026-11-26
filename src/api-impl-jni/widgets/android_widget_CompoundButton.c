@@ -111,3 +111,34 @@ JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1hideButton(JNI
 	for (GtkWidget *child = gtk_widget_get_first_child(box); child; child = gtk_widget_get_next_sibling(child))
 		gtk_widget_set_visible(child, FALSE);
 }
+
+/* an app's icon instead of the GtkCheckButton's indicator; paintable 0 brings the indicator back */
+JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1setButtonDrawable(JNIEnv *env, jobject this, jlong widget_ptr, jlong paintable_ptr)
+{
+	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
+	if (!GTK_IS_CHECK_BUTTON(widget))
+		return;
+	GdkPaintable *paintable = _PTR(paintable_ptr);
+	GtkWidget *picture = g_object_get_data(G_OBJECT(widget), "button_picture");
+	for (GtkWidget *child = gtk_widget_get_first_child(widget); child; child = gtk_widget_get_next_sibling(child)) {
+		const char *name = gtk_widget_get_css_name(child);
+		if (!strcmp(name, "check") || !strcmp(name, "radio"))
+			gtk_widget_set_visible(child, paintable == NULL);
+	}
+	if (!paintable) {
+		if (picture)
+			gtk_widget_set_visible(picture, FALSE);
+		return;
+	}
+	if (!picture) {
+		picture = gtk_picture_new();
+		gtk_picture_set_content_fit(GTK_PICTURE(picture), GTK_CONTENT_FIT_SCALE_DOWN);
+		gtk_widget_set_hexpand(picture, TRUE);
+		gtk_widget_set_halign(picture, GTK_ALIGN_CENTER);
+		gtk_widget_set_valign(picture, GTK_ALIGN_CENTER);
+		gtk_widget_insert_after(picture, widget, NULL);
+		g_object_set_data(G_OBJECT(widget), "button_picture", picture);
+	}
+	gtk_picture_set_paintable(GTK_PICTURE(picture), paintable);
+	gtk_widget_set_visible(picture, TRUE);
+}
