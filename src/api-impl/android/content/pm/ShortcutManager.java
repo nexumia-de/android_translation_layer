@@ -29,4 +29,32 @@ public class ShortcutManager {
 	public boolean setDynamicShortcuts(List<ShortcutInfo> shortcutInfoList) {
 		return true;
 	}
+
+	public void removeDynamicShortcuts(List<String> shortcutIds) {
+	}
+
+	public boolean addDynamicShortcuts(List<ShortcutInfo> shortcutInfoList) {
+		return true;
+	}
+
+	public boolean updateShortcuts(List<ShortcutInfo> shortcutInfoList) {
+		return true;
+	}
+
+	public void enableShortcuts(List<String> shortcutIds) {
+	}
+
+	public void disableShortcuts(List<String> shortcutIds) {
+	}
+
+	public void pushDynamicShortcut(ShortcutInfo shortcut) {
+	}
+
+	public int getMaxShortcutCountPerActivity() {
+		return 4;
+	}
+
+	public boolean isRequestPinShortcutSupported() {
+		return false;
+	}
 }

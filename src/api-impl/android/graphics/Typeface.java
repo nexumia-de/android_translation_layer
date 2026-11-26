@@ -221,17 +221,56 @@ public class Typeface {
 
 	public static class Builder {
 		private final Typeface typeface;
+		private int weight = -1;
+		private int italic = -1;
 
 		public Builder(AssetManager mgr, String path) {
 			typeface = createFromAsset(mgr, path);
 		}
 
+		public Builder(File path) {
+			typeface = createFromFile(path);
+		}
+
+		public Builder(String path) {
+			typeface = createFromFile(path);
+		}
+
+		public Builder(java.io.FileDescriptor fd) {
+			typeface = createFromFile("/proc/self/fd/" + fd.getInt$());
+		}
+
+		// variable font axes are not applied; the font's default instance is used
 		public Builder setFontVariationSettings(String settings) {
 			return this;
 		}
 
+		public Builder setFontVariationSettings(android.graphics.fonts.FontVariationAxis[] axes) {
+			return this;
+		}
+
+		public Builder setWeight(int weight) {
+			this.weight = weight;
+			return this;
+		}
+
+		public Builder setItalic(boolean italic) {
+			this.italic = italic ? 1 : 0;
+			return this;
+		}
+
+		public Builder setTtcIndex(int ttcIndex) {
+			return this;
+		}
+
+		public Builder setFallback(String familyName) {
+			return this;
+		}
+
 		public Typeface build() {
-			return typeface;
+			if (typeface == null || (weight < 0 && italic < 0))
+				return typeface;
+			return create(typeface, weight < 0 ? 400 : weight, italic == 1);
 		}
 	}
 }

@@ -565,6 +565,13 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 			dialog.dismiss();
 	}
 
+	public void finishAndRemoveTask() {
+		finish();
+	}
+
+	public void onEnterAnimationComplete() {
+	}
+
 	public void finish() {
 		finishing = true;
 		new Handler(Looper.getMainLooper()).post(new Runnable() {

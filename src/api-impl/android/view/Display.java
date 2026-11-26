@@ -115,6 +115,18 @@ public final class Display {
 		public int getPhysicalHeight() {
 			return window_height;
 		}
+
+		public int getModeId() {
+			return 1;
+		}
+
+		public float getRefreshRate() {
+			return 60;
+		}
+
+		public float[] getAlternativeRefreshRates() {
+			return new float[0];
+		}
 	}
 
 	public Mode[] getSupportedModes() {
