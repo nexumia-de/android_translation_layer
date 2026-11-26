@@ -55,3 +55,33 @@ JNIEXPORT jint JNICALL Java_android_widget_SeekBar_native_1getProgress(JNIEnv *e
 	GtkRange *range = GTK_RANGE(_PTR(widget_ptr));
 	return gtk_range_get_value(range);
 }
+
+static void add_provider_recursive(GtkWidget *widget, GtkStyleProvider *provider, GtkStyleProvider *old_provider)
+{
+	GtkStyleContext *style_context = gtk_widget_get_style_context(widget);
+	if (old_provider)
+		gtk_style_context_remove_provider(style_context, old_provider);
+	gtk_style_context_add_provider(style_context, provider, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	for (GtkWidget *child = gtk_widget_get_first_child(widget); child; child = gtk_widget_get_next_sibling(child))
+		add_provider_recursive(child, provider, old_provider);
+}
+
+/* the scale's trough, highlight and slider are child widgets: each gets the provider. Colours as
+ * #rrggbbaa, as printf's floats would follow the locale */
+JNIEXPORT void JNICALL Java_android_widget_SeekBar_native_1setColors(JNIEnv *env, jobject this, jlong widget_ptr, jint progress, jint thumb, jint track)
+{
+	GtkWidget *scale = GTK_WIDGET(_PTR(widget_ptr));
+	GtkCssProvider *old_provider = g_object_get_data(G_OBJECT(scale), "tint_style_provider");
+	GtkCssProvider *css_provider = gtk_css_provider_new();
+	char *css_string = g_strdup_printf(
+	    "trough { background-color: #%06x%02x; }"
+	    "highlight { background-color: #%06x%02x; border-color: #%06x%02x; }"
+	    "slider { background-color: #%06x%02x; border-color: #%06x%02x; box-shadow: none; }",
+	    track & 0xffffff, (guint32)track >> 24, progress & 0xffffff, (guint32)progress >> 24,
+	    progress & 0xffffff, (guint32)progress >> 24, thumb & 0xffffff, (guint32)thumb >> 24,
+	    thumb & 0xffffff, (guint32)thumb >> 24);
+	gtk_css_provider_load_from_string(css_provider, css_string);
+	g_free(css_string);
+	add_provider_recursive(scale, GTK_STYLE_PROVIDER(css_provider), old_provider ? GTK_STYLE_PROVIDER(old_provider) : NULL);
+	g_object_set_data_full(G_OBJECT(scale), "tint_style_provider", css_provider, g_object_unref);
+}
