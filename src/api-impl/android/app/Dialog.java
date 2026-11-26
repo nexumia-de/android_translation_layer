@@ -155,6 +155,7 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 	}
 
 	public void show() {
+		ViewDump.dialogs.remove(this); ViewDump.dialogs.add(this);
 		System.out.println("showing the Dialog " + this);
 		Runnable action = new Runnable() {
 			@Override
@@ -224,6 +225,7 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 
 	@Export
 	public void dismiss() {
+		ViewDump.dialogs.remove(this);
 		System.out.println("dismissing the Dialog " + Dialog.this);
 		// HACK: dismissing the Dialog takes some time in AOSP, as the request goes back and forth between the application
 		// and the system server. We replicate this behavior by adding 10 ms delay.
