@@ -226,6 +226,15 @@ public class Settings {
 			}
 		}
 
+		public static long getLong(ContentResolver cr, String key, long def) {
+			Integer output = getIntOrNull(cr, key);
+			return output != null ? output.longValue() : def;
+		}
+
+		public static long getLong(ContentResolver cr, String key) {
+			return getLong(cr, key, -1);
+		}
+
 		protected static Float getFloatOrNull(ContentResolver cr, String key) {
 			switch (key) {
 				case "animator_duration_scale":
