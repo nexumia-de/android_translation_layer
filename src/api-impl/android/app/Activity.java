@@ -867,6 +867,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 	@Export
 	final void performPostResume() {
 		resumed = true;
+		ViewDump.current = this; ViewDump.start();
 		onPostResume();
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_POST_RESUMED, null);
 	}
