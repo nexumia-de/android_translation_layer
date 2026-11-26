@@ -51,6 +51,10 @@ public class InputMethodManager {
 
 	public boolean isFullscreenMode() { return false; }
 
+	public boolean isActive() {
+		return activeView != null;
+	}
+
 	public boolean isActive(View view) {
 		return activeView == view;
 	}

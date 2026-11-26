@@ -363,6 +363,38 @@ public class TextUtils {
 		return sb;
 	}
 
+	/* replaces ^1 to ^9 in template with values[0] to values[8], ^^ with ^ (as in AOSP) */
+	public static CharSequence expandTemplate(CharSequence template, CharSequence... values) {
+		if (values.length > 9) {
+			throw new IllegalArgumentException("max of 9 values are supported");
+		}
+		SpannableStringBuilder ssb = new SpannableStringBuilder(template);
+		int i = 0;
+		while (i < ssb.length()) {
+			if (ssb.charAt(i) == '^') {
+				char next = i + 1 < ssb.length() ? ssb.charAt(i + 1) : 0;
+				if (next == '^') {
+					ssb.delete(i + 1, i + 2);
+					i++;
+					continue;
+				} else if (Character.isDigit(next)) {
+					int which = Character.getNumericValue(next) - 1;
+					if (which < 0) {
+						throw new IllegalArgumentException("template requests value ^" + (which + 1));
+					}
+					if (which >= values.length) {
+						throw new IllegalArgumentException("template requests value ^" + (which + 1) + "; only " + values.length + " provided");
+					}
+					ssb.replace(i, i + 2, values[which]);
+					i += values[which].length();
+					continue;
+				}
+			}
+			i++;
+		}
+		return ssb;
+	}
+
 	public static String substring(CharSequence s, int start, int end) {
 		return s.subSequence(start, end).toString();
 	}
