@@ -321,6 +321,21 @@ public class ImageView extends View {
 		return drawable;
 	}
 
+	/* apply a new tint or filter to the current drawable directly, as AOSP's applyImageTint does: going
+	 * through setImageDrawable lost it in subclasses that skip an unchanged drawable (FloatingActionButton) */
+	private void reapplyImageFilters() {
+		Drawable mutated = applyImageFilters(drawable);
+		if (mutated != drawable) {
+			drawable.setCallback(null);
+			drawable = mutated;
+			drawable.setCallback(this);
+			native_setDrawable(widget, drawable.paintable);
+		}
+		if (drawable.isStateful())
+			drawable.setState(getDrawableState());
+		invalidate();
+	}
+
 	public final void setColorFilter(int color, PorterDuff.Mode mode) {
 		setColorFilter(new PorterDuffColorFilter(color, mode));
 	}
@@ -331,7 +346,7 @@ public class ImageView extends View {
 			if (tint == null)
 				drawable.setTintList(null);
 			else
-				setImageDrawable(drawable);
+				reapplyImageFilters();
 		}
 	}
 
@@ -381,7 +396,7 @@ public class ImageView extends View {
 				if (cf == null)
 					drawable.setColorFilter(null);
 				else
-					setImageDrawable(drawable);
+					reapplyImageFilters();
 			}
 		}
 	}
