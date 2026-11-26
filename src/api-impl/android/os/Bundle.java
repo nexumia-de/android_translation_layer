@@ -330,6 +330,24 @@ public final class Bundle extends BaseBundle implements Cloneable, Parcelable {
 	 * @param key a String, or null
 	 * @param value a Parcelable object, or null
 	 */
+	public void putSize(String key, android.util.Size value) {
+		mMap.put(key, value);
+	}
+
+	public void putSizeF(String key, android.util.SizeF value) {
+		mMap.put(key, value);
+	}
+
+	public android.util.Size getSize(String key) {
+		Object value = mMap.get(key);
+		return value instanceof android.util.Size ? (android.util.Size)value : null;
+	}
+
+	public android.util.SizeF getSizeF(String key) {
+		Object value = mMap.get(key);
+		return value instanceof android.util.SizeF ? (android.util.SizeF)value : null;
+	}
+
 	public void putParcelable(String key, Parcelable value) {
 		mMap.put(key, value);
 		mFdsKnown = false;

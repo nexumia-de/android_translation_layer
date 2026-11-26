@@ -78,6 +78,19 @@ public class Parcel {
 		}
 	}
 
+	public <T extends Parcelable> void writeTypedObject(T value, int flags) {
+		if (value != null) {
+			writeInt(1);
+			value.writeToParcel(this, flags);
+		} else {
+			writeInt(0);
+		}
+	}
+
+	public <T> T readTypedObject(Parcelable.Creator<T> creator) {
+		return readInt() != 0 ? creator.createFromParcel(this) : null;
+	}
+
 	public int readInt() {
 		try {
 			return is.readInt();

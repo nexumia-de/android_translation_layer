@@ -1,18 +1,20 @@
 package android.widget;
 
 import android.content.Context;
+import android.graphics.BlendMode;
+import android.graphics.Canvas;
 import android.util.AttributeSet;
-import android.view.View;
 
-public class EdgeEffect extends View {
+/* plain object as in AOSP (not a View); no glow is drawn */
+public class EdgeEffect {
+	public static final BlendMode DEFAULT_BLEND_MODE = BlendMode.SRC_ATOP;
 
-	public EdgeEffect(Context context) {
-		super(context);
-	}
+	private int color;
+	private BlendMode blendMode = DEFAULT_BLEND_MODE;
 
-	public EdgeEffect(Context context, AttributeSet attributeSet) {
-		super(context, attributeSet);
-	}
+	public EdgeEffect(Context context) {}
+
+	public EdgeEffect(Context context, AttributeSet attributeSet) {}
 
 	public void setSize(int width, int height) {}
 	public void onPull(float deltaDistance) {}
@@ -21,8 +23,15 @@ public class EdgeEffect extends View {
 	public boolean isFinished() { return true; }
 	public void onRelease() {}
 	public void onAbsorb(int velocity) {}
-	public int getColor() { return 0; }
-	public void setColor(int color) {}
+	public int getColor() { return color; }
+	public void setColor(int color) { this.color = color; }
+	public BlendMode getBlendMode() { return blendMode; }
+	public void setBlendMode(BlendMode blendMode) { this.blendMode = blendMode; }
 	public float getDistance() { return 0; }
+	public int getMaxHeight() { return 0; }
 	public void finish() {}
+
+	public boolean draw(Canvas canvas) {
+		return false;
+	}
 }

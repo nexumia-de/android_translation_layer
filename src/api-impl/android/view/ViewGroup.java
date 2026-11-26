@@ -888,4 +888,8 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	@Deprecated
 	public void setPersistentDrawingCache(int drawingCacheToKeep) {
 	}
+
+	public View focusSearch(View focused, int direction) {
+		return null;
+	}
 }

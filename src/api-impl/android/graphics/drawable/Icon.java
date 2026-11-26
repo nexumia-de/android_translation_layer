@@ -13,6 +13,10 @@ public class Icon {
 		return new Icon();
 	}
 
+	public static Icon createWithAdaptiveBitmap(Bitmap bitmap) {
+		return createWithBitmap(bitmap);
+	}
+
 	public static Icon createWithBitmap(Bitmap bitmap) {
 		return new Icon();
 	}

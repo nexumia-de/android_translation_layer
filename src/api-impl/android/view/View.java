@@ -2565,6 +2565,11 @@ public class View implements Drawable.Callback {
 
 	public View findFocus() { return this; }
 
+	/* no keyboard focus navigation between views */
+	public View focusSearch(int direction) {
+		return null;
+	}
+
 	public int getMinimumHeight() { return minHeight; }
 	public int getMinimumWidth() { return minWidth; }
 
