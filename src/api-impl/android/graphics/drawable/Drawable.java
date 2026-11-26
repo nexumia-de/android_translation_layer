@@ -380,6 +380,11 @@ public class Drawable {
 
 	public static Drawable createFromXmlInner(Resources resources, XmlPullParser parser, AttributeSet attrs, Theme theme) throws XmlPullParserException, IOException {
 		switch (parser.getName()) {
+			case "color": {
+				ColorDrawable drawable = new ColorDrawable();
+				drawable.inflate(resources, parser, attrs, theme);
+				return drawable;
+			}
 			case "selector": {
 				StateListDrawable drawable = new StateListDrawable();
 				drawable.inflate(resources, parser, attrs, theme);

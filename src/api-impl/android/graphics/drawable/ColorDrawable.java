@@ -1,10 +1,18 @@
 package android.graphics.drawable;
 
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
+import android.content.res.Resources.Theme;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
+import android.util.AttributeSet;
+import com.android.internal.R;
+import java.io.IOException;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
 
 public class ColorDrawable extends Drawable {
 
@@ -41,6 +49,17 @@ public class ColorDrawable extends Drawable {
 			out[row] = Math.max(0, Math.min(255, Math.round(v)));
 		}
 		return Color.argb(out[3], out[0], out[1], out[2]);
+	}
+
+	/* <color android:color="..."/> as a drawable resource, e.g. the background of an adaptive icon */
+	@Override
+	public void inflate(Resources r, XmlPullParser parser, AttributeSet attrs, Theme theme) throws XmlPullParserException, IOException {
+		super.inflate(r, parser, attrs, theme);
+		final TypedArray a = obtainAttributes(r, theme, attrs, R.styleable.ColorDrawable);
+		ColorStateList csl = a.getColorStateList(R.styleable.ColorDrawable_color);
+		if (csl != null)
+			setColor(csl.getDefaultColor());
+		a.recycle();
 	}
 
 	public int getColor() {
