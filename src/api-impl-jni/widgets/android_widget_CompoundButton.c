@@ -92,3 +92,12 @@ JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1setButtonTint(
 		g_object_set_data_full(G_OBJECT(child), "tint_style_provider", css_provider, g_object_unref);
 	}
 }
+
+/* the generic CompoundButton is a box with a label and a GtkSwitch; a subclass drawing itself only
+ * keeps the (hidden) switch for its checked state */
+JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1hideButton(JNIEnv *env, jobject this, jlong widget_ptr)
+{
+	GtkWidget *box = GTK_WIDGET(_PTR(widget_ptr));
+	for (GtkWidget *child = gtk_widget_get_first_child(box); child; child = gtk_widget_get_next_sibling(child))
+		gtk_widget_set_visible(child, FALSE);
+}

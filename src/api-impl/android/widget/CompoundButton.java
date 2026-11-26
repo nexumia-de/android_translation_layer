@@ -35,6 +35,11 @@ public abstract class CompoundButton extends Button implements Checkable {
 		if (typedArray.hasValue(R.styleable.CompoundButton_checked)) {
 			this.setChecked(typedArray.getBoolean(R.styleable.CompoundButton_checked, false));
 		}
+		/* ATL's own switch stands in for the button only if the class does not draw itself:
+		 * AndroidX's SwitchCompat (MaterialSwitch) draws track and thumb in onDraw, and GTK's switch
+		 * showed below them */
+		if (!(this instanceof CheckBox || this instanceof RadioButton || this instanceof Switch) && drawsItself())
+			native_hideButton(widget);
 		if (typedArray.hasValue(R.styleable.CompoundButton_buttonTint)) {
 			setButtonTintList(typedArray.getColorStateList(R.styleable.CompoundButton_buttonTint));
 		}
@@ -108,6 +113,18 @@ public abstract class CompoundButton extends Button implements Checkable {
 		native_setButtonTint(widget, checked, unchecked);
 	}
 	private native void native_setButtonTint(long widget, int checked, int unchecked);
+
+	private boolean drawsItself() {
+		for (Class<?> c = getClass(); c != CompoundButton.class; c = c.getSuperclass()) {
+			try {
+				c.getDeclaredMethod("onDraw", android.graphics.Canvas.class);
+				return true;
+			} catch (NoSuchMethodException e) {
+			}
+		}
+		return false;
+	}
+	private native void native_hideButton(long widget);
 
 	public void setButtonDrawable(Drawable drawable) {
 		button_drawable = drawable;
