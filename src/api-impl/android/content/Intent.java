@@ -781,6 +781,96 @@ public class Intent implements Parcelable, Cloneable {
 		return extras;
 	}
 
+	public static final int URI_INTENT_SCHEME = 1 << 0;
+	public static final int URI_ANDROID_APP_SCHEME = 1 << 1;
+	public static final int URI_ALLOW_UNSAFE = 1 << 2;
+
+	/* like AOSP: data URI plus a "#Intent;...;end" fragment; categories are not kept by ATL */
+	public String toUri(int flags) {
+		StringBuilder uri = new StringBuilder(128);
+		String scheme = null;
+		if (data != null) {
+			String str = data.toString();
+			if ((flags & URI_INTENT_SCHEME) != 0) {
+				int i = 0;
+				while (i < str.length()) {
+					char c = str.charAt(i);
+					if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '+') {
+						i++;
+						continue;
+					}
+					if (c == ':' && i > 0) {
+						scheme = str.substring(0, i);
+						uri.append("intent:");
+						str = str.substring(i + 1);
+					}
+					break;
+				}
+			}
+			uri.append(str);
+		} else if ((flags & URI_INTENT_SCHEME) != 0) {
+			uri.append("intent:");
+		}
+
+		StringBuilder frag = new StringBuilder();
+		if (scheme != null)
+			frag.append("scheme=").append(scheme).append(';');
+		if (action != null)
+			frag.append("action=").append(Uri.encode(action)).append(';');
+		if (type != null)
+			frag.append("type=").append(Uri.encode(type, "/")).append(';');
+		if (this.flags != 0)
+			frag.append("launchFlags=0x").append(Integer.toHexString(this.flags)).append(';');
+		if (packageName != null)
+			frag.append("package=").append(Uri.encode(packageName)).append(';');
+		if (component != null)
+			frag.append("component=").append(Uri.encode(component.flattenToShortString(), "/")).append(';');
+		if (extras != null) {
+			for (String key : extras.keySet()) {
+				Object value = extras.get(key);
+				char entryType = value instanceof String ? 'S' : value instanceof Boolean ? 'B' : value instanceof Byte ? 'b' : value instanceof Character ? 'c' : value instanceof Double ? 'd' : value instanceof Float ? 'f' : value instanceof Integer ? 'i' : value instanceof Long ? 'l' : value instanceof Short ? 's' : '\0';
+				if (entryType != '\0') {
+					frag.append(entryType).append('.').append(Uri.encode(key)).append('=').append(Uri.encode(value.toString())).append(';');
+				}
+			}
+		}
+		if (frag.length() > 0) {
+			uri.append("#Intent;").append(frag).append("end");
+		}
+		return uri.toString();
+	}
+
+	@Deprecated
+	public String toURI() {
+		return toUri(0);
+	}
+
+	public void removeFlags(int flags) {
+		this.flags &= ~flags;
+	}
+
+	public void removeCategory(String category) {
+	}
+
+	public Intent putIntegerArrayListExtra(String name, ArrayList<Integer> value) {
+		return putExtra(name, (Serializable)value);
+	}
+
+	public <T> T getParcelableExtra(String name, Class<T> clazz) {
+		Object value = getParcelableExtra(name);
+		return clazz.isInstance(value) ? clazz.cast(value) : null;
+	}
+
+	public <T extends Serializable> T getSerializableExtra(String name, Class<T> clazz) {
+		Object value = getSerializableExtra(name);
+		return clazz.isInstance(value) ? clazz.cast(value) : null;
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T> ArrayList<T> getParcelableArrayListExtra(String name, Class<? extends T> clazz) {
+		return (ArrayList<T>)(ArrayList<?>)getParcelableArrayListExtra(name);
+	}
+
 	public Intent addCategory(String action) {
 		return this;
 	}
