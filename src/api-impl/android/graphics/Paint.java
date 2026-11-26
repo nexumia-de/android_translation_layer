@@ -24,6 +24,9 @@ public class Paint {
 	private Align align = Align.CENTER;
 	private ColorFilter color_filter;
 	private Typeface typeface;
+	/* Android's stroke width 0 (a hairline, and the default) is stored natively as 1, which GSK
+	 * accepts; getStrokeWidth must still return 0, or MaterialShapeDrawable draws a black outline */
+	private boolean hairline = true;
 
 	public Paint() {
 		paint = native_create();
@@ -38,6 +41,7 @@ public class Paint {
 		this.paint = native_clone(paint.paint);
 		typeface = paint.typeface;
 		color_filter = paint.color_filter;
+		hairline = paint.hairline;
 	}
 
 	public void setColor(int color) {
@@ -81,6 +85,7 @@ public class Paint {
 	}
 
 	public void setStrokeWidth(float width) {
+		hairline = width == 0;
 		native_set_stroke_width(paint, width);
 	}
 	public void setTextSize(float size) {
@@ -243,7 +248,7 @@ public class Paint {
 	public /*native*/ void setFakeBoldText(boolean fakeBoldText) {}
 
 	public float getStrokeWidth() {
-		return native_get_stroke_width(paint);
+		return hairline ? 0 : native_get_stroke_width(paint);
 	}
 
 	public /*native*/ float getStrokeMiter() { return 0; }
@@ -389,6 +394,7 @@ public class Paint {
 		this.paint = native_clone(paint.paint);
 		typeface = paint.typeface;
 		color_filter = paint.color_filter;
+		hairline = paint.hairline;
 	}
 
 	public boolean isFilterBitmap() { return false; }
@@ -434,6 +440,7 @@ public class Paint {
 		shader = null;
 		align = Align.CENTER;
 		color_filter = null;
+		hairline = true;
 	}
 
 	private static native long native_create();
