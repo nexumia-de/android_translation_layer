@@ -260,6 +260,10 @@ public abstract class Context {
 			Slog.v(TAG, "new Context! this one is: " + this);
 	}
 
+	public int checkUriPermission(android.net.Uri uri, int pid, int uid, int modeFlags) {
+		return android.content.pm.PackageManager.PERMISSION_GRANTED;
+	}
+
 	public int checkPermission(String permission, int pid, int uid) {
 		return getPackageManager().checkPermission(permission, getPackageName());
 	}

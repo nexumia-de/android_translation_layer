@@ -129,6 +129,52 @@ public final class Display {
 		}
 	}
 
+	public static final int DEFAULT_DISPLAY = 0;
+
+	public boolean isValid() {
+		return true;
+	}
+
+	public String getName() {
+		return "Built-in Screen";
+	}
+
+	public int getFlags() {
+		return 0;
+	}
+
+	public float[] getSupportedRefreshRates() {
+		return new float[] {getRefreshRate()};
+	}
+
+	public HdrCapabilities getHdrCapabilities() {
+		return new HdrCapabilities();
+	}
+
+	public static final class HdrCapabilities {
+		public static final int HDR_TYPE_DOLBY_VISION = 1;
+		public static final int HDR_TYPE_HDR10 = 2;
+		public static final int HDR_TYPE_HLG = 3;
+		public static final int HDR_TYPE_HDR10_PLUS = 4;
+		public static final float INVALID_LUMINANCE = -1;
+
+		public int[] getSupportedHdrTypes() {
+			return new int[0];
+		}
+
+		public float getDesiredMaxLuminance() {
+			return INVALID_LUMINANCE;
+		}
+
+		public float getDesiredMaxAverageLuminance() {
+			return INVALID_LUMINANCE;
+		}
+
+		public float getDesiredMinLuminance() {
+			return INVALID_LUMINANCE;
+		}
+	}
+
 	public Mode[] getSupportedModes() {
 		return new Mode[] {getMode()};
 	}
