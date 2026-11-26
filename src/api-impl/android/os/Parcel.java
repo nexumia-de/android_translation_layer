@@ -417,7 +417,17 @@ public class Parcel {
 	}
 
 	public Bundle readBundle() throws ReflectiveOperationException {
-		return readBundle(getClass().getClassLoader());
+		return readBundle(null);
+	}
+
+	/* Android's Bundle unparcels lazily, after the app set its own class loader; here values are
+	 * read at once, so without a loader use the app's, which also finds the framework's classes
+	 * (e.g. a Message with the app's Parcelables sent through a Messenger in the same process) */
+	private static ClassLoader loaderOrApp(ClassLoader loader) {
+		if (loader != null && loader != Parcel.class.getClassLoader())
+			return loader;
+		ATLLoadedApp app = ATLLoadedApp.getPrimaryApplication();
+		return app != null ? app.class_loader : Parcel.class.getClassLoader();
 	}
 
 	public void writeInterfaceToken(String value) {
@@ -442,7 +452,7 @@ public class Parcel {
 		if (className == null)
 			return null;
 		try {
-			Parcelable.Creator<?> creator = (Parcelable.Creator<?>)loader.loadClass(className).getField("CREATOR").get(null);
+			Parcelable.Creator<?> creator = (Parcelable.Creator<?>)loaderOrApp(loader).loadClass(className).getField("CREATOR").get(null);
 			return (Parcelable)creator.createFromParcel(this);
 		} catch (ReflectiveOperationException | IllegalArgumentException e) {
 			throw new BadParcelableException(e);
@@ -715,7 +725,19 @@ public class Parcel {
 
 	public Serializable readSerializable() throws ReflectiveOperationException {
 		try {
-			return (Serializable) new ObjectInputStream(is).readObject();
+			/* resolve the app's classes too, not only the framework's (see loaderOrApp) */
+			final ClassLoader loader = loaderOrApp(null);
+			ObjectInputStream in = new ObjectInputStream(is) {
+				@Override
+				protected Class<?> resolveClass(java.io.ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+					try {
+						return Class.forName(desc.getName(), false, loader);
+					} catch (ClassNotFoundException e) {
+						return super.resolveClass(desc);
+					}
+				}
+			};
+			return (Serializable) in.readObject();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
