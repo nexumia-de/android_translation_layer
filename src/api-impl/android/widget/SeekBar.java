@@ -14,6 +14,16 @@ public class SeekBar extends AbsSeekBar {
 
 	public SeekBar(Context context, AttributeSet attributeSet) {
 		super(context, attributeSet);
+		initColors(context);
+	}
+
+	/* AppCompatSeekBar calls this one */
+	public SeekBar(Context context, AttributeSet attributeSet, int defStyleAttr) {
+		super(context, attributeSet, defStyleAttr);
+		initColors(context);
+	}
+
+	private void initColors(Context context) {
 		/* the colours AppCompat and the platform tint the track and thumb with */
 		TypedArray a = context.obtainStyledAttributes(new int[] {com.android.internal.R.attr.colorControlActivated, com.android.internal.R.attr.colorControlNormal});
 		progress_color = thumb_color = a.getColor(0, 0);
