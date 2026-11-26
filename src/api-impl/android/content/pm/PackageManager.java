@@ -2412,14 +2412,15 @@ public class PackageManager {
 			ri.filter.addCategory("android.intent.category.BROWSABLE");
 			ri.filter.addDataScheme("http");
 			ri.filter.addDataScheme("https");
-			return Arrays.asList(ri);
+			return new ArrayList<ResolveInfo>(Arrays.asList(ri));
 		}
 		/* FIXME - we may need to return more than one */
+		/* a modifiable list, as on Android: apps add to it (Auth0 merges two queries with addAll) */
+		List<ResolveInfo> list = new ArrayList<ResolveInfo>();
 		ResolveInfo info = resolveActivity(intent, flags);
 		if (info != null)
-			return Arrays.asList(info);
-		else
-			return Collections.emptyList();
+			list.add(info);
+		return list;
 	}
 
 	/**
@@ -2506,7 +2507,7 @@ public class PackageManager {
 			ri.activityInfo.name = Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR + ".Receiver";
 			ri.activityInfo.applicationInfo = new ApplicationInfo();
 			ri.activityInfo.applicationInfo.packageName = Context.UNIFIEDPUSH_DBUS_DISTRIBUTOR;
-			return Arrays.asList(ri);
+			return new ArrayList<ResolveInfo>(Arrays.asList(ri));
 		}
 		return new ArrayList<ResolveInfo>();
 	}
