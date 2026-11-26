@@ -12,6 +12,7 @@ import com.android.internal.R;
 public abstract class CompoundButton extends Button implements Checkable {
 	Drawable button_drawable = null;
 	private ColorStateList button_tint;
+	private boolean draws_itself;
 	public Drawable mButtonDrawable; // directly accessed by androidx
 
 	private static final int[] CHECKED_STATE_SET = {R.attr.state_checked};
@@ -38,8 +39,10 @@ public abstract class CompoundButton extends Button implements Checkable {
 		/* ATL's own switch stands in for the button only if the class does not draw itself:
 		 * AndroidX's SwitchCompat (MaterialSwitch) draws track and thumb in onDraw, and GTK's switch
 		 * showed below them */
-		if (!(this instanceof CheckBox || this instanceof RadioButton || this instanceof Switch) && drawsItself())
+		if (!(this instanceof CheckBox || this instanceof RadioButton || this instanceof Switch) && drawsItself()) {
+			draws_itself = true;
 			native_hideButton(widget);
+		}
 		if (typedArray.hasValue(R.styleable.CompoundButton_buttonTint)) {
 			setButtonTintList(typedArray.getColorStateList(R.styleable.CompoundButton_buttonTint));
 		}
@@ -99,7 +102,18 @@ public abstract class CompoundButton extends Button implements Checkable {
 	public void setTextSize(float size) {}
 	@Override
 	public CharSequence getText() {
-		return "FIXME CompoundButton.getText()";
+		return super.getText();
+	}
+
+	/* as TextView.onMeasure in AOSP, which adds the compound padding: SwitchCompat reserves the
+	 * room for its track there */
+	@Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+		if (!draws_itself)
+			return;
+		int width = getMeasuredWidth() + getCompoundPaddingLeft() + getCompoundPaddingRight();
+		setMeasuredDimension(resolveSizeAndState(width, widthMeasureSpec, 0), getMeasuredHeightAndState());
 	}
 
 	/* the check box or radio button takes the tint's colours for checked and unchecked; Material's
