@@ -139,6 +139,10 @@ public class GskCanvas extends RecordingCanvas {
 	public void drawPath(Path path, Paint paint) {
 		if (path == null)
 			return;
+		/* no transfer modes yet; drawn plainly, ShapeableImageView's DST_OUT mask (white, to erase
+		 * the corners) covered its image */
+		if (paint != null && paint.atlXfermodeErases())
+			return;
 		Shader shader = paint != null ? paint.getShader() : null;
 		float[] geometry = new float[4];
 		int gradient = shader != null ? shader.getGradient(geometry) : Shader.GRADIENT_NONE;

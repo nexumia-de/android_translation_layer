@@ -29,6 +29,12 @@
 	text-align: right;
 }
 
+/* android.widget.ImageButton: Android draws the background, see android_widget_ImageButton.c */
+.ATL-image-button {
+	background: none;
+	box-shadow: none;
+}
+
 .ATL-no-background {
 	background-color: rgba(0,0,0,0);
 	background-image: none;
