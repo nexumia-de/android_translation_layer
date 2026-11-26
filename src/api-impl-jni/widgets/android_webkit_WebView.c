@@ -118,6 +118,21 @@ static void web_view_load_changed(WebKitWebView *web_view, WebKitLoadEvent load_
 	J__WebView__internalLoadChanged(env, wrapper->jobj, load_event, _JSTRING(webkit_web_view_get_uri(web_view)));
 }
 
+/* Android's WebView also reports onPageFinished for same-document
+ * navigations (history.pushState, fragments); WebKitGTK only changes the
+ * URI. Google's sign-in page moves on that way after "I agree", and
+ * Aurora Store reads its login token in onPageFinished. */
+static void web_view_uri_changed(WebKitWebView *web_view, GParamSpec *pspec, WrapperWidget *wrapper)
+{
+	const char *uri = webkit_web_view_get_uri(web_view);
+	if (!uri || webkit_web_view_is_loading(web_view))
+		return;
+	struct page_finished *p = g_new(struct page_finished, 1);
+	p->wrapper = g_object_ref(wrapper);
+	p->uri = g_strdup(uri);
+	atl_cookies_fetch_then(page_finished_cb, p);
+}
+
 static gboolean decide_policy(WebKitWebView *web_view, WebKitPolicyDecision *decision, WebKitPolicyDecisionType type, WrapperWidget *wrapper)
 {
 	if (type == WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION) {
@@ -164,6 +179,7 @@ static WebKitWebView *get_web_view(GtkWidget *box, gboolean javascript_enabled)
 		}
 		g_signal_connect(webview, "load-changed", G_CALLBACK(web_view_load_changed), wrapper);
 		g_signal_connect(webview, "decide-policy", G_CALLBACK(decide_policy), wrapper);
+		g_signal_connect(webview, "notify::uri", G_CALLBACK(web_view_uri_changed), wrapper);
 	}
 	/* scripts of the page; the ones we evaluate ourselves still run */
 	webkit_settings_set_enable_javascript_markup(webkit_web_view_get_settings(WEBKIT_WEB_VIEW(webview)), javascript_enabled);
