@@ -8,6 +8,8 @@ public final class ATLToggles {
 	    "de.hafas.android.db",
 	    /* gets location only through Google's fused location client (2026-11-19) */
 	    "com.fairtiq.android",
+	    /* People and Liked You need the location, which it gets only through fused location (2026-11-26) */
+	    "com.bumble.app",
 	}));
 
 	/** ATL's permission for an app to contact Google's servers (FCM push and the like). */
