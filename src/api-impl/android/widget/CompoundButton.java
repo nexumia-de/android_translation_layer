@@ -11,6 +11,7 @@ import com.android.internal.R;
 
 public abstract class CompoundButton extends Button implements Checkable {
 	Drawable button_drawable = null;
+	private ColorStateList button_tint;
 	public Drawable mButtonDrawable; // directly accessed by androidx
 
 	private static final int[] CHECKED_STATE_SET = {R.attr.state_checked};
@@ -33,6 +34,9 @@ public abstract class CompoundButton extends Button implements Checkable {
 		    attrs, R.styleable.CompoundButton, defStyleAttr, defStyleRes);
 		if (typedArray.hasValue(R.styleable.CompoundButton_checked)) {
 			this.setChecked(typedArray.getBoolean(R.styleable.CompoundButton_checked, false));
+		}
+		if (typedArray.hasValue(R.styleable.CompoundButton_buttonTint)) {
+			setButtonTintList(typedArray.getColorStateList(R.styleable.CompoundButton_buttonTint));
 		}
 		typedArray.recycle();
 	}
@@ -93,8 +97,17 @@ public abstract class CompoundButton extends Button implements Checkable {
 		return "FIXME CompoundButton.getText()";
 	}
 
+	/* the check box or radio button takes the tint's colours for checked and unchecked; Material's
+	 * check boxes were GTK's accent colour instead of the app's */
 	public void setButtonTintList(ColorStateList list) {
+		button_tint = list;
+		if (list == null)
+			return;
+		int checked = list.getColorForState(new int[] {R.attr.state_checked, R.attr.state_enabled}, list.getDefaultColor());
+		int unchecked = list.getColorForState(new int[] {R.attr.state_enabled}, list.getDefaultColor());
+		native_setButtonTint(widget, checked, unchecked);
 	}
+	private native void native_setButtonTint(long widget, int checked, int unchecked);
 
 	public void setButtonDrawable(Drawable drawable) {
 		button_drawable = drawable;
@@ -105,7 +118,7 @@ public abstract class CompoundButton extends Button implements Checkable {
 	}
 
 	public ColorStateList getButtonTintList() {
-		return null;
+		return button_tint;
 	}
 
 	@Override

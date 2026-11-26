@@ -1,4 +1,5 @@
 #include <gtk/gtk.h>
+#include <string.h>
 
 #include "../util.h"
 #include "WrapperWidget.h"
@@ -62,4 +63,32 @@ JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1setText(JNIEnv
 	const char *nativeText = (*env)->GetStringUTFChars(env, text, NULL);
 	gtk_label_set_text(label, nativeText);
 	(*env)->ReleaseStringUTFChars(env, text, nativeText);
+}
+
+/* CheckBox and RadioButton are GtkCheckButtons; their indicator is a child widget named "check" or
+ * "radio", which gets the colours (a Switch has none and keeps GTK's look) */
+JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1setButtonTint(JNIEnv *env, jobject this, jlong widget_ptr, jint checked, jint unchecked)
+{
+	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
+	if (!GTK_IS_CHECK_BUTTON(widget))
+		return;
+	for (GtkWidget *child = gtk_widget_get_first_child(widget); child; child = gtk_widget_get_next_sibling(child)) {
+		const char *name = gtk_widget_get_css_name(child);
+		if (strcmp(name, "check") && strcmp(name, "radio"))
+			continue;
+		GtkStyleContext *style_context = gtk_widget_get_style_context(child);
+		GtkCssProvider *old_provider = g_object_get_data(G_OBJECT(child), "tint_style_provider");
+		if (old_provider)
+			gtk_style_context_remove_provider(style_context, GTK_STYLE_PROVIDER(old_provider));
+		GtkCssProvider *css_provider = gtk_css_provider_new();
+		/* #rrggbbaa, no floats: printf would follow the locale's decimal separator */
+		char *css_string = g_strdup_printf(
+		    "%s:checked { background-color: #%06x%02x; color: white; box-shadow: none; }"
+		    "%s:not(:checked) { background-color: transparent; box-shadow: inset 0 0 0 2px #%06x%02x; }",
+		    name, checked & 0xffffff, ((guint32)checked >> 24), name, unchecked & 0xffffff, ((guint32)unchecked >> 24));
+		gtk_css_provider_load_from_string(css_provider, css_string);
+		g_free(css_string);
+		gtk_style_context_add_provider(style_context, GTK_STYLE_PROVIDER(css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		g_object_set_data_full(G_OBJECT(child), "tint_style_provider", css_provider, g_object_unref);
+	}
 }
