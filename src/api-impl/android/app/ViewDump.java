@@ -13,6 +13,7 @@ import java.io.FileWriter;
  * resumed activity to $ATL_VIEWDUMP and delete the request */
 class ViewDump {
 	static Activity current;
+	static java.util.ArrayList<Dialog> dialogs = new java.util.ArrayList<>();
 	static boolean started;
 
 	static void start() {
@@ -40,6 +41,10 @@ class ViewDump {
 			if (current == null) { w.write("no activity\n"); return; }
 			w.write(current.getClass().getName() + "\n");
 			walk(w, current.getWindow().getDecorView(), 0, 0, 0);
+			for (Dialog d : dialogs) {
+				w.write("=== dialog " + d.getClass().getName() + "\n");
+				walk(w, d.getWindow().getDecorView(), 0, 0, 0);
+			}
 		} catch (Throwable e) { e.printStackTrace(); }
 	}
 
