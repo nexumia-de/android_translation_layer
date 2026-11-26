@@ -92,4 +92,12 @@ public class WebSettings {
 	public void setAllowContentAccess(boolean allow) {}
 
 	public void setAllowFileAccessFromFileURLs(boolean allow) {}
+
+	/* WebKitGTK has no Safe Browsing; Android also reports false when
+	 * Safe Browsing is unavailable */
+	public void setSafeBrowsingEnabled(boolean enabled) {}
+
+	public boolean getSafeBrowsingEnabled() {
+		return false;
+	}
 }
