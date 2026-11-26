@@ -5,6 +5,10 @@ import android.graphics.Bitmap;
 
 public class Icon {
 
+	public static Icon createWithResource(android.content.Context context, int resourceId) {
+		return createWithResource(context.getPackageName(), resourceId);
+	}
+
 	public static Icon createWithResource(String packageName, int resourceId) {
 		return new Icon();
 	}
