@@ -910,6 +910,7 @@ srcs = [
 	'android/widget/SectionIndexer.java',
 	'android/widget/SeekBar.java',
 	'android/widget/SimpleAdapter.java',
+	'android/widget/SimpleExpandableListAdapter.java',
 	'android/widget/Space.java',
 	'android/widget/Spinner.java',
 	'android/widget/SpinnerAdapter.java',
