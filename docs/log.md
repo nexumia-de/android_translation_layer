@@ -1,5 +1,8 @@
 # Directory Update Log
 
+## 2026-11-26
+* **CoMaps looks like on Android**: compared with CoMaps' own Play/F-Droid screenshots in the headless display (installed Flatpak, engine of #200). Four causes, four commits: `Paint.getStrokeWidth` returned 1 for a hairline, so `MaterialShapeDrawable` drew a black outline around every map button (and the zoom buttons came out striped); `ImageView.setImageTintList` went through `setImageDrawable`, which `FloatingActionButton` skips for the same drawable, so `app:tint` never reached the layers icon (white on white); `GskCanvas.drawPath` painted `ShapeableImageView`'s white `DST_OUT` corner mask over the image, hiding the main menu's icons (paths with `CLEAR`/`DST_OUT` are now skipped, as `drawRect` already skips transfer modes); GTK's button background and shadow showed as a second shape behind each `ImageButton`. DB Navigator's booking screen unchanged with the new Java part. The CSS change was tested as an equivalent user stylesheet in the app's sandbox, not with a native build ([app status](apps.md)).
+
 ## 2026-11-22
 * **#118 base cost**: The measurements A to G, the RAM view and the transparent huge pages analysis of the second phone session (2026-11-09) were on a branch without a pull request; now merged into the docs ([performance](performance.md)). R1 implemented: ATL turns transparent huge pages off for its process (`src/main-executable/memory.c`, `ATL_TRANSPARENT_HUGE_PAGES=1` to keep them), checked only with a test program in the cloud. What needs the phone, including the A/B before the merge, is in [owner checks](owner-checks.md).
 
