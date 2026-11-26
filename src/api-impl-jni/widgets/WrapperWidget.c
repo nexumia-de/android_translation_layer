@@ -203,7 +203,9 @@ static void wrapper_widget_snapshot(GtkWidget *widget, GdkSnapshot *snapshot)
 	snapshot_in_progress++;
 
 	WrapperWidget *wrapper = WRAPPER_WIDGET(widget);
-	bool clip = wrapper->real_height > 0 && wrapper->real_width > 0 && wrapper_widget_clipped_by_parent(wrapper);
+	/* a view laid out with no width or no height shows nothing (a GtkLabel would still draw its
+	 * ellipsis); both 0 means the size is not known yet */
+	bool clip = (wrapper->real_height > 0 || wrapper->real_width > 0) && wrapper_widget_clipped_by_parent(wrapper);
 	if (clip) {
 		gtk_snapshot_push_clip(snapshot, &GRAPHENE_RECT_INIT(0, 0, wrapper->real_width, wrapper->real_height));
 	}
