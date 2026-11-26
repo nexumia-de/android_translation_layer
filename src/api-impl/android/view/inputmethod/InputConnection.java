@@ -373,4 +373,12 @@ public interface InputConnection {
 	 * <p>Note: This does nothing when called from input methods.</p>
 	 */
 	void closeConnection();
+
+	default boolean deleteSurroundingTextInCodePoints(int beforeLength, int afterLength) {
+		return deleteSurroundingText(beforeLength, afterLength);
+	}
+
+	default android.os.Handler getHandler() {
+		return null;
+	}
 }
