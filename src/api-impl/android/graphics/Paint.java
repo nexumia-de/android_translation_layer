@@ -281,6 +281,15 @@ public class Paint {
 		return xfermode;
 	}
 
+	/* for GskCanvas, which has no transfer modes: whether drawing with this paint removes what is
+	 * below instead of painting over it, so that drawing it plainly would be wrong */
+	public boolean atlXfermodeErases() {
+		if (!(xfermode instanceof PorterDuffXfermode))
+			return false;
+		int mode = ((PorterDuffXfermode)xfermode).porterDuffMode;
+		return mode == PorterDuff.Mode.CLEAR.nativeInt || mode == PorterDuff.Mode.DST_OUT.nativeInt;
+	}
+
 	public void setBlendMode(BlendMode blendmode) {
 		setXfermode(blendmode == null ? null : blendmode.getXfermode());
 	}
