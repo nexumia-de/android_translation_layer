@@ -128,7 +128,9 @@ public final class SharedPreferencesImpl implements SharedPreferences {
 		if (map != null) {
 			/* files written by older ATL versions can hold null values (<null name=.../>),
 			 * which Android never stores: Bumble copies getAll() into a ConcurrentHashMap */
-			map.values().removeIf(v -> v == null);
+			for (java.util.Iterator<Object> it = map.values().iterator(); it.hasNext();)
+				if (it.next() == null)
+					it.remove();
 			mMap = map;
 			mStatTimestamp = stat.st_mtime;
 			mStatSize = stat.st_size;
