@@ -186,3 +186,14 @@ JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setCompoundDrawables
 	g_clear_object(&before);
 	g_clear_object(&after);
 }
+
+JNIEXPORT void JNICALL Java_android_widget_TextView_native_1setCompoundDrawablePadding(JNIEnv *env, jobject this, jlong widget_ptr, jint pad)
+{
+	GtkWidget *widget = GTK_WIDGET(_PTR(widget_ptr));
+	/* the box holding the label and the drawables; a Button keeps it inside its GtkButton, and
+	 * subclasses without one (EditText) have no compound drawables */
+	if (GTK_IS_BUTTON(widget))
+		widget = gtk_button_get_child(GTK_BUTTON(widget));
+	if (widget && GTK_IS_BOX(widget))
+		gtk_box_set_spacing(GTK_BOX(widget), pad);
+}

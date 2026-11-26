@@ -453,7 +453,15 @@ public class TextView extends View {
 		return text;
 	};
 
-	public void setCompoundDrawablePadding(int pad) {}
+	private int compound_drawable_padding;
+
+	/* the space between the text and its drawables */
+	public void setCompoundDrawablePadding(int pad) {
+		compound_drawable_padding = pad;
+		native_setCompoundDrawablePadding(widget, pad);
+		requestLayout();
+	}
+	private native void native_setCompoundDrawablePadding(long widget, int pad);
 
 	protected native void native_setCompoundDrawables(long widget, Drawable left, Drawable top, Drawable right, Drawable bottom);
 
@@ -755,7 +763,7 @@ public class TextView extends View {
 
 	public void setSelectAllOnFocus(boolean selectAllOnFocus) {}
 
-	public int getCompoundDrawablePadding() { return 0; }
+	public int getCompoundDrawablePadding() { return compound_drawable_padding; }
 
 	public int getPaintFlags() { return 0; }
 
