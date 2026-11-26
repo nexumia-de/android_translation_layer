@@ -74,9 +74,9 @@ JNIEXPORT void JNICALL Java_android_widget_SeekBar_native_1setColors(JNIEnv *env
 	GtkCssProvider *old_provider = g_object_get_data(G_OBJECT(scale), "tint_style_provider");
 	GtkCssProvider *css_provider = gtk_css_provider_new();
 	char *css_string = g_strdup_printf(
-	    "trough { background-color: #%06x%02x; }"
-	    "highlight { background-color: #%06x%02x; border-color: #%06x%02x; }"
-	    "slider { background-color: #%06x%02x; border-color: #%06x%02x; box-shadow: none; }",
+	    "trough { background: #%06x%02x; }"
+	    "highlight { background: #%06x%02x; border-color: #%06x%02x; }"
+	    "slider { background: #%06x%02x; border-color: #%06x%02x; box-shadow: none; }",
 	    track & 0xffffff, (guint32)track >> 24, progress & 0xffffff, (guint32)progress >> 24,
 	    progress & 0xffffff, (guint32)progress >> 24, thumb & 0xffffff, (guint32)thumb >> 24,
 	    thumb & 0xffffff, (guint32)thumb >> 24);

@@ -81,11 +81,13 @@ JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1setButtonTint(
 		if (old_provider)
 			gtk_style_context_remove_provider(style_context, GTK_STYLE_PROVIDER(old_provider));
 		GtkCssProvider *css_provider = gtk_css_provider_new();
-		/* #rrggbbaa, no floats: printf would follow the locale's decimal separator */
+		/* #rrggbbaa, no floats: printf would follow the locale's decimal separator. The theme colours
+		 * the indicator with a background image, so the shorthand is needed */
 		char *css_string = g_strdup_printf(
-		    "%s:checked { background-color: #%06x%02x; color: white; box-shadow: none; }"
-		    "%s:not(:checked) { background-color: transparent; box-shadow: inset 0 0 0 2px #%06x%02x; }",
-		    name, checked & 0xffffff, ((guint32)checked >> 24), name, unchecked & 0xffffff, ((guint32)unchecked >> 24));
+		    "%s:checked { background: #%06x%02x; border-color: #%06x%02x; color: white; box-shadow: none; }"
+		    "%s:not(:checked) { background: transparent; border-color: #%06x%02x; box-shadow: none; }",
+		    name, checked & 0xffffff, ((guint32)checked >> 24), checked & 0xffffff, ((guint32)checked >> 24),
+		    name, unchecked & 0xffffff, ((guint32)unchecked >> 24));
 		gtk_css_provider_load_from_string(css_provider, css_string);
 		g_free(css_string);
 		gtk_style_context_add_provider(style_context, GTK_STYLE_PROVIDER(css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
