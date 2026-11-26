@@ -141,6 +141,19 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 	private boolean created;
 	private boolean showing;
 
+	/* windowMinWidthMajor/Minor may be a fraction or, as in Bumble's theme, a dimension (like
+	 * Android's DecorView, which takes both) */
+	private float minWidthFraction(TypedArray a, int index, int displayWidth) {
+		android.util.TypedValue value = new android.util.TypedValue();
+		if (!a.getValue(index, value))
+			return 1;
+		if (value.type == android.util.TypedValue.TYPE_FRACTION)
+			return value.getFraction(1, 1);
+		if (value.type == android.util.TypedValue.TYPE_DIMENSION && displayWidth > 0)
+			return Math.min(1, value.getDimension(context.getResources().getDisplayMetrics()) / displayWidth);
+		return 1;
+	}
+
 	public void show() {
 		System.out.println("showing the Dialog " + this);
 		Runnable action = new Runnable() {
@@ -167,10 +180,8 @@ public class Dialog implements Window.Callback, KeyEvent.Callback, DialogInterfa
 					setCanceledOnTouchOutside(a.getBoolean(R.styleable.Window_windowCloseOnTouchOutside, true));
 				float windowWidthFraction = 1;
 				if (a.getBoolean(R.styleable.Window_windowIsFloating, false)) {
-					if (displayFrame.width() > displayFrame.height())
-						windowWidthFraction = a.getFraction(R.styleable.Window_windowMinWidthMajor, 1, 1, 1);
-					else
-						windowWidthFraction = a.getFraction(R.styleable.Window_windowMinWidthMinor, 1, 1, 1);
+					int index = displayFrame.width() > displayFrame.height() ? R.styleable.Window_windowMinWidthMajor : R.styleable.Window_windowMinWidthMinor;
+					windowWidthFraction = minWidthFraction(a, index, displayFrame.width());
 				}
 				a.recycle();
 
