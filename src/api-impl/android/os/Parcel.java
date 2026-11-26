@@ -91,6 +91,17 @@ public class Parcel {
 		return readInt() != 0 ? creator.createFromParcel(this) : null;
 	}
 
+	public void writeSize(android.util.Size size) {
+		writeInt(size.getWidth());
+		writeInt(size.getHeight());
+	}
+
+	public android.util.Size readSize() {
+		final int width = readInt();
+		final int height = readInt();
+		return new android.util.Size(width, height);
+	}
+
 	public int readInt() {
 		try {
 			return is.readInt();

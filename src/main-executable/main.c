@@ -98,6 +98,37 @@ char *construct_classpath(char *prefix, char **cp_array, size_t len)
 
 extern char *atl_process_name;
 
+/* the memory of the original command line, which /proc/<pid>/cmdline shows */
+static char *argv_area = NULL;
+static size_t argv_area_size = 0;
+
+static void remember_argv_area(int argc, char **argv)
+{
+	if (argc < 1 || !argv[0])
+		return;
+	char *end = argv[0];
+	/* the kernel lays the arguments out one after another; stop at a gap */
+	for (int i = 0; i < argc && argv[i] == end; i++)
+		end = argv[i] + strlen(argv[i]) + 1;
+	argv_area = argv[0];
+	argv_area_size = end - argv[0];
+}
+
+/* Android's zygote sets argv[0] of an app process to its process name (Process.setArgV0), and
+ * apps read it back from /proc/<pid>/cmdline to tell their main process from others. Bumble does
+ * that in Java below SDK 28 and skips its whole Application.onCreate when the name is not its
+ * package name. The path override in libc_bio_path_overrides.c only covers native code, so write
+ * the name over the command line, padded with NULs, as Android does. GLib works on its own copy of
+ * the arguments, and prgname is copied in main. */
+static void set_argv0(const char *name)
+{
+	if (!argv_area || argv_area_size < 2)
+		return;
+	size_t len = MIN(strlen(name), argv_area_size - 1);
+	memcpy(argv_area, name, len);
+	memset(argv_area + len, 0, argv_area_size - len);
+}
+
 /* for /proc/self/cmdline (see libc_bio_path_overrides.c); before any app code runs */
 static void set_process_name(JNIEnv *env)
 {
@@ -112,6 +143,7 @@ static void set_process_name(JNIEnv *env)
 	if (name) {
 		const char *chars = (*env)->GetStringUTFChars(env, name, NULL);
 		atl_process_name = g_strdup(chars);
+		set_argv0(atl_process_name);
 		(*env)->ReleaseStringUTFChars(env, name, chars);
 	}
 }
@@ -2443,7 +2475,9 @@ int main(int argc, char **argv)
 	callback_data->install = FALSE;
 	callback_data->install_internal = FALSE;
 	callback_data->install_ask = FALSE;
-	callback_data->prgname = argv[0];
+	/* a copy: set_argv0 overwrites the command line once the app is known */
+	callback_data->prgname = g_strdup(argv[0]);
+	remember_argv_area(argc, argv);
 	callback_data->extra_jvm_options = NULL;
 	callback_data->extra_string_keys = NULL;
 	callback_data->sdk_int = NULL;

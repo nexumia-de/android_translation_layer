@@ -759,6 +759,16 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 		finish();
 	}
 
+	/* API 34; ATL has no activity transitions, like overridePendingTransition */
+	public void overrideActivityTransition(int overrideType, int enterAnim, int exitAnim) {}
+
+	public void overrideActivityTransition(int overrideType, int enterAnim, int exitAnim, int backgroundColor) {}
+
+	public void clearOverrideActivityTransition(int overrideType) {}
+
+	/* there is only one task and its top activity is the resumed one; never called yet */
+	public void onTopResumedActivityChanged(boolean isTopResumedActivity) {}
+
 	public void overridePendingTransition(int enterAnim, int exitAnim) {}
 
 	public native boolean isTaskRoot();
