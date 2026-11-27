@@ -20,6 +20,7 @@ public class MediaCodec {
 	private long native_codec;
 	private boolean outputFormatSet = false;
 	private MediaFormat mediaFormat;
+	private MediaCrypto crypto;
 
 	private Queue<Integer> freeOutputBuffers;
 	private Queue<Integer> queuedInputBuffers;
@@ -40,6 +41,7 @@ public class MediaCodec {
 	public void configure(MediaFormat format, Surface surface, MediaCrypto crypto, int flags) {
 		System.out.println("MediaCodec.configure(" + format + ", " + surface + ", " + crypto + ", " + flags + "): codecName=" + codecName);
 		this.mediaFormat = format;
+		this.crypto = crypto;
 
 		int maxInputSize = 262144;
 		if (format.containsKey("max-input-size")) {
@@ -177,6 +179,31 @@ public class MediaCodec {
 		tryProcessInputBuffer();
 	}
 
+	/* decrypts the sample in place with the keys of the MediaCrypto's session, then queues it */
+	public void queueSecureInputBuffer(int index, int offset, CryptoInfo info, long presentationTimeUs, int flags) {
+		if ((flags & BUFFER_FLAG_END_OF_STREAM) == 0 && info != null && info.mode != CRYPTO_MODE_UNENCRYPTED) {
+			if (crypto == null)
+				throw new CryptoException(CryptoException.ERROR_INSUFFICIENT_SECURITY, "no MediaCrypto configured");
+			ByteBuffer buffer = inputBuffers[index];
+			int size = 0;
+			for (int i = 0; i < info.numSubSamples; i++)
+				size += (info.numBytesOfClearData != null ? info.numBytesOfClearData[i] : 0) + (info.numBytesOfEncryptedData != null ? info.numBytesOfEncryptedData[i] : 0);
+			if (info.numSubSamples == 0)
+				size = buffer.limit() - offset;
+			int position = buffer.position();
+			buffer.position(0);
+			int status = MediaDrm.native_decrypt(buffer, offset, size, info.key, info.iv, info.mode, info.numBytesOfClearData,
+			                                     info.numBytesOfEncryptedData, info.numSubSamples, info.pattern.getEncryptBlocks(),
+			                                     info.pattern.getSkipBlocks(), presentationTimeUs);
+			buffer.position(position);
+			if (status == 2)
+				throw new CryptoException(CryptoException.ERROR_NO_KEY, "the key is not loaded");
+			if (status != 0)
+				throw new CryptoException(CryptoException.ERROR_INSUFFICIENT_SECURITY, "decryption failed with status " + status);
+		}
+		queueInputBuffer(index, offset, 0, presentationTimeUs, flags);
+	}
+
 	public void setVideoScalingMode(int mode) {
 		System.out.println("MediaCodec.setVideoScalingMode(" + mode + "): codecName=" + codecName);
 	}
@@ -227,7 +254,58 @@ public class MediaCodec {
 	private native void native_flush(long codec);
 	private native void native_release(long codec);
 
+	public static final int CRYPTO_MODE_UNENCRYPTED = 0;
+	public static final int CRYPTO_MODE_AES_CTR = 1;
+	public static final int CRYPTO_MODE_AES_CBC = 2;
+
+	public static final class CryptoException extends RuntimeException {
+		public static final int ERROR_NO_KEY = 1;
+		public static final int ERROR_KEY_EXPIRED = 2;
+		public static final int ERROR_RESOURCE_BUSY = 3;
+		public static final int ERROR_INSUFFICIENT_OUTPUT_PROTECTION = 4;
+		public static final int ERROR_SESSION_NOT_OPENED = 5;
+		public static final int ERROR_UNSUPPORTED_OPERATION = 6;
+		public static final int ERROR_INSUFFICIENT_SECURITY = 7;
+
+		private final int errorCode;
+
+		public CryptoException(int errorCode, String detailMessage) {
+			super(detailMessage);
+			this.errorCode = errorCode;
+		}
+
+		public int getErrorCode() {
+			return errorCode;
+		}
+	}
+
 	public static final class CryptoInfo {
+		public int numSubSamples;
+		public int[] numBytesOfClearData;
+		public int[] numBytesOfEncryptedData;
+		public byte[] key;
+		public byte[] iv;
+		public int mode;
+		private Pattern pattern = new Pattern(0, 0);
+
+		public void set(int numSubSamples, int[] numBytesOfClearData, int[] numBytesOfEncryptedData, byte[] key, byte[] iv, int mode) {
+			this.numSubSamples = numSubSamples;
+			this.numBytesOfClearData = numBytesOfClearData;
+			this.numBytesOfEncryptedData = numBytesOfEncryptedData;
+			this.key = key;
+			this.iv = iv;
+			this.mode = mode;
+			this.pattern = new Pattern(0, 0);
+		}
+
+		public void setPattern(Pattern newPattern) {
+			pattern = newPattern != null ? newPattern : new Pattern(0, 0);
+		}
+
+		public Pattern getPattern() {
+			return pattern;
+		}
+
 		public static final class Pattern {
 			private int blocksToEncrypt;
 			private int blocksToSkip;
