@@ -2045,11 +2045,11 @@ public class View implements Drawable.Callback {
 		oldHeight = height;
 	}
 
-	/** Helper function to be called from GTKs LayoutManager via JNI */
-	@Export
 	private static final boolean DEBUG_LAYOUT = System.getenv("ATL_DEBUG_LAYOUT") != null;
 	private static int debugLayoutCount;
 
+	/** Helper function to be called from GTKs LayoutManager via JNI */
+	@Export
 	private void layoutInternal(int width, int height) {
 		in_layout = true;
 		layoutRequired = false;
