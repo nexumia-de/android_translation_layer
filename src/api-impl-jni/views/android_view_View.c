@@ -158,6 +158,23 @@ static bool call_ontouch_callback(WrapperWidget *wrapper, int action, struct poi
 
 	ret = view_dispatch_motionevent(env, wrapper, phase, motion_event, event, action);
 
+	if (getenv("ATL_DEBUG_TOUCH")) { /* debug only, not for merging */
+		jclass cls = (*env)->GetObjectClass(env, wrapper->jobj);
+		jclass class_class = (*env)->FindClass(env, "java/lang/Class");
+		jmethodID get_name = (*env)->GetMethodID(env, class_class, "getName", "()Ljava/lang/String;");
+		jstring name = (*env)->CallObjectMethod(env, cls, get_name);
+		const char *cname = (*env)->GetStringUTFChars(env, name, NULL);
+		struct pointer *p0 = num_pointers ? (struct pointer *)g_ptr_array_index(pointer_indices, 0) : NULL;
+		fprintf(stderr, "TOUCHDBG t=%u gdk=%d phase=%d action=0x%x id=%d x=%.1f y=%.1f raw=%.1f,%.1f %s@%p ret=%d dispatch=%d\n",
+		        timestamp, event ? (int)gdk_event_get_event_type(event) : -1, phase, action, p0 ? p0->id : -1,
+		        p0 ? p0->coord_x : 0, p0 ? p0->coord_y : 0, p0 ? p0->raw_x : 0, p0 ? p0->raw_y : 0,
+		        cname, (void *)wrapper, ret, wrapper->custom_dispatch_touch);
+		(*env)->ReleaseStringUTFChars(env, name, cname);
+		(*env)->DeleteLocalRef(env, name);
+		(*env)->DeleteLocalRef(env, cls);
+		(*env)->DeleteLocalRef(env, class_class);
+	}
+
 	(*env)->DeleteLocalRef(env, motion_event);
 
 	return ret;
