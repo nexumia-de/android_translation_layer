@@ -2588,7 +2588,6 @@ public class View implements Drawable.Callback {
 	public int getMinimumHeight() { return minHeight; }
 	public int getMinimumWidth() { return minWidth; }
 
-	public boolean isNestedScrollingEnabled() { return false; }
 
 	private boolean clipToOutline;
 	private ViewOutlineProvider outlineProvider = ViewOutlineProvider.BACKGROUND;
@@ -2678,7 +2677,6 @@ public class View implements Drawable.Callback {
 
 	public boolean isInTouchMode() { return false; }
 
-	public void stopNestedScroll() {}
 
 	public long getDrawingTime() {
 		return System.currentTimeMillis();
@@ -2912,7 +2910,128 @@ public class View implements Drawable.Callback {
 
 	public void setVerticalScrollbarPosition(int position) {}
 
-	public void setNestedScrollingEnabled(boolean enabled) {}
+	/* nested scrolling as in AOSP: a scrolling child offers its scroll to the
+	 * ancestors (CoordinatorLayout, BottomSheetBehavior) before and after it
+	 * consumes it. BottomSheetBehavior only leaves a drag to a child that has
+	 * nested scrolling enabled (Compose's interop sets it); without the flag
+	 * every vertical drag moved the sheet. */
+	private boolean nestedScrollingEnabled;
+	private ViewParent nestedScrollingParent;
+	private int[] tempNestedScrollConsumed;
+
+	public void setNestedScrollingEnabled(boolean enabled) {
+		if (nestedScrollingEnabled && !enabled)
+			stopNestedScroll();
+		nestedScrollingEnabled = enabled;
+	}
+
+	public boolean isNestedScrollingEnabled() {
+		return nestedScrollingEnabled;
+	}
+
+	public boolean hasNestedScrollingParent() {
+		return nestedScrollingParent != null;
+	}
+
+	public boolean startNestedScroll(int axes) {
+		if (hasNestedScrollingParent())
+			return true;
+		if (isNestedScrollingEnabled()) {
+			ViewParent p = getParent();
+			View child = this;
+			while (p != null) {
+				try {
+					if (p.onStartNestedScroll(child, this, axes)) {
+						nestedScrollingParent = p;
+						p.onNestedScrollAccepted(child, this, axes);
+						return true;
+					}
+				} catch (AbstractMethodError e) {
+					android.util.Log.e("View", "ViewParent " + p + " does not implement interface method onStartNestedScroll", e);
+				}
+				if (p instanceof View)
+					child = (View)p;
+				p = p.getParent();
+			}
+		}
+		return false;
+	}
+
+	public void stopNestedScroll() {
+		if (nestedScrollingParent != null) {
+			nestedScrollingParent.onStopNestedScroll(this);
+			nestedScrollingParent = null;
+		}
+	}
+
+	public boolean dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, int[] offsetInWindow) {
+		if (isNestedScrollingEnabled() && nestedScrollingParent != null) {
+			if (dxConsumed != 0 || dyConsumed != 0 || dxUnconsumed != 0 || dyUnconsumed != 0) {
+				int startX = 0;
+				int startY = 0;
+				if (offsetInWindow != null) {
+					getLocationInWindow(offsetInWindow);
+					startX = offsetInWindow[0];
+					startY = offsetInWindow[1];
+				}
+				nestedScrollingParent.onNestedScroll(this, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed);
+				if (offsetInWindow != null) {
+					getLocationInWindow(offsetInWindow);
+					offsetInWindow[0] -= startX;
+					offsetInWindow[1] -= startY;
+				}
+				return true;
+			} else if (offsetInWindow != null) {
+				offsetInWindow[0] = 0;
+				offsetInWindow[1] = 0;
+			}
+		}
+		return false;
+	}
+
+	public boolean dispatchNestedPreScroll(int dx, int dy, int[] consumed, int[] offsetInWindow) {
+		if (isNestedScrollingEnabled() && nestedScrollingParent != null) {
+			if (dx != 0 || dy != 0) {
+				int startX = 0;
+				int startY = 0;
+				if (offsetInWindow != null) {
+					getLocationInWindow(offsetInWindow);
+					startX = offsetInWindow[0];
+					startY = offsetInWindow[1];
+				}
+				if (consumed == null) {
+					if (tempNestedScrollConsumed == null)
+						tempNestedScrollConsumed = new int[2];
+					consumed = tempNestedScrollConsumed;
+				}
+				consumed[0] = 0;
+				consumed[1] = 0;
+				nestedScrollingParent.onNestedPreScroll(this, dx, dy, consumed);
+				if (offsetInWindow != null) {
+					getLocationInWindow(offsetInWindow);
+					offsetInWindow[0] -= startX;
+					offsetInWindow[1] -= startY;
+				}
+				return consumed[0] != 0 || consumed[1] != 0;
+			} else if (offsetInWindow != null) {
+				offsetInWindow[0] = 0;
+				offsetInWindow[1] = 0;
+			}
+		}
+		return false;
+	}
+
+	public boolean dispatchNestedFling(float velocityX, float velocityY, boolean consumed) {
+		if (isNestedScrollingEnabled() && nestedScrollingParent != null)
+			return nestedScrollingParent.onNestedFling(this, velocityX, velocityY, consumed);
+		return false;
+	}
+
+	public boolean dispatchNestedPreFling(float velocityX, float velocityY) {
+		if (isNestedScrollingEnabled() && nestedScrollingParent != null)
+			return nestedScrollingParent.onNestedPreFling(this, velocityX, velocityY);
+		return false;
+	}
 
 	public void setTouchDelegate(TouchDelegate touchDelegate) {}
 
