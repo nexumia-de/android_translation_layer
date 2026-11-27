@@ -2643,6 +2643,17 @@ public class View implements Drawable.Callback {
 
 	private boolean keepScreenOn = false;
 	private static native void native_keep_screen_on(long widget, boolean keepScreenOn);
+	private boolean filterTouchesWhenObscured;
+
+	/* no other app's window can cover this one here, so there is nothing to filter */
+	public void setFilterTouchesWhenObscured(boolean enabled) {
+		filterTouchesWhenObscured = enabled;
+	}
+
+	public boolean getFilterTouchesWhenObscured() {
+		return filterTouchesWhenObscured;
+	}
+
 	public void setKeepScreenOn(boolean screenOn) {
 		if (isAttachedToWindow() && keepScreenOn != screenOn)
 			native_keep_screen_on(widget, screenOn);
