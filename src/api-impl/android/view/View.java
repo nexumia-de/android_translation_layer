@@ -2031,6 +2031,9 @@ public class View implements Drawable.Callback {
 	 * change listener) */
 	private void layoutNativeWidget(int width, int height) {
 		boolean changed = oldWidth != width || oldHeight != height;
+		if (DEBUG_LAYOUT && (changed || (getClass().getName().contains("Compose") || getClass().getName().startsWith("b.uf30")) && debugLayoutCount++ < 400))
+			System.err.println("LAYOUTDBG " + getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(this)) + " " + oldWidth + "x" + oldHeight + " -> " + width + "x" + height
+				+ " measured=" + getMeasuredWidth() + "x" + getMeasuredHeight() + " lt=" + left + "," + top + " parent=" + (parent == null ? "-" : parent.getClass().getName()));
 		if (changed)
 			onSizeChanged(width, height, oldWidth, oldHeight);
 		onLayout(changed, 0, 0, width, height);
@@ -2044,6 +2047,9 @@ public class View implements Drawable.Callback {
 
 	/** Helper function to be called from GTKs LayoutManager via JNI */
 	@Export
+	private static final boolean DEBUG_LAYOUT = System.getenv("ATL_DEBUG_LAYOUT") != null;
+	private static int debugLayoutCount;
+
 	private void layoutInternal(int width, int height) {
 		in_layout = true;
 		layoutRequired = false;
