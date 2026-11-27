@@ -283,6 +283,13 @@ public class Paint {
 
 	/* for GskCanvas, which has no transfer modes: whether drawing with this paint removes what is
 	 * below instead of painting over it, so that drawing it plainly would be wrong */
+	/* the PorterDuff.Mode's number of the transfer mode, or -1 without one */
+	public int atlPorterDuffMode() {
+		if (!(xfermode instanceof PorterDuffXfermode))
+			return -1;
+		return ((PorterDuffXfermode)xfermode).porterDuffMode;
+	}
+
 	public boolean atlXfermodeErases() {
 		if (!(xfermode instanceof PorterDuffXfermode))
 			return false;

@@ -129,6 +129,21 @@ public class GskCanvas extends RecordingCanvas {
 
 	@Override
 	public void drawBitmap(Bitmap bitmap, Rect src, Rect dst, Paint paint) {
+		/* transfer modes, such as Glide's circleCrop drawing the picture SRC_IN over a circle */
+		int mode = paint != null ? paint.atlPorterDuffMode() : -1;
+		if (mode >= 0 && mode != PorterDuff.Mode.SRC_OVER.nativeInt) {
+			if (native_pushComposite(snapshot, mode, dst.left, dst.top, dst.right, dst.bottom)) {
+				drawBitmapPlain(bitmap, src, dst, paint);
+				native_pop(snapshot, 1);
+				return;
+			}
+			if (paint.atlXfermodeErases())
+				return;
+		}
+		drawBitmapPlain(bitmap, src, dst, paint);
+	}
+
+	private void drawBitmapPlain(Bitmap bitmap, Rect src, Rect dst, Paint paint) {
 		if (src == null)
 			native_drawBitmap(snapshot, bitmap.getTexture(), dst.left, dst.top, dst.width(), dst.height(), paint != null ? paint.paint : default_paint.paint);
 		else
@@ -253,5 +268,6 @@ public class GskCanvas extends RecordingCanvas {
 	protected native void native_clipRect(long snapshot, float left, float top, float right, float bottom);
 	protected native void native_clipPath(long snapshot, long path, int fill_rule);
 	protected native void native_pop(long snapshot, int pop_count);
+	protected static native boolean native_pushComposite(long snapshot, int mode, float left, float top, float right, float bottom);
 	protected native void native_drawRenderNode(long snapshot, long render_node);
 }

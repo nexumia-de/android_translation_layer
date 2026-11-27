@@ -288,3 +288,28 @@ JNIEXPORT void JNICALL Java_android_atl_GskCanvas_native_1clipPath(JNIEnv *env, 
 	gtk_snapshot_append_fill(snapshot, path, fill_rule, &(GdkRGBA){1, 1, 1, 1});
 	gtk_snapshot_pop(snapshot);
 }
+
+/* Porter/Duff modes as Android numbers them (PorterDuff.Mode.nativeInt, CLEAR to XOR) */
+JNIEXPORT jboolean JNICALL Java_android_atl_GskCanvas_native_1pushComposite(JNIEnv *env, jclass this_class, jlong snapshot_ptr, jint mode, jfloat left, jfloat top, jfloat right, jfloat bottom)
+{
+#if GTK_CHECK_VERSION(4, 22, 0)
+	static const GskPorterDuff ops[] = {
+		GSK_PORTER_DUFF_CLEAR, GSK_PORTER_DUFF_SOURCE, GSK_PORTER_DUFF_DEST,
+		GSK_PORTER_DUFF_SOURCE_OVER_DEST, GSK_PORTER_DUFF_DEST_OVER_SOURCE,
+		GSK_PORTER_DUFF_SOURCE_IN_DEST, GSK_PORTER_DUFF_DEST_IN_SOURCE,
+		GSK_PORTER_DUFF_SOURCE_OUT_DEST, GSK_PORTER_DUFF_DEST_OUT_SOURCE,
+		GSK_PORTER_DUFF_SOURCE_ATOP_DEST, GSK_PORTER_DUFF_DEST_ATOP_SOURCE,
+		GSK_PORTER_DUFF_XOR,
+	};
+	if (mode < 0 || mode >= (jint)G_N_ELEMENTS(ops))
+		return JNI_FALSE;
+	GdkSnapshot *snapshot = GTK_SNAPSHOT(_PTR(snapshot_ptr));
+	/* the mode applies where the drawing goes, as with Skia's bounded draws: the mask is its rectangle */
+	gtk_snapshot_push_composite(snapshot, ops[mode]);
+	gtk_snapshot_append_color(snapshot, &(GdkRGBA){1, 1, 1, 1}, &GRAPHENE_RECT_INIT(left, top, right - left, bottom - top));
+	gtk_snapshot_pop(snapshot);
+	return JNI_TRUE;
+#else
+	return JNI_FALSE;
+#endif
+}
