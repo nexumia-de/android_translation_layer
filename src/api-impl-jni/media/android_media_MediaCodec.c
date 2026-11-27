@@ -27,6 +27,7 @@
 #include "../../libandroid/native_window.h"
 #include "../widgets/android_view_SurfaceView.h"
 #include "jni.h"
+#include "atl_widevine.h"
 
 struct ATL_codec_context {
 	AVCodecContext *codec;
@@ -42,6 +43,9 @@ struct ATL_codec_context {
 			uint8_t *extradata;
 		} video;
 	};
+	/* video decoded by the Widevine CDM: its frames wait here; a NULL entry marks the end of stream */
+	bool cdm_video;
+	GQueue *cdm_frames;
 };
 
 JNIEXPORT jlong JNICALL Java_android_media_MediaCodec_native_1constructor(JNIEnv *env, jobject this, jstring codec_name)
@@ -298,6 +302,15 @@ JNIEXPORT jint JNICALL Java_android_media_MediaCodec_native_1queueInputBuffer(JN
 	struct ATL_codec_context *ctx = _PTR(codec);
 	AVCodecContext *codec_ctx = ctx->codec;
 	AVPacket *pkt = NULL;
+	if (ctx->cdm_video) {
+		if (!buffer) { /* drain the CDM's decoder, then mark the end of stream */
+			AVFrame *frame;
+			while (atl_widevine_video_decode(NULL, 0, NULL, 0, NULL, 0, 0, NULL, NULL, 0, 0, 0, 0, &frame) == 0 && frame)
+				g_queue_push_tail(ctx->cdm_frames, frame);
+			g_queue_push_tail(ctx->cdm_frames, NULL);
+		}
+		return 0;
+	}
 	if (buffer) { // buffer can be null if we're sending EOF
 		pkt = av_packet_alloc();
 		pkt->size = get_nio_buffer_size(env, buffer);
@@ -327,11 +340,25 @@ JNIEXPORT jint JNICALL Java_android_media_MediaCodec_native_1dequeueOutputBuffer
 {
 	struct ATL_codec_context *ctx = _PTR(codec);
 	AVCodecContext *codec_ctx = ctx->codec;
-	AVFrame *frame = av_frame_alloc();
+	AVFrame *frame;
 	int ret;
 	jarray array_ref;
 	jbyte *array;
 
+	if (ctx->cdm_video) {
+		if (g_queue_is_empty(ctx->cdm_frames))
+			return INFO_TRY_AGAIN_LATER;
+		frame = g_queue_pop_head(ctx->cdm_frames);
+		uint8_t *raw_buffer = get_nio_buffer(env, buffer, &array_ref, &array);
+		*((AVFrame **)raw_buffer) = frame;
+		release_nio_buffer(env, array_ref, array);
+		_SET_INT_FIELD(buffer_info, "flags", frame ? 0 : android_media_MediaCodec_BUFFER_FLAG_END_OF_STREAM);
+		_SET_INT_FIELD(buffer_info, "offset", 0);
+		_SET_INT_FIELD(buffer_info, "size", frame ? sizeof(AVFrame *) : 0);
+		_SET_LONG_FIELD(buffer_info, "presentationTimeUs", frame ? frame->pts : 0);
+		return 0;
+	}
+	frame = av_frame_alloc();
 	ret = avcodec_receive_frame(codec_ctx, frame);
 	if (ret < 0) {
 		if (ret == AVERROR_EOF) {
@@ -501,14 +528,31 @@ JNIEXPORT void JNICALL Java_android_media_MediaCodec_native_1releaseOutputBuffer
 	}
 }
 
+static void drop_cdm_frames(struct ATL_codec_context *ctx)
+{
+	AVFrame *frame;
+	while (ctx->cdm_frames && !g_queue_is_empty(ctx->cdm_frames))
+		if ((frame = g_queue_pop_head(ctx->cdm_frames)))
+			av_frame_free(&frame);
+}
+
 JNIEXPORT void JNICALL Java_android_media_MediaCodec_native_1flush(JNIEnv *env, jobject this, jlong codec)
 {
+	if (((struct ATL_codec_context *)_PTR(codec))->cdm_video) {
+		drop_cdm_frames(_PTR(codec));
+		atl_widevine_video_reset();
+	}
 	struct ATL_codec_context *ctx = _PTR(codec);
 	avcodec_flush_buffers(ctx->codec);
 }
 
 JNIEXPORT void JNICALL Java_android_media_MediaCodec_native_1release(JNIEnv *env, jobject this, jlong codec)
 {
+	if (((struct ATL_codec_context *)_PTR(codec))->cdm_video) {
+		drop_cdm_frames(_PTR(codec));
+		g_queue_free(((struct ATL_codec_context *)_PTR(codec))->cdm_frames);
+		atl_widevine_video_deinit();
+	}
 	struct ATL_codec_context *ctx = _PTR(codec);
 	if (ctx->codec->codec_type == AVMEDIA_TYPE_VIDEO && ctx->video.sws) {
 		sws_freeContext(ctx->video.sws);
@@ -516,4 +560,76 @@ JNIEXPORT void JNICALL Java_android_media_MediaCodec_native_1release(JNIEnv *env
 
 	avcodec_free_context(&ctx->codec);
 	free(ctx);
+}
+
+/* a sample of a stream whose key may only be used by the Widevine CDM's own decoder: decrypted
+ * and decoded there, the frames go to the output queue. The first sample gets the SPS/PPS in front,
+ * as for ffmpeg. Returns the CDM status. */
+JNIEXPORT jint JNICALL Java_android_media_MediaCodec_native_1queueSecureVideo(JNIEnv *env, jobject this, jlong codec, jobject buffer, jint size,
+                                                                              jbyteArray key_id, jbyteArray iv, jint mode, jintArray clear_bytes,
+                                                                              jintArray cipher_bytes, jint num_subsamples, jint crypt_blocks,
+                                                                              jint skip_blocks, jlong presentation_time_us, jint width, jint height)
+{
+	struct ATL_codec_context *ctx = _PTR(codec);
+	if (!ctx->cdm_video) {
+		int cdm_codec = strcmp(ctx->codec->codec->name, "vp9") ? ATL_WIDEVINE_H264 : ATL_WIDEVINE_VP9;
+		if (!atl_widevine_video_init(cdm_codec, width, height))
+			return 3; /* kInitializationError */
+		ctx->cdm_video = true;
+		ctx->cdm_frames = g_queue_new();
+	}
+	jbyte *key = key_id ? (*env)->GetByteArrayElements(env, key_id, NULL) : NULL;
+	jsize key_size = key_id ? (*env)->GetArrayLength(env, key_id) : 0;
+	jbyte *ivp = iv ? (*env)->GetByteArrayElements(env, iv, NULL) : NULL;
+	jsize iv_size = iv ? MIN((*env)->GetArrayLength(env, iv), 16) : 0;
+	jint *clear = clear_bytes ? (*env)->GetIntArrayElements(env, clear_bytes, NULL) : NULL;
+	jint *cipher = cipher_bytes ? (*env)->GetIntArrayElements(env, cipher_bytes, NULL) : NULL;
+
+	/* the SPS/PPS go in front of the first sample, as a clear subsample of their own */
+	size_t prefix = ctx->video.extradata_size;
+	uint32_t n = num_subsamples + (prefix ? 1 : 0);
+	uint32_t *clear32 = g_new0(uint32_t, n ? n : 1), *cipher32 = g_new0(uint32_t, n ? n : 1);
+	uint32_t k = 0;
+	if (prefix)
+		clear32[k++] = prefix;
+	for (int i = 0; i < num_subsamples; i++, k++) {
+		clear32[k] = clear ? clear[i] : 0;
+		cipher32[k] = cipher ? cipher[i] : 0;
+	}
+	/* clear samples have no subsamples; encrypted ones without any are encrypted whole */
+	if (mode == 0 || (num_subsamples == 0 && !prefix))
+		n = 0;
+	else if (num_subsamples == 0)
+		cipher32[0] = size; /* one entry: the prefix clear, the whole sample after it encrypted */
+
+	jarray array_ref;
+	jbyte *array;
+	uint8_t *data = get_nio_buffer(env, buffer, &array_ref, &array);
+	uint8_t *sample = data;
+	if (prefix) {
+		sample = av_malloc(prefix + size);
+		memcpy(sample, ctx->video.extradata, prefix);
+		memcpy(sample + prefix, data, size);
+		ctx->video.extradata_size = 0;
+	}
+	AVFrame *frame = NULL;
+	int status = atl_widevine_video_decode(sample, prefix + size, (const uint8_t *)key, key_size, (const uint8_t *)ivp, iv_size, mode,
+	                                       clear32, cipher32, n, crypt_blocks, skip_blocks, presentation_time_us, &frame);
+	release_nio_buffer(env, array_ref, array);
+	if (sample != data)
+		av_free(sample);
+	if (status == 0 && frame)
+		g_queue_push_tail(ctx->cdm_frames, frame);
+
+	g_free(clear32);
+	g_free(cipher32);
+	if (cipher)
+		(*env)->ReleaseIntArrayElements(env, cipher_bytes, cipher, JNI_ABORT);
+	if (clear)
+		(*env)->ReleaseIntArrayElements(env, clear_bytes, clear, JNI_ABORT);
+	if (ivp)
+		(*env)->ReleaseByteArrayElements(env, iv, ivp, JNI_ABORT);
+	if (key)
+		(*env)->ReleaseByteArrayElements(env, key_id, key, JNI_ABORT);
+	return status == 1 ? 0 : status; /* kNeedMoreData is fine */
 }
