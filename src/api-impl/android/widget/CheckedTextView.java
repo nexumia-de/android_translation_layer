@@ -4,7 +4,7 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 
-public class CheckedTextView extends TextView {
+public class CheckedTextView extends TextView implements Checkable {
 
 	public CheckedTextView(Context context) {
 		super(context);
