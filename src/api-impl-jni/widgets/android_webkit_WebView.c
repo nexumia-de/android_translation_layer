@@ -142,7 +142,10 @@ static gboolean decide_policy(WebKitWebView *web_view, WebKitPolicyDecision *dec
 		const gchar *uri = webkit_uri_request_get_uri(request);
 
 		JNIEnv *env = get_jni_env();
-		jboolean result = J__WebView__internalShouldOverrideUrlLoading(env, wrapper->jobj, _JSTRING(uri));
+		jboolean result = J__WebView__internalShouldOverrideUrlLoading(env, wrapper->jobj, _JSTRING(uri),
+		                                                               webkit_navigation_action_is_redirect(action),
+		                                                               webkit_navigation_action_is_user_gesture(action),
+		                                                               _JSTRING(webkit_uri_request_get_http_method(request)));
 		if (result)
 			webkit_policy_decision_ignore(decision);
 		else

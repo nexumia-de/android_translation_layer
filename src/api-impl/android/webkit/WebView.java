@@ -101,16 +101,37 @@ public class WebView extends ViewGroup {
 	}
 
 	@Export
-	boolean internalShouldOverrideUrlLoading(String url) {
+	boolean internalShouldOverrideUrlLoading(String url, boolean isRedirect, boolean hasGesture, String method) {
 		// on Android the app's own loadUrl/loadData does not reach the client
 		if (ownLoadPending || url.startsWith("about:")) {
 			ownLoadPending = false;
 			return false;
 		}
 		if (webViewClient != null)
-			return webViewClient.shouldOverrideUrlLoading(this, url);
+			return webViewClient.shouldOverrideUrlLoading(this, new NavigationRequest(url, isRedirect, hasGesture, method));
 		else
 			return false;
+	}
+
+	private static class NavigationRequest implements WebResourceRequest {
+		private final Uri url;
+		private final boolean isRedirect;
+		private final boolean hasGesture;
+		private final String method;
+
+		NavigationRequest(String url, boolean isRedirect, boolean hasGesture, String method) {
+			this.url = Uri.parse(url);
+			this.isRedirect = isRedirect;
+			this.hasGesture = hasGesture;
+			this.method = method != null ? method : "GET";
+		}
+
+		public Uri getUrl() { return url; }
+		public boolean isForMainFrame() { return true; }
+		public boolean isRedirect() { return isRedirect; }
+		public boolean hasGesture() { return hasGesture; }
+		public String getMethod() { return method; }
+		public java.util.Map<String, String> getRequestHeaders() { return new java.util.HashMap<>(); }
 	}
 
 	// to be used by native code
