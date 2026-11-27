@@ -159,6 +159,8 @@ public final class ContextImpl extends Context {
 				return new ConnectivityManager();
 			case "keyguard":
 				return new KeyguardManager();
+			case "biometric":
+				return new android.hardware.biometrics.BiometricManager();
 			case "phone":
 				return new TelephonyManager();
 			case "audio":
