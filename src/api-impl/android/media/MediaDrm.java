@@ -151,6 +151,7 @@ public final class MediaDrm implements AutoCloseable {
 		if (init == null)
 			throw new IllegalArgumentException("no init data for a new session");
 		Object[] result = native_generateRequest(psshBox(init));
+		android.util.Slog.i("MediaDrm", "Widevine session " + result[0] + ": license request of " + ((byte[])result[1]).length + " bytes (" + mimeType + ")");
 		synchronized (cdmSessions) {
 			cdmSessions.put(key(scope), (String)result[0]);
 		}
@@ -162,6 +163,7 @@ public final class MediaDrm implements AutoCloseable {
 		if (cdmSession == null)
 			throw new IllegalStateException("no key request for this session");
 		String error = native_update(cdmSession, response);
+		android.util.Slog.i("MediaDrm", "Widevine session " + cdmSession + ": license response of " + response.length + " bytes " + (error == null ? "accepted" : "refused: " + error));
 		if (error != null)
 			throw new DeniedByServerException(error);
 		/* the keys are usable now */

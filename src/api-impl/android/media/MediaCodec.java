@@ -21,6 +21,7 @@ public class MediaCodec {
 	private boolean outputFormatSet = false;
 	private MediaFormat mediaFormat;
 	private MediaCrypto crypto;
+	private boolean decryptErrorLogged;
 
 	private Queue<Integer> freeOutputBuffers;
 	private Queue<Integer> queuedInputBuffers;
@@ -196,6 +197,10 @@ public class MediaCodec {
 			                                     info.numBytesOfEncryptedData, info.numSubSamples, info.pattern.getEncryptBlocks(),
 			                                     info.pattern.getSkipBlocks(), presentationTimeUs);
 			buffer.position(position);
+			if (status != 0 && !decryptErrorLogged) {
+				decryptErrorLogged = true;
+				System.out.println("MediaCodec.queueSecureInputBuffer: decryption failed with status " + status + " (mode " + info.mode + ", " + info.numSubSamples + " subsamples)");
+			}
 			if (status == 2)
 				throw new CryptoException(CryptoException.ERROR_NO_KEY, "the key is not loaded");
 			if (status != 0)
