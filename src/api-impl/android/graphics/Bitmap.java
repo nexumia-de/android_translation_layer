@@ -241,10 +241,16 @@ public final class Bitmap implements Parcelable {
 	}
 
 	public void getPixels(int[] pixels, int offset, int stride, int x, int y, int width, int height) {
+		if (x < 0 || y < 0 || width < 0 || height < 0 || x + width > getWidth() || y + height > getHeight())
+			throw new IllegalArgumentException("x, y, width and height must be inside the bitmap");
+		if (width == 0 || height == 0)
+			return;
 		native_get_pixels(getTexture(), pixels, offset, stride, x, y, width, height);
 	}
 
 	public int getPixel(int x, int y) {
+		if (x < 0 || y < 0 || x >= getWidth() || y >= getHeight())
+			throw new IllegalArgumentException("x and y must be inside the bitmap");
 		int[] pixels = new int[1];
 		native_get_pixels(getTexture(), pixels, 0, 1, x, y, 1, 1);
 		return pixels[0];

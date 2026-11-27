@@ -18,6 +18,11 @@ public class KeyguardManager {
 		return true;
 	}
 
+	/* null, as on Android without a secure lock screen the app could confirm */
+	public android.content.Intent createConfirmDeviceCredentialIntent(CharSequence title, CharSequence description) {
+		return null;
+	}
+
 	public KeyguardLock newKeyguardLock(String tag) {
 		return new KeyguardLock();
 	}

@@ -29,6 +29,16 @@ public class ClipDescription /*implements Parcelable*/ {
 		mTimeStamp = System.currentTimeMillis();
 	}
 
+	private android.os.PersistableBundle mExtras;
+
+	public void setExtras(android.os.PersistableBundle extras) {
+		mExtras = extras != null ? new android.os.PersistableBundle(extras) : null;
+	}
+
+	public android.os.PersistableBundle getExtras() {
+		return mExtras;
+	}
+
 	public CharSequence getLabel() {
 		return mLabel;
 	}

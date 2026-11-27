@@ -372,6 +372,8 @@ srcs = [
 	'android/hardware/SensorEvent.java',
 	'android/hardware/SensorEventListener.java',
 	'android/hardware/SensorManager.java',
+	'android/hardware/biometrics/BiometricManager.java',
+	'android/hardware/biometrics/BiometricPrompt.java',
 	'android/hardware/camera2/CameraAccessException.java',
 	'android/hardware/camera2/CameraCaptureSession.java',
 	'android/hardware/camera2/CameraCharacteristics.java',

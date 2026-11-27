@@ -163,6 +163,14 @@ JNIEXPORT void JNICALL Java_android_atl_GskCanvas_native_1pop
 JNIEXPORT void JNICALL Java_android_atl_GskCanvas_native_1drawRenderNode
   (JNIEnv *, jobject, jlong, jlong);
 
+/*
+ * Class:     android_atl_GskCanvas
+ * Method:    native_pushComposite
+ * Signature: (JIFFFF)Z
+ */
+JNIEXPORT jboolean JNICALL Java_android_atl_GskCanvas_native_1pushComposite
+  (JNIEnv *, jclass, jlong, jint, jfloat, jfloat, jfloat, jfloat);
+
 #ifdef __cplusplus
 }
 #endif

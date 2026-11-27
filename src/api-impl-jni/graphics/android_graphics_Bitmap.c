@@ -1,3 +1,4 @@
+#include <string.h>
 #include <gtk/gtk.h>
 
 #include "../defines.h"
@@ -107,12 +108,21 @@ JNIEXPORT jlong JNICALL Java_android_graphics_Bitmap_native_1ref_1texture(JNIEnv
 JNIEXPORT void JNICALL Java_android_graphics_Bitmap_native_1get_1pixels(JNIEnv *env, jclass class, jlong texture_ptr, jintArray pixels, jint offset, jint stride, jint x, jint y, jint width, jint height)
 {
 	GdkTexture *texture = GDK_TEXTURE(_PTR(texture_ptr));
-	if (x != 0 || y != 0 || width != gdk_texture_get_width(texture) || height != gdk_texture_get_height(texture)) {
-		printf("Bitmap.readPixels: partial read not supported\n");
-		exit(1);
-	}
+	int texture_width = gdk_texture_get_width(texture);
+	int texture_height = gdk_texture_get_height(texture);
+	if (x < 0 || y < 0 || width < 0 || height < 0 || x + width > texture_width || y + height > texture_height)
+		return; /* Bitmap.getPixels checks the bounds first */
 	jint *array = (*env)->GetIntArrayElements(env, pixels, NULL);
-	gdk_texture_download(texture, (guchar *)(array + offset), stride * 4);
+	if (x == 0 && y == 0 && width == texture_width && height == texture_height && stride >= width) {
+		gdk_texture_download(texture, (guchar *)(array + offset), stride * 4);
+	} else {
+		/* a part of the bitmap, or rows that are not laid out one after another: download it all, copy the part row by row */
+		guint32 *whole = g_malloc((gsize)texture_width * texture_height * 4);
+		gdk_texture_download(texture, (guchar *)whole, texture_width * 4);
+		for (int row = 0; row < height; row++)
+			memcpy(array + offset + (gssize)row * stride, whole + (gsize)(y + row) * texture_width + x, (gsize)width * 4);
+		g_free(whole);
+	}
 	(*env)->ReleaseIntArrayElements(env, pixels, array, 0);
 }
 

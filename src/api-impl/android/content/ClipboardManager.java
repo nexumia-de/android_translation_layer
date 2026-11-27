@@ -101,6 +101,10 @@ public class ClipboardManager extends android.text.ClipboardManager {
 	/**
 	 * Returns true if there is currently a primary clip on the clipboard.
 	 */
+	public void clearPrimaryClip() {
+		native_clear_clipboard();
+	}
+
 	public boolean hasPrimaryClip() {
 		return native_get_clipboard() != null;
 	}
@@ -135,5 +139,6 @@ public class ClipboardManager extends android.text.ClipboardManager {
 
 	public static native void native_set_clipboard(String text);
 	private static native void native_watch_clipboard();
+	private static native void native_clear_clipboard();
 	private static native String native_get_clipboard();
 }

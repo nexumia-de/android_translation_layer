@@ -68,6 +68,19 @@ static GdkClipboard *watched_clipboard(void)
 	return clipboard;
 }
 
+/* drops the clip: a selection this app owns is given up, so nothing is offered any more */
+static gboolean clear_clipboard_idle(gpointer user_data)
+{
+	GdkDisplay *display = gdk_display_get_default();
+	if (display) {
+		GdkClipboard *clipboard = gdk_display_get_clipboard(display);
+		if (gdk_clipboard_is_local(clipboard))
+			gdk_clipboard_set_content(clipboard, NULL);
+	}
+	set_clipboard_text(NULL);
+	return G_SOURCE_REMOVE;
+}
+
 static gboolean watch_clipboard_idle(gpointer user_data)
 {
 	watched_clipboard();
@@ -108,4 +121,13 @@ JNIEXPORT jstring JNICALL Java_android_content_ClipboardManager_native_1get_1cli
 		g_value_unset(&value);
 	}
 	return get_clipboard_text(env);
+}
+
+JNIEXPORT void JNICALL Java_android_content_ClipboardManager_native_1clear_1clipboard(JNIEnv *env, jclass class)
+{
+	if (!on_main_thread()) {
+		g_idle_add(clear_clipboard_idle, NULL);
+		return;
+	}
+	clear_clipboard_idle(NULL);
 }
