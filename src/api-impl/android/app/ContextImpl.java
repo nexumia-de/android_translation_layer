@@ -475,6 +475,15 @@ public final class ContextImpl extends Context {
 					Slog.w(TAG, "startActivity: can't uninstall " + packageName + ", it is not an installed APK");
 				}
 				return;
+			} else if (android.atl.ATLCaptioningSettings.ACTION.equals(intent.getAction())) {
+				// the Settings app's screen on Android, here dialogs over the app
+				new Handler(Looper.getMainLooper()).post(new Runnable() {
+					@Override
+					public void run() {
+						android.atl.ATLCaptioningSettings.show(ContextImpl.this, null);
+					}
+				});
+				return;
 			} else if (intent.getData() != null) {
 				Slog.i(TAG, "starting extern activity with intent: " + intent);
 				if (intent.getData().getScheme().equals("content")) {

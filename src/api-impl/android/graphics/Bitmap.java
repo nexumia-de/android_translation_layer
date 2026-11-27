@@ -212,14 +212,29 @@ public final class Bitmap implements Parcelable {
 		getTexture();
 	}
 
-	public void setDensity(int density) {}
+	public static final int DENSITY_NONE = 0;
 
-	public int getScaledWidth(int density) {
-		return width;
+	/* the density the pixels are meant for: a resource image keeps its pixels in ATL (no
+	 * scaling at decode time), drawables size it by this, as Android does */
+	private int density = DisplayMetrics.DENSITY_DEFAULT;
+
+	public void setDensity(int density) {
+		this.density = density;
 	}
 
-	public int getScaledHeight(int density) {
-		return height;
+	public int getScaledWidth(int targetDensity) {
+		return scaleFromDensity(width, density, targetDensity);
+	}
+
+	public int getScaledHeight(int targetDensity) {
+		return scaleFromDensity(height, density, targetDensity);
+	}
+
+	/** @hide: as in AOSP */
+	public static int scaleFromDensity(int size, int sdensity, int tdensity) {
+		if (sdensity == DENSITY_NONE || tdensity == DENSITY_NONE || sdensity == tdensity)
+			return size;
+		return ((size * tdensity) + (sdensity >> 1)) / sdensity;
 	}
 
 	public boolean isRecycled() {
@@ -320,7 +335,7 @@ public final class Bitmap implements Parcelable {
 	}
 
 	public int getDensity() {
-		return DisplayMetrics.DENSITY_DEFAULT;
+		return density;
 	}
 
 	@SuppressWarnings("deprecation")
