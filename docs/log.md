@@ -1,5 +1,8 @@
 # Directory Update Log
 
+## 2026-11-27 (3)
+* **F-Droid, adding a repository** (#205): after the paste fix the owner's next try aborted in `RepoAdder.hasDisallowInstallUnknownSources` (`UserManager.hasUserRestriction` missing); added with `getUserRestrictions`, nothing is restricted. Headless with the new engine: the Bitwarden repository (opened as `fdroidrepos://` link) was fetched and added, and Paste filled the URL field. Pitfall for headless clipboard tests: the cage has no keyboard, so Wayland sends no clipboard to the app; keep a virtual keyboard alive (`wl-pointer key Shift_L wait 20000 &`) while setting it with `wl-copy` and pasting ([app status](apps.md)).
+
 ## 2026-11-27 (2)
 * **Crunchyroll, Revolut, Claude, F-Droid** (#203): Crunchyroll refused to start ("incomplete") because `ApplicationInfo.splitSourceDirs` was never set, then aborted on `WebView.loadUrl(String, Map)`, and stayed on its login page because ATL only called `shouldOverrideUrlLoading(WebView, String)`. Revolut needed `__system_property_foreach` in bionic_translation (#6) and then stops in DexProtector's tamper check (not pursued). Claude aborted on `ViewParent.notifySubtreeAccessibilityStateChanged`. F-Droid's paste button in "Add repository" did nothing because `ClipboardManager` could only write: it now reads GDK's clipboard (asynchronously, kept for the synchronous Android calls) ([app status](apps.md)).
 
