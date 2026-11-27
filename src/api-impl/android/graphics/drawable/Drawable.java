@@ -477,7 +477,11 @@ public class Drawable {
 				e.printStackTrace();
 			}
 		}
-		return new NinePatchDrawable(path.toString());
+		/* the image's density from the resource, the screen's from the resources */
+		float scale = 1;
+		if (value != null && value.density > 0 && value.density != TypedValue.DENSITY_NONE && resources != null)
+			scale = resources.getDisplayMetrics().densityDpi / (float)value.density;
+		return new NinePatchDrawable(path.toString(), scale);
 	}
 
 	public static Drawable createFromPath(String path) {

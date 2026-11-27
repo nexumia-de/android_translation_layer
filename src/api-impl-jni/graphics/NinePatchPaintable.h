@@ -27,6 +27,8 @@ struct _NinePatchPaintable {
 	int height;
 	int strechy_width;
 	int strechy_height;
+	/* the image's pixels per drawn pixel: a drawable of another density than the screen's */
+	float scale;
 };
 G_DECLARE_FINAL_TYPE(NinePatchPaintable, ninepatch_paintable, NINEPATCH, PAINTABLE, GObject)
 

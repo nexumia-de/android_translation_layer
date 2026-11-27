@@ -15,7 +15,44 @@ public class NinePatchDrawable extends Drawable {
 	}
 
 	NinePatchDrawable(String path) {
+		this(path, 1);
+	}
+
+	/* scale: the screen's density over the image's, as for bitmaps */
+	NinePatchDrawable(String path, float scale) {
 		setNinePatch(nativeCreate(path));
+		if (ninePatch != 0 && scale > 0 && scale != 1)
+			native_setScale(ninePatch, scale);
+	}
+
+	@Override
+	public int getIntrinsicWidth() {
+		return ninePatch != 0 ? native_getIntrinsicWidth(ninePatch) : -1;
+	}
+
+	@Override
+	public int getIntrinsicHeight() {
+		return ninePatch != 0 ? native_getIntrinsicHeight(ninePatch) : -1;
+	}
+
+	@Override
+	public int getMinimumWidth() {
+		return Math.max(getIntrinsicWidth(), 0);
+	}
+
+	@Override
+	public int getMinimumHeight() {
+		return Math.max(getIntrinsicHeight(), 0);
+	}
+
+	@Override
+	public boolean getPadding(Rect padding) {
+		if (ninePatch == 0)
+			return super.getPadding(padding);
+		int[] p = new int[4];
+		boolean any = native_getPadding(ninePatch, p);
+		padding.set(p[0], p[1], p[2], p[3]);
+		return any;
 	}
 
 	private NinePatchDrawable(long ninePatch) {
@@ -66,4 +103,8 @@ public class NinePatchDrawable extends Drawable {
 
 	private native long nativeCreate(byte[] data, long texture);
 	private native long nativeCreate(String path);
+	private static native void native_setScale(long ninePatch, float scale);
+	private static native int native_getIntrinsicWidth(long ninePatch);
+	private static native int native_getIntrinsicHeight(long ninePatch);
+	private static native boolean native_getPadding(long ninePatch, int[] out);
 }

@@ -16,6 +16,14 @@ static void ninepatch_paintable_snapshot(GdkPaintable *paintable, GdkSnapshot *s
 	int i, j;
 	NinePatchPaintable *ninepatch = NINEPATCH_PAINTABLE(paintable);
 	struct Res_png_9patch *chunk = ninepatch->chunk;
+	/* drawn in image pixels, scaled to the drawable's density */
+	float scale = ninepatch->scale > 0 ? ninepatch->scale : 1;
+	if (scale != 1) {
+		gtk_snapshot_save(snapshot);
+		gtk_snapshot_scale(snapshot, scale, scale);
+		width /= scale;
+		height /= scale;
+	}
 	if (chunk) {
 		int32_t *xDivs = (void *)chunk + chunk->xDivsOffset;
 		int32_t *yDivs = (void *)chunk + chunk->yDivsOffset;
@@ -64,6 +72,8 @@ static void ninepatch_paintable_snapshot(GdkPaintable *paintable, GdkSnapshot *s
 			}
 		}
 	}
+	if (scale != 1)
+		gtk_snapshot_restore(snapshot);
 }
 
 static GdkPaintableFlags ninepatch_paintable_get_flags(GdkPaintable *paintable)
@@ -73,12 +83,27 @@ static GdkPaintableFlags ninepatch_paintable_get_flags(GdkPaintable *paintable)
 
 static void ninepatch_paintable_init(NinePatchPaintable *ninepatch_paintable)
 {
+	ninepatch_paintable->scale = 1;
+}
+
+static int ninepatch_paintable_get_intrinsic_width(GdkPaintable *paintable)
+{
+	NinePatchPaintable *ninepatch = NINEPATCH_PAINTABLE(paintable);
+	return ninepatch->width * ninepatch->scale + 0.5f;
+}
+
+static int ninepatch_paintable_get_intrinsic_height(GdkPaintable *paintable)
+{
+	NinePatchPaintable *ninepatch = NINEPATCH_PAINTABLE(paintable);
+	return ninepatch->height * ninepatch->scale + 0.5f;
 }
 
 static void ninepatch_paintable_paintable_init(GdkPaintableInterface *iface)
 {
 	iface->snapshot = ninepatch_paintable_snapshot;
 	iface->get_flags = ninepatch_paintable_get_flags;
+	iface->get_intrinsic_width = ninepatch_paintable_get_intrinsic_width;
+	iface->get_intrinsic_height = ninepatch_paintable_get_intrinsic_height;
 }
 
 static void ninepatch_paintable_class_init(NinePatchPaintableClass *class)
