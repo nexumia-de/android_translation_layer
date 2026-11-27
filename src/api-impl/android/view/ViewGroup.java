@@ -522,14 +522,21 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 		return false;
 	}
 
+	/* AOSP: a plain ViewGroup passes nested scrolls it accepted on to its own parent */
+	private int nestedScrollAxes;
+
 	@Override
 	public boolean onNestedPreFling(View target, float velocityX, float velocityY) {
-		return false;
+		return dispatchNestedPreFling(velocityX, velocityY);
 	}
 
 	@Override
 	public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed) {
-		return false;
+		return dispatchNestedFling(velocityX, velocityY, consumed);
+	}
+
+	public int getNestedScrollAxes() {
+		return nestedScrollAxes;
 	}
 
 	public void setClipToPadding(boolean clipToPadding) {}
@@ -860,27 +867,24 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	}
 
 	@Override
-	public void onNestedScrollAccepted(View child, View target, int nestedScrollAxes) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method 'onNestedScrollAccepted'");
+	public void onNestedScrollAccepted(View child, View target, int axes) {
+		nestedScrollAxes = axes;
 	}
 
 	@Override
 	public void onNestedPreScroll(View target, int dx, int dy, int[] consumed) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method 'onNestedPreScroll'");
+		dispatchNestedPreScroll(dx, dy, consumed, null);
 	}
 
 	@Override
 	public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method 'onNestedScroll'");
+		dispatchNestedScroll(dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, null);
 	}
 
 	@Override
 	public void onStopNestedScroll(View target) {
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException("Unimplemented method 'onStopNestedScroll'");
+		nestedScrollAxes = 0;
+		stopNestedScroll();
 	}
 
 	public void requestChildFocus(View child, View focused) {}
