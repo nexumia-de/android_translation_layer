@@ -1,0 +1,936 @@
+kind	feature	missing	app	obfuscated	libraries
+class	Views and widgets	android.app.assist.AssistStructure$ViewNode	0	123	
+class	Views and widgets	android.app.slice.Slice$Builder	0	88	
+class	Autofill	android.view.ViewStructure	0	46	
+class	Biometrics	android.hardware.biometrics.BiometricPrompt$CryptoObject	0	45	
+stub	App framework	android.os.Parcel.recycle:()V	34	7	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getExtras:()Landroid/os/Bundle;	0	34	
+class	Camera	android.hardware.camera2.params.StreamConfigurationMap	0	31	
+method	Camera	android.hardware.camera2.CameraAccessException.getReason:()I	0	25	
+class	Camera	android.media.ImageReader	0	22	
+class	Text input	android.view.textclassifier.TextClassification	0	20	
+class	Audio and video	android.media.EncoderProfiles$VideoProfile	0	19	
+class	Views and widgets	android.app.slice.SliceItem	0	17	
+class	Views and widgets	android.widget.Magnifier	0	17	
+stub	Views and widgets	android.widget.EdgeEffect.finish:()V	0	16	androidx.core 2
+class	Camera	android.hardware.camera2.params.InputConfiguration	0	16	
+class	Other	android.service.credentials.CallingAppInfo	0	16	
+class	Other	android.service.quicksettings.TileService	12	4	
+field	Camera	android.hardware.camera2.CameraCharacteristics.LENS_FACING	0	15	
+class	Views and widgets	android.app.slice.SliceSpec	0	14	
+class	Audio and video	android.media.CamcorderProfile	0	14	
+class	Audio and video	android.media.EncoderProfiles$AudioProfile	0	14	
+class	Autofill	android.service.autofill.FillRequest	1	13	
+class	Audio and video	android.view.SurfaceControl$Transaction	0	14	
+stub	Views and widgets	android.view.View.getLayoutDirection:()I	0	13	androidx.appcompat 12
+stub	Views and widgets	android.view.View.requestApplyInsets:()V	0	13	androidx.appcompat 3
+class	Views and widgets	android.app.RemoteAction	0	13	
+class	Autofill	android.service.autofill.Dataset$Builder	0	13	
+stub	Views and widgets	android.view.MotionEvent.getClassification:()I	0	12	
+class	Text input	android.view.textclassifier.TextClassifier	0	11	
+class	Other	android.window.OnBackInvokedDispatcher	0	11	
+stub	Views and widgets	android.widget.EdgeEffect.setSize:(II)V	0	10	androidx.core 2
+stub	Camera	android.hardware.camera2.CaptureResult.get:(Landroid/hardware/camera2/CaptureResult$Key;)Ljava/lang/Object;	0	10	
+class	Views and widgets	android.view.ContentInfo$Builder	0	10	
+class	Views and widgets	android.view.DragEvent	0	10	
+class	Camera	android.media.ImageWriter	0	9	androidx.camera 2
+stub	Graphics	android.graphics.Paint.getFlags:()I	0	9	
+class	Biometrics	android.hardware.biometrics.BiometricPrompt$Builder	0	9	
+stub	Camera	android.hardware.camera2.CaptureResult.getFrameNumber:()J	0	9	
+class	Other	android.service.credentials.BeginGetCredentialOption	0	9	
+class	Other	android.service.credentials.CreateCredentialRequest	0	9	
+class	Views and widgets	android.view.ActionProvider	0	9	
+class	Views and widgets	android.view.ContentInfo	0	9	
+stub	Views and widgets	android.view.View.hasFocus:()Z	0	9	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getPackageName:()Ljava/lang/CharSequence;	8	1	
+class	Views and widgets	android.app.assist.AssistStructure	0	8	
+stub	Graphics	android.graphics.Paint.getTextScaleX:()F	0	8	
+class	Audio and video	android.media.EncoderProfiles	0	8	
+class	Crypto and keystore	android.security.KeyPairGeneratorSpec$Builder	0	8	
+class	Autofill	android.service.autofill.Presentations$Builder	0	8	
+class	Text input	android.view.inputmethod.EditorBoundsInfo$Builder	0	8	
+class	Views and widgets	android.widget.Magnifier$Builder	0	8	
+method	Java library	java.lang.Object.onError:(Ljava/lang/Throwable;)V	0	8	
+class	Graphics	android.graphics.ColorSpace$Rgb	0	7	
+stub	Graphics	android.graphics.Paint.getTextSkewX:()F	0	7	
+stub	Graphics	android.graphics.SurfaceTexture.setDefaultBufferSize:(II)V	0	7	
+field	Camera	android.hardware.camera2.CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES	0	7	
+class	Camera	android.hardware.camera2.CameraExtensionCharacteristics	0	7	
+class	Autofill	android.service.autofill.FillResponse$Builder	0	7	
+stub	Views and widgets	android.text.Layout.isRtlCharAt:(I)Z	0	7	
+stub	Accessibility	android.view.accessibility.AccessibilityManager.isEnabled:()Z	0	7	
+class	Text input	android.view.inputmethod.DeleteRangeGesture	0	7	
+class	Text input	android.view.inputmethod.InputContentInfo	0	7	
+class	Camera	android.media.Image$Plane	0	6	androidx.camera 9
+class	Accessibility	android.accessibilityservice.AccessibilityServiceInfo	0	6	
+class	Views and widgets	android.app.LocaleManager	0	6	
+class	Other	android.credentials.CredentialOption	0	6	
+method	Graphics	android.graphics.Paint.getTextRunCursor:(Ljava/lang/CharSequence;IIZII)I	0	6	
+stub	Graphics	android.graphics.Paint.setLetterSpacing:(F)V	0	6	
+class	Biometrics	android.hardware.biometrics.BiometricManager	0	6	
+field	Camera	android.hardware.camera2.CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP	0	6	
+class	Camera	android.hardware.camera2.CameraExtensionSession	0	6	
+stub	App framework	android.os.RemoteCallbackList.finishBroadcast:()V	0	6	
+class	Autofill	android.service.autofill.SaveCallback	6	0	
+class	Other	android.service.credentials.BeginGetCredentialRequest	0	6	
+class	Other	android.service.credentials.GetCredentialRequest	0	6	
+class	Audio and video	android.view.SurfaceControl$Builder	0	6	
+stub	Views and widgets	android.view.View.isInEditMode:()Z	1	5	
+stub	Views and widgets	android.view.View.isNestedScrollingEnabled:()Z	0	6	
+stub	Views and widgets	android.view.View.setLayoutDirection:(I)V	0	6	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getText:()Ljava/lang/CharSequence;	1	5	
+class	Text input	android.view.inputmethod.DeleteGesture	0	6	
+stub	Views and widgets	android.widget.TextView.setFilters:([Landroid/text/InputFilter;)V	0	6	
+stub	Views and widgets	android.widget.TextView.setKeyListener:(Landroid/text/method/KeyListener;)V	0	6	
+stub	Views and widgets	android.app.Activity.isChangingConfigurations:()Z	1	4	
+method	Views and widgets	android.app.Activity.onNewIntent:(Landroid/content/Intent;Landroid/app/ComponentCaller;)V	5	0	
+stub	App framework	android.content.pm.SigningInfo.getApkContentsSigners:()[Landroid/content/pm/Signature;	1	4	
+stub	App framework	android.content.pm.SigningInfo.hasMultipleSigners:()Z	1	4	
+class	Other	android.credentials.CreateCredentialException	0	5	
+class	Other	android.credentials.GetCredentialException	0	5	
+stub	Graphics	android.graphics.Paint.setStrokeMiter:(F)V	0	5	
+class	Graphics	android.graphics.text.LineBreakConfig$Builder	0	5	
+field	Camera	android.hardware.camera2.CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL	0	5	
+class	Crypto and keystore	android.security.identity.IdentityCredential	0	5	
+class	Autofill	android.service.autofill.Field$Builder	0	5	
+class	Autofill	android.service.autofill.SaveInfo$Builder	0	5	
+class	Other	android.service.credentials.BeginGetCredentialRequest$Builder	0	5	
+class	Other	android.service.credentials.BeginGetCredentialResponse$Builder	0	5	
+class	Views and widgets	android.view.ScrollCaptureSession	0	5	
+class	Audio and video	android.view.SurfaceControl	0	5	
+stub	Views and widgets	android.view.View.clearFocus:()V	1	4	
+class	Views and widgets	android.view.WindowInsetsAnimation$Bounds	0	5	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getBoundsInScreen:(Landroid/graphics/Rect;)V	0	5	
+class	Text input	android.view.inputmethod.SelectRangeGesture	0	5	
+class	Text input	android.view.textclassifier.TextSelection$Request$Builder	0	5	
+class	Views and widgets	android.view.translation.ViewTranslationRequest$Builder	0	5	
+class	Other	android.window.BackEvent	0	5	
+stub	Views and widgets	android.view.View.getMeasuredState:()I	0	4	androidx.appcompat 15
+stub	Views and widgets	android.view.View.setWillNotDraw:(Z)V	1	3	androidx.appcompat 7, androidx.core 1
+stub	Views and widgets	android.view.FocusFinder.findNextFocus:(Landroid/view/ViewGroup;Landroid/view/View;I)Landroid/view/View;	0	4	androidx.core 3
+class	Views and widgets	android.app.assist.AssistStructure$WindowNode	0	4	
+stub	App framework	android.content.Context.registerComponentCallbacks:(Landroid/content/ComponentCallbacks;)V	0	4	
+stub	App framework	android.content.Context.unbindService:(Landroid/content/ServiceConnection;)V	1	3	
+stub	App framework	android.content.res.Configuration.setLocales:(Landroid/os/LocaleList;)V	0	4	
+stub	Graphics	android.graphics.Paint.isFilterBitmap:()Z	0	4	
+class	Camera	android.hardware.camera2.params.DynamicRangeProfiles	0	4	
+class	Autofill	android.service.autofill.FillCallback	0	4	
+class	Autofill	android.service.autofill.FillContext	2	2	
+class	Other	android.service.credentials.BeginCreateCredentialResponse$Builder	0	4	
+class	Views and widgets	android.text.PrecomputedText$Params	0	4	
+class	Views and widgets	android.text.style.ScaleXSpan	0	4	
+stub	Views and widgets	android.view.MotionEvent.getHistorySize:()I	0	4	
+stub	Views and widgets	android.view.View.isInTouchMode:()Z	0	4	
+class	Autofill	android.view.ViewStructure$HtmlInfo	0	4	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.getLabel:()Ljava/lang/CharSequence;	0	4	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.addAction:(I)V	0	4	
+stub	Text input	android.view.inputmethod.InputMethodManager.updateSelection:(Landroid/view/View;IIII)V	0	4	
+class	Text input	android.view.inputmethod.InsertGesture	0	4	
+class	Text input	android.view.inputmethod.RemoveSpaceGesture	0	4	
+class	Text input	android.view.inputmethod.SelectGesture	0	4	
+class	Text input	android.view.textclassifier.TextClassification$Request$Builder	0	4	
+method	Views and widgets	android.widget.RemoteViews.setInt:(ILjava/lang/String;I)V	0	4	
+method	Java library	java.lang.Object.onResult:(Ljava/lang/Object;)V	0	4	
+stub	Views and widgets	android.widget.EdgeEffect.draw:(Landroid/graphics/Canvas;)Z	0	3	androidx.core 2
+class	Accessibility	android.accessibilityservice.AccessibilityService	2	1	
+stub	Views and widgets	android.app.Activity.getLastNonConfigurationInstance:()Ljava/lang/Object;	0	3	
+stub	Views and widgets	android.app.ActivityManager.isLowRamDevice:()Z	0	3	
+stub	Views and widgets	android.app.ActivityOptions.toBundle:()Landroid/os/Bundle;	1	2	
+class	Picture in picture	android.app.PictureInPictureUiState	0	3	
+method	Clipboard	android.content.ClipDescription.setExtras:(Landroid/os/PersistableBundle;)V	2	1	
+stub	App framework	android.content.Context.unregisterComponentCallbacks:(Landroid/content/ComponentCallbacks;)V	0	3	
+stub	App framework	android.content.pm.PackageManager.getComponentEnabledSetting:(Landroid/content/ComponentName;)I	0	3	
+stub	App framework	android.content.pm.SigningInfo.getSigningCertificateHistory:()[Landroid/content/pm/Signature;	0	3	
+stub	App framework	android.content.pm.SigningInfo.hasPastSigningCertificates:()Z	0	3	
+class	Other	android.credentials.ClearCredentialStateException	0	3	
+stub	Graphics	android.graphics.Paint.getStrokeMiter:()F	0	3	
+stub	Graphics	android.graphics.Paint.setFontFeatureSettings:(Ljava/lang/String;)V	0	3	
+stub	Graphics	android.graphics.Paint.setHinting:(I)V	0	3	
+stub	Graphics	android.graphics.Paint.setTextSkewX:(F)V	0	3	
+stub	Graphics	android.graphics.RenderNode.setUseCompositingLayer:(ZLandroid/graphics/Paint;)Z	0	3	
+stub	Graphics	android.graphics.SurfaceTexture.updateTexImage:()V	0	3	
+stub	Graphics	android.graphics.drawable.Drawable.setFilterBitmap:(Z)V	0	3	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES	0	3	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES	0	3	
+field	Camera	android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE	0	3	
+stub	Camera	android.hardware.camera2.CameraCharacteristics.get:(Landroid/hardware/camera2/CameraCharacteristics$Key;)Ljava/lang/Object;	0	3	
+class	Camera	android.hardware.camera2.CameraConstrainedHighSpeedCaptureSession	0	3	
+class	Camera	android.hardware.camera2.CameraDevice$CameraDeviceSetup	0	3	
+stub	Camera	android.hardware.camera2.CameraManager.unregisterAvailabilityCallback:(Landroid/hardware/camera2/CameraManager$AvailabilityCallback;)V	0	3	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AE_MODE	0	3	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE	0	3	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AF_MODE	0	3	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE	0	3	
+field	Camera	android.hardware.camera2.CaptureResult.CONTROL_AE_STATE	0	3	
+field	Camera	android.hardware.camera2.CaptureResult.CONTROL_AF_STATE	0	3	
+class	Camera	android.hardware.camera2.params.ExtensionSessionConfiguration	0	3	
+class	Camera	android.hardware.camera2.params.MeteringRectangle	0	3	
+class	Camera	android.hardware.camera2.params.MultiResolutionStreamInfo	0	3	
+class	Network	android.net.ssl.EchConfigMismatchException	0	3	
+stub	App framework	android.os.Process.myUid:()I	0	3	
+stub	App framework	android.os.Process.setThreadPriority:(I)V	0	3	
+stub	App framework	android.os.RemoteCallbackList.beginBroadcast:()I	0	3	
+method	App framework	android.os.RemoteCallbackList.getBroadcastItem:(I)Landroid/os/IInterface;	0	3	
+method	App framework	android.os.RemoteCallbackList.unregister:(Landroid/os/IInterface;)Z	0	3	
+class	Crypto and keystore	android.security.KeyChain	0	3	
+class	Autofill	android.service.autofill.InlinePresentation	0	3	
+class	Other	android.service.credentials.Action	0	3	
+class	Other	android.service.credentials.BeginCreateCredentialRequest	0	3	
+class	Other	android.service.credentials.CredentialEntry	0	3	
+class	Views and widgets	android.text.GraphemeClusterSegmentFinder	0	3	
+class	Views and widgets	android.view.CollapsibleActionView	0	3	
+stub	Views and widgets	android.view.DisplayCutout.getSafeInsetBottom:()I	0	3	
+stub	Views and widgets	android.view.DisplayCutout.getSafeInsetRight:()I	0	3	
+stub	Views and widgets	android.view.MotionEvent.getMetaState:()I	0	3	
+stub	Views and widgets	android.view.RenderNode.setHasOverlappingRendering:(Z)Z	0	3	
+class	Views and widgets	android.view.ScrollCaptureTarget	0	3	
+class	Views and widgets	android.view.ScrollFeedbackProvider	0	3	
+method	Views and widgets	android.view.View$AccessibilityDelegate.onInitializeAccessibilityNodeInfo:(Landroid/view/View;Landroid/view/accessibility/AccessibilityNodeInfo;)V	0	3	
+method	Views and widgets	android.view.View.findOnBackInvokedDispatcher:()Landroid/window/OnBackInvokedDispatcher;	0	3	
+stub	Views and widgets	android.view.View.getTextDirection:()I	0	3	
+stub	Views and widgets	android.view.View.playSoundEffect:(I)V	0	3	
+stub	Views and widgets	android.view.View.requestRectangleOnScreen:(Landroid/graphics/Rect;)Z	0	3	
+stub	Views and widgets	android.view.View.setOnApplyWindowInsetsListener:(Landroid/view/View$OnApplyWindowInsetsListener;)V	0	3	
+stub	Views and widgets	android.view.View.setOutlineProvider:(Landroid/view/ViewOutlineProvider;)V	0	3	
+stub	Views and widgets	android.view.View.setTextDirection:(I)V	0	3	
+stub	Views and widgets	android.view.View.startActionMode:(Landroid/view/ActionMode$Callback;I)Landroid/view/ActionMode;	0	3	
+method	Views and widgets	android.view.Window$Callback.dispatchKeyEvent:(Landroid/view/KeyEvent;)Z	0	3	
+stub	Views and widgets	android.view.Window.requestFeature:(I)Z	0	3	
+stub	Accessibility	android.view.accessibility.AccessibilityManager.isTouchExplorationEnabled:()Z	0	3	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getClassName:()Ljava/lang/CharSequence;	0	3	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getViewIdResourceName:()Ljava/lang/String;	0	3	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isFocused:()Z	0	3	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isPassword:()Z	0	3	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.obtain:()Landroid/view/accessibility/AccessibilityNodeInfo;	0	3	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.performAction:(ILandroid/os/Bundle;)Z	2	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setBoundsInScreen:(Landroid/graphics/Rect;)V	0	3	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setChecked:(Z)V	0	3	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setClassName:(Ljava/lang/CharSequence;)V	0	3	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setScrollable:(Z)V	0	3	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setVisibleToUser:(Z)V	0	3	
+stub	Autofill	android.view.autofill.AutofillManager.notifyValueChanged:(Landroid/view/View;ILandroid/view/autofill/AutofillValue;)V	0	3	
+class	Text input	android.view.inputmethod.HandwritingGesture	0	3	
+class	Text input	android.view.inputmethod.JoinOrSplitGesture	0	3	
+class	Text input	android.view.textclassifier.TextClassificationContext$Builder	0	3	
+class	Text input	android.view.textclassifier.TextClassificationManager	0	3	
+class	Text input	android.view.textclassifier.TextSelection	0	3	
+stub	Views and widgets	android.widget.PopupWindow.setFocusable:(Z)V	0	3	
+stub	Views and widgets	android.widget.TextView.getAutoSizeStepGranularity:()I	0	3	
+method	Views and widgets	android.widget.TextView.getFontVariationSettings:()Ljava/lang/String;	0	3	
+stub	Views and widgets	android.widget.TextView.getKeyListener:()Landroid/text/method/KeyListener;	0	3	
+stub	Views and widgets	android.widget.TextView.setRawInputType:(I)V	0	3	
+class	Views and widgets	android.widget.inline.InlinePresentationSpec	0	3	
+stub	Views and widgets	android.view.MotionEvent.findPointerIndex:(I)I	0	2	androidx.core 3
+method	Graphics	android.graphics.drawable.Icon.getResId:()I	0	2	androidx.core 1
+stub	Views and widgets	android.view.ViewConfiguration.hasPermanentMenuKey:()Z	0	2	androidx.appcompat 1
+stub	Views and widgets	android.app.Activity.getCurrentFocus:()Landroid/view/View;	1	1	
+method	Views and widgets	android.app.Activity.getOnBackInvokedDispatcher:()Landroid/window/OnBackInvokedDispatcher;	0	2	
+method	Views and widgets	android.app.ActivityOptions.setPendingIntentCreatorBackgroundActivityStartMode:(I)Landroid/app/ActivityOptions;	0	2	
+stub	Views and widgets	android.app.AppOpsManager.checkOpNoThrow:(Ljava/lang/String;ILjava/lang/String;)I	0	2	
+stub	Views and widgets	android.app.Dialog.setOnCancelListener:(Landroid/content/DialogInterface$OnCancelListener;)V	0	2	
+stub	Clipboard	android.content.ClipboardManager.getPrimaryClip:()Landroid/content/ClipData;	0	2	
+stub	Clipboard	android.content.ClipboardManager.getPrimaryClipDescription:()Landroid/content/ClipDescription;	0	2	
+stub	App framework	android.content.ContentResolver.unregisterContentObserver:(Landroid/database/ContentObserver;)V	0	2	
+method	App framework	android.content.Context.getDeviceId:()I	0	2	
+stub	App framework	android.content.pm.PackageManager.setComponentEnabledSetting:(Landroid/content/ComponentName;II)V	0	2	
+field	App framework	android.content.pm.ResolveInfo.specificIndex	0	2	
+class	Other	android.credentials.CreateCredentialResponse	0	2	
+class	Other	android.credentials.Credential	0	2	
+class	Other	android.credentials.GetCredentialResponse	0	2	
+stub	Graphics	android.graphics.Canvas.disableZ:()V	0	2	
+stub	Graphics	android.graphics.Canvas.enableZ:()V	0	2	
+class	Graphics	android.graphics.ColorSpace$Rgb$TransferParameters	0	2	
+stub	Graphics	android.graphics.ImageDecoder.setAllocator:(I)V	0	2	
+method	Graphics	android.graphics.ImageDecoder.setMemorySizePolicy:(I)V	0	2	
+method	Graphics	android.graphics.ImageDecoder.setTargetColorSpace:(Landroid/graphics/ColorSpace;)V	0	2	
+stub	Graphics	android.graphics.Paint.getFontFeatureSettings:()Ljava/lang/String;	0	2	
+stub	Graphics	android.graphics.Paint.getFontVariationSettings:()Ljava/lang/String;	0	2	
+method	Graphics	android.graphics.Paint.getTextBounds:(Ljava/lang/CharSequence;IILandroid/graphics/Rect;)V	0	2	
+stub	Graphics	android.graphics.Paint.isElegantTextHeight:()Z	0	2	
+stub	Graphics	android.graphics.Paint.setShadowLayer:(FFFI)V	0	2	
+stub	Graphics	android.graphics.Paint.setStrikeThruText:(Z)V	0	2	
+stub	Graphics	android.graphics.Paint.setUnderlineText:(Z)V	0	2	
+stub	Graphics	android.graphics.SurfaceTexture.setOnFrameAvailableListener:(Landroid/graphics/SurfaceTexture$OnFrameAvailableListener;)V	0	2	
+stub	Graphics	android.graphics.SurfaceTexture.setOnFrameAvailableListener:(Landroid/graphics/SurfaceTexture$OnFrameAvailableListener;Landroid/os/Handler;)V	0	2	
+stub	Graphics	android.graphics.drawable.Drawable.setChangingConfigurations:(I)V	0	2	
+stub	Graphics	android.graphics.drawable.Drawable.setHotspotBounds:(IIII)V	0	2	
+stub	Graphics	android.graphics.drawable.Drawable.setLayoutDirection:(I)Z	0	2	
+method	Graphics	android.graphics.drawable.Icon.getType:()I	0	2	
+class	Graphics	android.graphics.text.PositionedGlyphs	0	2	
+class	Biometrics	android.hardware.biometrics.BiometricPrompt	0	2	
+class	Biometrics	android.hardware.biometrics.BiometricPrompt$AuthenticationCallback	0	2	
+class	Biometrics	android.hardware.biometrics.BiometricPrompt$AuthenticationResult	0	2	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES	0	2	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES	0	2	
+field	Camera	android.hardware.camera2.CameraCharacteristics.SENSOR_ORIENTATION	0	2	
+stub	Camera	android.hardware.camera2.CameraManager.registerAvailabilityCallback:(Ljava/util/concurrent/Executor;Landroid/hardware/camera2/CameraManager$AvailabilityCallback;)V	0	2	
+stub	Camera	android.hardware.camera2.CaptureFailure.getFrameNumber:()J	0	2	
+stub	Camera	android.hardware.camera2.CaptureRequest$Builder.set:(Landroid/hardware/camera2/CaptureRequest$Key;Ljava/lang/Object;)V	0	2	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AE_LOCK	0	2	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_CAPTURE_INTENT	0	2	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_ENABLE_ZSL	0	2	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE	0	2	
+field	Camera	android.hardware.camera2.CaptureRequest.SCALER_CROP_REGION	0	2	
+field	Camera	android.hardware.camera2.CaptureResult.CONTROL_AWB_STATE	0	2	
+field	Camera	android.hardware.camera2.CaptureResult.SENSOR_TIMESTAMP	0	2	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.addSurface:(Landroid/view/Surface;)V	0	2	
+method	Camera	android.hardware.camera2.params.SessionConfiguration.setInputConfiguration:(Landroid/hardware/camera2/params/InputConfiguration;)V	0	2	
+method	Camera	android.hardware.camera2.params.SessionConfiguration.setSessionParameters:(Landroid/hardware/camera2/CaptureRequest;)V	0	2	
+stub	Network	android.net.ConnectivityManager.unregisterNetworkCallback:(Landroid/net/ConnectivityManager$NetworkCallback;)V	0	2	
+class	Network	android.net.ssl.EchConfigList	0	2	
+stub	Network	android.net.ssl.SSLSockets.isSupportedSocket:(Ljavax/net/ssl/SSLSocket;)Z	0	2	
+method	Network	android.net.ssl.SSLSockets.setUseSessionTickets:(Ljavax/net/ssl/SSLSocket;Z)V	0	2	
+method	NFC	android.nfc.NfcAdapter.isEnabled:()Z	0	2	
+method	Graphics	android.opengl.EGL14.eglQuerySurface:(Landroid/opengl/EGLDisplay;Landroid/opengl/EGLSurface;I[II)Z	0	2	
+class	Graphics	android.opengl.EGLExt	0	2	
+class	App framework	android.os.NetworkOnMainThreadException	0	2	
+method	App framework	android.os.RemoteCallbackList.getBroadcastCookie:(I)Ljava/lang/Object;	0	2	
+method	App framework	android.os.RemoteCallbackList.register:(Landroid/os/IInterface;Ljava/lang/Object;)Z	0	2	
+stub	App framework	android.os.StrictMode.noteSlowCall:(Ljava/lang/String;)V	0	2	
+stub	App framework	android.os.StrictMode.setVmPolicy:(Landroid/os/StrictMode$VmPolicy;)V	0	2	
+class	Crypto and keystore	android.security.KeyStoreException	0	2	
+class	Crypto and keystore	android.security.NetworkSecurityPolicy	0	2	
+class	Autofill	android.service.autofill.AutofillService	0	2	
+class	Other	android.service.credentials.CreateEntry	0	2	
+stub	Views and widgets	android.text.TextUtils.getCapsMode:(Ljava/lang/CharSequence;II)I	0	2	
+class	Views and widgets	android.text.style.LocaleSpan	0	2	
+class	Views and widgets	android.text.style.TtsSpan$VerbatimBuilder	0	2	
+stub	Views and widgets	android.view.Display.getRotation:()I	0	2	
+stub	Views and widgets	android.view.DisplayCutout.getSafeInsetLeft:()I	0	2	
+stub	Views and widgets	android.view.DisplayCutout.getSafeInsetTop:()I	0	2	
+method	Audio and video	android.view.Surface.unlockCanvasAndPost:(Landroid/graphics/Canvas;)V	0	2	
+method	Views and widgets	android.view.View$OnApplyWindowInsetsListener.onApplyWindowInsets:(Landroid/view/View;Landroid/view/WindowInsets;)Landroid/view/WindowInsets;	0	2	
+stub	Views and widgets	android.view.View.drawableHotspotChanged:(FF)V	0	2	
+stub	Views and widgets	android.view.View.getFocusedRect:(Landroid/graphics/Rect;)V	0	2	
+stub	Views and widgets	android.view.View.getWindowVisibility:()I	0	2	
+stub	Views and widgets	android.view.View.restoreHierarchyState:(Landroid/util/SparseArray;)V	0	2	
+stub	Views and widgets	android.view.View.saveHierarchyState:(Landroid/util/SparseArray;)V	0	2	
+stub	Views and widgets	android.view.View.setImportantForAutofill:(I)V	0	2	
+stub	Views and widgets	android.view.View.setOnKeyListener:(Landroid/view/View$OnKeyListener;)V	0	2	
+stub	Views and widgets	android.view.ViewConfiguration.getScrollFriction:()F	0	2	
+stub	Views and widgets	android.view.ViewGroup.focusSearch:(Landroid/view/View;I)Landroid/view/View;	0	2	
+stub	Views and widgets	android.view.ViewGroup.setClipToPadding:(Z)V	0	2	
+stub	Views and widgets	android.view.Window.hasFeature:(I)Z	0	2	
+stub	Views and widgets	android.view.Window.setDecorFitsSystemWindows:(Z)V	0	2	
+stub	Views and widgets	android.view.Window.setNavigationBarContrastEnforced:(Z)V	0	2	
+stub	Views and widgets	android.view.Window.setSoftInputMode:(I)V	0	2	
+stub	Accessibility	android.view.accessibility.AccessibilityManager.addAccessibilityStateChangeListener:(Landroid/view/accessibility/AccessibilityManager$AccessibilityStateChangeListener;)Z	0	2	
+stub	Accessibility	android.view.accessibility.AccessibilityManager.addTouchExplorationStateChangeListener:(Landroid/view/accessibility/AccessibilityManager$TouchExplorationStateChangeListener;)Z	0	2	
+stub	Accessibility	android.view.accessibility.AccessibilityManager.removeAccessibilityStateChangeListener:(Landroid/view/accessibility/AccessibilityManager$AccessibilityStateChangeListener;)Z	0	2	
+stub	Accessibility	android.view.accessibility.AccessibilityManager.removeTouchExplorationStateChangeListener:(Landroid/view/accessibility/AccessibilityManager$TouchExplorationStateChangeListener;)Z	0	2	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.getId:()I	0	2	
+class	Accessibility	android.view.accessibility.AccessibilityNodeInfo$CollectionInfo	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getContentDescription:()Ljava/lang/CharSequence;	1	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isClickable:()Z	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isFocusable:()Z	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setAccessibilityFocused:(Z)V	0	2	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setClickable:(Z)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setCollectionInfo:(Landroid/view/accessibility/AccessibilityNodeInfo$CollectionInfo;)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setHeading:(Z)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setLongClickable:(Z)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setMovementGranularities:(I)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setPaneTitle:(Ljava/lang/CharSequence;)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setParent:(Landroid/view/View;I)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setScreenReaderFocusable:(Z)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setTraversalAfter:(Landroid/view/View;)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setTraversalBefore:(Landroid/view/View;)V	0	2	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setTraversalBefore:(Landroid/view/View;I)V	0	2	
+method	Autofill	android.view.autofill.AutofillManager.disableAutofillServices:()V	0	2	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.notifyViewTextChanged:(Landroid/view/autofill/AutofillId;Ljava/lang/CharSequence;)V	0	2	
+method	Text input	android.view.inputmethod.CursorAnchorInfo$Builder.setEditorBoundsInfo:(Landroid/view/inputmethod/EditorBoundsInfo;)Landroid/view/inputmethod/CursorAnchorInfo$Builder;	0	2	
+class	Text input	android.view.inputmethod.InlineSuggestionsRequest	0	2	
+stub	Text input	android.view.inputmethod.InputMethodManager.updateCursorAnchorInfo:(Landroid/view/View;Landroid/view/inputmethod/CursorAnchorInfo;)V	0	2	
+stub	Text input	android.view.inputmethod.InputMethodManager.updateExtractedText:(Landroid/view/View;ILandroid/view/inputmethod/ExtractedText;)V	0	2	
+class	Views and widgets	android.view.translation.ViewTranslationResponse	0	2	
+stub	Views and widgets	android.widget.EdgeEffect.getDistance:()F	0	2	
+stub	Views and widgets	android.widget.PopupWindow.setOverlapAnchor:(Z)V	0	2	
+stub	Views and widgets	android.widget.PopupWindow.setWindowLayoutType:(I)V	0	2	
+stub	Views and widgets	android.widget.RemoteViews.setTextViewText:(ILjava/lang/CharSequence;)V	0	2	
+stub	Views and widgets	android.widget.TextView.endBatchEdit:()V	0	2	
+method	Views and widgets	android.widget.TextView.getAutoSizeMaxTextSize:()I	0	2	
+method	Views and widgets	android.widget.TextView.getAutoSizeMinTextSize:()I	0	2	
+method	Views and widgets	android.widget.TextView.getAutoSizeTextAvailableSizes:()[I	0	2	
+stub	Views and widgets	android.widget.TextView.getAutoSizeTextType:()I	0	2	
+method	Views and widgets	android.widget.TextView.getTextClassifier:()Landroid/view/textclassifier/TextClassifier;	0	2	
+stub	Views and widgets	android.widget.TextView.setAutoSizeTextTypeUniformWithConfiguration:(IIII)V	0	2	
+stub	Views and widgets	android.widget.TextView.setAutoSizeTextTypeUniformWithPresetSizes:([II)V	0	2	
+stub	Views and widgets	android.widget.TextView.setAutoSizeTextTypeWithDefaults:(I)V	0	2	
+stub	Views and widgets	android.widget.TextView.setFirstBaselineToTopHeight:(I)V	0	2	
+stub	Views and widgets	android.widget.TextView.setFontVariationSettings:(Ljava/lang/String;)Z	0	2	
+stub	Views and widgets	android.widget.TextView.setLineHeight:(IF)V	0	2	
+method	Views and widgets	android.widget.TextView.setTextClassifier:(Landroid/view/textclassifier/TextClassifier;)V	0	2	
+method	Files and storage	java.io.InputStream.transferTo:(Ljava/io/OutputStream;)J	0	2	
+class	Java library	java.lang.ClassValue	0	2	
+method	Crypto and keystore	javax.net.ssl.SSLParameters.setApplicationProtocols:([Ljava/lang/String;)V	0	2	
+method	Crypto and keystore	javax.net.ssl.SSLSocket.getApplicationProtocol:()Ljava/lang/String;	0	2	
+method	Camera	android.media.Image.getPlanes:()[Landroid/media/Image$Plane;	0	1	androidx.camera 9
+stub	Views and widgets	android.view.View.getContentDescription:()Ljava/lang/CharSequence;	0	1	androidx.appcompat 3
+stub	Views and widgets	android.view.View.setTooltipText:(Ljava/lang/CharSequence;)V	0	1	androidx.appcompat 3
+stub	Views and widgets	android.view.View.unscheduleDrawable:(Landroid/graphics/drawable/Drawable;)V	0	1	androidx.appcompat 3
+stub	App framework	android.content.BroadcastReceiver$PendingResult.finish:()V	0	1	androidx.work 2
+method	App framework	android.content.BroadcastReceiver.setResultCode:(I)V	0	1	androidx.profileinstaller 2
+stub	Views and widgets	android.view.View.getWindowSystemUiVisibility:()I	0	1	androidx.appcompat 2
+stub	Views and widgets	android.view.FocusFinder.findNextFocusFromRect:(Landroid/view/ViewGroup;Landroid/graphics/Rect;I)Landroid/view/View;	0	1	androidx.core 1
+stub	Views and widgets	android.app.Activity.closeOptionsMenu:()V	0	1	
+method	Views and widgets	android.app.Activity.dispatchKeyShortcutEvent:(Landroid/view/KeyEvent;)Z	0	1	
+method	Views and widgets	android.app.Activity.dump:(Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/PrintWriter;[Ljava/lang/String;)V	0	1	
+stub	Views and widgets	android.app.Activity.getCallingPackage:()Ljava/lang/String;	1	0	
+stub	Views and widgets	android.app.Activity.getParentActivityIntent:()Landroid/content/Intent;	0	1	
+stub	Views and widgets	android.app.Activity.isChild:()Z	0	1	
+method	Views and widgets	android.app.Activity.onCreateContextMenu:(Landroid/view/ContextMenu;Landroid/view/View;Landroid/view/ContextMenu$ContextMenuInfo;)V	0	1	
+method	Views and widgets	android.app.Activity.onCreateView:(Ljava/lang/String;Landroid/content/Context;Landroid/util/AttributeSet;)Landroid/view/View;	0	1	
+method	Views and widgets	android.app.Activity.onMultiWindowModeChanged:(ZLandroid/content/res/Configuration;)V	0	1	
+method	Views and widgets	android.app.Activity.onPictureInPictureModeChanged:(ZLandroid/content/res/Configuration;)V	0	1	
+method	Views and widgets	android.app.Activity.onPictureInPictureUiStateChanged:(Landroid/app/PictureInPictureUiState;)V	0	1	
+method	Views and widgets	android.app.Activity.onTitleChanged:(Ljava/lang/CharSequence;I)V	0	1	
+method	Views and widgets	android.app.Activity.onTrimMemory:(I)V	0	1	
+method	Views and widgets	android.app.Activity.onUserLeaveHint:()V	0	1	
+method	Views and widgets	android.app.Activity.openOptionsMenu:()V	0	1	
+stub	Views and widgets	android.app.Activity.overridePendingTransition:(II)V	0	1	
+stub	Views and widgets	android.app.Activity.reportFullyDrawn:()V	0	1	
+method	Views and widgets	android.app.Activity.requestDragAndDropPermissions:(Landroid/view/DragEvent;)Landroid/view/DragAndDropPermissions;	0	1	
+stub	Views and widgets	android.app.Activity.shouldUpRecreateTask:(Landroid/content/Intent;)Z	0	1	
+method	Views and widgets	android.app.Activity.startIntentSenderForResult:(Landroid/content/IntentSender;ILandroid/content/Intent;III)V	0	1	
+method	Views and widgets	android.app.Activity.startIntentSenderForResult:(Landroid/content/IntentSender;ILandroid/content/Intent;IIILandroid/os/Bundle;)V	0	1	
+stub	Views and widgets	android.app.ActivityOptions.setAllowPassThroughOnTouchOutside:(Z)V	0	1	
+class	Views and widgets	android.app.AppComponentFactory	1	0	
+stub	Views and widgets	android.app.AppOpsManager.noteProxyOpNoThrow:(Ljava/lang/String;Ljava/lang/String;)I	0	1	
+method	Views and widgets	android.app.ApplicationExitInfo.getReason:()I	0	1	
+method	Views and widgets	android.app.ApplicationExitInfo.getTimestamp:()J	0	1	
+method	Views and widgets	android.app.Dialog.addContentView:(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V	0	1	
+method	Views and widgets	android.app.Dialog.getOnBackInvokedDispatcher:()Landroid/window/OnBackInvokedDispatcher;	0	1	
+stub	Views and widgets	android.app.Dialog.requestWindowFeature:(I)Z	0	1	
+method	Views and widgets	android.app.Fragment.onActivityCreated:(Landroid/os/Bundle;)V	0	1	
+stub	Views and widgets	android.app.FragmentManager.executePendingTransactions:()Z	0	1	
+stub	Views and widgets	android.app.FragmentTransaction.commit:()I	0	1	
+method	Views and widgets	android.app.KeyguardManager.createConfirmDeviceCredentialIntent:(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/Intent;	0	1	
+stub	Views and widgets	android.app.KeyguardManager.isDeviceSecure:()Z	0	1	
+method	Notifications	android.app.NotificationChannel.canBubble:()Z	0	1	
+method	Notifications	android.app.NotificationChannel.canBypassDnd:()Z	0	1	
+method	Notifications	android.app.NotificationChannel.canShowBadge:()Z	0	1	
+stub	Notifications	android.app.NotificationChannel.enableLights:(Z)V	0	1	
+stub	Notifications	android.app.NotificationChannel.enableVibration:(Z)V	0	1	
+method	Notifications	android.app.NotificationChannel.getAudioAttributes:()Landroid/media/AudioAttributes;	0	1	
+method	Notifications	android.app.NotificationChannel.getConversationId:()Ljava/lang/String;	0	1	
+method	Notifications	android.app.NotificationChannel.getDescription:()Ljava/lang/String;	0	1	
+stub	Notifications	android.app.NotificationChannel.getLightColor:()I	0	1	
+method	Notifications	android.app.NotificationChannel.getLockscreenVisibility:()I	0	1	
+method	Notifications	android.app.NotificationChannel.getParentChannelId:()Ljava/lang/String;	0	1	
+stub	Notifications	android.app.NotificationChannel.getSound:()Landroid/net/Uri;	0	1	
+method	Notifications	android.app.NotificationChannel.getVibrationPattern:()[J	0	1	
+method	Notifications	android.app.NotificationChannel.isImportantConversation:()Z	0	1	
+stub	Notifications	android.app.NotificationChannel.setDescription:(Ljava/lang/String;)V	0	1	
+stub	Notifications	android.app.NotificationChannel.setLightColor:(I)V	0	1	
+stub	Notifications	android.app.NotificationChannel.setShowBadge:(Z)V	0	1	
+stub	Notifications	android.app.NotificationChannel.setSound:(Landroid/net/Uri;Landroid/media/AudioAttributes;)V	0	1	
+stub	Notifications	android.app.NotificationChannel.setVibrationPattern:([J)V	0	1	
+stub	Notifications	android.app.NotificationChannel.shouldShowLights:()Z	0	1	
+stub	Notifications	android.app.NotificationChannel.shouldVibrate:()Z	0	1	
+stub	Notifications	android.app.NotificationManager.getNotificationChannel:(Ljava/lang/String;)Landroid/app/NotificationChannel;	0	1	
+stub	Views and widgets	android.app.PendingIntent.cancel:()V	0	1	
+method	Views and widgets	android.app.PendingIntent.getActivity:(Landroid/content/Context;ILandroid/content/Intent;ILandroid/os/Bundle;)Landroid/app/PendingIntent;	0	1	
+method	Views and widgets	android.app.PendingIntent.send:(Landroid/os/Bundle;)V	0	1	
+method	Views and widgets	android.app.admin.DevicePolicyManager.getCameraDisabled:(Landroid/content/ComponentName;)Z	0	1	
+stub	Background work	android.app.job.JobParameters.getStopReason:()I	0	1	
+class	Views and widgets	android.app.slice.Slice	0	1	
+method	Clipboard	android.content.ClipData$Item.coerceToStyledText:(Landroid/content/Context;)Ljava/lang/CharSequence;	0	1	
+method	Clipboard	android.content.ClipboardManager.clearPrimaryClip:()V	1	0	
+method	App framework	android.content.ContentResolver.openTypedAssetFile:(Landroid/net/Uri;Ljava/lang/String;Landroid/os/Bundle;Landroid/os/CancellationSignal;)Landroid/content/res/AssetFileDescriptor;	0	1	
+stub	App framework	android.content.ContentResolver.registerContentObserver:(Landroid/net/Uri;ZLandroid/database/ContentObserver;)V	0	1	
+method	App framework	android.content.Context.createAttributionContext:(Ljava/lang/String;)Landroid/content/Context;	0	1	
+method	App framework	android.content.Context.createDeviceContext:(I)Landroid/content/Context;	0	1	
+stub	App framework	android.content.Context.getAttributionTag:()Ljava/lang/String;	0	1	
+method	App framework	android.content.Context.isUiContext:()Z	0	1	
+field	App framework	android.content.Intent.CREATOR	0	1	
+stub	App framework	android.content.Intent.getClipData:()Landroid/content/ClipData;	1	0	
+stub	App framework	android.content.Intent.setExtrasClassLoader:(Ljava/lang/ClassLoader;)V	0	1	
+class	App framework	android.content.pm.InstallSourceInfo	0	1	
+class	App framework	android.content.pm.PackageManager$ApplicationInfoFlags	0	1	
+class	App framework	android.content.pm.PackageManager$PackageInfoFlags	0	1	
+method	App framework	android.content.pm.PackageManager.getApplicationInfo:(Ljava/lang/String;Landroid/content/pm/PackageManager$ApplicationInfoFlags;)Landroid/content/pm/ApplicationInfo;	0	1	
+method	App framework	android.content.pm.PackageManager.getInstallSourceInfo:(Ljava/lang/String;)Landroid/content/pm/InstallSourceInfo;	0	1	
+method	App framework	android.content.pm.PackageManager.getLaunchIntentSenderForPackage:(Ljava/lang/String;)Landroid/content/IntentSender;	0	1	
+method	App framework	android.content.pm.PackageManager.getPackageInfo:(Ljava/lang/String;Landroid/content/pm/PackageManager$PackageInfoFlags;)Landroid/content/pm/PackageInfo;	0	1	
+stub	App framework	android.content.pm.PackageManager.getPackagesForUid:(I)[Ljava/lang/String;	0	1	
+stub	App framework	android.content.pm.PackageManager.getReceiverInfo:(Landroid/content/ComponentName;I)Landroid/content/pm/ActivityInfo;	0	1	
+stub	App framework	android.content.pm.PackageManager.queryIntentActivityOptions:(Landroid/content/ComponentName;[Landroid/content/Intent;Landroid/content/Intent;I)Ljava/util/List;	0	1	
+stub	App framework	android.content.pm.PackageManager.queryIntentContentProviders:(Landroid/content/Intent;I)Ljava/util/List;	0	1	
+stub	App framework	android.content.pm.PackageManager.resolveService:(Landroid/content/Intent;I)Landroid/content/pm/ResolveInfo;	1	0	
+field	App framework	android.content.pm.ResolveInfo.providerInfo	0	1	
+method	App framework	android.content.pm.SigningInfo.getPublicKeys:()Ljava/util/Collection;	0	1	
+method	App framework	android.content.pm.SigningInfo.getSchemeVersion:()I	0	1	
+stub	App framework	android.content.res.Resources$Theme.rebase:()V	0	1	
+stub	Graphics	android.graphics.Bitmap.setDensity:(I)V	0	1	
+stub	Graphics	android.graphics.Canvas.drawBitmap:([IIIFFIIZLandroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawBitmapMesh:(Landroid/graphics/Bitmap;II[FI[IILandroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawDoubleRoundRect:(Landroid/graphics/RectF;FFLandroid/graphics/RectF;FFLandroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawDoubleRoundRect:(Landroid/graphics/RectF;[FLandroid/graphics/RectF;[FLandroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawGlyphs:([II[FIILandroid/graphics/fonts/Font;Landroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawPatch:(Landroid/graphics/NinePatch;Landroid/graphics/Rect;Landroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawPatch:(Landroid/graphics/NinePatch;Landroid/graphics/RectF;Landroid/graphics/Paint;)V	0	1	
+stub	Graphics	android.graphics.Canvas.drawPoint:(FFLandroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawPosText:(Ljava/lang/String;[FLandroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawPosText:([CII[FLandroid/graphics/Paint;)V	0	1	
+stub	Graphics	android.graphics.Canvas.drawTextOnPath:(Ljava/lang/String;Landroid/graphics/Path;FFLandroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawTextOnPath:([CIILandroid/graphics/Path;FFLandroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawTextRun:(Landroid/graphics/text/MeasuredText;IIIIFFZLandroid/graphics/Paint;)V	0	1	
+method	Graphics	android.graphics.Canvas.drawVertices:(Landroid/graphics/Canvas$VertexMode;I[FI[FI[II[SIILandroid/graphics/Paint;)V	0	1	
+stub	Graphics	android.graphics.Canvas.quickReject:(FFFF)Z	0	1	
+stub	Graphics	android.graphics.Canvas.quickReject:(FFFFLandroid/graphics/Canvas$EdgeType;)Z	0	1	
+stub	Graphics	android.graphics.Canvas.quickReject:(Landroid/graphics/Path;)Z	0	1	
+stub	Graphics	android.graphics.Canvas.quickReject:(Landroid/graphics/Path;Landroid/graphics/Canvas$EdgeType;)Z	0	1	
+stub	Graphics	android.graphics.Canvas.quickReject:(Landroid/graphics/RectF;)Z	0	1	
+stub	Graphics	android.graphics.Canvas.quickReject:(Landroid/graphics/RectF;Landroid/graphics/Canvas$EdgeType;)Z	0	1	
+method	Graphics	android.graphics.ImageDecoder.createSource:(Landroid/content/res/AssetManager;Ljava/lang/String;)Landroid/graphics/ImageDecoder$Source;	0	1	
+method	Graphics	android.graphics.ImageDecoder.createSource:(Ljava/util/concurrent/Callable;)Landroid/graphics/ImageDecoder$Source;	0	1	
+method	Graphics	android.graphics.ImageDecoder.setOnPartialImageListener:(Landroid/graphics/ImageDecoder$OnPartialImageListener;)V	0	1	
+method	Graphics	android.graphics.ImageDecoder.setPostProcessor:(Landroid/graphics/PostProcessor;)V	0	1	
+method	Graphics	android.graphics.ImageDecoder.setUnpremultipliedRequired:(Z)V	0	1	
+stub	Graphics	android.graphics.Paint.clearShadowLayer:()V	0	1	
+stub	Graphics	android.graphics.Paint.getFillPath:(Landroid/graphics/Path;Landroid/graphics/Path;)Z	1	0	
+stub	Graphics	android.graphics.Paint.hasGlyph:(Ljava/lang/String;)Z	0	1	
+stub	Graphics	android.graphics.Paint.setFilterBitmap:(Z)V	0	1	
+stub	Graphics	android.graphics.Paint.setTextLocales:(Landroid/os/LocaleList;)V	0	1	
+stub	Graphics	android.graphics.Paint.setTextScaleX:(F)V	0	1	
+stub	Graphics	android.graphics.PathMeasure.getSegment:(FFLandroid/graphics/Path;Z)Z	0	1	
+stub	Graphics	android.graphics.PathMeasure.setPath:(Landroid/graphics/Path;Z)V	0	1	
+method	Graphics	android.graphics.RadialGradient.<init>:(FFF[J[FLandroid/graphics/Shader$TileMode;)V	0	1	
+stub	Graphics	android.graphics.RenderNode.setAmbientShadowColor:(I)Z	0	1	
+stub	Graphics	android.graphics.RenderNode.setSpotShadowColor:(I)Z	0	1	
+field	Graphics	android.graphics.Shader$TileMode.DECAL	0	1	
+method	Graphics	android.graphics.SurfaceTexture.detachFromGLContext:()V	0	1	
+method	Graphics	android.graphics.SweepGradient.<init>:(FF[J[F)V	0	1	
+method	Graphics	android.graphics.drawable.AnimatedImageDrawable.registerAnimationCallback:(Landroid/graphics/drawable/Animatable2$AnimationCallback;)V	0	1	
+method	Graphics	android.graphics.drawable.AnimatedImageDrawable.setRepeatCount:(I)V	0	1	
+stub	Graphics	android.graphics.drawable.BitmapDrawable.setTileModeX:(Landroid/graphics/Shader$TileMode;)V	0	1	
+stub	Graphics	android.graphics.drawable.Drawable.getTransparentRegion:()Landroid/graphics/Region;	0	1	
+stub	Graphics	android.graphics.drawable.Drawable.isFilterBitmap:()Z	0	1	
+method	Graphics	android.graphics.drawable.Icon.createWithAdaptiveBitmapContentUri:(Landroid/net/Uri;)Landroid/graphics/drawable/Icon;	0	1	
+method	Graphics	android.graphics.drawable.Icon.createWithContentUri:(Ljava/lang/String;)Landroid/graphics/drawable/Icon;	0	1	
+method	Graphics	android.graphics.drawable.Icon.createWithData:([BII)Landroid/graphics/drawable/Icon;	0	1	
+method	Graphics	android.graphics.drawable.Icon.getResPackage:()Ljava/lang/String;	0	1	
+method	Graphics	android.graphics.drawable.Icon.setTint:(I)Landroid/graphics/drawable/Icon;	0	1	
+method	Graphics	android.graphics.drawable.Icon.setTintBlendMode:(Landroid/graphics/BlendMode;)Landroid/graphics/drawable/Icon;	0	1	
+method	Graphics	android.graphics.drawable.Icon.setTintList:(Landroid/content/res/ColorStateList;)Landroid/graphics/drawable/Icon;	0	1	
+method	Graphics	android.graphics.drawable.Icon.setTintMode:(Landroid/graphics/PorterDuff$Mode;)Landroid/graphics/drawable/Icon;	0	1	
+stub	Graphics	android.graphics.drawable.RippleDrawable.getRadius:()I	0	1	
+stub	Graphics	android.graphics.drawable.RippleDrawable.setColor:(Landroid/content/res/ColorStateList;)V	0	1	
+stub	Graphics	android.graphics.drawable.RippleDrawable.setRadius:(I)V	0	1	
+class	Graphics	android.graphics.text.TextRunShaper	0	1	
+method	Camera	android.hardware.camera2.CameraCaptureSession.captureBurst:(Ljava/util/List;Landroid/hardware/camera2/CameraCaptureSession$CaptureCallback;Landroid/os/Handler;)I	0	1	
+method	Camera	android.hardware.camera2.CameraCaptureSession.finalizeOutputConfigurations:(Ljava/util/List;)V	0	1	
+method	Camera	android.hardware.camera2.CameraCaptureSession.getInputSurface:()Landroid/view/Surface;	0	1	
+method	Camera	android.hardware.camera2.CameraCaptureSession.setRepeatingBurst:(Ljava/util/List;Landroid/hardware/camera2/CameraCaptureSession$CaptureCallback;Landroid/os/Handler;)I	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_AVAILABLE_SETTINGS_OVERRIDES	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_AWB_AVAILABLE_MODES	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_MAX_REGIONS_AE	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_MAX_REGIONS_AF	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_MAX_REGIONS_AWB	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.FLASH_TORCH_STRENGTH_DEFAULT_LEVEL	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.FLASH_TORCH_STRENGTH_MAX_LEVEL	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.INFO_DEVICE_STATE_SENSOR_ORIENTATION_MAP	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.INFO_SESSION_CONFIGURATION_QUERY_VERSION	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.REQUEST_AVAILABLE_DYNAMIC_RANGE_PROFILES	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.REQUEST_RECOMMENDED_TEN_BIT_DYNAMIC_RANGE_PROFILE	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.SCALER_AVAILABLE_STREAM_USE_CASES	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP_MAXIMUM_RESOLUTION	0	1	
+field	Camera	android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE	0	1	
+method	Camera	android.hardware.camera2.CameraCharacteristics.getAvailableCaptureRequestKeys:()Ljava/util/List;	0	1	
+method	Camera	android.hardware.camera2.CameraCharacteristics.getAvailableCaptureResultKeys:()Ljava/util/List;	0	1	
+method	Camera	android.hardware.camera2.CameraCharacteristics.getAvailablePhysicalCameraRequestKeys:()Ljava/util/List;	0	1	
+method	Camera	android.hardware.camera2.CameraCharacteristics.getAvailableSessionCharacteristicsKeys:()Ljava/util/List;	0	1	
+method	Camera	android.hardware.camera2.CameraCharacteristics.getAvailableSessionKeys:()Ljava/util/List;	0	1	
+method	Camera	android.hardware.camera2.CameraCharacteristics.getPhysicalCameraIds:()Ljava/util/Set;	0	1	
+method	Camera	android.hardware.camera2.CameraDevice.createCaptureSessionByOutputConfigurations:(Ljava/util/List;Landroid/hardware/camera2/CameraCaptureSession$StateCallback;Landroid/os/Handler;)V	0	1	
+method	Camera	android.hardware.camera2.CameraDevice.createConstrainedHighSpeedCaptureSession:(Ljava/util/List;Landroid/hardware/camera2/CameraCaptureSession$StateCallback;Landroid/os/Handler;)V	0	1	
+method	Camera	android.hardware.camera2.CameraDevice.createExtensionSession:(Landroid/hardware/camera2/params/ExtensionSessionConfiguration;)V	0	1	
+method	Camera	android.hardware.camera2.CameraDevice.createReprocessCaptureRequest:(Landroid/hardware/camera2/TotalCaptureResult;)Landroid/hardware/camera2/CaptureRequest$Builder;	0	1	
+method	Camera	android.hardware.camera2.CameraDevice.createReprocessableCaptureSession:(Landroid/hardware/camera2/params/InputConfiguration;Ljava/util/List;Landroid/hardware/camera2/CameraCaptureSession$StateCallback;Landroid/os/Handler;)V	0	1	
+method	Camera	android.hardware.camera2.CameraDevice.createReprocessableCaptureSessionByConfigurations:(Landroid/hardware/camera2/params/InputConfiguration;Ljava/util/List;Landroid/hardware/camera2/CameraCaptureSession$StateCallback;Landroid/os/Handler;)V	0	1	
+method	Camera	android.hardware.camera2.CameraDevice.setCameraAudioRestriction:(I)V	0	1	
+method	Camera	android.hardware.camera2.CameraManager.getCameraDeviceSetup:(Ljava/lang/String;)Landroid/hardware/camera2/CameraDevice$CameraDeviceSetup;	0	1	
+method	Camera	android.hardware.camera2.CameraManager.getCameraExtensionCharacteristics:(Ljava/lang/String;)Landroid/hardware/camera2/CameraExtensionCharacteristics;	0	1	
+method	Camera	android.hardware.camera2.CameraManager.getConcurrentCameraIds:()Ljava/util/Set;	0	1	
+method	Camera	android.hardware.camera2.CameraManager.isCameraDeviceSetupSupported:(Ljava/lang/String;)Z	0	1	
+stub	Camera	android.hardware.camera2.CameraManager.registerAvailabilityCallback:(Landroid/hardware/camera2/CameraManager$AvailabilityCallback;Landroid/os/Handler;)V	0	1	
+stub	Camera	android.hardware.camera2.CaptureFailure.getReason:()I	0	1	
+stub	Camera	android.hardware.camera2.CaptureFailure.wasImageCaptured:()Z	0	1	
+stub	Camera	android.hardware.camera2.CaptureRequest$Builder.addTarget:(Landroid/view/Surface;)V	0	1	
+stub	Camera	android.hardware.camera2.CaptureRequest$Builder.setTag:(Ljava/lang/Object;)V	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AE_REGIONS	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AF_REGIONS	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AF_TRIGGER	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AWB_LOCK	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_AWB_REGIONS	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_SETTINGS_OVERRIDE	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.CONTROL_ZOOM_RATIO	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.FLASH_MODE	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.FLASH_STRENGTH_LEVEL	0	1	
+field	Camera	android.hardware.camera2.CaptureRequest.TONEMAP_MODE	0	1	
+field	Camera	android.hardware.camera2.CaptureResult.CONTROL_AE_EXPOSURE_COMPENSATION	0	1	
+field	Camera	android.hardware.camera2.CaptureResult.CONTROL_AE_MODE	0	1	
+field	Camera	android.hardware.camera2.CaptureResult.CONTROL_AF_MODE	0	1	
+field	Camera	android.hardware.camera2.CaptureResult.CONTROL_AWB_MODE	0	1	
+field	Camera	android.hardware.camera2.CaptureResult.CONTROL_LOW_LIGHT_BOOST_STATE	0	1	
+field	Camera	android.hardware.camera2.CaptureResult.FLASH_MODE	0	1	
+field	Camera	android.hardware.camera2.CaptureResult.FLASH_STATE	0	1	
+method	Camera	android.hardware.camera2.TotalCaptureResult.getPhysicalCameraResults:()Ljava/util/Map;	0	1	
+method	Camera	android.hardware.camera2.TotalCaptureResult.getPhysicalCameraTotalResults:()Ljava/util/Map;	0	1	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.<init>:(ILandroid/util/Size;)V	0	1	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.<init>:(ILandroid/view/Surface;)V	0	1	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.<init>:(Landroid/util/Size;Ljava/lang/Class;)V	0	1	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.enableSurfaceSharing:()V	0	1	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.getMaxSharedSurfaceCount:()I	0	1	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.setDynamicRangeProfile:(J)V	0	1	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.setMirrorMode:(I)V	0	1	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.setPhysicalCameraId:(Ljava/lang/String;)V	0	1	
+method	Camera	android.hardware.camera2.params.OutputConfiguration.setStreamUseCase:(J)V	0	1	
+method	Camera	android.hardware.camera2.params.SessionConfiguration.<init>:(ILjava/util/List;)V	0	1	
+stub	Sensors	android.hardware.display.DisplayManager.registerDisplayListener:(Landroid/hardware/display/DisplayManager$DisplayListener;Landroid/os/Handler;)V	0	1	
+stub	Audio and video	android.media.AudioManager.playSoundEffect:(I)V	0	1	
+class	Audio and video	android.media.MediaDataSource	0	1	
+method	Audio and video	android.media.MediaMetadataRetriever.setDataSource:(Landroid/media/MediaDataSource;)V	0	1	
+method	Network	android.net.ssl.SSLSockets.setEchConfigList:(Ljavax/net/ssl/SSLSocket;Landroid/net/ssl/EchConfigList;)V	0	1	
+method	NFC	android.nfc.NfcAdapter.disableForegroundDispatch:(Landroid/app/Activity;)V	0	1	
+method	NFC	android.nfc.NfcAdapter.enableForegroundDispatch:(Landroid/app/Activity;Landroid/app/PendingIntent;[Landroid/content/IntentFilter;[[Ljava/lang/String;)V	0	1	
+stub	NFC	android.nfc.NfcAdapter.getDefaultAdapter:(Landroid/content/Context;)Landroid/nfc/NfcAdapter;	0	1	
+field	App framework	android.os.Build$VERSION.SDK_INT_FULL	0	1	
+method	App framework	android.os.Parcel.readParcelable:(Ljava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Object;	0	1	
+method	App framework	android.os.PersistableBundle.<init>:(I)V	1	0	
+stub	App framework	android.os.PowerManager.isPowerSaveMode:()Z	0	1	
+method	App framework	android.os.RemoteCallbackList.register:(Landroid/os/IInterface;)Z	0	1	
+stub	App framework	android.os.ext.SdkExtensions.getExtensionVersion:(I)I	0	1	
+class	Crypto and keystore	android.security.identity.PresentationSession	0	1	
+class	Autofill	android.service.autofill.SaveRequest	1	0	
+class	Other	android.service.credentials.ClearCredentialStateRequest	0	1	
+class	Other	android.system.SystemCleaner	0	1	
+field	Views and widgets	android.text.BoringLayout$Metrics.width	0	1	
+method	Views and widgets	android.text.BoringLayout.<init>:(Ljava/lang/CharSequence;Landroid/text/TextPaint;ILandroid/text/Layout$Alignment;FFLandroid/text/BoringLayout$Metrics;ZLandroid/text/TextUtils$TruncateAt;I)V	0	1	
+method	Views and widgets	android.text.BoringLayout.<init>:(Ljava/lang/CharSequence;Landroid/text/TextPaint;ILandroid/text/Layout$Alignment;FFLandroid/text/BoringLayout$Metrics;ZLandroid/text/TextUtils$TruncateAt;IZ)V	0	1	
+method	Views and widgets	android.text.BoringLayout.isBoring:(Ljava/lang/CharSequence;Landroid/text/TextPaint;Landroid/text/TextDirectionHeuristic;ZLandroid/text/BoringLayout$Metrics;)Landroid/text/BoringLayout$Metrics;	0	1	
+method	Views and widgets	android.text.BoringLayout.isFallbackLineSpacingEnabled:()Z	0	1	
+method	Views and widgets	android.text.Layout.getRangeForRect:(Landroid/graphics/RectF;Landroid/text/SegmentFinder;Landroid/text/Layout$TextInclusionStrategy;)[I	0	1	
+method	Views and widgets	android.text.StaticLayout$Builder.setLineBreakConfig:(Landroid/graphics/text/LineBreakConfig;)Landroid/text/StaticLayout$Builder;	0	1	
+method	Views and widgets	android.text.StaticLayout$Builder.setUseBoundsForWidth:(Z)Landroid/text/StaticLayout$Builder;	0	1	
+method	Views and widgets	android.text.StaticLayout.isFallbackLineSpacingEnabled:()Z	0	1	
+stub	Views and widgets	android.text.TextUtils.getLayoutDirectionFromLocale:(Ljava/util/Locale;)I	0	1	
+method	Views and widgets	android.text.method.KeyListener.clearMetaKeyState:(Landroid/view/View;Landroid/text/Editable;I)V	0	1	
+method	Views and widgets	android.text.method.KeyListener.getInputType:()I	0	1	
+method	Views and widgets	android.text.method.KeyListener.onKeyDown:(Landroid/view/View;Landroid/text/Editable;ILandroid/view/KeyEvent;)Z	0	1	
+method	Views and widgets	android.text.method.KeyListener.onKeyOther:(Landroid/view/View;Landroid/text/Editable;Landroid/view/KeyEvent;)Z	0	1	
+method	Views and widgets	android.text.method.KeyListener.onKeyUp:(Landroid/view/View;Landroid/text/Editable;ILandroid/view/KeyEvent;)Z	0	1	
+class	Views and widgets	android.text.method.MetaKeyKeyListener	0	1	
+method	Views and widgets	android.text.style.CharacterStyle.updateDrawState:(Landroid/text/TextPaint;)V	0	1	
+stub	Views and widgets	android.text.style.MetricAffectingSpan.updateMeasureState:(Landroid/text/TextPaint;)V	0	1	
+class	Views and widgets	android.text.style.TtsSpan$Builder	0	1	
+method	Views and widgets	android.text.style.TypefaceSpan.<init>:(Landroid/graphics/Typeface;)V	0	1	
+stub	Views and widgets	android.view.ActionMode.invalidateContentRect:()V	0	1	
+stub	Views and widgets	android.view.ContextThemeWrapper.applyOverrideConfiguration:(Landroid/content/res/Configuration;)V	0	1	
+stub	Views and widgets	android.view.Display.getRoundedCorner:(I)Landroid/view/RoundedCorner;	0	1	
+method	Views and widgets	android.view.DisplayCutout.getBoundingRects:()Ljava/util/List;	0	1	
+method	Views and widgets	android.view.DisplayCutout.getCutoutPath:()Landroid/graphics/Path;	0	1	
+stub	Views and widgets	android.view.InputDevice.isVirtual:()Z	0	1	
+method	Views and widgets	android.view.Menu.setQwertyMode:(Z)V	0	1	
+method	Views and widgets	android.view.MenuItem.collapseActionView:()Z	0	1	
+method	Views and widgets	android.view.MenuItem.getAlphabeticShortcut:()C	0	1	
+method	Views and widgets	android.view.MenuItem.getIntent:()Landroid/content/Intent;	0	1	
+method	Views and widgets	android.view.MenuItem.getMenuInfo:()Landroid/view/ContextMenu$ContextMenuInfo;	0	1	
+method	Views and widgets	android.view.MenuItem.getNumericShortcut:()C	0	1	
+method	Views and widgets	android.view.MenuItem.setAlphabeticShortcut:(CI)Landroid/view/MenuItem;	0	1	
+method	Views and widgets	android.view.MenuItem.setIconTintMode:(Landroid/graphics/PorterDuff$Mode;)Landroid/view/MenuItem;	0	1	
+method	Views and widgets	android.view.MenuItem.setNumericShortcut:(CI)Landroid/view/MenuItem;	0	1	
+method	Views and widgets	android.view.MenuItem.setTooltipText:(Ljava/lang/CharSequence;)Landroid/view/MenuItem;	0	1	
+stub	Views and widgets	android.view.MotionEvent.getEdgeFlags:()I	0	1	
+stub	Views and widgets	android.view.MotionEvent.getFlags:()I	0	1	
+stub	Views and widgets	android.view.OrientationEventListener.disable:()V	0	1	
+method	Views and widgets	android.view.SoundEffectConstants.getConstantForFocusDirection:(IZ)I	0	1	
+stub	Views and widgets	android.view.SoundEffectConstants.getContantForFocusDirection:(I)I	0	1	
+method	Audio and video	android.view.Surface.<init>:(Landroid/view/SurfaceControl;)V	0	1	
+method	Audio and video	android.view.Surface.lockHardwareCanvas:()Landroid/graphics/Canvas;	0	1	
+method	Audio and video	android.view.SurfaceView.getSurfaceControl:()Landroid/view/SurfaceControl;	0	1	
+method	Audio and video	android.view.SurfaceView.setSecure:(Z)V	0	1	
+stub	Views and widgets	android.view.TextureView.setOpaque:(Z)V	0	1	
+method	Views and widgets	android.view.TextureView.setSurfaceTexture:(Landroid/graphics/SurfaceTexture;)V	0	1	
+stub	Views and widgets	android.view.TextureView.setTransform:(Landroid/graphics/Matrix;)V	0	1	
+method	Views and widgets	android.view.VelocityTracker.getAxisVelocity:(I)F	0	1	
+method	Views and widgets	android.view.View$AccessibilityDelegate.dispatchPopulateAccessibilityEvent:(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z	0	1	
+method	Views and widgets	android.view.View$AccessibilityDelegate.getAccessibilityNodeProvider:(Landroid/view/View;)Landroid/view/accessibility/AccessibilityNodeProvider;	0	1	
+method	Views and widgets	android.view.View$AccessibilityDelegate.onInitializeAccessibilityEvent:(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V	0	1	
+method	Views and widgets	android.view.View$AccessibilityDelegate.onPopulateAccessibilityEvent:(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V	0	1	
+method	Views and widgets	android.view.View$AccessibilityDelegate.onRequestSendAccessibilityEvent:(Landroid/view/ViewGroup;Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z	0	1	
+method	Views and widgets	android.view.View$AccessibilityDelegate.performAccessibilityAction:(Landroid/view/View;ILandroid/os/Bundle;)Z	0	1	
+stub	Views and widgets	android.view.View$AccessibilityDelegate.sendAccessibilityEvent:(Landroid/view/View;I)V	0	1	
+method	Views and widgets	android.view.View$AccessibilityDelegate.sendAccessibilityEventUnchecked:(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V	0	1	
+stub	Views and widgets	android.view.View.clearViewTranslationCallback:()V	0	1	
+stub	Views and widgets	android.view.View.createAccessibilityNodeInfo:()Landroid/view/accessibility/AccessibilityNodeInfo;	0	1	
+stub	Views and widgets	android.view.View.getAccessibilityDelegate:()Landroid/view/View$AccessibilityDelegate;	0	1	
+stub	Views and widgets	android.view.View.getAccessibilityPaneTitle:()Ljava/lang/CharSequence;	0	1	
+stub	Views and widgets	android.view.View.getApplicationWindowToken:()Landroid/os/IBinder;	0	1	
+stub	Views and widgets	android.view.View.getBackgroundTintList:()Landroid/content/res/ColorStateList;	0	1	
+stub	Views and widgets	android.view.View.getBackgroundTintMode:()Landroid/graphics/PorterDuff$Mode;	0	1	
+stub	Views and widgets	android.view.View.getContentCaptureSession:()Landroid/view/contentcapture/ContentCaptureSession;	0	1	
+stub	Views and widgets	android.view.View.getPointerIcon:()Landroid/view/PointerIcon;	0	1	
+stub	Views and widgets	android.view.View.getReceiveContentMimeTypes:()[Ljava/lang/String;	0	1	
+stub	Views and widgets	android.view.View.hasFocusable:()Z	0	1	
+stub	Views and widgets	android.view.View.hasOnClickListeners:()Z	0	1	
+stub	Views and widgets	android.view.View.isAccessibilityHeading:()Z	0	1	
+stub	Views and widgets	android.view.View.isHardwareAccelerated:()Z	0	1	
+stub	Views and widgets	android.view.View.isShowingLayoutBounds:()Z	0	1	
+method	Views and widgets	android.view.View.onDragEvent:(Landroid/view/DragEvent;)Z	0	1	
+method	Views and widgets	android.view.View.performReceiveContent:(Landroid/view/ContentInfo;)Landroid/view/ContentInfo;	0	1	
+stub	Views and widgets	android.view.View.requestRectangleOnScreen:(Landroid/graphics/Rect;Z)Z	0	1	
+stub	Views and widgets	android.view.View.saveAttributeDataForStyleable:(Landroid/content/Context;[ILandroid/util/AttributeSet;Landroid/content/res/TypedArray;II)V	0	1	
+stub	Views and widgets	android.view.View.setAccessibilityDelegate:(Landroid/view/View$AccessibilityDelegate;)V	0	1	
+stub	Views and widgets	android.view.View.setAccessibilityPaneTitle:(Ljava/lang/CharSequence;)V	0	1	
+stub	Views and widgets	android.view.View.setBackgroundTintList:(Landroid/content/res/ColorStateList;)V	0	1	
+stub	Views and widgets	android.view.View.setBackgroundTintMode:(Landroid/graphics/PorterDuff$Mode;)V	0	1	
+stub	Views and widgets	android.view.View.setDefaultFocusHighlightEnabled:(Z)V	0	1	
+method	Views and widgets	android.view.View.setFilterTouchesWhenObscured:(Z)V	1	0	
+stub	Views and widgets	android.view.View.setFocusable:(I)V	0	1	
+stub	Views and widgets	android.view.View.setForceDarkAllowed:(Z)V	0	1	
+stub	Views and widgets	android.view.View.setForeground:(Landroid/graphics/drawable/Drawable;)V	0	1	
+stub	Views and widgets	android.view.View.setFrameContentVelocity:(F)V	0	1	
+stub	Views and widgets	android.view.View.setImportantForContentCapture:(I)V	0	1	
+stub	Views and widgets	android.view.View.setOnDragListener:(Landroid/view/View$OnDragListener;)V	0	1	
+stub	Views and widgets	android.view.View.setPointerIcon:(Landroid/view/PointerIcon;)V	0	1	
+stub	Views and widgets	android.view.View.setRequestedFrameRate:(F)V	0	1	
+stub	Views and widgets	android.view.View.setSaveFromParentEnabled:(Z)V	0	1	
+stub	Views and widgets	android.view.View.setScrollIndicators:(II)V	0	1	
+stub	Views and widgets	android.view.View.setSystemGestureExclusionRects:(Ljava/util/List;)V	0	1	
+stub	Views and widgets	android.view.View.setViewTranslationCallback:(Landroid/view/translation/ViewTranslationCallback;)V	0	1	
+stub	Views and widgets	android.view.View.setWindowInsetsAnimationCallback:(Landroid/view/WindowInsetsAnimation$Callback;)V	0	1	
+stub	Views and widgets	android.view.View.transformMatrixToGlobal:(Landroid/graphics/Matrix;)V	0	1	
+method	Views and widgets	android.view.ViewConfiguration.getScaledHandwritingGestureLineMargin:()I	0	1	
+method	Views and widgets	android.view.ViewConfiguration.getScaledHandwritingSlop:()I	0	1	
+method	Views and widgets	android.view.ViewConfiguration.getScaledMaximumFlingVelocity:(III)I	0	1	
+method	Views and widgets	android.view.ViewConfiguration.getScaledMinimumFlingVelocity:(III)I	0	1	
+method	Views and widgets	android.view.ViewGroup.dispatchKeyEventPreIme:(Landroid/view/KeyEvent;)Z	0	1	
+method	Views and widgets	android.view.ViewGroup.dispatchProvideAutofillStructure:(Landroid/view/ViewStructure;I)V	0	1	
+stub	Views and widgets	android.view.ViewGroup.endViewTransition:(Landroid/view/View;)V	0	1	
+method	Views and widgets	android.view.ViewGroup.invalidateChildInParent:([ILandroid/graphics/Rect;)Landroid/view/ViewParent;	0	1	
+stub	Views and widgets	android.view.ViewGroup.isTransitionGroup:()Z	0	1	
+method	Views and widgets	android.view.ViewGroup.onResolvePointerIcon:(Landroid/view/MotionEvent;I)Landroid/view/PointerIcon;	0	1	
+method	Views and widgets	android.view.ViewGroup.setTransitionGroup:(Z)V	0	1	
+stub	Views and widgets	android.view.ViewGroup.shouldDelayChildPressedState:()Z	0	1	
+stub	Views and widgets	android.view.ViewGroup.startViewTransition:(Landroid/view/View;)V	0	1	
+method	Views and widgets	android.view.ViewParent.requestSendAccessibilityEvent:(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z	0	1	
+method	Views and widgets	android.view.ViewPropertyAnimator.getDuration:()J	0	1	
+method	Views and widgets	android.view.Window$Callback.dispatchGenericMotionEvent:(Landroid/view/MotionEvent;)Z	0	1	
+method	Views and widgets	android.view.Window$Callback.dispatchKeyShortcutEvent:(Landroid/view/KeyEvent;)Z	0	1	
+method	Views and widgets	android.view.Window$Callback.dispatchPopulateAccessibilityEvent:(Landroid/view/accessibility/AccessibilityEvent;)Z	0	1	
+method	Views and widgets	android.view.Window$Callback.dispatchTouchEvent:(Landroid/view/MotionEvent;)Z	0	1	
+method	Views and widgets	android.view.Window$Callback.dispatchTrackballEvent:(Landroid/view/MotionEvent;)Z	0	1	
+method	Views and widgets	android.view.Window$Callback.onActionModeFinished:(Landroid/view/ActionMode;)V	0	1	
+method	Views and widgets	android.view.Window$Callback.onActionModeStarted:(Landroid/view/ActionMode;)V	0	1	
+method	Views and widgets	android.view.Window$Callback.onAttachedToWindow:()V	0	1	
+method	Views and widgets	android.view.Window$Callback.onDetachedFromWindow:()V	0	1	
+method	Views and widgets	android.view.Window$Callback.onPointerCaptureChanged:(Z)V	0	1	
+method	Views and widgets	android.view.Window$Callback.onProvideKeyboardShortcuts:(Ljava/util/List;Landroid/view/Menu;I)V	0	1	
+method	Views and widgets	android.view.Window$Callback.onSearchRequested:()Z	0	1	
+method	Views and widgets	android.view.Window$Callback.onSearchRequested:(Landroid/view/SearchEvent;)Z	0	1	
+method	Views and widgets	android.view.Window$Callback.onWindowAttributesChanged:(Landroid/view/WindowManager$LayoutParams;)V	0	1	
+method	Views and widgets	android.view.Window$Callback.onWindowFocusChanged:(Z)V	0	1	
+method	Views and widgets	android.view.Window$Callback.onWindowStartingActionMode:(Landroid/view/ActionMode$Callback;I)Landroid/view/ActionMode;	0	1	
+stub	Views and widgets	android.view.Window.setStatusBarContrastEnforced:(Z)V	0	1	
+stub	Views and widgets	android.view.WindowInsets.getDisplayCutout:()Landroid/view/DisplayCutout;	0	1	
+stub	Views and widgets	android.view.WindowInsets.getStableInsetBottom:()I	0	1	
+stub	Views and widgets	android.view.WindowInsets.getStableInsetLeft:()I	0	1	
+stub	Views and widgets	android.view.WindowInsets.getStableInsetRight:()I	0	1	
+stub	Views and widgets	android.view.WindowInsets.getStableInsetTop:()I	0	1	
+stub	Views and widgets	android.view.WindowInsets.getSystemWindowInsetBottom:()I	0	1	
+stub	Views and widgets	android.view.WindowInsets.getSystemWindowInsetLeft:()I	0	1	
+stub	Views and widgets	android.view.WindowInsets.getSystemWindowInsetRight:()I	0	1	
+stub	Views and widgets	android.view.WindowInsets.getSystemWindowInsetTop:()I	0	1	
+stub	Views and widgets	android.view.WindowInsets.isConsumed:()Z	0	1	
+stub	Views and widgets	android.view.WindowInsets.isRound:()Z	0	1	
+stub	Views and widgets	android.view.WindowInsets.isVisible:(I)Z	0	1	
+method	Views and widgets	android.view.WindowInsetsAnimation.<init>:(ILandroid/view/animation/Interpolator;J)V	0	1	
+method	Views and widgets	android.view.WindowInsetsAnimation.getAlpha:()F	0	1	
+method	Views and widgets	android.view.WindowInsetsAnimation.getDurationMillis:()J	0	1	
+method	Views and widgets	android.view.WindowInsetsAnimation.getFraction:()F	0	1	
+method	Views and widgets	android.view.WindowInsetsAnimation.getInterpolatedFraction:()F	0	1	
+method	Views and widgets	android.view.WindowInsetsAnimation.getTypeMask:()I	0	1	
+method	Views and widgets	android.view.WindowInsetsAnimation.setFraction:(F)V	0	1	
+method	Views and widgets	android.view.WindowInsetsController.addOnControllableInsetsChangedListener:(Landroid/view/WindowInsetsController$OnControllableInsetsChangedListener;)V	0	1	
+method	Views and widgets	android.view.WindowInsetsController.removeOnControllableInsetsChangedListener:(Landroid/view/WindowInsetsController$OnControllableInsetsChangedListener;)V	0	1	
+method	Views and widgets	android.view.WindowManager$LayoutParams.<init>:(IIIIIII)V	0	1	
+method	Views and widgets	android.view.WindowManager$LayoutParams.setFitInsetsSides:(I)V	0	1	
+stub	Views and widgets	android.view.WindowManager$LayoutParams.setFitInsetsTypes:(I)V	0	1	
+stub	Views and widgets	android.view.WindowManager$LayoutParams.setTitle:(Ljava/lang/CharSequence;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityEvent.getTextChangeTypes:()I	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityEvent.setAccessibilityDataSensitive:(Z)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityEvent.setTextChangeTypes:(I)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityManager.addAccessibilityServicesStateChangeListener:(Landroid/view/accessibility/AccessibilityManager$AccessibilityServicesStateChangeListener;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityManager.getRecommendedTimeoutMillis:(II)I	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityManager.isRequestFromAccessibilityTool:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityManager.removeAccessibilityServicesStateChangeListener:(Landroid/view/accessibility/AccessibilityManager$AccessibilityServicesStateChangeListener;)Z	0	1	
+field	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.ACTION_DRAG_CANCEL	0	1	
+field	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.ACTION_DRAG_DROP	0	1	
+field	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.ACTION_DRAG_START	0	1	
+field	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.ACTION_IME_ENTER	0	1	
+field	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.ACTION_PRESS_AND_HOLD	0	1	
+field	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.ACTION_SCROLL_IN_DIRECTION	0	1	
+field	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.ACTION_SET_EXTENDED_SELECTION	0	1	
+field	Accessibility	android.view.accessibility.AccessibilityNodeInfo$AccessibilityAction.ACTION_SHOW_TEXT_SUGGESTIONS	0	1	
+class	Accessibility	android.view.accessibility.AccessibilityNodeInfo$CollectionItemInfo	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo$RangeInfo.obtain:(IFFF)Landroid/view/accessibility/AccessibilityNodeInfo$RangeInfo;	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.addAction:(Landroid/view/accessibility/AccessibilityNodeInfo$AccessibilityAction;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.addChild:(Landroid/view/View;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.addChild:(Landroid/view/View;I)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.findAccessibilityNodeInfosByViewId:(Ljava/lang/String;)Ljava/util/List;	1	0	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getActionList:()Ljava/util/List;	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getBoundsInParent:(Landroid/graphics/Rect;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getBoundsInWindow:(Landroid/graphics/Rect;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getChecked:()I	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getChild:(I)Landroid/view/accessibility/AccessibilityNodeInfo;	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getChildCount:()I	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getContainerTitle:()Ljava/lang/CharSequence;	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getError:()Ljava/lang/CharSequence;	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getExpandedState:()I	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getMaxTextLength:()I	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getMovementGranularities:()I	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getStateDescription:()Ljava/lang/CharSequence;	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getSupplementalDescription:()Ljava/lang/CharSequence;	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getTooltipText:()Ljava/lang/CharSequence;	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.getUniqueId:()Ljava/lang/String;	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isAccessibilityDataSensitive:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isCheckable:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isChecked:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isContextClickable:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isEnabled:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isFieldRequired:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isImportantForAccessibility:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isLongClickable:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isScrollable:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isSelected:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isTextSelectable:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.isVisibleToUser:()Z	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setAccessibilityDataSensitive:(Z)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setAvailableExtraData:(Ljava/util/List;)V	0	1	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setCheckable:(Z)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setCollectionItemInfo:(Landroid/view/accessibility/AccessibilityNodeInfo$CollectionItemInfo;)V	0	1	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setContentDescription:(Ljava/lang/CharSequence;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setContentInvalid:(Z)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setDrawingOrder:(I)V	0	1	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setEditable:(Z)V	0	1	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setEnabled:(Z)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setError:(Ljava/lang/CharSequence;)V	0	1	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setFocusable:(Z)V	0	1	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setFocused:(Z)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setImportantForAccessibility:(Z)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setLiveRegion:(I)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setMaxTextLength:(I)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setPackageName:(Ljava/lang/CharSequence;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setParent:(Landroid/view/View;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setPassword:(Z)V	0	1	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setRangeInfo:(Landroid/view/accessibility/AccessibilityNodeInfo$RangeInfo;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setSelected:(Z)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setSource:(Landroid/view/View;I)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setStateDescription:(Ljava/lang/CharSequence;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setText:(Ljava/lang/CharSequence;)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setTextEntryKey:(Z)V	0	1	
+stub	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setTextSelection:(II)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setTraversalAfter:(Landroid/view/View;I)V	0	1	
+method	Accessibility	android.view.accessibility.AccessibilityNodeInfo.setViewIdResourceName:(Ljava/lang/String;)V	0	1	
+stub	Accessibility	android.view.accessibility.AccessibilityRecord.getSource:()Landroid/view/accessibility/AccessibilityNodeInfo;	1	0	
+stub	Autofill	android.view.autofill.AutofillManager.commit:()V	0	1	
+method	Autofill	android.view.autofill.AutofillManager.hasEnabledAutofillServices:()Z	0	1	
+stub	Autofill	android.view.autofill.AutofillManager.isAutofillSupported:()Z	0	1	
+stub	Autofill	android.view.autofill.AutofillManager.isEnabled:()Z	0	1	
+stub	Autofill	android.view.autofill.AutofillManager.notifyViewEntered:(Landroid/view/View;ILandroid/graphics/Rect;)V	0	1	
+stub	Autofill	android.view.autofill.AutofillManager.notifyViewExited:(Landroid/view/View;I)V	0	1	
+stub	Autofill	android.view.autofill.AutofillManager.notifyViewVisibilityChanged:(Landroid/view/View;IZ)V	0	1	
+stub	Autofill	android.view.autofill.AutofillManager.requestAutofill:(Landroid/view/View;ILandroid/graphics/Rect;)V	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.newAutofillId:(Landroid/view/autofill/AutofillId;J)Landroid/view/autofill/AutofillId;	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.newVirtualViewStructure:(Landroid/view/autofill/AutofillId;J)Landroid/view/ViewStructure;	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.notifyViewAppeared:(Landroid/view/ViewStructure;)V	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.notifyViewDisappeared:(Landroid/view/autofill/AutofillId;)V	0	1	
+method	Views and widgets	android.view.contentcapture.ContentCaptureSession.notifyViewsDisappeared:(Landroid/view/autofill/AutofillId;[J)V	0	1	
+method	Text input	android.view.inputmethod.CursorAnchorInfo$Builder.addVisibleLineBounds:(FFFF)Landroid/view/inputmethod/CursorAnchorInfo$Builder;	0	1	
+stub	Text input	android.view.inputmethod.EditorInfo.setInitialSurroundingSubText:(Ljava/lang/CharSequence;I)V	0	1	
+stub	Text input	android.view.inputmethod.EditorInfo.setStylusHandwritingEnabled:(Z)V	0	1	
+method	Text input	android.view.inputmethod.EditorInfo.setSupportedHandwritingGesturePreviews:(Ljava/util/Set;)V	0	1	
+method	Text input	android.view.inputmethod.EditorInfo.setSupportedHandwritingGestures:(Ljava/util/List;)V	0	1	
+method	Text input	android.view.inputmethod.InputConnection.commitContent:(Landroid/view/inputmethod/InputContentInfo;ILandroid/os/Bundle;)Z	0	1	
+method	Text input	android.view.inputmethod.InputConnection.performHandwritingGesture:(Landroid/view/inputmethod/HandwritingGesture;Ljava/util/concurrent/Executor;Ljava/util/function/IntConsumer;)V	0	1	
+method	Text input	android.view.inputmethod.InputConnection.previewHandwritingGesture:(Landroid/view/inputmethod/PreviewableHandwritingGesture;Landroid/os/CancellationSignal;)Z	0	1	
+method	Text input	android.view.inputmethod.InputConnectionWrapper.commitContent:(Landroid/view/inputmethod/InputContentInfo;ILandroid/os/Bundle;)Z	0	1	
+stub	Text input	android.view.inputmethod.InputMethodManager.startStylusHandwriting:(Landroid/view/View;)V	0	1	
+class	Views and widgets	android.view.translation.TranslationRequestValue	0	1	
+class	Views and widgets	android.view.translation.TranslationResponseValue	0	1	
+method	Views and widgets	android.widget.AbsListView.isSelectedChildViewEnabled:()Z	0	1	
+method	Views and widgets	android.widget.AbsListView.setSelectedChildViewEnabled:(Z)V	0	1	
+stub	Views and widgets	android.widget.AbsSeekBar.setThumb:(Landroid/graphics/drawable/Drawable;)V	0	1	
+stub	Views and widgets	android.widget.CheckedTextView.getCheckMarkDrawable:()Landroid/graphics/drawable/Drawable;	0	1	
+stub	Views and widgets	android.widget.CheckedTextView.setCheckMarkDrawable:(Landroid/graphics/drawable/Drawable;)V	0	1	
+method	Views and widgets	android.widget.CheckedTextView.setCheckMarkTintList:(Landroid/content/res/ColorStateList;)V	0	1	
+method	Views and widgets	android.widget.CheckedTextView.setCheckMarkTintMode:(Landroid/graphics/PorterDuff$Mode;)V	0	1	
+stub	Views and widgets	android.widget.CompoundButton.setButtonTintList:(Landroid/content/res/ColorStateList;)V	0	1	
+method	Views and widgets	android.widget.CompoundButton.setButtonTintMode:(Landroid/graphics/PorterDuff$Mode;)V	0	1	
+method	Views and widgets	android.widget.EditText.onTextContextMenuItem:(I)Z	0	1	
+method	Views and widgets	android.widget.ImageView.setFrame:(IIII)Z	0	1	
+method	Views and widgets	android.widget.PopupWindow.<init>:(Landroid/content/Context;Landroid/util/AttributeSet;I)V	0	1	
+stub	Views and widgets	android.widget.PopupWindow.setAnimationStyle:(I)V	0	1	
+method	Views and widgets	android.widget.PopupWindow.setEnterTransition:(Landroid/transition/Transition;)V	0	1	
+stub	Views and widgets	android.widget.PopupWindow.setEpicenterBounds:(Landroid/graphics/Rect;)V	0	1	
+method	Views and widgets	android.widget.PopupWindow.setExitTransition:(Landroid/transition/Transition;)V	0	1	
+stub	Views and widgets	android.widget.PopupWindow.setIsClippedToScreen:(Z)V	0	1	
+stub	Views and widgets	android.widget.PopupWindow.setTouchInterceptor:(Landroid/view/View$OnTouchListener;)V	0	1	
+method	Views and widgets	android.widget.RatingBar.getNumStars:()I	0	1	
+stub	Views and widgets	android.widget.RemoteViews.setContentDescription:(ILjava/lang/CharSequence;)V	0	1	
+stub	Views and widgets	android.widget.RemoteViews.setImageViewResource:(II)V	0	1	
+method	Views and widgets	android.widget.Spinner.getDropDownHorizontalOffset:()I	0	1	
+method	Views and widgets	android.widget.Spinner.getDropDownVerticalOffset:()I	0	1	
+method	Views and widgets	android.widget.Spinner.getPopupBackground:()Landroid/graphics/drawable/Drawable;	0	1	
+method	Views and widgets	android.widget.Spinner.getPrompt:()Ljava/lang/CharSequence;	0	1	
+stub	Views and widgets	android.widget.Spinner.setDropDownHorizontalOffset:(I)V	0	1	
+method	Views and widgets	android.widget.Spinner.setDropDownVerticalOffset:(I)V	0	1	
+method	Views and widgets	android.widget.Spinner.setDropDownWidth:(I)V	0	1	
+method	Views and widgets	android.widget.Spinner.setPopupBackgroundDrawable:(Landroid/graphics/drawable/Drawable;)V	0	1	
+method	Views and widgets	android.widget.Spinner.setPrompt:(Ljava/lang/CharSequence;)V	0	1	
+stub	Views and widgets	android.widget.TextView.beginBatchEdit:()V	0	1	
+method	Views and widgets	android.widget.TextView.getOffsetForPosition:(FF)I	0	1	
+method	Views and widgets	android.widget.TextView.getTextMetricsParams:()Landroid/text/PrecomputedText$Params;	0	1	
+stub	Views and widgets	android.widget.TextView.setCompoundDrawableTintList:(Landroid/content/res/ColorStateList;)V	0	1	
+stub	Views and widgets	android.widget.TextView.setCompoundDrawableTintMode:(Landroid/graphics/PorterDuff$Mode;)V	0	1	
+stub	Views and widgets	android.widget.TextView.setEditableFactory:(Landroid/text/Editable$Factory;)V	0	1	
+stub	Views and widgets	android.widget.TextView.setLastBaselineToBottomHeight:(I)V	0	1	
+stub	Views and widgets	android.widget.TextView.setLineSpacing:(FF)V	0	1	
+method	Views and widgets	android.widget.ThemedSpinnerAdapter.getDropDownViewTheme:()Landroid/content/res/Resources$Theme;	0	1	
+method	Views and widgets	android.widget.ThemedSpinnerAdapter.setDropDownViewTheme:(Landroid/content/res/Resources$Theme;)V	0	1	
+method	Java library	java.lang.Object.onCaptureResultAvailable:(Landroid/hardware/camera2/CameraExtensionSession;Landroid/hardware/camera2/CaptureRequest;Landroid/hardware/camera2/TotalCaptureResult;)V	0	1	
+class	Java library	java.lang.ref.Cleaner	0	1	
+class	Java library	java.lang.ref.Cleaner$Cleanable	0	1	
+stub	Views and widgets	android.view.View.setContentDescription:(Ljava/lang/CharSequence;)V	0	0	androidx.appcompat 7
+stub	Views and widgets	android.view.VelocityTracker.recycle:()V	0	0	androidx.core 6
+stub	Views and widgets	android.view.View.setDescendantFocusability:(I)V	0	0	androidx.core 3, androidx.appcompat 1
+class	Java library	java.awt.Component	0	0	com.sun 4
+stub	Views and widgets	android.view.VelocityTracker.clear:()V	0	0	androidx.core 3
+stub	Views and widgets	android.view.View.getOverScrollMode:()I	0	0	androidx.core 3
+stub	Views and widgets	android.view.View.getVerticalFadingEdgeLength:()I	0	0	androidx.core 3
+stub	Views and widgets	android.view.View.invalidateOutline:()V	0	0	androidx.appcompat 3
+stub	Views and widgets	android.view.ViewGroup.getClipToPadding:()Z	0	0	androidx.core 3
+stub	Views and widgets	android.view.VelocityTracker.computeCurrentVelocity:(IF)V	0	0	androidx.core 2
+stub	Views and widgets	android.view.View.fitSystemWindows:(Landroid/graphics/Rect;)Z	0	0	androidx.appcompat 2
+stub	Views and widgets	android.widget.TextView.setEllipsize:(Landroid/text/TextUtils$TruncateAt;)V	0	0	androidx.appcompat 2
+class	Java library	java.awt.HeadlessException	0	0	com.sun 2
+stub	App framework	android.content.ContentProvider.attachInfo:(Landroid/content/Context;Landroid/content/pm/ProviderInfo;)V	0	0	androidx.core 1
+method	Graphics	android.graphics.drawable.Icon.getUri:()Landroid/net/Uri;	0	0	androidx.core 1
+method	Views and widgets	android.view.View.computeHorizontalScrollOffset:()I	0	0	androidx.core 1
+method	Views and widgets	android.view.View.onRtlPropertiesChanged:(I)V	0	0	androidx.appcompat 1
+method	Views and widgets	android.view.View.onWindowSystemUiVisibilityChanged:(I)V	0	0	androidx.appcompat 1
+stub	Views and widgets	android.view.View.setSaveEnabled:(Z)V	0	0	androidx.appcompat 1
+stub	Views and widgets	android.view.ViewGroup.bringChildToFront:(Landroid/view/View;)V	0	0	androidx.appcompat 1
+stub	Views and widgets	android.view.ViewGroup.getDescendantFocusability:()I	0	0	androidx.core 1
+stub	Views and widgets	android.view.ViewGroup.requestChildFocus:(Landroid/view/View;Landroid/view/View;)V	0	0	androidx.core 1
+method	Views and widgets	android.view.ViewGroup.setChildrenDrawingCacheEnabled:(Z)V	0	0	androidx.appcompat 1
+method	Views and widgets	android.view.ViewGroup.startActionModeForChild:(Landroid/view/View;Landroid/view/ActionMode$Callback;I)Landroid/view/ActionMode;	0	0	androidx.appcompat 1
+class	Java library	java.awt.GraphicsEnvironment	0	0	com.sun 1
