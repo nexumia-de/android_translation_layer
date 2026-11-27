@@ -165,8 +165,8 @@ static bool call_ontouch_callback(WrapperWidget *wrapper, int action, struct poi
 		jstring name = (*env)->CallObjectMethod(env, cls, get_name);
 		const char *cname = (*env)->GetStringUTFChars(env, name, NULL);
 		struct pointer *p0 = num_pointers ? (struct pointer *)g_ptr_array_index(pointer_indices, 0) : NULL;
-		fprintf(stderr, "TOUCHDBG t=%u gdk=%d phase=%d action=0x%x id=%d x=%.1f y=%.1f raw=%.1f,%.1f %s@%p ret=%d dispatch=%d\n",
-		        timestamp, event ? (int)gdk_event_get_event_type(event) : -1, phase, action, p0 ? p0->id : -1,
+		fprintf(stderr, "TOUCHDBG now=%" G_GINT64_FORMAT " t=%u gdk=%d phase=%d action=0x%x id=%d x=%.1f y=%.1f raw=%.1f,%.1f %s@%p ret=%d dispatch=%d\n",
+		        g_get_monotonic_time() / 1000, timestamp, event ? (int)gdk_event_get_event_type(event) : -1, phase, action, p0 ? p0->id : -1,
 		        p0 ? p0->coord_x : 0, p0 ? p0->coord_y : 0, p0 ? p0->raw_x : 0, p0 ? p0->raw_y : 0,
 		        cname, (void *)wrapper, ret, wrapper->custom_dispatch_touch);
 		(*env)->ReleaseStringUTFChars(env, name, cname);
@@ -369,17 +369,92 @@ static gboolean on_pointer_event(GtkEventControllerLegacy *event_controller, Gdk
 	return ret;
 }
 
+/* Touch moves batched per frame, like Android's input dispatcher does.
+ * GDK compresses pointer motion to one event per frame, but not touch
+ * updates: a touchscreen sends one every 4 ms, and dispatching each through
+ * the view tree kept the main thread so busy that Compose drew nothing while
+ * the finger moved, then jumped (or flung the sheet shut) afterwards. Only
+ * the newest update per controller and touch sequence is dispatched, on the
+ * next frame or before the sequence's next begin or end. */
+struct pending_touch_update {
+	GtkEventControllerLegacy *controller;
+	GdkEvent *event;
+};
+static GArray *pending_touch_updates = NULL;
+static guint pending_touch_tick = 0;
+static GtkWidget *pending_touch_tick_widget = NULL;
+
+static void flush_touch_updates(void)
+{
+	if (!pending_touch_updates || !pending_touch_updates->len)
+		return;
+	GArray *batch = pending_touch_updates;
+	pending_touch_updates = g_array_new(FALSE, FALSE, sizeof(struct pending_touch_update));
+	for (guint i = 0; i < batch->len; i++) {
+		struct pending_touch_update *pending = &g_array_index(batch, struct pending_touch_update, i);
+		if (gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(pending->controller))) {
+			gboolean ret = on_pointer_event(pending->controller, pending->event, NULL);
+			g_object_set_data(G_OBJECT(pending->controller), "last-touch-ret", GINT_TO_POINTER(ret));
+		}
+		gdk_event_unref(pending->event);
+		g_object_unref(pending->controller);
+	}
+	g_array_free(batch, TRUE);
+}
+
+static gboolean touch_updates_tick(GtkWidget *widget, GdkFrameClock *clock, gpointer user_data)
+{
+	pending_touch_tick = 0;
+	g_clear_object(&pending_touch_tick_widget);
+	flush_touch_updates();
+	return G_SOURCE_REMOVE;
+}
+
+static gboolean queue_touch_update(GtkEventControllerLegacy *controller, GdkEvent *event)
+{
+	if (!pending_touch_updates)
+		pending_touch_updates = g_array_new(FALSE, FALSE, sizeof(struct pending_touch_update));
+	GdkEventSequence *sequence = gdk_event_get_event_sequence(event);
+	for (guint i = 0; i < pending_touch_updates->len; i++) {
+		struct pending_touch_update *pending = &g_array_index(pending_touch_updates, struct pending_touch_update, i);
+		if (pending->controller == controller && gdk_event_get_event_sequence(pending->event) == sequence) {
+			gdk_event_unref(pending->event);
+			pending->event = gdk_event_ref(event);
+			return GPOINTER_TO_INT(g_object_get_data(G_OBJECT(controller), "last-touch-ret"));
+		}
+	}
+	struct pending_touch_update pending = {g_object_ref(controller), gdk_event_ref(event)};
+	g_array_append_val(pending_touch_updates, pending);
+	if (!pending_touch_tick) {
+		GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(controller));
+		pending_touch_tick_widget = g_object_ref(widget);
+		pending_touch_tick = gtk_widget_add_tick_callback(widget, touch_updates_tick, NULL, NULL);
+	}
+	return GPOINTER_TO_INT(g_object_get_data(G_OBJECT(controller), "last-touch-ret"));
+}
+
 static gboolean on_event(GtkEventControllerLegacy *event_controller, GdkEvent *event, gpointer user_data)
 {
 	GdkEventType event_type = gdk_event_get_event_type(event);
+	gboolean ret;
 	switch (event_type) {
+		case GDK_TOUCH_UPDATE:
+			if (event != navigation_cancel_event && event != canceled_event)
+				return queue_touch_update(event_controller, event);
+			/* fall through */
 		case GDK_BUTTON_PRESS:
 		case GDK_TOUCH_BEGIN:
 		case GDK_BUTTON_RELEASE:
 		case GDK_TOUCH_END:
+		case GDK_TOUCH_CANCEL:
 		case GDK_MOTION_NOTIFY:
-		case GDK_TOUCH_UPDATE:
-			return on_pointer_event(event_controller, event, user_data);
+			/* keep the order: moves still waiting for the frame go first */
+			flush_touch_updates();
+			if (event_type == GDK_TOUCH_CANCEL)
+				return false;
+			ret = on_pointer_event(event_controller, event, user_data);
+			g_object_set_data(G_OBJECT(event_controller), "last-touch-ret", GINT_TO_POINTER(ret));
+			return ret;
 		default: // not a touch or mouse event, nothing to do here
 			return false;
 	}
