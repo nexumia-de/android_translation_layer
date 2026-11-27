@@ -81,6 +81,14 @@ JNIEXPORT void JNICALL Java_android_media_MediaCodec_native_1flush
 JNIEXPORT void JNICALL Java_android_media_MediaCodec_native_1release
   (JNIEnv *, jobject, jlong);
 
+/*
+ * Class:     android_media_MediaCodec
+ * Method:    native_queueSecureVideo
+ * Signature: (JLjava/nio/ByteBuffer;I[B[BI[I[IIIIJII)I
+ */
+JNIEXPORT jint JNICALL Java_android_media_MediaCodec_native_1queueSecureVideo
+  (JNIEnv *, jobject, jlong, jobject, jint, jbyteArray, jbyteArray, jint, jintArray, jintArray, jint, jint, jint, jlong, jint, jint);
+
 #ifdef __cplusplus
 }
 #endif

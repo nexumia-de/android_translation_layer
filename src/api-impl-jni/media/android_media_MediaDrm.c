@@ -24,6 +24,9 @@
 #include "../util.h"
 
 #include "../generated_headers/android_media_MediaDrm.h"
+#include "atl_widevine.h"
+#include <libavutil/buffer.h>
+#include <libavutil/pixfmt.h>
 
 #define CDM_INTERFACE_VERSION 10
 #define HOST_INTERFACE_VERSION 10
@@ -66,6 +69,26 @@ struct key_information {
 	uint32_t system_code;
 };
 
+struct cdm_size {
+	int32_t width;
+	int32_t height;
+};
+
+struct video_decoder_config_2 {
+	uint32_t codec;
+	uint32_t profile;
+	uint32_t format;
+	uint32_t pad;
+	struct cdm_size coded_size;
+	uint8_t *extra_data;
+	uint32_t extra_data_size;
+	uint32_t encryption_scheme;
+};
+_Static_assert(sizeof(struct video_decoder_config_2) == 40, "VideoDecoderConfig_2 layout");
+
+enum { STREAM_TYPE_VIDEO = 1 };
+enum { PROFILE_NOT_NEEDED = 1, FORMAT_YV12 = 1, FORMAT_I420 = 2 };
+
 /* ContentDecryptionModule_10 */
 struct cdm;
 struct cdm_vtable {
@@ -80,10 +103,10 @@ struct cdm_vtable {
 	void (*TimerExpired)(struct cdm *, void *context);
 	uint32_t (*Decrypt)(struct cdm *, const struct input_buffer_2 *encrypted, void *decrypted_block);
 	void *InitializeAudioDecoder;
-	void *InitializeVideoDecoder;
-	void *DeinitializeDecoder;
-	void *ResetDecoder;
-	void *DecryptAndDecodeFrame;
+	uint32_t (*InitializeVideoDecoder)(struct cdm *, const struct video_decoder_config_2 *config);
+	void (*DeinitializeDecoder)(struct cdm *, uint32_t stream_type);
+	void (*ResetDecoder)(struct cdm *, uint32_t stream_type);
+	uint32_t (*DecryptAndDecodeFrame)(struct cdm *, const struct input_buffer_2 *encrypted, void *video_frame);
 	void *DecryptAndDecodeSamples;
 	void (*OnPlatformChallengeResponse)(struct cdm *, const void *response);
 	void (*OnQueryOutputProtectionStatus)(struct cdm *, uint32_t result, uint32_t link_mask, uint32_t output_protection_mask);
@@ -129,6 +152,35 @@ static int64_t block_timestamp(struct decrypted_block *self) { return self->time
 static void block_dtor(struct decrypted_block *self) {}
 static const void *const block_vtable[] = {
 	block_set_buffer, block_buffer, block_set_timestamp, block_timestamp, block_dtor, block_dtor,
+};
+
+/* cdm::VideoFrame */
+struct video_frame {
+	const void *vtable;
+	uint32_t format;
+	struct cdm_size size;
+	struct cdm_buffer *buffer;
+	uint32_t offset[3];
+	uint32_t stride[3];
+	int64_t timestamp;
+};
+static void frame_set_format(struct video_frame *self, uint32_t format) { self->format = format; }
+static uint32_t frame_format(struct video_frame *self) { return self->format; }
+static void frame_set_size(struct video_frame *self, struct cdm_size size) { self->size = size; }
+static struct cdm_size frame_size(struct video_frame *self) { return self->size; }
+static void frame_set_buffer(struct video_frame *self, struct cdm_buffer *buffer) { self->buffer = buffer; }
+static struct cdm_buffer *frame_buffer(struct video_frame *self) { return self->buffer; }
+static void frame_set_plane_offset(struct video_frame *self, uint32_t plane, uint32_t offset) { if (plane < 3) self->offset[plane] = offset; }
+static uint32_t frame_plane_offset(struct video_frame *self, uint32_t plane) { return plane < 3 ? self->offset[plane] : 0; }
+static void frame_set_stride(struct video_frame *self, uint32_t plane, uint32_t stride) { if (plane < 3) self->stride[plane] = stride; }
+static uint32_t frame_stride(struct video_frame *self, uint32_t plane) { return plane < 3 ? self->stride[plane] : 0; }
+static void frame_set_timestamp(struct video_frame *self, int64_t timestamp) { self->timestamp = timestamp; }
+static int64_t frame_timestamp(struct video_frame *self) { return self->timestamp; }
+static void frame_dtor(struct video_frame *self) {}
+static const void *const frame_vtable[] = {
+	frame_set_format, frame_format, frame_set_size, frame_size, frame_set_buffer, frame_buffer,
+	frame_set_plane_offset, frame_plane_offset, frame_set_stride, frame_stride, frame_set_timestamp,
+	frame_timestamp, frame_dtor, frame_dtor,
 };
 
 /* ---- state ---- */
@@ -639,4 +691,115 @@ out:
 	if (key)
 		(*env)->ReleaseByteArrayElements(env, key_id, key, JNI_ABORT);
 	return status;
+}
+
+/* ---- the CDM's video decoder ---- */
+
+static gboolean video_decoder_ready;
+
+bool atl_widevine_video_init(int codec, int width, int height)
+{
+	if (!ensure_cdm())
+		return false;
+	g_rec_mutex_lock(&cdm_lock);
+	if (video_decoder_ready)
+		cdm->vtable->DeinitializeDecoder(cdm, STREAM_TYPE_VIDEO);
+	struct video_decoder_config_2 config = {
+		.codec = codec,
+		.profile = PROFILE_NOT_NEEDED,
+		.format = FORMAT_I420,
+		.coded_size = {width, height},
+		.encryption_scheme = SCHEME_CENC,
+	};
+	uint32_t status = cdm->vtable->InitializeVideoDecoder(cdm, &config);
+	video_decoder_ready = status == STATUS_SUCCESS;
+	g_rec_mutex_unlock(&cdm_lock);
+	fprintf(stderr, "Widevine: CDM video decoder for codec %d at %dx%d: status %u\n", codec, width, height, status);
+	return video_decoder_ready;
+}
+
+void atl_widevine_video_reset(void)
+{
+	g_rec_mutex_lock(&cdm_lock);
+	if (cdm && video_decoder_ready)
+		cdm->vtable->ResetDecoder(cdm, STREAM_TYPE_VIDEO);
+	g_rec_mutex_unlock(&cdm_lock);
+}
+
+void atl_widevine_video_deinit(void)
+{
+	g_rec_mutex_lock(&cdm_lock);
+	if (cdm && video_decoder_ready)
+		cdm->vtable->DeinitializeDecoder(cdm, STREAM_TYPE_VIDEO);
+	video_decoder_ready = FALSE;
+	g_rec_mutex_unlock(&cdm_lock);
+}
+
+static void free_cdm_buffer(void *opaque, uint8_t *data)
+{
+	buffer_destroy(opaque);
+}
+
+int atl_widevine_video_decode(const uint8_t *data, uint32_t size, const uint8_t *key_id, uint32_t key_id_size,
+                              const uint8_t *iv, uint32_t iv_size, int scheme, const uint32_t *clear_bytes,
+                              const uint32_t *cipher_bytes, uint32_t num_subsamples, uint32_t crypt_blocks,
+                              uint32_t skip_blocks, int64_t timestamp, AVFrame **out)
+{
+	*out = NULL;
+	if (!video_decoder_ready)
+		return STATUS_DECRYPT_ERROR;
+	struct subsample_entry *subsamples = NULL;
+	if (num_subsamples) {
+		subsamples = g_new(struct subsample_entry, num_subsamples);
+		for (uint32_t i = 0; i < num_subsamples; i++) {
+			subsamples[i].clear_bytes = clear_bytes[i];
+			subsamples[i].cipher_bytes = cipher_bytes[i];
+		}
+	}
+	struct input_buffer_2 input = {
+		.data = data,
+		.data_size = data ? size : 0,
+		.encryption_scheme = scheme == 2 ? SCHEME_CBCS : scheme == 1 ? SCHEME_CENC : SCHEME_UNENCRYPTED,
+		.key_id = key_id,
+		.key_id_size = key_id_size,
+		.iv = iv,
+		.iv_size = iv_size,
+		.subsamples = subsamples,
+		.num_subsamples = num_subsamples,
+		.crypt_byte_block = crypt_blocks,
+		.skip_byte_block = skip_blocks,
+		.timestamp = timestamp,
+	};
+	struct video_frame frame = {frame_vtable};
+	g_rec_mutex_lock(&cdm_lock);
+	uint32_t status = cdm->vtable->DecryptAndDecodeFrame(cdm, &input, &frame);
+	g_rec_mutex_unlock(&cdm_lock);
+	g_free(subsamples);
+
+	if (status != STATUS_SUCCESS || !frame.buffer) {
+		if (frame.buffer)
+			buffer_destroy(frame.buffer);
+		static gboolean logged;
+		if (status != STATUS_SUCCESS && status != 1 && !logged) {
+			logged = TRUE;
+			fprintf(stderr, "Widevine: DecryptAndDecodeFrame status %u\n", status);
+		}
+		return status;
+	}
+	AVFrame *av = av_frame_alloc();
+	av->format = AV_PIX_FMT_YUV420P;
+	av->width = frame.size.width;
+	av->height = frame.size.height;
+	av->pts = frame.timestamp;
+	av->buf[0] = av_buffer_create(frame.buffer->data, frame.buffer->capacity, free_cdm_buffer, frame.buffer, 0);
+	/* I420 is Y, U, V; YV12 has V before U */
+	int u = frame.format == FORMAT_YV12 ? 2 : 1, v = frame.format == FORMAT_YV12 ? 1 : 2;
+	av->data[0] = frame.buffer->data + frame.offset[0];
+	av->linesize[0] = frame.stride[0];
+	av->data[1] = frame.buffer->data + frame.offset[u];
+	av->linesize[1] = frame.stride[u];
+	av->data[2] = frame.buffer->data + frame.offset[v];
+	av->linesize[2] = frame.stride[v];
+	*out = av;
+	return STATUS_SUCCESS;
 }

@@ -170,6 +170,11 @@ public class MediaCodec {
 	}
 
 	public void queueInputBuffer(int index, int offset, int size, long presentationTimeUs, int flags) {
+		/* clear samples of a protected video stream go to the CDM's decoder too, so one decoder sees the whole stream */
+		if (crypto != null && isVideo() && (flags & BUFFER_FLAG_END_OF_STREAM) == 0 && inputBuffers[index] != null) {
+			queueSecureInputBuffer(index, offset, new CryptoInfo(), presentationTimeUs, flags);
+			return;
+		}
 		if ((flags & BUFFER_FLAG_END_OF_STREAM) != 0) {
 			queuedInputBuffers.add(-1);
 			tryProcessInputBuffer();
@@ -182,10 +187,32 @@ public class MediaCodec {
 
 	/* decrypts the sample in place with the keys of the MediaCrypto's session, then queues it */
 	public void queueSecureInputBuffer(int index, int offset, CryptoInfo info, long presentationTimeUs, int flags) {
-		if ((flags & BUFFER_FLAG_END_OF_STREAM) == 0 && info != null && info.mode != CRYPTO_MODE_UNENCRYPTED) {
+		boolean cdmVideo = crypto != null && isVideo();
+		if ((flags & BUFFER_FLAG_END_OF_STREAM) == 0 && info != null && (info.mode != CRYPTO_MODE_UNENCRYPTED || cdmVideo)) {
 			if (crypto == null)
 				throw new CryptoException(CryptoException.ERROR_INSUFFICIENT_SECURITY, "no MediaCrypto configured");
 			ByteBuffer buffer = inputBuffers[index];
+			if (cdmVideo) {
+				/* video keys usually may only be used inside the CDM: it decrypts and decodes the sample */
+				int position = buffer.position();
+				buffer.position(offset);
+				int status = native_queueSecureVideo(native_codec, buffer, buffer.limit() - offset, info.key, info.iv, info.mode,
+				                                     info.numBytesOfClearData, info.numBytesOfEncryptedData, info.numSubSamples,
+				                                     info.pattern.getEncryptBlocks(), info.pattern.getSkipBlocks(), presentationTimeUs,
+				                                     mediaFormat.containsKey("width") ? mediaFormat.getInteger("width") : 0,
+				                                     mediaFormat.containsKey("height") ? mediaFormat.getInteger("height") : 0);
+				buffer.position(position);
+				if (status != 0 && !decryptErrorLogged) {
+					decryptErrorLogged = true;
+					System.out.println("MediaCodec.queueSecureInputBuffer: " + codecName + ": CDM decoding failed with status " + status);
+				}
+				if (status == 2)
+					throw new CryptoException(CryptoException.ERROR_NO_KEY, "the key is not loaded");
+				if (status != 0)
+					throw new CryptoException(CryptoException.ERROR_INSUFFICIENT_SECURITY, "CDM decoding failed with status " + status);
+				freeInputBuffers.add(index);
+				return;
+			}
 			int size = 0;
 			for (int i = 0; i < info.numSubSamples; i++)
 				size += (info.numBytesOfClearData != null ? info.numBytesOfClearData[i] : 0) + (info.numBytesOfEncryptedData != null ? info.numBytesOfEncryptedData[i] : 0);
@@ -199,7 +226,7 @@ public class MediaCodec {
 			buffer.position(position);
 			if (status != 0 && !decryptErrorLogged) {
 				decryptErrorLogged = true;
-				System.out.println("MediaCodec.queueSecureInputBuffer: decryption failed with status " + status + " (mode " + info.mode + ", " + info.numSubSamples + " subsamples)");
+				System.out.println("MediaCodec.queueSecureInputBuffer: " + codecName + ": decryption failed with status " + status + " (mode " + info.mode + ", " + info.numSubSamples + " subsamples)");
 			}
 			if (status == 2)
 				throw new CryptoException(CryptoException.ERROR_NO_KEY, "the key is not loaded");
@@ -207,6 +234,10 @@ public class MediaCodec {
 				throw new CryptoException(CryptoException.ERROR_INSUFFICIENT_SECURITY, "decryption failed with status " + status);
 		}
 		queueInputBuffer(index, offset, 0, presentationTimeUs, flags);
+	}
+
+	private boolean isVideo() {
+		return "h264".equals(codecName) || "vp8".equals(codecName) || "vp9".equals(codecName);
 	}
 
 	public void setVideoScalingMode(int mode) {
@@ -258,6 +289,9 @@ public class MediaCodec {
 	private native void native_releaseOutputBuffer(long codec, ByteBuffer buffer, boolean render, long releaseTimeNs);
 	private native void native_flush(long codec);
 	private native void native_release(long codec);
+	private native int native_queueSecureVideo(long codec, ByteBuffer buffer, int size, byte[] keyId, byte[] iv, int mode, int[] clearBytes,
+	                                           int[] cipherBytes, int numSubsamples, int cryptBlocks, int skipBlocks, long presentationTimeUs,
+	                                           int width, int height);
 
 	public static final int CRYPTO_MODE_UNENCRYPTED = 0;
 	public static final int CRYPTO_MODE_AES_CTR = 1;
