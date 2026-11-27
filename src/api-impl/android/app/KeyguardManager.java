@@ -1,34 +1,39 @@
 package android.app;
 
+import android.atl.ATLAuth;
+
+/* The phone's lock screen belongs to Phosh; the host's permission service reports whether it is up
+ * and whether the owner can be confirmed (docs/keystore-auth.md). */
 public class KeyguardManager {
 	public boolean inKeyguardRestrictedInputMode() {
-		return false;
+		return isKeyguardLocked();
 	}
 
 	public boolean isKeyguardLocked() {
-		return false;
+		return ATLAuth.deviceLocked();
 	}
 
-	/* the phone's lock screen belongs to Phosh; an app only runs while it is unlocked */
 	public boolean isDeviceLocked() {
-		return false;
+		return ATLAuth.deviceLocked();
 	}
 
+	/* a fingerprint or the password can confirm the owner */
 	public boolean isKeyguardSecure() {
-		return true;
+		return ATLAuth.available() != 0;
 	}
 
-	/* null, as on Android without a secure lock screen the app could confirm */
+	public boolean isDeviceSecure() {
+		return ATLAuth.available() != 0;
+	}
+
+	/* null, as on Android without a secure lock screen: ATL has no confirmation activity yet;
+	 * BiometricPrompt with DEVICE_CREDENTIAL asks for the password */
 	public android.content.Intent createConfirmDeviceCredentialIntent(CharSequence title, CharSequence description) {
 		return null;
 	}
 
 	public KeyguardLock newKeyguardLock(String tag) {
 		return new KeyguardLock();
-	}
-
-	public boolean isDeviceSecure() {
-		return false;
 	}
 
 	public class KeyguardLock {

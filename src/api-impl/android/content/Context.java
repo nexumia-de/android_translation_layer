@@ -126,22 +126,9 @@ public abstract class Context {
 		application_info.nativeLibraryDir = (new File(Environment.getExternalStorageDirectory(), "lib")).getAbsolutePath();
 		package_manager = new PackageManager();
 
-		Provider provider = new Provider("AndroidKeyStore", 1.0, "Android KeyStore provider") {};
-		provider.put("KeyStore.AndroidKeyStore", "android.security.keystore.AndroidKeyStore");
-		provider.put("KeyGenerator.AES", "android.security.keystore.KeyGenerator$AES");
-		provider.put("KeyGenerator.HmacSHA512", "android.security.keystore.KeyGenerator$HmacSHA512");
-		provider.put("Cipher.AES/GCM/NoPadding", "android.security.keystore.AndroidKeyStoreCipher$AesGcmNoPadding");
-		provider.put("Cipher.AES/GCM/NoPadding SupportedKeyClasses", "android.security.keystore.AndroidKeyStoreSecretKey");
-		provider.put("KeyPairGenerator.RSA", "android.security.keystore.AndroidKeyStoreKeyPairGenerator$RSA");
-		provider.put("KeyPairGenerator.EC", "android.security.keystore.AndroidKeyStoreKeyPairGenerator$EC");
-		// first, so its Cipher wins for keystore keys; SupportedKeyClasses leaves other keys to the other providers
-		Security.insertProviderAt(provider, 1);
+		Security.insertProviderAt(android.security.keystore.AndroidKeyStoreProvider.create(), 1);
 		// keystore RSA keys are software keys: Android's keystore provider for RSA
-		Provider rsa = new Provider("AndroidKeyStoreBCWorkaround", 1.0, "RSA for Android KeyStore keys") {};
-		rsa.put("Cipher.RSA/ECB/PKCS1Padding", "android.security.keystore.AndroidKeyStoreRSACipher$PKCS1Padding");
-		rsa.put("Cipher.RSA/ECB/OAEPPadding", "android.security.keystore.AndroidKeyStoreRSACipher$OAEPPadding");
-		rsa.put("Cipher.RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "android.security.keystore.AndroidKeyStoreRSACipher$OAEPWithSHA256AndMGF1Padding");
-		Security.addProvider(rsa);
+		Security.addProvider(android.security.keystore.AndroidKeyStoreProvider.createBCWorkaround());
 		if (Security.getProvider("AndroidOpenSSL") == null)
 			Security.addProvider(new android.security.keystore.AndroidOpenSSLProvider());
 
