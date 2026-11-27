@@ -445,6 +445,11 @@ public class Drawable {
 				drawable.inflate(resources, parser, attrs, theme);
 				return drawable;
 			}
+			case "clip": {
+				ClipDrawable drawable = new ClipDrawable();
+				drawable.inflate(resources, parser, attrs, theme);
+				return drawable;
+			}
 			case "animated-vector": {
 				return new AnimatedVectorDrawable();
 			}
