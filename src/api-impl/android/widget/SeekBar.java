@@ -68,13 +68,26 @@ public class SeekBar extends AbsSeekBar {
 		this.max = max;
 		native_setMax(widget, max);
 	}
+	/* as on Android, a change from code reaches the listener too, with fromUser false; changes by
+	 * the user come from GTK's change-value (android_widget_SeekBar.c) */
 	@Override
 	public void setProgress(int progress) {
+		progress = Math.max(0, Math.min(progress, max));
+		boolean changed = progress != getProgress();
 		this.progress = progress;
 		native_setProgress(widget, progress);
+		if (changed && changeListener != null)
+			changeListener.onProgressChanged(this, progress, false);
 	}
 
-	public native void setOnSeekBarChangeListener(final OnSeekBarChangeListener l);
+	private OnSeekBarChangeListener changeListener;
+
+	public void setOnSeekBarChangeListener(final OnSeekBarChangeListener l) {
+		changeListener = l;
+		native_setOnSeekBarChangeListener(l);
+	}
+
+	private native void native_setOnSeekBarChangeListener(final OnSeekBarChangeListener l);
 
 	@Override
 	public int getProgress() {

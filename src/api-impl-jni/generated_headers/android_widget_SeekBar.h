@@ -273,10 +273,10 @@ JNIEXPORT void JNICALL Java_android_widget_SeekBar_native_1setMax
 
 /*
  * Class:     android_widget_SeekBar
- * Method:    setOnSeekBarChangeListener
+ * Method:    native_setOnSeekBarChangeListener
  * Signature: (Landroid/widget/SeekBar/OnSeekBarChangeListener;)V
  */
-JNIEXPORT void JNICALL Java_android_widget_SeekBar_setOnSeekBarChangeListener
+JNIEXPORT void JNICALL Java_android_widget_SeekBar_native_1setOnSeekBarChangeListener
   (JNIEnv *, jobject, jobject);
 
 #ifdef __cplusplus
