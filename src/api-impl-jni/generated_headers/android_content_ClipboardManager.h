@@ -33,6 +33,14 @@ JNIEXPORT void JNICALL Java_android_content_ClipboardManager_native_1watch_1clip
 JNIEXPORT jstring JNICALL Java_android_content_ClipboardManager_native_1get_1clipboard
   (JNIEnv *, jclass);
 
+/*
+ * Class:     android_content_ClipboardManager
+ * Method:    native_clear_clipboard
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_android_content_ClipboardManager_native_1clear_1clipboard
+  (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif
