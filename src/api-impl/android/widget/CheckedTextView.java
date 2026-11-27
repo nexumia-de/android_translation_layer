@@ -27,6 +27,18 @@ public class CheckedTextView extends TextView {
 		return checked;
 	}
 
+	private static final int[] CHECKED_STATE_SET = {com.android.internal.R.attr.state_checked};
+
+	/* Copyright (C) 2007 The Android Open Source Project */
+	@Override
+	protected int[] onCreateDrawableState(int extraSpace) {
+		final int[] drawableState = super.onCreateDrawableState(extraSpace + 1);
+		if (isChecked()) {
+			mergeDrawableStates(drawableState, CHECKED_STATE_SET);
+		}
+		return drawableState;
+	}
+
 	public void toggle() {
 		setChecked(!checked);
 	}
