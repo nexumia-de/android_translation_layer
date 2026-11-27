@@ -1,6 +1,7 @@
 package android.app;
 
 import java.io.File;
+import android.atl.ATLCaptioningSettings;
 import android.atl.ATLPaths;
 import android.app.ActionBar;
 import android.atl.ATLLoadedApp;
@@ -460,6 +461,15 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 		} else if ((Intent.ACTION_DELETE.equals(intent.getAction()) || Intent.ACTION_UNINSTALL_PACKAGE.equals(intent.getAction()))
 		           && intent.getData() != null && "package".equals(intent.getData().getScheme())) {
 			confirmUninstall(intent.getData().getSchemeSpecificPart(), requestCode);
+		} else if (ATLCaptioningSettings.ACTION.equals(intent.getAction())) {
+			// the Settings app's screen on Android, here dialogs over the app
+			ATLCaptioningSettings.show(this, new Runnable() {
+				@Override
+				public void run() {
+					if (requestCode >= 0)
+						onActivityResult(requestCode, RESULT_CANCELED, null);
+				}
+			});
 		} else if (intent.getAction() != null && intent.getData() == null && findOwnActivity(intent.getAction()) != null) {
 			// an action one of the app's own activities handles, e.g. DB Navigator's START_LOGIN
 			startActivityForResult(new Intent(intent).setComponent(new ComponentName(getPackageName(), findOwnActivity(intent.getAction()))), requestCode, options);
