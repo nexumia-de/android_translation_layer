@@ -24,7 +24,7 @@ static guint flush_timeout;
 
 struct deferred_load {
 	WebKitWebView *web_view;
-	char *uri;
+	WebKitURIRequest *request;
 };
 static GSList *deferred_loads;
 
@@ -34,9 +34,9 @@ static void run_deferred_loads(void)
 	deferred_loads = NULL;
 	for (GSList *l = loads; l; l = l->next) {
 		struct deferred_load *d = l->data;
-		webkit_web_view_load_uri(d->web_view, d->uri);
+		webkit_web_view_load_request(d->web_view, d->request);
 		g_object_unref(d->web_view);
-		g_free(d->uri);
+		g_object_unref(d->request);
 		g_free(d);
 	}
 	g_slist_free(loads);
@@ -50,13 +50,13 @@ static gboolean flush_timeout_cb(gpointer user_data)
 	return G_SOURCE_REMOVE;
 }
 
-gboolean atl_cookies_defer_load(WebKitWebView *web_view, const char *uri)
+gboolean atl_cookies_defer_load(WebKitWebView *web_view, WebKitURIRequest *request)
 {
 	if (!ops_pending)
 		return FALSE;
 	struct deferred_load *d = g_new(struct deferred_load, 1);
 	d->web_view = g_object_ref(web_view);
-	d->uri = g_strdup(uri);
+	d->request = g_object_ref(request);
 	deferred_loads = g_slist_append(deferred_loads, d);
 	if (!flush_timeout)
 		flush_timeout = g_timeout_add(2000, flush_timeout_cb, NULL);

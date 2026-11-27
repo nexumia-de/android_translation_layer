@@ -186,15 +186,27 @@ static WebKitWebView *get_web_view(GtkWidget *box, gboolean javascript_enabled)
 	return WEBKIT_WEB_VIEW(webview);
 }
 
-JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadUrl(JNIEnv *env, jobject this, jlong widget_ptr, jstring url, jboolean javascript_enabled)
+JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadUrl(JNIEnv *env, jobject this, jlong widget_ptr, jstring url, jboolean javascript_enabled, jobjectArray headers)
 {
 	WebKitWebView *webview = get_web_view(_PTR(widget_ptr), javascript_enabled);
 	if (!webview)
 		return;
 
-	if (atl_cookies_defer_load(webview, _CSTRING(url)))
-		return;
-	webkit_web_view_load_uri(webview, _CSTRING(url));
+	WebKitURIRequest *request = webkit_uri_request_new(_CSTRING(url));
+	/* headers: name and value alternating */
+	SoupMessageHeaders *http_headers = webkit_uri_request_get_http_headers(request);
+	int n = headers ? (*env)->GetArrayLength(env, headers) : 0;
+	for (int i = 0; http_headers && i + 1 < n; i += 2) {
+		jstring name = (*env)->GetObjectArrayElement(env, headers, i);
+		jstring value = (*env)->GetObjectArrayElement(env, headers, i + 1);
+		if (name && value)
+			soup_message_headers_replace(http_headers, _CSTRING(name), _CSTRING(value));
+		(*env)->DeleteLocalRef(env, name);
+		(*env)->DeleteLocalRef(env, value);
+	}
+	if (!atl_cookies_defer_load(webview, request))
+		webkit_web_view_load_request(webview, request);
+	g_object_unref(request);
 }
 
 JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadDataWithBaseURL(JNIEnv *env, jobject this, jlong widget_ptr, jstring base_url, jstring data_jstr, jstring mime_type, jstring encoding, jboolean javascript_enabled)
