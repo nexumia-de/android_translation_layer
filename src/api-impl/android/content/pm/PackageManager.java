@@ -2319,6 +2319,18 @@ public class PackageManager {
 		ResolveInfo info = null;
 		ActivityInfo activity_info = null;
 
+		if (intent.getComponent() == null && android.atl.ATLCaptioningSettings.ACTION.equals(intent.getAction())) {
+			// shown by ATL itself (Activity.startActivityForResult), the Settings app's screen on Android
+			info = new ResolveInfo();
+			info.activityInfo.exported = true;
+			info.activityInfo.name = "atl.settings.CaptioningSettings";
+			info.activityInfo.packageName = "com.android.settings";
+			info.activityInfo.processName = "com.android.settings";
+			info.filter.addAction(intent.getAction());
+			info.filter.addCategory(Intent.CATEGORY_DEFAULT);
+			return info;
+		}
+
 		if (intent.getComponent() != null) {
 			for (PackageParser.Activity activity : ATLLoadedApp.getPrimaryApplication().pkg.activities) {
 				if (Objects.equals(intent.getComponent().getClassName(), activity.className))
