@@ -131,6 +131,10 @@ public abstract class CompoundButton extends Button implements Checkable {
 		button_tint = list;
 		if (button_drawable != null)
 			button_drawable.setTintList(list);
+		applyTintColors(list);
+	}
+
+	private void applyTintColors(ColorStateList list) {
 		if (list == null)
 			return;
 		int checked = list.getColorForState(new int[] {R.attr.state_checked, R.attr.state_enabled}, list.getDefaultColor());
@@ -156,6 +160,10 @@ public abstract class CompoundButton extends Button implements Checkable {
 	 * or not). A drawable without states is an icon the app shows instead (CoMaps' travel modes are
 	 * radio buttons with icons): it replaces the indicator, tinted like on Android */
 	public void setButtonDrawable(Drawable drawable) {
+		/* MaterialCheckBox keeps its tint to itself (its setButtonTintList does not call this one)
+		 * and sets a newly tinted drawable instead: its getButtonTintList has the colours */
+		if (getButtonTintList() != button_tint)
+			applyTintColors(getButtonTintList());
 		if (drawable != null && (this instanceof CheckBox || this instanceof RadioButton)
 		    && !(drawable instanceof android.graphics.drawable.DrawableContainer)
 		    && !(drawable instanceof android.graphics.drawable.LayerDrawable)) {
