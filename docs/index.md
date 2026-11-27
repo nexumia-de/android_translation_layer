@@ -34,6 +34,8 @@ Change history is in [log.md](log.md).
 
 * [Hardening roadmap](hardening-roadmap.md) - Threat model, current state and phased plan to run every Android app as its own Flatpak generated at install time: ATL engine for Flatpak, host installer and broker, permission mapping, portals, APK signatures.
 
+* [Keystore and confirming the owner](keystore-auth.md) - AndroidKeyStore keys that only the app's keystore operations use, enforced purposes and user authentication, fingerprint (fingerprintd) and password (polkit) confirmation through the permission service, and what is deliberately not done (attestation, StrongBox, Play Integrity).
+
 # Decisions
 
 * [Google Play services APIs only where they work locally](decisions/gms-local-only.md) - Accepted: local GMS APIs in scope, server-only ones out, never Google's certificate or fake attestation.
