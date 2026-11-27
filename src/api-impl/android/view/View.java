@@ -1,5 +1,9 @@
 package android.view;
 
+import android.graphics.Path;
+
+import android.graphics.Outline;
+
 import android.R;
 import android.animation.AnimatorInflater;
 import android.animation.StateListAnimator;
@@ -1254,7 +1258,9 @@ public class View implements Drawable.Callback {
 	@Export
 	public void draw(Canvas canvas) {
 		in_draw = true;
+		boolean clipped = false;
 		try {
+			clipped = clipCanvasToOutline(canvas);
 			if (canvas instanceof GskCanvas)
 				native_drawBackground(widget, ((GskCanvas)canvas).snapshot);
 			onDraw(canvas);
@@ -1265,6 +1271,8 @@ public class View implements Drawable.Callback {
 				e.printStackTrace();
 			}
 		} finally {
+			if (clipped)
+				canvas.restore();
 			in_draw = false;
 			atlAfterDraw();
 		}
@@ -2581,7 +2589,17 @@ public class View implements Drawable.Callback {
 
 	public boolean isNestedScrollingEnabled() { return false; }
 
-	public void setClipToOutline(boolean clipToOutline) {}
+	private boolean clipToOutline;
+	private ViewOutlineProvider outlineProvider = ViewOutlineProvider.BACKGROUND;
+
+	/* clips what the view draws itself (draw() through Java), such as Compose's layers with a
+	 * round shape when they are views */
+	public void setClipToOutline(boolean clipToOutline) {
+		if (this.clipToOutline != clipToOutline) {
+			this.clipToOutline = clipToOutline;
+			invalidate();
+		}
+	}
 
 	public boolean hasTransientState() { return false; }
 
@@ -2589,8 +2607,32 @@ public class View implements Drawable.Callback {
 		cancelLongPress();
 	}
 
-	public ViewOutlineProvider getOutlineProvider() { return new ViewOutlineProvider(); }
-	public void setOutlineProvider(ViewOutlineProvider provider) {}
+	public ViewOutlineProvider getOutlineProvider() { return outlineProvider; }
+	public void setOutlineProvider(ViewOutlineProvider provider) {
+		outlineProvider = provider;
+		invalidate();
+	}
+
+	/* saves the canvas and clips it to the outline; false if there is nothing to clip */
+	private boolean clipCanvasToOutline(Canvas canvas) {
+		if (!clipToOutline || outlineProvider == null)
+			return false;
+		Outline outline = new Outline();
+		outlineProvider.getOutline(this, outline);
+		Path path;
+		if (outline.mMode == Outline.MODE_ROUND_RECT) {
+			path = new Path();
+			path.addRoundRect(outline.mRect.left, outline.mRect.top, outline.mRect.right, outline.mRect.bottom,
+			                  Math.max(outline.mRadius, 0), Math.max(outline.mRadius, 0), Path.Direction.CW);
+		} else if (outline.mMode == Outline.MODE_PATH && outline.mPath != null) {
+			path = outline.mPath;
+		} else {
+			return false;
+		}
+		canvas.save();
+		canvas.clipPath(path);
+		return true;
+	}
 
 	public void setStateListAnimator(StateListAnimator stateListAnimator) {
 		if (stateListAnimator != null && stateListAnimator.enabledAnimator != null) {
@@ -2718,7 +2760,10 @@ public class View implements Drawable.Callback {
 
 	public void setAccessibilityLiveRegion(int mode) {}
 
-	public void invalidateOutline() {}
+	public void invalidateOutline() {
+		if (clipToOutline)
+			invalidate();
+	}
 
 	public int getMeasuredWidthAndState() {
 		return measuredWidth;
@@ -2962,7 +3007,7 @@ public class View implements Drawable.Callback {
 		return Collections.emptyList();
 	}
 
-	public boolean getClipToOutline() { return false; }
+	public boolean getClipToOutline() { return clipToOutline; }
 
 	public void setLeft(int left) {
 		layout(left, top, right, bottom);
