@@ -889,8 +889,16 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 		return clipChildren;
 	}
 
+	/* Since API 26 a view whose drawing only moved (a RenderNode's properties
+	 * changed) tells its parent with onDescendantInvalidated instead of calling
+	 * invalidate(): Compose does this for every scrolled or moved layer. Android
+	 * then draws the next frame; here the target's GTK widget has to be queued.
+	 * Coming from invalidate() it already is. */
 	@Override
-	public void onDescendantInvalidated(View child, View target) {}
+	public void onDescendantInvalidated(View child, View target) {
+		if (target != null && !target.propagatingInvalidation)
+			target.queueNativeDraw();
+	}
 
 	/* only matters to accessibility services, which ATL does not have */
 	public void notifySubtreeAccessibilityStateChanged(View child, View source, int changeType) {}

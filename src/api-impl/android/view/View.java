@@ -1682,11 +1682,25 @@ public class View implements Drawable.Callback {
 	}
 	private static native void nativeInvalidate(long widget);
 
+	/* the GTK widget draws again, without invalidate()'s Java side effects */
+	void queueNativeDraw() {
+		nativeInvalidate(widget);
+	}
+
+	/* set while invalidate() tells the ancestors, so that onDescendantInvalidated
+	 * knows the GTK widget is already queued for drawing */
+	boolean propagatingInvalidation;
+
 	// called from native code for GTK widgets or from invalidate() for Java widgets
 	@Export
 	private void propagateInvalidation() {
-		for (View child = this; child.parent instanceof View; child = (View)child.parent)
-			child.parent.onDescendantInvalidated(child, this);
+		propagatingInvalidation = true;
+		try {
+			for (View child = this; child.parent instanceof View; child = (View)child.parent)
+				child.parent.onDescendantInvalidated(child, this);
+		} finally {
+			propagatingInvalidation = false;
+		}
 	}
 
 	protected native void native_setBackgroundColor(long widget, int color);
