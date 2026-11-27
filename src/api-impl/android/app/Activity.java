@@ -598,7 +598,11 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 		return (LayoutInflater)getSystemService("layout_inflater");
 	}
 
-	public boolean isChangingConfigurations() { return false; }
+	private boolean changingConfigurations;
+
+	/* true while recreate() replaces the activity, as on Android: apps use it to tell this from
+	 * the app going to the background */
+	public boolean isChangingConfigurations() { return changingConfigurations; }
 
 	@Override
 	public void onContentChanged() {
@@ -710,6 +714,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 
 	public void recreate() {
 		finishing = true;
+		changingConfigurations = true;
 		try {
 			/* TODO: check if this is a toplevel activity */
 			Activity activity = internalCreateActivity(this.getClass().getName(), getWindow().native_window, intent);
