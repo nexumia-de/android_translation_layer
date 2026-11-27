@@ -15,6 +15,7 @@
 #include "actions.h"
 #include "android_apps.h"
 #include "app_info.h"
+#include "../api-impl-jni/widgets/atl_rotate_box.h"
 #include "back_button.h"
 #include "navigation.h"
 #include "libc_bio_path_overrides.h"
@@ -1969,7 +1970,10 @@ static void open(GtkApplication *app, GFile **files, gint nfiles, const gchar *h
 	/* dialogs are layers over the activities, see android_app_Dialog.c */
 	GtkWidget *overlay = gtk_overlay_new();
 	gtk_overlay_set_child(GTK_OVERLAY(overlay), stack);
-	gtk_window_set_child(GTK_WINDOW(window), overlay);
+	/* a box around everything, to show the app turned when it asks for landscape */
+	GtkWidget *rotate_box = atl_rotate_box_new(overlay);
+	atl_window_rotate_box = ATL_ROTATE_BOX(rotate_box);
+	gtk_window_set_child(GTK_WINDOW(window), rotate_box);
 	g_object_set_data(G_OBJECT(window), "activity-stack", stack);
 	g_object_set_data(G_OBJECT(window), "dialog-overlay", overlay);
 

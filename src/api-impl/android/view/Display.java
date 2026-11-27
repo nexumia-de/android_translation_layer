@@ -50,8 +50,11 @@ public final class Display {
 		return window_height; // what's the difference?
 	}
 
+	/* ROTATION_90 while ATL shows the app turned for landscape (Activity.setRequestedOrientation) */
+	public static int rotation = 0;
+
 	public int getRotation() {
-		return 0 /*ROTATION_0*/;
+		return rotation;
 	}
 
 	public float getRefreshRate() {

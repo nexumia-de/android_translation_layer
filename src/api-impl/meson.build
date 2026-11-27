@@ -811,6 +811,7 @@ srcs = [
 	'android/view/animation/CycleInterpolator.java',
 	'android/view/animation/DecelerateInterpolator.java',
 	'android/view/animation/Interpolator.java',
+	'android/view/animation/LayoutAnimationController.java',
 	'android/view/animation/LinearInterpolator.java',
 	'android/view/animation/OvershootInterpolator.java',
 	'android/view/animation/PathInterpolator.java',

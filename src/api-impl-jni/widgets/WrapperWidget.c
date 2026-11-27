@@ -462,10 +462,10 @@ static void root_changed_cb(WrapperWidget *wrapper, GParamSpec *pspec, gpointer 
 	JNIEnv *env = get_jni_env();
 
 	if (root) {
-		J__View__onAttachedToWindow(env, wrapper->jobj);
+		J__View__atlDispatchAttachedToWindow(env, wrapper->jobj);
 	} else {
 		currently_unmapping = wrapper->child;
-		J__View__onDetachedFromWindow(env, wrapper->jobj);
+		J__View__atlDispatchDetachedFromWindow(env, wrapper->jobj);
 	}
 
 	if ((*env)->ExceptionCheck(env))

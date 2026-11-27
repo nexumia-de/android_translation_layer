@@ -161,6 +161,23 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 
 	public void setRequestedOrientation(int orientation) {
 		requested_orientation = orientation;
+		if (resumed)
+			applyRequestedOrientation();
+	}
+
+	/* a phone does not turn the screen for an app here: for landscape, ATL turns the app's content
+	 * in a portrait window (see atl_rotate_box.h) */
+	private void applyRequestedOrientation() {
+		switch (requested_orientation) {
+			case 0 /*SCREEN_ORIENTATION_LANDSCAPE*/:
+			case 6 /*SCREEN_ORIENTATION_SENSOR_LANDSCAPE*/:
+			case 8 /*SCREEN_ORIENTATION_REVERSE_LANDSCAPE*/:
+			case 11 /*SCREEN_ORIENTATION_USER_LANDSCAPE*/:
+				nativeSetRotated(true);
+				break;
+			default:
+				nativeSetRotated(false);
+		}
 	}
 
 	public boolean isFinishing() {
@@ -789,6 +806,7 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 	public void setTaskDescription(ActivityManager.TaskDescription description) {}
 
 	private native void nativeFinish(long native_window);
+	private static native void nativeSetRotated(boolean rotated);
 	public static native void nativeStartActivity(Activity activity);
 	public static native boolean nativeResumeActivity(Class<? extends Activity> activityClass, Intent intent);
 	public static native void nativeOpenURI(String uri);
@@ -864,6 +882,9 @@ public class Activity extends ContextThemeWrapper implements Window.Callback, Ke
 
 	@Export
 	final void performResume() {
+		/* the orientation of the activity in front counts; only one that asked for one changes it */
+		if (requested_orientation != -1 /*SCREEN_ORIENTATION_UNSPECIFIED*/ || Display.rotation != 0)
+			applyRequestedOrientation();
 		resumeCount++;
 		dispatchActivityLifecycleEvent(Application.ACTIVITY_PRE_RESUMED, null);
 		onResume();

@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 
+#include "../widgets/atl_rotate_box.h"
 #include <gio/gdesktopappinfo.h>
 #include <gtk/gtk.h>
 #include <libportal/portal.h>
@@ -95,8 +96,10 @@ static void surface_layout_cb(GdkSurface *surface, int width, int height, GtkWin
 	height -= 2 * (int)shadow_y;
 	if (width <= 0 || height <= 0)
 		return;
-	pending_width = width;
-	pending_height = height;
+	/* turned, the app sees the window's height as its width */
+	gboolean rotated = atl_rotate_box_get_rotated(atl_window_rotate_box);
+	pending_width = rotated ? height : width;
+	pending_height = rotated ? width : height;
 	if (!pending_size_source)
 		pending_size_source = g_idle_add(apply_window_size, NULL);
 }
@@ -688,4 +691,27 @@ JNIEXPORT void JNICALL Java_android_content_Context_nativeStartExternalService(J
 	g_object_unref(connection);
 	g_free(object_path);
 	(*env)->ReleaseStringUTFChars(env, package_jstr, package);
+}
+
+/* turns the app's content for an activity that asks for landscape (or back): only a portrait window
+ * is turned. The app then sees a landscape window and gets onConfigurationChanged. */
+void atl_window_set_rotated(gboolean rotated)
+{
+	if (!atl_window_rotate_box || atl_rotate_box_get_rotated(atl_window_rotate_box) == rotated)
+		return;
+	JNIEnv *env = get_jni_env();
+	jclass display = _CACHED_CLASS(Display);
+	int width = (*env)->GetStaticIntField(env, display, _STATIC_FIELD_ID(display, "window_width", "I"));
+	int height = (*env)->GetStaticIntField(env, display, _STATIC_FIELD_ID(display, "window_height", "I"));
+	if (rotated && width >= height)
+		return; /* already landscape */
+	atl_rotate_box_set_rotated(atl_window_rotate_box, rotated);
+	(*env)->SetStaticIntField(env, display, _STATIC_FIELD_ID(display, "rotation", "I"), rotated ? /*ROTATION_90*/ 1 : 0);
+	if (pending_size_source) {
+		g_source_remove(pending_size_source);
+		pending_size_source = 0;
+	}
+	pending_width = height;
+	pending_height = width;
+	apply_window_size(NULL);
 }

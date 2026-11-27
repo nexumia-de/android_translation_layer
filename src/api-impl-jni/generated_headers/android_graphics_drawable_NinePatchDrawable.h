@@ -23,6 +23,15 @@ JNIEXPORT jlong JNICALL Java_android_graphics_drawable_NinePatchDrawable_nativeC
 JNIEXPORT jlong JNICALL Java_android_graphics_drawable_NinePatchDrawable_nativeCreate__Ljava_lang_String_2
   (JNIEnv *, jobject, jstring);
 
+JNIEXPORT void JNICALL Java_android_graphics_drawable_NinePatchDrawable_native_1setScale
+  (JNIEnv *, jclass, jlong, jfloat);
+JNIEXPORT jint JNICALL Java_android_graphics_drawable_NinePatchDrawable_native_1getIntrinsicWidth
+  (JNIEnv *, jclass, jlong);
+JNIEXPORT jint JNICALL Java_android_graphics_drawable_NinePatchDrawable_native_1getIntrinsicHeight
+  (JNIEnv *, jclass, jlong);
+JNIEXPORT jboolean JNICALL Java_android_graphics_drawable_NinePatchDrawable_native_1getPadding
+  (JNIEnv *, jclass, jlong, jintArray);
+
 #ifdef __cplusplus
 }
 #endif

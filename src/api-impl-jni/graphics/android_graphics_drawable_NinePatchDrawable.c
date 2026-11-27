@@ -74,3 +74,34 @@ JNIEXPORT jlong JNICALL Java_android_graphics_drawable_NinePatchDrawable_nativeC
 
 	return _INTPTR(paintable);
 }
+
+JNIEXPORT void JNICALL Java_android_graphics_drawable_NinePatchDrawable_native_1setScale(JNIEnv *env, jclass clazz, jlong ptr, jfloat scale)
+{
+	NINEPATCH_PAINTABLE(_PTR(ptr))->scale = scale;
+}
+
+JNIEXPORT jint JNICALL Java_android_graphics_drawable_NinePatchDrawable_native_1getIntrinsicWidth(JNIEnv *env, jclass clazz, jlong ptr)
+{
+	return gdk_paintable_get_intrinsic_width(GDK_PAINTABLE(_PTR(ptr)));
+}
+
+JNIEXPORT jint JNICALL Java_android_graphics_drawable_NinePatchDrawable_native_1getIntrinsicHeight(JNIEnv *env, jclass clazz, jlong ptr)
+{
+	return gdk_paintable_get_intrinsic_height(GDK_PAINTABLE(_PTR(ptr)));
+}
+
+/* the content padding of the nine-patch, scaled like the image: left, top, right, bottom */
+JNIEXPORT jboolean JNICALL Java_android_graphics_drawable_NinePatchDrawable_native_1getPadding(JNIEnv *env, jclass clazz, jlong ptr, jintArray out)
+{
+	NinePatchPaintable *ninepatch = NINEPATCH_PAINTABLE(_PTR(ptr));
+	struct Res_png_9patch *chunk = ninepatch->chunk;
+	if (!chunk)
+		return JNI_FALSE;
+	float scale = ninepatch->scale > 0 ? ninepatch->scale : 1;
+	jint padding[4] = {
+		ntohl(chunk->paddingLeft) * scale + 0.5f, ntohl(chunk->paddingTop) * scale + 0.5f,
+		ntohl(chunk->paddingRight) * scale + 0.5f, ntohl(chunk->paddingBottom) * scale + 0.5f,
+	};
+	(*env)->SetIntArrayRegion(env, out, 0, 4, padding);
+	return padding[0] || padding[1] || padding[2] || padding[3];
+}

@@ -41,7 +41,7 @@ static void on_change_value(GtkRange *self, GtkScrollType *scroll, gdouble value
 	J__SeekBar__OnSeekBarChangeListener__onStopTrackingTouch(env, listener, wrapper->jobj);
 }
 
-JNIEXPORT void JNICALL Java_android_widget_SeekBar_setOnSeekBarChangeListener(JNIEnv *env, jobject this, jobject listener)
+JNIEXPORT void JNICALL Java_android_widget_SeekBar_native_1setOnSeekBarChangeListener(JNIEnv *env, jobject this, jobject listener)
 {
 	GtkRange *range = GTK_RANGE(_PTR(_GET_LONG_FIELD(this, "widget")));
 	g_signal_handlers_disconnect_matched(range, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, on_change_value, NULL);

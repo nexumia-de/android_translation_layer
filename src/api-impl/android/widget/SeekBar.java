@@ -38,6 +38,42 @@ public class SeekBar extends AbsSeekBar {
 	private int progress_color, thumb_color, track_color;
 	private native void native_setColors(long widget, int progress, int thumb, int track);
 
+	/* the GTK scale draws itself: it takes the colours of the progress and background layers */
+	@Override
+	public void setProgressDrawable(android.graphics.drawable.Drawable d) {
+		super.setProgressDrawable(d);
+		/* also called from ProgressBar's constructor, before this class is set up */
+		if (widget == 0 || !(d instanceof android.graphics.drawable.LayerDrawable))
+			return;
+		android.graphics.drawable.LayerDrawable layers = (android.graphics.drawable.LayerDrawable)d;
+		int progress = solidColor(layers.findDrawableByLayerId(android.R.id.progress));
+		int track = solidColor(layers.findDrawableByLayerId(android.R.id.background));
+		if (progress != 0) {
+			progress_color = thumb_color = progress;
+			if (track != 0)
+				track_color = track;
+			native_setColors(widget, progress_color, thumb_color, track_color);
+		}
+	}
+
+	private static int solidColor(android.graphics.drawable.Drawable d) {
+		for (int i = 0; i < 4 && d != null; i++) {
+			if (d instanceof android.graphics.drawable.ColorDrawable)
+				return ((android.graphics.drawable.ColorDrawable)d).getColor();
+			if (d instanceof android.graphics.drawable.GradientDrawable) {
+				ColorStateList color = ((android.graphics.drawable.GradientDrawable)d).getColor();
+				return color != null ? color.getDefaultColor() : 0;
+			}
+			if (d instanceof android.graphics.drawable.DrawableWrapper)
+				d = ((android.graphics.drawable.DrawableWrapper)d).getDrawable();
+			else if (d instanceof android.graphics.drawable.LayerDrawable && ((android.graphics.drawable.LayerDrawable)d).getNumberOfLayers() > 0)
+				d = ((android.graphics.drawable.LayerDrawable)d).getDrawable(0);
+			else
+				return 0;
+		}
+		return 0;
+	}
+
 	@Override
 	public void setThumbTintList(ColorStateList tint) {
 		if (tint == null)
@@ -68,13 +104,26 @@ public class SeekBar extends AbsSeekBar {
 		this.max = max;
 		native_setMax(widget, max);
 	}
+	/* as on Android, a change from code reaches the listener too, with fromUser false; changes by
+	 * the user come from GTK's change-value (android_widget_SeekBar.c) */
 	@Override
 	public void setProgress(int progress) {
+		progress = Math.max(0, Math.min(progress, max));
+		boolean changed = progress != getProgress();
 		this.progress = progress;
 		native_setProgress(widget, progress);
+		if (changed && changeListener != null)
+			changeListener.onProgressChanged(this, progress, false);
 	}
 
-	public native void setOnSeekBarChangeListener(final OnSeekBarChangeListener l);
+	private OnSeekBarChangeListener changeListener;
+
+	public void setOnSeekBarChangeListener(final OnSeekBarChangeListener l) {
+		changeListener = l;
+		native_setOnSeekBarChangeListener(l);
+	}
+
+	private native void native_setOnSeekBarChangeListener(final OnSeekBarChangeListener l);
 
 	@Override
 	public int getProgress() {

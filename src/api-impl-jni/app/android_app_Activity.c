@@ -9,6 +9,7 @@
 #include "../generated_headers/android_app_Activity.h"
 #include "../../main-executable/back_button.h"
 #include "android_app_Activity.h"
+#include "../widgets/atl_rotate_box.h"
 #include "dialog.h"
 
 extern GtkWindow *window;
@@ -456,4 +457,9 @@ void activities_screen_size_changed(JNIEnv *env)
 		if ((*env)->ExceptionCheck(env))
 			atl_callback_exception(env);
 	}
+}
+
+JNIEXPORT void JNICALL Java_android_app_Activity_nativeSetRotated(JNIEnv *env, jclass clazz, jboolean rotated)
+{
+	atl_window_set_rotated(rotated);
 }

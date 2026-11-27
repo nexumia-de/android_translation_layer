@@ -87,6 +87,14 @@ JNIEXPORT void JNICALL Java_android_app_Activity_nativeFileChooser
 JNIEXPORT jboolean JNICALL Java_android_app_Activity_isInMultiWindowMode
   (JNIEnv *, jobject);
 
+/*
+ * Class:     android_app_Activity
+ * Method:    nativeSetRotated
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL Java_android_app_Activity_nativeSetRotated
+  (JNIEnv *, jclass, jboolean);
+
 #ifdef __cplusplus
 }
 #endif
