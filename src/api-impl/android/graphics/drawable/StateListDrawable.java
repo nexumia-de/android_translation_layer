@@ -134,8 +134,10 @@ public class StateListDrawable extends DrawableContainer {
 
 			// This allows state list drawable item elements to be themed at
 			// inflation time but does NOT make them work for Zygote preload.
-			final TypedArray a = r.obtainAttributes(attrs,
-			                                        R.styleable.StateListDrawableItem);
+			/* themed as in AOSP: an item's drawable may use theme colours (the framework's radio
+			 * button tint), which were left unresolved and drawn magenta */
+			final TypedArray a = Resources.obtainAttributes(r, theme, attrs,
+			                                                R.styleable.StateListDrawableItem);
 			Drawable dr = a.getDrawable(R.styleable.StateListDrawableItem_drawable);
 			a.recycle();
 
