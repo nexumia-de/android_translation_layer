@@ -153,6 +153,14 @@ static struct promise_result pending;
 static uint32_t next_promise_id = 1;
 static GHashTable *session_messages; /* CDM session id -> GBytes */
 
+static char *hex(const uint8_t *data, uint32_t size)
+{
+	GString *s = g_string_new(NULL);
+	for (uint32_t i = 0; i < size; i++)
+		g_string_append_printf(s, "%02x", data[i]);
+	return g_string_free(s, FALSE);
+}
+
 /* ---- host (cdm::Host_10) ---- */
 
 static struct cdm_buffer *host_allocate(void *self, uint32_t capacity)
@@ -236,9 +244,11 @@ static void host_on_session_message(void *self, const char *session_id, uint32_t
 
 static void host_on_session_keys_change(void *self, const char *session_id, uint32_t session_id_size, bool has_additional_usable_key, const struct key_information *keys, uint32_t count)
 {
-	for (uint32_t i = 0; i < count; i++)
-		if (keys[i].status != 0)
-			fprintf(stderr, "Widevine: key %u of session %.*s has status %u\n", i, (int)session_id_size, session_id, keys[i].status);
+	for (uint32_t i = 0; i < count; i++) {
+		char *id = hex(keys[i].key_id, keys[i].key_id_size);
+		fprintf(stderr, "Widevine: session %.*s key %s status %u\n", (int)session_id_size, session_id, id, keys[i].status);
+		g_free(id);
+	}
 }
 
 static void host_on_expiration_change(void *self, const char *session_id, uint32_t session_id_size, double new_expiry_time) {}
@@ -601,6 +611,15 @@ JNIEXPORT jint JNICALL Java_android_media_MediaDrm_native_1decrypt(JNIEnv *env, 
 	g_rec_mutex_lock(&cdm_lock);
 	status = cdm->vtable->Decrypt(cdm, &input, &block);
 	g_rec_mutex_unlock(&cdm_lock);
+	if (status != STATUS_SUCCESS) {
+		static gboolean logged;
+		if (!logged) {
+			logged = TRUE;
+			char *id = hex(input.key_id, input.key_id_size);
+			fprintf(stderr, "Widevine: Decrypt status %u for key %s (scheme %u, %u subsamples, iv %u bytes)\n", status, id, input.encryption_scheme, input.num_subsamples, input.iv_size);
+			g_free(id);
+		}
+	}
 	if (status == STATUS_SUCCESS && block.buffer) {
 		uint32_t n = MIN(block.buffer->size, (uint32_t)size);
 		memcpy(data, block.buffer->data, n);
