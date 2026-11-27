@@ -71,9 +71,15 @@ static void auth_unref(struct auth *a)
 	auth_release();
 }
 
+/* a new reference to the system bus, which stays connected while the service runs: dropping the
+ * last reference would close it, and fingerprintd would see its client leave before VerifyStop
+ * and Release arrive */
 static GDBusConnection *system_bus(void)
 {
-	return g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
+	static GDBusConnection *system;
+	if (!system)
+		system = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
+	return system ? g_object_ref(system) : NULL;
 }
 
 /* the fingerprint device, or NULL without fingerprintd */
