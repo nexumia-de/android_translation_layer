@@ -27,7 +27,14 @@ public abstract class AbsSeekBar extends ProgressBar {
 
 	public int getKeyProgressIncrement() { return 0; }
 
-	public int getThumbOffset() { return 0; }
+	private int thumbOffset;
+
+	/* kept for apps that read it back; the GTK scale positions its own slider */
+	public int getThumbOffset() { return thumbOffset; }
+
+	public void setThumbOffset(int thumbOffset) {
+		this.thumbOffset = thumbOffset;
+	}
 
 	public void setThumbTintList(ColorStateList tint) {}
 
