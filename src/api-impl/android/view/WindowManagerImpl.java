@@ -104,7 +104,7 @@ public class WindowManagerImpl implements WindowManager, ViewManager {
 		Slog.v(TAG, "addView(" + view + ", " + params + ") called");
 		view.setLayoutParams(params);
 		view.parent = new WindowViewParent();
-		view.onAttachedToWindow();
+		view.atlDispatchAttachedToWindow();
 		Rect displayFrame = new Rect();
 		view.getWindowVisibleDisplayFrame(displayFrame);
 		view.internalSetDefaultMeasureSpec(View.MeasureSpec.AT_MOST | displayFrame.width(), View.MeasureSpec.AT_MOST | displayFrame.height());
