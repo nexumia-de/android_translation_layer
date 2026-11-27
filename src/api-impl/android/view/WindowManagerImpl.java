@@ -10,6 +10,9 @@ public class WindowManagerImpl implements WindowManager, ViewManager {
 	private static class WindowViewParent implements ViewParent {
 
 		@Override
+		public void notifySubtreeAccessibilityStateChanged(View child, View source, int changeType) {}
+
+		@Override
 		public android.view.ViewParent getParent() {
 			return null;
 		}
