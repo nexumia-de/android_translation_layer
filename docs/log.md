@@ -1,5 +1,8 @@
 # Directory Update Log
 
+## 2026-11-27 (5)
+* **Widevine** (#210): `MediaDrm` supports Widevine through the Widevine CDM of Chrome/Firefox when it is installed ([Widevine](widevine.md)); audio samples are decrypted, video samples decrypted and decoded inside the CDM, as Crunchyroll's video keys may only be used there. Crunchyroll plays. Also: `MediaRouter` with routes and callbacks (show page, #209), `<clip>` drawables and a `MediaSession` null check (player, #209), `SectionIndexer` methods ("All Anime"). `Activity.isChangingConfigurations` is true during `recreate()` (#211, Bitwarden).
+
 ## 2026-11-27 (4)
 * **Crunchyroll main screen, round pictures, Bitwarden** (#207): after login Crunchyroll stayed black (`CaptioningManager.getUserStyle`), then died natively because `Bitmap.getPixels` called `exit(1)` for any part of a bitmap (so did every `getPixel`). Its round profile picture was square: Compose draws through views as layers in ATL and clips round shapes with `View.setClipToOutline` and `ViewOutlineProvider.getOutline`, which were empty or missing; views drawing through Java now clip to their outline. `drawBitmap` honours Porter/Duff modes through GTK 4.22's composite node (Glide's `circleCrop`). Bitwarden (minSdk 29, F-Droid at SDK 26 calls it incompatible) installed from its repository APK: welcome and login screens after `View.setFilterTouchesWhenObscured`, `BiometricManager`/`BiometricPrompt` (no hardware) and the clipboard additions. Gap lists: the engine Flatpak's framework jars hold no dex, so `tools/atl-gaps.py` needs `--framework` with the host package's jars (`/usr/lib/java/dex/...`) ([app status](apps.md)).
 

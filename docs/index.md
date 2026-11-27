@@ -40,3 +40,4 @@ Change history is in [log.md](log.md).
 * [Back navigation by button, edge swipe and keys](decisions/navigation.md) - Accepted (default both): header button, edge swipe and Escape/Alt+Left go back via KEYCODE_BACK; ATL_NAVIGATION=buttons|gesture|both until the settings app.
 * [Every Android app as its own Flatpak](decisions/app-sandbox.md) - Accepted: one Flatpak per app, built on the phone from the APK, on an ATL engine for Flatpak, with a small host broker.
 * [System wake windows for Android apps](decisions/wake-windows.md) - Accepted direction: apps never keep the phone awake; a system timer wakes it at a user-set interval and ATL apps run their due alarms in that window.
+- [Widevine](widevine.md): DRM playback through the Widevine CDM.
