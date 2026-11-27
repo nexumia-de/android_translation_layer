@@ -464,6 +464,12 @@ public class Drawable {
 			final Bitmap bm = BitmapFactory.decodeStream(is);
 			if (bm == null)
 				return null;
+			/* the image's density from the resource (an xxhdpi icon is a third of its pixels at
+			 * ATL's density), as BitmapFactory.decodeResourceStream sets it on Android */
+			if (value != null && value.density == TypedValue.DENSITY_DEFAULT)
+				bm.setDensity(DisplayMetrics.DENSITY_DEFAULT);
+			else if (value != null && value.density != TypedValue.DENSITY_NONE)
+				bm.setDensity(value.density);
 			return new BitmapDrawable(resources, bm);
 		}
 		Path path = Paths.get(android.os.Environment.getExternalStorageDirectory().getPath(), file);

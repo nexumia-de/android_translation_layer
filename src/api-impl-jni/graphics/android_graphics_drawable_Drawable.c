@@ -3,6 +3,7 @@
 #include "../defines.h"
 #include "../util.h"
 #include "ColorFilter.h"
+#include "../generated_headers/android_graphics_drawable_BitmapDrawable.h"
 #include "../generated_headers/android_graphics_drawable_Drawable.h"
 
 JNIEXPORT jlong JNICALL Java_android_graphics_drawable_Drawable_native_1paintable_1from_1path(JNIEnv *env, jclass class, jstring pathStr)
@@ -120,6 +121,9 @@ struct _FilterPaintable {
 	graphene_matrix_t color_matrix;
 	graphene_vec4_t color_offset;
 	bool use_color_filter;
+	/* the drawable's size over the child's: a bitmap of another density than the screen's */
+	float scale_x;
+	float scale_y;
 };
 G_DECLARE_FINAL_TYPE(FilterPaintable, filter_paintable, FILTER, PAINTABLE, GObject)
 
@@ -140,16 +144,20 @@ static double filter_paintable_get_intrinsic_aspect_ratio(GdkPaintable *gdk_pain
 
 static int filter_paintable_get_intrinsic_width(GdkPaintable *gdk_paintable)
 {
-	return gdk_paintable_get_intrinsic_width(FILTER_PAINTABLE(gdk_paintable)->child);
+	FilterPaintable *paintable = FILTER_PAINTABLE(gdk_paintable);
+	return gdk_paintable_get_intrinsic_width(paintable->child) * paintable->scale_x + 0.5f;
 }
 
 static int filter_paintable_get_intrinsic_height(GdkPaintable *gdk_paintable)
 {
-	return gdk_paintable_get_intrinsic_height(FILTER_PAINTABLE(gdk_paintable)->child);
+	FilterPaintable *paintable = FILTER_PAINTABLE(gdk_paintable);
+	return gdk_paintable_get_intrinsic_height(paintable->child) * paintable->scale_y + 0.5f;
 }
 
 static void filter_paintable_init(FilterPaintable *paintable)
 {
+	paintable->scale_x = 1;
+	paintable->scale_y = 1;
 }
 
 static void filter_paintable_paintable_init(GdkPaintableInterface *iface)
@@ -179,6 +187,16 @@ JNIEXPORT jlong JNICALL Java_android_graphics_drawable_Drawable_native_1filter_1
 	FilterPaintable *paintable = g_object_new(filter_paintable_get_type(), NULL);
 	paintable->child = g_object_ref(GDK_PAINTABLE(_PTR(child_ptr)));
 	return _INTPTR(paintable);
+}
+
+JNIEXPORT void JNICALL Java_android_graphics_drawable_BitmapDrawable_native_1setScale(JNIEnv *env, jclass class, jlong paintable_ptr, jfloat scale_x, jfloat scale_y)
+{
+	FilterPaintable *paintable = FILTER_PAINTABLE(_PTR(paintable_ptr));
+	if (scale_x == paintable->scale_x && scale_y == paintable->scale_y)
+		return;
+	paintable->scale_x = scale_x;
+	paintable->scale_y = scale_y;
+	gdk_paintable_invalidate_size(GDK_PAINTABLE(paintable));
 }
 
 JNIEXPORT void JNICALL Java_android_graphics_drawable_Drawable_native_1set_1color_1filter(JNIEnv *env, jclass class, jlong paintable_ptr, jfloatArray matrix)
