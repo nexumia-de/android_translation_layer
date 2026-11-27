@@ -106,7 +106,19 @@ server that demands hardware attestation still refuses ATL, rightly.
 # Testing
 
 - `tools/keystore-test.sh`: the keystore classes on a desktop JDK 17 with
-  the service and libsecret replaced; 39 checks of the rules above.
+  the service and libsecret replaced; 43 checks of the rules above,
+  including entries in the format from before.
+- On the phone (2026-11-27, engine of #219 through `flatpak run
+  --app-path=<checked-out CI bundle> --command=android-translation-layer
+  de.nexumia.atl.BaseApp`, headless, a test activity in an extra dex
+  started with `-l` next to an APK): keystore keys through the Secret
+  portal keyring, KeyInfo, EC signature, aliases, StrongBox refused, a
+  per-use key refused before the fingerprint; the owner's finger on the
+  sensor gave `MATCH` in fingerprintd, `match` in the service,
+  `onAuthenticationSucceeded` (biometric) and the key worked. Aegis 82
+  (F-Droid) offers "Biometric unlock" with this engine; its first-run
+  intro does not get past ATL's activity order and ViewPager yet.
+  fingerprintd counts only a firm, settled press.
 - The service from a sandbox: run the built `atl-permission-service` while
   the name is free and call it with `flatpak run --command=gdbus <ATL app> call --session -d de.nexumia.atl.Permissions -o /de/nexumia/atl/Permissions -m de.nexumia.atl.Permissions.Authenticators`.
   `VerifyFingerprint` needs a finger on the sensor, `ConfirmCredential`

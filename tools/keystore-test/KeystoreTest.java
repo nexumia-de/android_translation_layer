@@ -74,6 +74,16 @@ public class KeystoreTest {
 		Cipher lc = Cipher.getInstance("AES/GCM/NoPadding"); lc.init(Cipher.ENCRYPT_MODE, legacy, new GCMParameterSpec(128, new byte[12]));
 		check(lc.doFinal(new byte[3]).length == 19, "legacy entry readable, no auth, caller IV allowed as before");
 		check(Collections.list(ks.aliases()).containsAll(Arrays.asList("plain", "legacy", "enconly")) && ks.size() == 3, "aliases and size");
+		// a legacy EC key pair: algorithm, private key length, PKCS#8, X.509
+		KeyPair old = KeyPairGenerator.getInstance("EC", Software()).generateKeyPair();
+		byte[] ec = "EC".getBytes(StandardCharsets.UTF_8), priv = old.getPrivate().getEncoded(), pub = old.getPublic().getEncoded();
+		ByteBuffer lb = ByteBuffer.allocate(4 + ec.length + 4 + priv.length + pub.length);
+		lb.putInt(ec.length); lb.put(ec); lb.putInt(priv.length); lb.put(priv); lb.put(pub);
+		storeRaw("legacy-ec", lb.array());
+		Signature ls = Signature.getInstance("SHA256withECDSA"); ls.initSign((PrivateKey)ks.getKey("legacy-ec", null)); ls.update(new byte[2]);
+		Signature lv = Signature.getInstance("SHA256withECDSA"); lv.initVerify(old.getPublic()); lv.update(new byte[2]);
+		check(lv.verify(ls.sign()) && ks.getCertificate("legacy-ec").getPublicKey().equals(old.getPublic()), "legacy EC key pair signs, certificate has its public key");
+		ks.deleteEntry("legacy-ec");
 		check(ks.getCreationDate("plain").getTime() > 0, "creation date");
 
 		// 4 per-operation biometric key
@@ -181,6 +191,12 @@ public class KeystoreTest {
 		byte[] rct = re.doFinal("secret".getBytes());
 		Cipher rd = Cipher.getInstance("RSA/ECB/PKCS1Padding"); rd.init(Cipher.DECRYPT_MODE, ks.getKey("rsa", null));
 		check(new String(rd.doFinal(rct)).equals("secret"), "RSA decrypt with keystore key (" + rd.getProvider().getName() + ")");
+		for (String padding : new String[] {"OAEPWithSHA-1AndMGF1Padding", "OAEPWithSHA-256AndMGF1Padding", "OAEPPadding"}) {
+			Cipher oe = Cipher.getInstance("RSA/ECB/" + padding); oe.init(Cipher.ENCRYPT_MODE, rsa.getPublic());
+			byte[] oct = oe.doFinal("oaep".getBytes());
+			Cipher od = Cipher.getInstance("RSA/ECB/" + padding); od.init(Cipher.DECRYPT_MODE, ks.getKey("rsa", null));
+			check(new String(od.doFinal(oct)).equals("oaep"), "RSA " + padding + " with keystore key (" + od.getProvider().getName() + ")");
+		}
 		Signature rs = Signature.getInstance("SHA256withRSA"); rs.initSign(rsa.getPrivate()); rs.update(new byte[4]);
 		Signature rv = Signature.getInstance("SHA256withRSA"); rv.initVerify(rsa.getPublic()); rv.update(new byte[4]);
 		check(rv.verify(rs.sign()), "RSA signature");

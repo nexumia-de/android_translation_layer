@@ -44,9 +44,30 @@ public abstract class AndroidKeyStoreRSACipher extends CipherSpi {
 		public OAEPPadding() { super("RSA/ECB/OAEPPadding"); }
 	}
 
+	public static class OAEPWithSHA1AndMGF1Padding extends AndroidKeyStoreRSACipher {
+		public OAEPWithSHA1AndMGF1Padding() { super("RSA/ECB/OAEPWithSHA-1AndMGF1Padding"); }
+	}
+
+	public static class OAEPWithSHA224AndMGF1Padding extends AndroidKeyStoreRSACipher {
+		public OAEPWithSHA224AndMGF1Padding() { super("RSA/ECB/OAEPWithSHA-224AndMGF1Padding"); }
+	}
+
 	public static class OAEPWithSHA256AndMGF1Padding extends AndroidKeyStoreRSACipher {
 		public OAEPWithSHA256AndMGF1Padding() { super("RSA/ECB/OAEPWithSHA-256AndMGF1Padding"); }
 	}
+
+	public static class OAEPWithSHA384AndMGF1Padding extends AndroidKeyStoreRSACipher {
+		public OAEPWithSHA384AndMGF1Padding() { super("RSA/ECB/OAEPWithSHA-384AndMGF1Padding"); }
+	}
+
+	public static class OAEPWithSHA512AndMGF1Padding extends AndroidKeyStoreRSACipher {
+		public OAEPWithSHA512AndMGF1Padding() { super("RSA/ECB/OAEPWithSHA-512AndMGF1Padding"); }
+	}
+
+	/* Android's RSA transformations for keystore keys */
+	static final String[] PADDINGS = {"PKCS1Padding", "NoPadding", "OAEPPadding", "OAEPWithSHA-1AndMGF1Padding",
+		"OAEPWithSHA-224AndMGF1Padding", "OAEPWithSHA-256AndMGF1Padding", "OAEPWithSHA-384AndMGF1Padding",
+		"OAEPWithSHA-512AndMGF1Padding"};
 
 	private Key plain(int opmode, Key key) throws InvalidKeyException {
 		this.key = null;

@@ -18,11 +18,8 @@ public final class AndroidKeyStoreProvider {
 	}
 
 	private static void rsaCiphers(Provider provider, String keyClasses) {
-		String cipher = PACKAGE + "AndroidKeyStoreRSACipher$";
-		put(provider, "Cipher", "RSA/ECB/PKCS1Padding", cipher + "PKCS1Padding", keyClasses);
-		put(provider, "Cipher", "RSA/ECB/NoPadding", cipher + "NoPadding", keyClasses);
-		put(provider, "Cipher", "RSA/ECB/OAEPPadding", cipher + "OAEPPadding", keyClasses);
-		put(provider, "Cipher", "RSA/ECB/OAEPWithSHA-256AndMGF1Padding", cipher + "OAEPWithSHA256AndMGF1Padding", keyClasses);
+		for (String padding : AndroidKeyStoreRSACipher.PADDINGS)
+			put(provider, "Cipher", "RSA/ECB/" + padding, PACKAGE + "AndroidKeyStoreRSACipher$" + padding.replace("-", ""), keyClasses);
 	}
 
 	public static Provider create() {
@@ -45,6 +42,7 @@ public final class AndroidKeyStoreProvider {
 
 		for (String algorithm : AndroidKeyStoreSignature.ALGORITHMS)
 			put(provider, "Signature", algorithm, AndroidKeyStoreSignature.className(algorithm), PRIVATE_KEY);
+		provider.put("Alg.Alias.Signature.ECDSA", "SHA1withECDSA");
 		for (String algorithm : AndroidKeyStoreMac.ALGORITHMS)
 			put(provider, "Mac", algorithm, PACKAGE + "AndroidKeyStoreMac$" + algorithm, SECRET_KEY);
 		put(provider, "KeyAgreement", "ECDH", PACKAGE + "AndroidKeyStoreKeyAgreement", PRIVATE_KEY);
