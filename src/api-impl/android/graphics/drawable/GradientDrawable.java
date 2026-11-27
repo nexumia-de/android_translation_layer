@@ -653,6 +653,12 @@ public class GradientDrawable extends Drawable {
 		setStroke(width, color, dashWidth, dashGap);
 	}
 
+	/* the solid fill, or null without one */
+	public ColorStateList getColor() {
+		int color = mFillPaint.getColor();
+		return color != 0 ? ColorStateList.valueOf(color) : null;
+	}
+
 	public void setColor(int argb) {
 		mGradientState.setSolidColor(argb);
 		mFillPaint.setColor(argb);
