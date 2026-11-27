@@ -16,6 +16,7 @@ public class ViewPropertyAnimator {
 	private long duration = 300;
 	private Runnable startAction;
 	private Runnable endAction;
+	private ValueAnimator.AnimatorUpdateListener updateListener;
 	private TimeInterpolator interpolator;
 	private List<PropertyValuesHolder> values = new ArrayList<>();
 	private ObjectAnimator animator;
@@ -132,20 +133,30 @@ public class ViewPropertyAnimator {
 		values.clear();
 		if (listener != null)
 			animator.addListener(listener);
-		if (startAction != null || endAction != null) {
+		if (updateListener != null)
+			animator.addUpdateListener(updateListener);
+		/* as on Android, start and end actions belong to this animation only, and the end action
+		 * does not run when it is cancelled */
+		final Runnable start = startAction, end = endAction;
+		startAction = null;
+		endAction = null;
+		if (start != null || end != null) {
 			animator.addListener(new Animator.AnimatorListener() {
+				private boolean cancelled;
 				@Override
 				public void onAnimationStart(Animator animation) {
-					if (startAction != null)
-						startAction.run();
+					if (start != null)
+						start.run();
 				}
 				@Override
 				public void onAnimationEnd(Animator animation) {
-					if (endAction != null)
-						endAction.run();
+					if (end != null && !cancelled)
+						end.run();
 				}
 				@Override
-				public void onAnimationCancel(Animator animation) {}
+				public void onAnimationCancel(Animator animation) {
+					cancelled = true;
+				}
 				@Override
 				public void onAnimationRepeat(Animator animation) {}
 			});
@@ -172,6 +183,7 @@ public class ViewPropertyAnimator {
 	}
 
 	public ViewPropertyAnimator setUpdateListener(ValueAnimator.AnimatorUpdateListener listener) {
+		updateListener = listener;
 		return this;
 	}
 }
