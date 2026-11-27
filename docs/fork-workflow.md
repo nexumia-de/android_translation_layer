@@ -158,6 +158,7 @@ a commit is added, sent or merged.
 | `api-impl: ImageView and LayerDrawable: apply color filters and tints` (same) | 90 lines | kept |
 | `api-impl: Canvas: matrix calls on a canvas without bitmap` (HeliBoard aborted after a long press) | 10 lines | kept |
 | `api-impl: MediaPlayer: open the GStreamer pipeline on first use, release it after playback` (a pipeline, GL context and 7 threads per sound effect at start; #118) | 110 lines | kept, untested |
+| `linker: write-protect code segments again after relocation` (bionic_translation; app library code stayed `rwxp` on 64-bit because the range was kept in 32-bit fields; nexumia-de/bionic_translation#7) | 25 lines | kept |
 
 Commit ids are those on `phosh`; cherry-pick them from there.
 
