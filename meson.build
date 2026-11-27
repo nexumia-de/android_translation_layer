@@ -114,11 +114,14 @@ executable('atl-installer-service', ['src/installer-service/atl-installer-servic
            install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
            c_args: ['-DINSTALL_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"'])
 # runtime permissions for every app Flatpak: its own process, see permissions.c
-executable('atl-permission-service', ['src/installer-service/permissions.c', 'src/installer-service/caller.c', installer_service_resources],
+executable('atl-permission-service', ['src/installer-service/permissions.c', 'src/installer-service/auth.c', 'src/installer-service/caller.c', installer_service_resources],
            dependencies: [dependency('gio-unix-2.0')],
            install: true,
            install_dir: join_paths(get_option('prefix'), get_option('libexecdir'), 'android-translation-layer'),
            c_args: ['-DINSTALL_BINDIR="' + join_paths(get_option('prefix'), get_option('bindir')) + '"'])
+# the polkit action the permission service checks when an app asks the owner to confirm it is them
+install_data('res/polkit/de.nexumia.atl.policy',
+             install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'polkit-1', 'actions'))
 configure_file(input: 'src/installer-service/de.nexumia.atl.Installer.service.in',
                output: 'de.nexumia.atl.Installer.service',
                configuration: {'libexecdir': join_paths(get_option('prefix'), get_option('libexecdir'))},
@@ -223,6 +226,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/audio/audio.c',
                                                                   	'src/api-impl-jni/com_google_android_gles_jni_GLImpl.c',
                                                                   	'src/api-impl-jni/content/android_atl_ATLMediaContentProvider.c',
+                                                                  	'src/api-impl-jni/content/android_atl_ATLAuth.c',
                                                                   	'src/api-impl-jni/content/android_atl_ATLPermissions.c',
                                                                   	'src/api-impl-jni/content/android_content_ClipboardManager.c',
                                                                   	'src/api-impl-jni/content/android_content_ContentResolver.c',

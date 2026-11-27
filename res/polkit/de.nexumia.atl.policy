@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- Android apps in their own ATL Flatpak confirm the owner through this action
+     (BiometricPrompt with device credential, keystore keys bound to user authentication):
+     ATL's permission service checks it for them, see src/installer-service/auth.c.
+     auth_self, never kept: every confirmation asks again. -->
+<policyconfig>
+  <vendor>Android Translation Layer</vendor>
+  <action id="de.nexumia.atl.confirm-credential">
+    <description>Confirm it is you for an Android app</description>
+    <message>An Android app asks you to confirm it is you.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_self</allow_active>
+    </defaults>
+  </action>
+</policyconfig>

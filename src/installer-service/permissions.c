@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "auth.h"
 #include "caller.h"
 
 #define BUS_NAME         "de.nexumia.atl.Permissions"
@@ -26,7 +27,7 @@
 /* like Android 11+: after the second "no" the app is not allowed to ask again */
 #define MAX_DENIALS 2
 
-#define PERMISSIONS_VERSION 3
+#define PERMISSIONS_VERSION 4
 
 struct question {
 	const char *permission;
@@ -76,6 +77,16 @@ static void release(void)
 {
 	if (--running == 0)
 		idle_source = g_timeout_add_seconds(IDLE_TIMEOUT, idle_quit, NULL);
+}
+
+void auth_hold(void)
+{
+	hold();
+}
+
+void auth_release(void)
+{
+	release();
 }
 
 static const struct question *find_question(const char *permission)
@@ -497,12 +508,38 @@ static void handle_open_app_info(GDBusMethodInvocation *invocation)
 	g_free(app_id);
 }
 
+/* confirming the owner (auth.c); like the rest, only for apps in their own ATL Flatpak */
+static void handle_auth(GDBusMethodInvocation *invocation, const char *method)
+{
+	char *app_id = caller_app_id(invocation);
+	if (!app_id) {
+		g_dbus_method_invocation_return_dbus_error(invocation, "org.freedesktop.DBus.Error.AccessDenied",
+		                                           "only apps in their own ATL Flatpak");
+		return;
+	}
+	if (!strcmp(method, "Authenticators"))
+		auth_handle_authenticators(invocation);
+	else if (!strcmp(method, "VerifyFingerprint"))
+		auth_handle_verify_fingerprint(invocation, app_id);
+	else if (!strcmp(method, "ConfirmCredential"))
+		auth_handle_confirm_credential(invocation, app_id);
+	else if (!strcmp(method, "CancelAuthentication"))
+		auth_handle_cancel(invocation, app_id);
+	else
+		auth_handle_device_locked(invocation);
+	g_free(app_id);
+}
+
 static void method_call(GDBusConnection *connection, const char *sender, const char *object_path, const char *interface_name,
                         const char *method_name, GVariant *params, GDBusMethodInvocation *invocation, gpointer user_data)
 {
 	hold();
 	if (!strcmp(method_name, "OpenAppInfo"))
 		handle_open_app_info(invocation);
+	else if (!strcmp(method_name, "Authenticators") || !strcmp(method_name, "VerifyFingerprint") ||
+	         !strcmp(method_name, "ConfirmCredential") || !strcmp(method_name, "CancelAuthentication") ||
+	         !strcmp(method_name, "DeviceLocked"))
+		handle_auth(invocation, method_name);
 	else
 		handle(invocation, method_name, params);
 	release();

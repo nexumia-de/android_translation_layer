@@ -13,6 +13,8 @@
   Version 1: Check and Request.
   Version 3: Review (version 2 is OpenAppInfo, #88).
   Version 2: OpenAppInfo.
+  Version 4: Authenticators, VerifyFingerprint, ConfirmCredential, CancelAuthentication,
+             DeviceLocked (docs/keystore-auth.md).
 -->
 <node>
   <interface name="de.nexumia.atl.Permissions">
@@ -44,5 +46,42 @@
     </method>
     <!-- Opens the calling app's App info on the host (the launcher's "App info" action). -->
     <method name="OpenAppInfo"/>
+
+    <!--
+      What can confirm the owner now, as BiometricManager.Authenticators bits: BIOMETRIC_STRONG
+      (0x000F) with an enrolled fingerprint, DEVICE_CREDENTIAL (0x8000) when the polkit action
+      de.nexumia.atl.confirm-credential is installed. enrollment changes when a finger is added
+      or removed ("" without fingerprints).
+    -->
+    <method name="Authenticators">
+      <arg direction="out" name="available" type="u"/>
+      <arg direction="out" name="enrollment" type="s"/>
+    </method>
+
+    <!--
+      One fingerprint attempt; the app shows its own "touch the sensor" dialog meanwhile.
+      "match", "no-match", "retry" (bad press, try again), "lockout" (five failures in a row,
+      30 seconds for every app), "canceled", "unavailable" (no fingerprint, or the sensor is
+      busy) or "error". One confirmation per app at a time.
+    -->
+    <method name="VerifyFingerprint">
+      <arg direction="out" name="result" type="s"/>
+    </method>
+
+    <!--
+      Asks for the owner's password in the desktop's polkit prompt: "yes", "no" (wrong or
+      dismissed) or "unavailable" (action not installed).
+    -->
+    <method name="ConfirmCredential">
+      <arg direction="out" name="result" type="s"/>
+    </method>
+
+    <!-- Ends the caller's running VerifyFingerprint ("canceled") or ConfirmCredential ("no"). -->
+    <method name="CancelAuthentication"/>
+
+    <!-- Whether the lock screen is up. -->
+    <method name="DeviceLocked">
+      <arg direction="out" name="locked" type="b"/>
+    </method>
   </interface>
 </node>
