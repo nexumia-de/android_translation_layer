@@ -58,8 +58,9 @@ public class MediaSession {
 		if (queue != null)
 			for (QueueItem item : queue) {
 				if (item.id == state.activeQueueItemId) {
-					title = item.description.title.toString();
-					subTitle = item.description.subtitle.toString();
+					/* a description may have no title or subtitle */
+					title = item.description.title == null ? null : item.description.title.toString();
+					subTitle = item.description.subtitle == null ? null : item.description.subtitle.toString();
 					artUrl = item.description.iconUri == null ? null : item.description.iconUri.toString();
 					break;
 				}
