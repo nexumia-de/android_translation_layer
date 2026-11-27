@@ -87,3 +87,45 @@ JNIEXPORT void JNICALL Java_android_security_keystore_AndroidKeyStore_nativeDele
 		(*env)->ReleaseStringUTFChars(env, package_name_jstr, package_name);
 	(*env)->ReleaseStringUTFChars(env, alias_jstr, alias);
 }
+
+/* the aliases of the app's keys; libsecret 0.19+ searches by schema without attributes */
+JNIEXPORT jobjectArray JNICALL Java_android_security_keystore_AndroidKeyStore_nativeAliases(JNIEnv *env, jclass clazz, jstring package_name_jstr)
+{
+	const char *package_name = NULL;
+	const char *app_id = g_application_get_application_id(G_APPLICATION(gtk_window_get_application(window)));
+	if ((app_id == NULL || !strcmp(app_id, "com.example.demo_application")) && package_name_jstr) {
+		// fall back to package name
+		app_id = package_name = (*env)->GetStringUTFChars(env, package_name_jstr, NULL);
+	}
+
+	SecretSchema schema = {
+		app_id,
+		SECRET_SCHEMA_NONE,
+		{{"alias", SECRET_SCHEMA_ATTRIBUTE_STRING},
+	          {NULL, 0}}
+	};
+	GError *err = NULL;
+	GList *items = secret_password_search_sync(&schema, SECRET_SEARCH_ALL, NULL, &err, NULL);
+	if (package_name)
+		(*env)->ReleaseStringUTFChars(env, package_name_jstr, package_name);
+	if (err) {
+		fprintf(stderr, "AndroidKeyStore: listing keys: %s\n", err->message);
+		g_error_free(err);
+		return NULL;
+	}
+	jclass string_class = (*env)->FindClass(env, "java/lang/String");
+	jobjectArray aliases = (*env)->NewObjectArray(env, g_list_length(items), string_class, NULL);
+	int i = 0;
+	for (GList *l = items; l; l = l->next) {
+		GHashTable *attributes = secret_retrievable_get_attributes(SECRET_RETRIEVABLE(l->data));
+		const char *alias = g_hash_table_lookup(attributes, "alias");
+		if (alias) {
+			jstring alias_jstr = (*env)->NewStringUTF(env, alias);
+			(*env)->SetObjectArrayElement(env, aliases, i++, alias_jstr);
+			(*env)->DeleteLocalRef(env, alias_jstr);
+		}
+		g_hash_table_unref(attributes);
+	}
+	g_list_free_full(items, g_object_unref);
+	return aliases;
+}

@@ -1,6 +1,11 @@
 package android.hardware.biometrics;
 
-/* there is no biometric hardware ATL could use, so nothing can authenticate */
+import android.atl.ATLAuth;
+import android.atl.ATLPaths;
+
+/* What can confirm the phone's owner, from the host's permission service (docs/keystore-auth.md):
+ * the fingerprint through fingerprintd (BIOMETRIC_STRONG) and the password through polkit
+ * (DEVICE_CREDENTIAL). */
 public class BiometricManager {
 	public static final int BIOMETRIC_SUCCESS = 0;
 	public static final int BIOMETRIC_ERROR_HW_UNAVAILABLE = 1;
@@ -16,11 +21,19 @@ public class BiometricManager {
 
 	public BiometricManager() {}
 
+	@Deprecated
 	public int canAuthenticate() {
-		return BIOMETRIC_ERROR_NO_HARDWARE;
+		return canAuthenticate(Authenticators.BIOMETRIC_WEAK);
 	}
 
 	public int canAuthenticate(int authenticators) {
-		return BIOMETRIC_ERROR_NO_HARDWARE;
+		if (!ATLPaths.in_flatpak)
+			return BIOMETRIC_ERROR_NO_HARDWARE;
+		int available = ATLAuth.available();
+		if ((authenticators & Authenticators.BIOMETRIC_WEAK) != 0 && (available & ATLAuth.BIOMETRIC_STRONG) != 0)
+			return BIOMETRIC_SUCCESS;
+		if ((authenticators & Authenticators.DEVICE_CREDENTIAL) != 0 && (available & ATLAuth.DEVICE_CREDENTIAL) != 0)
+			return BIOMETRIC_SUCCESS;
+		return BIOMETRIC_ERROR_NONE_ENROLLED;
 	}
 }

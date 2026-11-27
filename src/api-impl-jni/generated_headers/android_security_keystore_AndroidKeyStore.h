@@ -7,6 +7,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef android_security_keystore_AndroidKeyStore_MAGIC
+#define android_security_keystore_AndroidKeyStore_MAGIC 1096043595L
 /*
  * Class:     android_security_keystore_AndroidKeyStore
  * Method:    nativeSetKey
@@ -30,6 +32,14 @@ JNIEXPORT jbyteArray JNICALL Java_android_security_keystore_AndroidKeyStore_nati
  */
 JNIEXPORT void JNICALL Java_android_security_keystore_AndroidKeyStore_nativeDeleteKey
   (JNIEnv *, jclass, jstring, jstring);
+
+/*
+ * Class:     android_security_keystore_AndroidKeyStore
+ * Method:    nativeAliases
+ * Signature: (Ljava/lang/String;)[Ljava/lang/String;
+ */
+JNIEXPORT jobjectArray JNICALL Java_android_security_keystore_AndroidKeyStore_nativeAliases
+  (JNIEnv *, jclass, jstring);
 
 #ifdef __cplusplus
 }

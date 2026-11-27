@@ -328,7 +328,9 @@ Changes in ATL for running sandboxed:
   profile applies (silent: no vibration).
 - Sensors: iio-sensor-proxy on the system bus, only when granted.
 - Keystore: libsecret uses the Secret portal inside Flatpak (one secret
-  per app, no access to other keyring items).[^portal-secret]
+  per app, no access to other keyring items).[^portal-secret] Key use
+  authorizations and confirming the owner (fingerprint, password):
+  [keystore-auth.md](keystore-auth.md) (2026-11-27).
 - WebView: WebKitGTK's own sandbox through the Flatpak portal; test on
   the phone.
 

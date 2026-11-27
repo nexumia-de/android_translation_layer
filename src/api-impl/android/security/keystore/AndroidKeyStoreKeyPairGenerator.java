@@ -5,15 +5,14 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyPairGeneratorSpi;
-import java.security.NoSuchAlgorithmException;
-import java.security.Provider;
+import java.security.ProviderException;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECGenParameterSpec;
 
-/* Generates an RSA or EC key pair in software and keeps it under the spec's
- * alias in the Secret Service, like the AES keys of KeyGenerator. */
+/* Generates an RSA or EC key pair in software and keeps it under the spec's alias with its
+ * KeyAuthorizations, like the keys of KeyGenerator. The app gets the public key and an
+ * AndroidKeyStorePrivateKey. */
 public class AndroidKeyStoreKeyPairGenerator extends KeyPairGeneratorSpi {
 
 	private final String algorithm;
@@ -67,28 +66,16 @@ public class AndroidKeyStoreKeyPairGenerator extends KeyPairGeneratorSpi {
 		}
 	}
 
-	/* a software generator: BC as before, else the first other provider;
-	 * never the keystore's own, which would call this again */
-	private KeyPairGenerator softwareGenerator() throws NoSuchAlgorithmException {
-		Provider bc = Security.getProvider("BC");
-		if (bc != null && bc.getService("KeyPairGenerator", algorithm) != null)
-			return KeyPairGenerator.getInstance(algorithm, bc);
-		Provider[] providers = Security.getProviders("KeyPairGenerator." + algorithm);
-		if (providers != null) {
-			for (Provider provider : providers) {
-				if (!provider.getName().startsWith("AndroidKeyStore"))
-					return KeyPairGenerator.getInstance(algorithm, provider);
-			}
-		}
-		throw new NoSuchAlgorithmException("no software KeyPairGenerator for " + algorithm);
-	}
-
 	@Override
 	public KeyPair generateKeyPair() {
 		if (spec == null)
 			throw new IllegalStateException("not initialized");
+		if (spec.isStrongBoxBacked())
+			throw new StrongBoxUnavailableException("No StrongBox available");
+		KeyAuthorizations auth = KeyAuthorizations.of(spec);
+		auth.checkCreate();
 		try {
-			KeyPairGenerator generator = softwareGenerator();
+			KeyPairGenerator generator = Software.keyPairGenerator(algorithm);
 			AlgorithmParameterSpec params = params();
 			if (params != null && random != null)
 				generator.initialize(params, random);
@@ -99,10 +86,12 @@ public class AndroidKeyStoreKeyPairGenerator extends KeyPairGeneratorSpi {
 			else
 				generator.initialize(spec.getKeySize() > 0 ? spec.getKeySize() : 2048);
 			KeyPair pair = generator.generateKeyPair();
-			AndroidKeyStore.setKeyPair(spec.getKeystoreAlias(), algorithm, pair);
-			return pair;
+			String alias = spec.getKeystoreAlias();
+			AndroidKeyStore.setKeyPair(alias, algorithm, pair.getPrivate(), pair.getPublic(), auth);
+			/* the private key stays in the keystore; the public key is the app's */
+			return new KeyPair(pair.getPublic(), AndroidKeyStorePrivateKey.wrap(alias, pair.getPrivate(), auth));
 		} catch (GeneralSecurityException e) {
-			throw new IllegalStateException(e);
+			throw new ProviderException(e);
 		}
 	}
 }
