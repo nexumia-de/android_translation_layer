@@ -8,4 +8,7 @@ public class WebViewClient {
 	public boolean shouldOverrideUrlLoading(WebView view, String url) {
 		return false; // continue loading the URL
 	}
+	public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+		return shouldOverrideUrlLoading(view, request.getUrl().toString());
+	}
 }

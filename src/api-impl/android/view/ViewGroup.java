@@ -892,6 +892,9 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 	@Override
 	public void onDescendantInvalidated(View child, View target) {}
 
+	/* only matters to accessibility services, which ATL does not have */
+	public void notifySubtreeAccessibilityStateChanged(View child, View source, int changeType) {}
+
 	public boolean getTouchscreenBlocksFocus() { return false; }
 
 	public ViewGroupOverlay getOverlay() {

@@ -24,4 +24,6 @@ public interface ViewParent {
 	public void onDescendantInvalidated(View child, View target);
 
 	public void requestLayout();
+
+	public void notifySubtreeAccessibilityStateChanged(View child, View source, int changeType);
 }

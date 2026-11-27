@@ -280,10 +280,10 @@ JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadDataWithBaseURL
 /*
  * Class:     android_webkit_WebView
  * Method:    native_loadUrl
- * Signature: (JLjava/lang/String;Z)V
+ * Signature: (JLjava/lang/String;Z[Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_android_webkit_WebView_native_1loadUrl
-  (JNIEnv *, jobject, jlong, jstring, jboolean);
+  (JNIEnv *, jobject, jlong, jstring, jboolean, jobjectArray);
 
 /*
  * Class:     android_webkit_WebView

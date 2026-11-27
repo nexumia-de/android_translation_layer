@@ -101,16 +101,37 @@ public class WebView extends ViewGroup {
 	}
 
 	@Export
-	boolean internalShouldOverrideUrlLoading(String url) {
+	boolean internalShouldOverrideUrlLoading(String url, boolean isRedirect, boolean hasGesture, String method) {
 		// on Android the app's own loadUrl/loadData does not reach the client
 		if (ownLoadPending || url.startsWith("about:")) {
 			ownLoadPending = false;
 			return false;
 		}
 		if (webViewClient != null)
-			return webViewClient.shouldOverrideUrlLoading(this, url);
+			return webViewClient.shouldOverrideUrlLoading(this, new NavigationRequest(url, isRedirect, hasGesture, method));
 		else
 			return false;
+	}
+
+	private static class NavigationRequest implements WebResourceRequest {
+		private final Uri url;
+		private final boolean isRedirect;
+		private final boolean hasGesture;
+		private final String method;
+
+		NavigationRequest(String url, boolean isRedirect, boolean hasGesture, String method) {
+			this.url = Uri.parse(url);
+			this.isRedirect = isRedirect;
+			this.hasGesture = hasGesture;
+			this.method = method != null ? method : "GET";
+		}
+
+		public Uri getUrl() { return url; }
+		public boolean isForMainFrame() { return true; }
+		public boolean isRedirect() { return isRedirect; }
+		public boolean hasGesture() { return hasGesture; }
+		public String getMethod() { return method; }
+		public java.util.Map<String, String> getRequestHeaders() { return new java.util.HashMap<>(); }
 	}
 
 	// to be used by native code
@@ -185,6 +206,10 @@ public class WebView extends ViewGroup {
 	}
 
 	public void loadUrl(String url) {
+		loadUrl(url, null);
+	}
+
+	public void loadUrl(String url, java.util.Map<String, String> additionalHttpHeaders) {
 		if (url.startsWith("javascript:")) {
 			evaluateJavascript(url.substring("javascript:".length()), null);
 			return;
@@ -194,7 +219,16 @@ public class WebView extends ViewGroup {
 		ownLoadPending = true;
 		loadWebKit();
 		updateBridgeScript();
-		native_loadUrl(widget, url, settings.getJavaScriptEnabled());
+		String[] headers = null;
+		if (additionalHttpHeaders != null && !additionalHttpHeaders.isEmpty()) {
+			headers = new String[additionalHttpHeaders.size() * 2];
+			int i = 0;
+			for (java.util.Map.Entry<String, String> header : additionalHttpHeaders.entrySet()) {
+				headers[i++] = header.getKey();
+				headers[i++] = header.getValue();
+			}
+		}
+		native_loadUrl(widget, url, settings.getJavaScriptEnabled(), headers);
 	}
 
 	public void stopLoading() {}
@@ -375,7 +409,7 @@ public class WebView extends ViewGroup {
 	@Override
 	protected native long native_constructor(Context context, AttributeSet attrs);
 	private native void native_loadDataWithBaseURL(long widget, String baseUrl, String data, String mimeType, String encoding, boolean javaScriptEnabled);
-	private native void native_loadUrl(long widget, String url, boolean javaScriptEnabled);
+	private native void native_loadUrl(long widget, String url, boolean javaScriptEnabled, String[] headers);
 	private native void native_updateContentHeight(long widget);
 	private native void native_setUserScript(long widget, String script, boolean javaScriptEnabled);
 	private native void native_evaluateJavascript(long widget, String script, ValueCallback callback, boolean javaScriptEnabled);

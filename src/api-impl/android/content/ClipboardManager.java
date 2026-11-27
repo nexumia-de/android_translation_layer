@@ -67,8 +67,10 @@ public class ClipboardManager extends android.text.ClipboardManager {
 	 * {@hide}
 	 */
 	public ClipboardManager(Context context, Handler handler) {
+		native_watch_clipboard();
 	}
 	public ClipboardManager() {
+		native_watch_clipboard();
 	}
 	/**
 	 * Sets the current primary clip on the clipboard.  This is the clip that
@@ -78,26 +80,29 @@ public class ClipboardManager extends android.text.ClipboardManager {
 	 */
 	public void setPrimaryClip(ClipData clip) {
 		// this is not the primary clipboard in UNIX sense (not middle click paste)
-		native_set_clipboard(clip.text);
+		if (clip != null && clip.text != null)
+			native_set_clipboard(clip.text);
 	}
 	/**
 	 * Returns the current primary clip on the clipboard.
 	 */
 	public ClipData getPrimaryClip() {
-		return null;
+		String text = native_get_clipboard();
+		return text != null ? ClipData.newPlainText(null, text) : null;
 	}
 	/**
 	 * Returns a description of the current primary clip on the clipboard
 	 * but not a copy of its data.
 	 */
 	public ClipDescription getPrimaryClipDescription() {
-		return null;
+		ClipData clip = getPrimaryClip();
+		return clip != null ? clip.getDescription() : null;
 	}
 	/**
 	 * Returns true if there is currently a primary clip on the clipboard.
 	 */
 	public boolean hasPrimaryClip() {
-		return false;
+		return native_get_clipboard() != null;
 	}
 	public void addPrimaryClipChangedListener(OnPrimaryClipChangedListener what) {
 	}
@@ -108,7 +113,7 @@ public class ClipboardManager extends android.text.ClipboardManager {
 	 * the primary clip and tries to coerce it to a string.
 	 */
 	public CharSequence getText() {
-		return null;
+		return native_get_clipboard();
 	}
 	/**
 	 * @deprecated Use {@link #setPrimaryClip(ClipData)} instead.  This
@@ -116,15 +121,19 @@ public class ClipboardManager extends android.text.ClipboardManager {
 	 * primary clip.  It has no label or icon.
 	 */
 	public void setText(CharSequence text) {
+		if (text != null)
+			native_set_clipboard(text.toString());
 	}
 	/**
 	 * @deprecated Use {@link #hasPrimaryClip()} instead.
 	 */
 	public boolean hasText() {
-		return false;
+		return native_get_clipboard() != null;
 	}
 	void reportPrimaryClipChanged() {
 	}
 
 	public static native void native_set_clipboard(String text);
+	private static native void native_watch_clipboard();
+	private static native String native_get_clipboard();
 }
