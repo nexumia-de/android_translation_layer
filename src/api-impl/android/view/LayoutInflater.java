@@ -51,6 +51,9 @@ public class LayoutInflater {
 
 	private Factory2 mFactory2;
 	private Context context;
+	/* the context of the view being created, as AOSP's mConstructorArgs[0]: the parent's context,
+	 * with the view's android:theme applied */
+	private Context viewContext;
 	private LinkedList<Factory2> factories = new LinkedList<>();
 
 	public LayoutInflater(Context context) {
@@ -88,7 +91,7 @@ public class LayoutInflater {
 	}
 
 	public final View createView(String name, String prefix, AttributeSet attrs) throws Exception {
-		return createView(this.context, name, prefix, attrs);
+		return createView(viewContext != null ? viewContext : this.context, name, prefix, attrs);
 	}
 
 	public final View createView(Context viewContext, String name, String prefix, AttributeSet attrs) throws Exception {
@@ -108,12 +111,6 @@ public class LayoutInflater {
 		}
 
 		Context context = viewContext != null ? viewContext : this.context;
-		final TypedArray ta = context.obtainStyledAttributes(attrs, new int[] {com.android.internal.R.attr.theme});
-		final int themeResId = ta.getResourceId(0, 0);
-		if (themeResId != 0) {
-			context = new ContextThemeWrapper(context, themeResId);
-		}
-		ta.recycle();
 		constructor.setAccessible(true);
 		View view_instance = (View)constructor.newInstance(context, attrs);
 
@@ -147,8 +144,22 @@ public class LayoutInflater {
 	}
 
 	View createViewFromTag(View parent, String name, AttributeSet attrs) throws Exception {
+		return createViewFromTag(parent, name, parent != null ? parent.getContext() : this.context, attrs, false);
+	}
+
+	/* as in AOSP: the view gets the given context (its parent's), wrapped with its android:theme */
+	View createViewFromTag(View parent, String name, Context context, AttributeSet attrs, boolean ignoreThemeAttr) throws Exception {
 		if (name.equals("view")) {
 			name = attrs.getAttributeValue(null, "class");
+		}
+
+		if (!ignoreThemeAttr) {
+			final TypedArray ta = context.obtainStyledAttributes(attrs, new int[] {com.android.internal.R.attr.theme});
+			final int themeResId = ta.getResourceId(0, 0);
+			if (themeResId != 0) {
+				context = new ContextThemeWrapper(context, themeResId);
+			}
+			ta.recycle();
 		}
 
 		if (Log.isLoggable(TAG, Log.VERBOSE))
@@ -161,13 +172,20 @@ public class LayoutInflater {
 			if (view != null)
 				break;
 		}
-		if (view == null && context instanceof Factory2) {
-			view = ((Factory2)context).onCreateView(parent, name, context, attrs);
+		if (view == null && this.context instanceof Factory2) {
+			view = ((Factory2)this.context).onCreateView(parent, name, context, attrs);
 		}
-		if (view == null && -1 == name.indexOf('.')) {
-			view = onCreateView(context, parent, name, attrs);
-		} else if (view == null) {
-			view = createView(name, null, attrs);
+		if (view == null) {
+			Context lastContext = viewContext;
+			viewContext = context;
+			try {
+				if (-1 == name.indexOf('.'))
+					view = onCreateView(context, parent, name, attrs);
+				else
+					view = createView(context, name, null, attrs);
+			} finally {
+				viewContext = lastContext;
+			}
 		}
 
 		if (Log.isLoggable(TAG, Log.VERBOSE))
@@ -230,7 +248,7 @@ public class LayoutInflater {
 				throw new Exception("<blink> not supported atm");
 				/*temp = new BlinkLayout(mContext, attrs);*/
 			} else {
-				temp = createViewFromTag(root, name, attrs);
+				temp = createViewFromTag(root, name, this.context, attrs, false);
 			}
 
 			ViewGroup.LayoutParams params = null;
@@ -350,7 +368,14 @@ public class LayoutInflater {
 			// nothing special to do here.
 			rInflate(childParser, parent, childAttrs, false);
 		} else {
-			final View view = createViewFromTag(parent, childName, childAttrs);
+			/* as in AOSP: the include tag's android:theme overrides the one of the included layout */
+			Context context = parent.getContext();
+			final TypedArray themeAttrs = context.obtainStyledAttributes(attrs, new int[] {com.android.internal.R.attr.theme});
+			final int themeResId = themeAttrs.getResourceId(0, 0);
+			themeAttrs.recycle();
+			if (themeResId != 0)
+				context = new ContextThemeWrapper(context, themeResId);
+			final View view = createViewFromTag(parent, childName, context, childAttrs, themeResId != 0);
 			final ViewGroup group = (ViewGroup)parent;
 			ViewGroup.LayoutParams params = null;
 			try {

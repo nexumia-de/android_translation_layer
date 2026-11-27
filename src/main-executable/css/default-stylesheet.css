@@ -29,8 +29,8 @@
 	text-align: right;
 }
 
-/* android.widget.ImageButton: Android draws the background, see android_widget_ImageButton.c */
-.ATL-image-button {
+/* android.widget.Button and ImageButton: the view's Android background is the button's look */
+.ATL-android-button {
 	background: none;
 	box-shadow: none;
 }

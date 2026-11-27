@@ -271,6 +271,30 @@ JNIEXPORT void JNICALL Java_android_widget_CompoundButton_setChecked
 JNIEXPORT jboolean JNICALL Java_android_widget_CompoundButton_isChecked
   (JNIEnv *, jobject);
 
+/*
+ * Class:     android_widget_CompoundButton
+ * Method:    native_setButtonTint
+ * Signature: (JII)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1setButtonTint
+  (JNIEnv *, jobject, jlong, jint, jint);
+
+/*
+ * Class:     android_widget_CompoundButton
+ * Method:    native_setButtonDrawable
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1setButtonDrawable
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     android_widget_CompoundButton
+ * Method:    native_hideButton
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_android_widget_CompoundButton_native_1hideButton
+  (JNIEnv *, jobject, jlong);
+
 #ifdef __cplusplus
 }
 #endif

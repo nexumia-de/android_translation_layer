@@ -2,6 +2,8 @@ package android.widget;
 
 import android.atl.annotation.Export;
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.content.res.TypedArray;
 import android.util.AttributeSet;
 
 public class SeekBar extends AbsSeekBar {
@@ -12,6 +14,44 @@ public class SeekBar extends AbsSeekBar {
 
 	public SeekBar(Context context, AttributeSet attributeSet) {
 		super(context, attributeSet);
+		initColors(context);
+	}
+
+	/* AppCompatSeekBar calls this one */
+	public SeekBar(Context context, AttributeSet attributeSet, int defStyleAttr) {
+		super(context, attributeSet, defStyleAttr);
+		initColors(context);
+	}
+
+	private void initColors(Context context) {
+		/* the colours AppCompat and the platform tint the track and thumb with */
+		TypedArray a = context.obtainStyledAttributes(new int[] {com.android.internal.R.attr.colorControlActivated, com.android.internal.R.attr.colorControlNormal});
+		progress_color = thumb_color = a.getColor(0, 0);
+		/* the unfilled track: colorControlNormal at the alpha of AOSP's scrubber track */
+		int normal = a.getColor(1, 0);
+		track_color = (normal & 0xffffff) | (((normal >>> 24) * 0x42 / 0xff) << 24);
+		a.recycle();
+		if (progress_color != 0)
+			native_setColors(widget, progress_color, thumb_color, track_color);
+	}
+
+	private int progress_color, thumb_color, track_color;
+	private native void native_setColors(long widget, int progress, int thumb, int track);
+
+	@Override
+	public void setThumbTintList(ColorStateList tint) {
+		if (tint == null)
+			return;
+		thumb_color = tint.getDefaultColor();
+		native_setColors(widget, progress_color, thumb_color, track_color);
+	}
+
+	@Override
+	public void setProgressTintList(ColorStateList tint) {
+		if (tint == null)
+			return;
+		progress_color = tint.getDefaultColor();
+		native_setColors(widget, progress_color, thumb_color, track_color);
 	}
 
 	@Override

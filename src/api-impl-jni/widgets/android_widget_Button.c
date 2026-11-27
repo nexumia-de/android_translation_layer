@@ -24,6 +24,8 @@ JNIEXPORT jlong JNICALL Java_android_widget_Button_native_1constructor(JNIEnv *e
 	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_widget_set_halign(box, GTK_ALIGN_CENTER); // the gravity of Android's button styles
 	gtk_button_set_child(GTK_BUTTON(button), box);
+	/* the view's Android background is the button's look; GTK's frame and shadow would show around it */
+	gtk_widget_add_css_class(button, "ATL-android-button");
 	gtk_box_append(GTK_BOX(box), gtk_label_new(text));
 	wrapper_widget_set_child(WRAPPER_WIDGET(wrapper), button);
 	wrapper_widget_set_jobject(WRAPPER_WIDGET(wrapper), env, this);
