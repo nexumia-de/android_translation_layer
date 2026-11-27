@@ -1,5 +1,8 @@
 # Directory Update Log
 
+## 2026-11-27 (6)
+* **Crunchyroll player like on Android** (#213): views kept only one `OnAttachStateChangeListener` and called them from `onAttachedToWindow` (now a list, dispatched like Android), so the watch screen's presenter never bound and the player stayed full screen in portrait. `ViewPropertyAnimator` kept `withEndAction` for later animations and ran it on cancel: the controls vanished right after a tap. `SeekBar` tells its listener about `setProgress` from code (elapsed time) and takes the colours of a progress drawable; `AbsSeekBar.setThumbOffset`; `ViewGroup.setLayoutAnimation` (settings); `NinePatchDrawable` has an intrinsic size, padding and the resource's density (AppCompat's switch was 0 wide). **Landscape on a phone:** an activity asking for landscape in a portrait window is shown turned by 90 degrees (`AtlRotateBox` around the window content, GTK maps input), with a landscape `Configuration` and `Display.getRotation()` 90. DB Navigator checked before/after.
+
 ## 2026-11-27 (5)
 * **Widevine** (#210): `MediaDrm` supports Widevine through the Widevine CDM of Chrome/Firefox when it is installed ([Widevine](widevine.md)); audio samples are decrypted, video samples decrypted and decoded inside the CDM, as Crunchyroll's video keys may only be used there. Crunchyroll plays. Also: `MediaRouter` with routes and callbacks (show page, #209), `<clip>` drawables and a `MediaSession` null check (player, #209), `SectionIndexer` methods ("All Anime"). `Activity.isChangingConfigurations` is true during `recreate()` (#211, Bitwarden).
 
