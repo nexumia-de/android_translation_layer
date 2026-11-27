@@ -269,6 +269,7 @@ libtranslationlayer_so = shared_library('translation_layer_main', [
                                                                   	'src/api-impl-jni/views/android_view_ViewTreeObserver.c',
                                                                   	'src/api-impl-jni/views/android_view_WindowManagerImpl.c',
                                                                   	'src/api-impl-jni/widgets/WrapperWidget.c',
+                                                                  	'src/api-impl-jni/widgets/atl_rotate_box.c',
                                                                   	'src/api-impl-jni/widgets/android_view_SurfaceView.c',
                                                                   	'src/api-impl-jni/widgets/android_webkit_WebView_widget.c',
                                                                   	'src/api-impl-jni/widgets/android_widget_Button.c',
