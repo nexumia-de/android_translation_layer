@@ -220,6 +220,14 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 		if (touchTarget == null)
 			handled = super.dispatchTouchEvent(event);
 
+		if (DEBUG_TOUCH && (action != MotionEvent.ACTION_MOVE || intercepting_touch != debugLastIntercept || touchTarget != debugLastTarget))
+			System.err.println("TOUCHJ " + event.getEventTime() + " " + getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(this))
+				+ " a=" + action + " y=" + event.getY() + " icpt=" + intercepting_touch + " dis=" + disallowIntercept
+				+ " target=" + (touchTarget == null ? "-" : touchTarget.getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(touchTarget)))
+				+ " handled=" + handled);
+		debugLastIntercept = intercepting_touch;
+		debugLastTarget = touchTarget;
+
 		if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
 			touchTarget = null;
 			intercepting_touch = false;
@@ -228,6 +236,10 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 
 		return handled;
 	}
+
+	private static final boolean DEBUG_TOUCH = System.getenv("ATL_DEBUG_TOUCH") != null;
+	private boolean debugLastIntercept;
+	private View debugLastTarget;
 
 	protected boolean addViewInLayout(View child, int index, LayoutParams params) {
 		addViewInternal(child, index, params, true);

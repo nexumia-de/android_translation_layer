@@ -2942,6 +2942,8 @@ public class View implements Drawable.Callback {
 			while (p != null) {
 				try {
 					if (p.onStartNestedScroll(child, this, axes)) {
+						if (System.getenv("ATL_DEBUG_TOUCH") != null)
+							System.err.println("TOUCHN start " + getClass().getName() + " parent=" + p.getClass().getName() + " axes=" + axes);
 						nestedScrollingParent = p;
 						p.onNestedScrollAccepted(child, this, axes);
 						return true;
@@ -3007,6 +3009,8 @@ public class View implements Drawable.Callback {
 				consumed[0] = 0;
 				consumed[1] = 0;
 				nestedScrollingParent.onNestedPreScroll(this, dx, dy, consumed);
+				if (System.getenv("ATL_DEBUG_TOUCH") != null)
+					System.err.println("TOUCHN pre dy=" + dy + " consumed=" + consumed[1] + " canUp=" + canScrollVertically(-1));
 				if (offsetInWindow != null) {
 					getLocationInWindow(offsetInWindow);
 					offsetInWindow[0] -= startX;
