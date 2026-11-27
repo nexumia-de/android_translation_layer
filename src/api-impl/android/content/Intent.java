@@ -1000,8 +1000,18 @@ public class Intent implements Parcelable, Cloneable {
 		return intent;
 	}
 
+	/* as in AOSP: an implicit intent asks the PackageManager. Apps hide what
+	 * they cannot start (Crunchyroll's "Caption Style" needs
+	 * Settings.ACTION_CAPTIONING_SETTINGS to resolve) */
 	public ComponentName resolveActivity(PackageManager pm) {
-		return component;
+		if (component != null)
+			return component;
+		if (pm == null)
+			return null;
+		android.content.pm.ResolveInfo info = pm.resolveActivity(this, PackageManager.MATCH_DEFAULT_ONLY);
+		if (info != null && info.activityInfo != null && info.activityInfo.packageName != null && info.activityInfo.name != null)
+			return new ComponentName(info.activityInfo.packageName, info.activityInfo.name);
+		return null;
 	}
 
 	public void setSourceBounds(Rect sourceBounds) {}
