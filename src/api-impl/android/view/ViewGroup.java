@@ -905,6 +905,28 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 
 	public void scheduleLayoutAnimation() {}
 
+	private android.view.animation.LayoutAnimationController layoutAnimation;
+	private android.view.animation.Animation.AnimationListener layoutAnimationListener;
+
+	/* stored only: the children appear without their layout animation */
+	public void setLayoutAnimation(android.view.animation.LayoutAnimationController controller) {
+		layoutAnimation = controller;
+	}
+
+	public android.view.animation.LayoutAnimationController getLayoutAnimation() {
+		return layoutAnimation;
+	}
+
+	public void setLayoutAnimationListener(android.view.animation.Animation.AnimationListener listener) {
+		layoutAnimationListener = listener;
+	}
+
+	public android.view.animation.Animation.AnimationListener getLayoutAnimationListener() {
+		return layoutAnimationListener;
+	}
+
+	public void startLayoutAnimation() {}
+
 	public boolean addStatesFromChildren() { return false; }
 
 	@Deprecated
