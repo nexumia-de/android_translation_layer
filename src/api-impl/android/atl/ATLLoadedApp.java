@@ -138,6 +138,18 @@ public final class ATLLoadedApp {
 			ATLSigHelper.addGMSSignatures(pkg);
 		}
 		pkg.applicationInfo.sourceDir = mainApk;
+		pkg.applicationInfo.publicSourceDir = mainApk;
+		/* the split APKs follow the base APK in the class path; apps that require splits
+		 * (com.android.vending.splits.required) check splitSourceDirs and refuse to start without */
+		ArrayList<String> splits = new ArrayList<>();
+		for (String path : classLoaderPath.split(File.pathSeparator)) {
+			if (!path.isEmpty() && !path.equals(mainApk) && !path.equals(ATLPaths.ghax_jar.getPath()))
+				splits.add(path);
+		}
+		if (!splits.isEmpty()) {
+			pkg.applicationInfo.splitSourceDirs = splits.toArray(new String[0]);
+			pkg.applicationInfo.splitPublicSourceDirs = pkg.applicationInfo.splitSourceDirs;
+		}
 		ATLLoadedApp app = new ATLLoadedApp(resources, classLoader, pkg);
 		app.asset_path = assetPath;
 		return app;
