@@ -18,6 +18,7 @@ import android.util.SparseArray;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
+import android.view.accessibility.AccessibilityEvent;
 import java.util.Objects;
 
 public class ViewGroup extends View implements ViewParent, ViewManager {
@@ -906,6 +907,14 @@ public class ViewGroup extends View implements ViewParent, ViewManager {
 
 	/* only matters to accessibility services, which ATL does not have */
 	public void notifySubtreeAccessibilityStateChanged(View child, View source, int changeType) {}
+
+	public boolean requestSendAccessibilityEvent(View child, AccessibilityEvent event) { return false; }
+
+	public boolean onRequestSendAccessibilityEvent(View child, AccessibilityEvent event) { return true; }
+
+	public boolean requestChildRectangleOnScreen(View child, Rect rectangle, boolean immediate) { return false; }
+
+	public void setTransitionGroup(boolean isTransitionGroup) {}
 
 	public boolean getTouchscreenBlocksFocus() { return false; }
 
