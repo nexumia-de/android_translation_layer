@@ -198,6 +198,28 @@ bool apply_path_overrides(char **path)
 		free_path = true;
 	}
 
+	/* Owner-configurable environment disguise: ATL_FAKE_SYSROOT=<dir> serves an
+	 * Android-like /system and /apex tree from <dir> so an anti-tamper/RASP
+	 * library that re-opens the modules it found in /proc/self/maps can read
+	 * them. OFF unless the variable is set, so the engine behaves exactly as
+	 * before for every app. Pairs with ATL_FAKE_MAPS (bionic). See the fork's
+	 * docs/environment-disguise.md and decisions/gms-local-only.md. */
+	{
+		static const char *sysroot;
+		static bool sysroot_inited;
+		if (!sysroot_inited) { sysroot = getenv("ATL_FAKE_SYSROOT"); sysroot_inited = true; }
+		if (sysroot && *sysroot && (starts_with(*path, "/system/") || starts_with(*path, "/apex/"))) {
+			char *new_path = g_strconcat(sysroot, *path, NULL);
+			if (file_exists(new_path)) {
+				if (free_path)
+					free(*path);
+				*path = new_path;
+				return true;
+			}
+			g_free(new_path);
+		}
+	}
+
 	if (starts_with(*path, "/system/") || starts_with(*path, "/data/")) {
 		fprintf(stderr, "%s: !!! app trying to access >%s<, which will certainly fail\n", __func__, *path);
 		fflush(stderr);
