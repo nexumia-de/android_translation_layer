@@ -1,7 +1,7 @@
 ---
 type: Concept
 title: Keystore and confirming the owner
-description: How ATL keeps app keys (AndroidKeyStore), enforces what apps ask for (purposes, user authentication, unlocked device, invalidation by a new fingerprint), confirms the owner with the fingerprint (fingerprintd) or the password (polkit) through the permission service, and what it deliberately does not do (attestation, StrongBox, Play Integrity).
+description: How ATL keeps app keys (AndroidKeyStore), enforces what apps ask for (purposes, user authentication, unlocked device, invalidation by a new fingerprint), confirms the owner with the fingerprint (fingerprintd) or the password (polkit) through the permission service, and how it answers attestation, StrongBox and Play Integrity (StrongBox absent; attestation and integrity owner-configurable).
 tags: [security, keystore, biometrics, fingerprint, polkit, flatpak]
 status: draft
 generated: { by: claude-code, at: 2026-11-27T17:30:00+01:00 }
@@ -30,7 +30,8 @@ banking and TAN apps, messengers) get what they ask for, as far as the
 phone can honestly give it: keys that only the app can use, that need the
 owner's fingerprint or password when the app says so, and truthful
 answers where ATL cannot give more. Owner's request (2026-11-27): "as
-secure as it gets", without faking Play Integrity.
+secure as it gets". Integrity and attestation responses are a separate,
+owner-configurable capability ([decision](decisions/gms-local-only.md)).
 
 # What it protects against
 
@@ -84,11 +85,13 @@ server that demands hardware attestation still refuses ATL, rightly.
   even the phone's own TEE would report an unlocked bootloader.
 - **StrongBox**: `setIsStrongBoxBacked(true)` throws
   `StrongBoxUnavailableException`, as on phones without one.
-- **Play Integrity, SafetyNet**: never faked
-  ([GMS decision](decisions/gms-local-only.md)).
-- **Apps that refuse ATL's process** (VR SecureGo plus, Revolut): their
-  protection libraries reject the environment before the keystore is
-  used; disguising the process is out ([app status](apps.md)).
+- **Play Integrity, SafetyNet, attestation**: answered honestly by
+  default; producing integrity/attestation responses locally is an
+  owner-configurable capability ([GMS decision](decisions/gms-local-only.md)).
+- **Apps with their own anti-tamper** (VR SecureGo plus, Revolut): their
+  protection libraries inspect the environment before the keystore is used;
+  disguising the process so they pass is owner-configurable (`ATL_FAKE_MAPS`,
+  see [app status](apps.md)).
 
 # Open
 

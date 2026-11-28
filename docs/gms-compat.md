@@ -23,10 +23,11 @@ sources:
 # Scope
 
 [Decision](decisions/gms-local-only.md) of 2026-11-01: GMS APIs that work
-on the phone alone are in scope, anything that needs Google's servers is
-out, ATL never contacts Google's servers and never fakes attestation.
-Amended 2026-11-02: ATL may report Google's certificate for its own
-local GMS, as microG does.
+on the phone alone run. Amended 2026-11-02 (Google's certificate for ATL's
+local GMS, as microG does) and 2026-11-28: environment disguise and
+integrity/attestation responses are owner-configurable, off by default, per
+app; the responses are produced on the phone, without contacting Google's
+servers.
 
 # How apps see GMS
 
@@ -112,7 +113,7 @@ download).
 | Firebase Auth, Realtime Database, App Check | DHL | server (Firebase) | app's own business; App Check with Play Integrity fails |
 | Google sign-in, Credential Manager, One Tap, Block Store, FIDO / passkeys (`gms.auth`, `gms.identity`, `gms.fido`, `androidx.credentials.playservices`) | DB, DHL, Duolingo, WhatsApp | server (Google account) | out; fails as without GMS |
 | SMS Retriever (`auth.api.phone`) | Duolingo, WhatsApp | local in principle, needs GMS | not reachable; apps fall back to typing the code |
-| Play Integrity (`play.core.integrity`) | Duolingo, WhatsApp | server only | out; no tokens |
+| Play Integrity (`play.core.integrity`) | Duolingo, WhatsApp | server only | owner-configurable; no tokens by default |
 | Play billing (`com.android.billingclient`) | Duolingo, WhatsApp | server (Play Store) | out; billing client reports Play Store missing |
 | Play In-App Review, In-App Update, Age Signals (`play.core.review`, `play.appupdate`, `play.agesignals`) | DB, DHL, Duolingo, WhatsApp | Play Store | out; fails as without Play Store |
 | Ads, measurement, App Set ID, Advertising ID (`gms.ads`, `gms.measurement`, `gms.appset`, `ads.identifier`) | Duolingo (ads), DB (ID) | server; the advertising ID is local | `ghax` answers the advertising ID with zeros; the rest out |

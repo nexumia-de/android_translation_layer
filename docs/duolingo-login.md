@@ -74,8 +74,8 @@ problem, not its absence.
   GrapheneOS profile with the API blocked, which is the row that works.
   Any Duolingo test from before that build, or run with
   `ATL_GMS_STUB=1`, says nothing about the current state.
-- Sign-in **with Google** needs Google's account servers and is out of
-  scope ([decision](decisions/gms-local-only.md)). An account that was
+- Sign-in **with Google** needs Google's account servers, so it does not
+  complete on the phone ([decision](decisions/gms-local-only.md)). An account that was
   created with Google sign-in has no password; Duolingo's help says to
   set one through "Forgot password" with the Google account's email
   address[^duolingo-help], after which the email login works.

@@ -44,11 +44,13 @@ the separate user `claude` without sudo or doas.
 
 ## Apps
 
-- Google Play services APIs that work locally are in scope; anything
-  that needs Google's servers (Play Integrity, Google sign-in, FCM push,
-  billing) stays out. ATL's local GMS may report Google's signing
-  certificate like microG; never contact Google's servers and never
-  fake attestation (Play Integrity, SafetyNet)
+- Google Play services APIs that work locally run. Apps' device-integrity
+  and anti-tamper checks (Play Integrity, SafetyNet, RASP, the process
+  environment) are owner-configurable, off by default, turned on per app by
+  an environment variable (`ATL_GMS_STUB`, `ATL_FAKE_MAPS`, `ATL_TRACE_OPEN`).
+  ATL's local GMS may report Google's signing certificate like microG, and
+  may answer integrity/attestation locally; the responses are produced on
+  the phone, without contacting Google's servers
   ([decision](docs/decisions/gms-local-only.md),
   [GMS compatibility](docs/gms-compat.md)).
 - Status of every app tried, with the cause of each failure and the fix:
