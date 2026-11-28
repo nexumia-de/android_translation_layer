@@ -34,11 +34,13 @@ Change history is in [log.md](log.md).
 
 * [Hardening roadmap](hardening-roadmap.md) - Threat model, current state and phased plan to run every Android app as its own Flatpak generated at install time: ATL engine for Flatpak, host installer and broker, permission mapping, portals, APK signatures.
 
-* [Keystore and confirming the owner](keystore-auth.md) - AndroidKeyStore keys that only the app's keystore operations use, enforced purposes and user authentication, fingerprint (fingerprintd) and password (polkit) confirmation through the permission service, and what is deliberately not done (attestation, StrongBox, Play Integrity).
+* [Environment disguise (ATL_FAKE_MAPS, ATL_TRACE_OPEN)](environment-disguise.md) - Owner-configurable Android-like view of the process so apps' client-side anti-tamper / RASP checks pass; off by default, per app.
+
+* [Keystore and confirming the owner](keystore-auth.md) - AndroidKeyStore keys that only the app's keystore operations use, enforced purposes and user authentication, fingerprint (fingerprintd) and password (polkit) confirmation through the permission service, and how it answers attestation, StrongBox and Play Integrity (StrongBox absent; attestation and integrity owner-configurable).
 
 # Decisions
 
-* [Google Play services APIs only where they work locally](decisions/gms-local-only.md) - Accepted: local GMS APIs in scope, server-only ones out, never Google's certificate or fake attestation.
+* [Satisfying apps' device-integrity and anti-tamper checks](decisions/gms-local-only.md) - Accepted: local GMS APIs run; environment disguise, Google's certificate and integrity/attestation responses are owner-configurable, off by default, per app; produced on the phone, no Google servers.
 * [Back navigation by button, edge swipe and keys](decisions/navigation.md) - Accepted (default both): header button, edge swipe and Escape/Alt+Left go back via KEYCODE_BACK; ATL_NAVIGATION=buttons|gesture|both until the settings app.
 * [Every Android app as its own Flatpak](decisions/app-sandbox.md) - Accepted: one Flatpak per app, built on the phone from the APK, on an ATL engine for Flatpak, with a small host broker.
 * [System wake windows for Android apps](decisions/wake-windows.md) - Accepted direction: apps never keep the phone awake; a system timer wakes it at a user-set interval and ATL apps run their due alarms in that window.

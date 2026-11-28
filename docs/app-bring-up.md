@@ -55,7 +55,8 @@ Read the APK before running it: `android.hardware.*` features, permissions,
 number of services, receivers and providers. Upstream's issue tracker comes
 next (AGENTS.md). The manifest names the features an app can have, which
 are the rows of the [audit](#6-audit). Anything needing Google Play Services
-is out of scope; note that as soon as it is known.
+may need the local GMS or a disguise capability turned on per app
+([decision](decisions/gms-local-only.md)); note that as soon as it is known.
 
 ## 2. Static list
 
@@ -166,7 +167,7 @@ evidence for it:
 | `missing` | ATL lacks the API, so it fails or is unavailable when used |
 | `wrong` | It runs, but differs from Android |
 | `untested` | Nothing known; needs a test or the owner |
-| `out of scope` | Needs Google Play Services or similar |
+| `out of scope` | Needs Google Play Services or server-side integrity; may change when a capability is turned on per app ([decision](decisions/gms-local-only.md)) |
 
 Do not call a feature working because no list mentions it. Redo the audit
 for an app when its version changes or a fix touches one of its features.

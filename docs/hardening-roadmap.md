@@ -416,7 +416,8 @@ the others, changeable in App info). Code that talks to Google (the
 push client) checks it with `Context.checkSelfPermission("atl.google-services")`
 and asks with `Activity.requestPermissions`, or, without an activity,
 through the same service call the activity uses. Play Integrity and
-SafetyNet tokens are never faked.
+SafetyNet tokens are answered honestly by default; producing them
+locally is owner-configurable ([decision](decisions/gms-local-only.md)).
 
 **GrapheneOS as the reference** (owner, 2026-11-03; grapheneos.org
 features and usage pages):
