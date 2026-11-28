@@ -46,6 +46,7 @@ import android.util.TypedValue;
 import android.view.WindowInsets;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityNodeProvider;
 import android.view.animation.Animation;
 import android.view.autofill.AutofillValue;
 import android.view.autofill.AutofillId;
@@ -1861,7 +1862,15 @@ public class View implements Drawable.Callback {
 
 	public static class AccessibilityDelegate {
 		public void sendAccessibilityEvent(View view, int eventType) {}
+
+		public AccessibilityNodeProvider getAccessibilityNodeProvider(View host) { return null; }
 	}
+
+	/* ATL has no accessibility services, so no view offers a provider (Android returns null
+	 * too while none is attached). Compose asks for it when it builds its semantics. */
+	public AccessibilityNodeProvider getAccessibilityNodeProvider() { return null; }
+
+	public void setAccessibilityDataSensitive(int accessibilityDataSensitive) {}
 
 	public Drawable getBackground() {
 		return background;
@@ -2504,12 +2513,21 @@ public class View implements Drawable.Callback {
 		return new Display();
 	}
 
+	public static final int IMPORTANT_FOR_ACCESSIBILITY_AUTO = 0x00000000;
+	public static final int IMPORTANT_FOR_ACCESSIBILITY_YES = 0x00000001;
+	public static final int IMPORTANT_FOR_ACCESSIBILITY_NO = 0x00000002;
+	public static final int IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS = 0x00000004;
+
 	private int importantForAccessibility;
 	public void setImportantForAccessibility(int importantForAccessibility) {
 		this.importantForAccessibility = importantForAccessibility;
 	}
 	public int getImportantForAccessibility() {
 		return importantForAccessibility;
+	}
+	public final boolean isImportantForAccessibility() {
+		return importantForAccessibility != IMPORTANT_FOR_ACCESSIBILITY_NO
+		    && importantForAccessibility != IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS;
 	}
 
 	public boolean getFitsSystemWindows() { return true; }

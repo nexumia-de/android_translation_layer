@@ -26,4 +26,8 @@ public interface ViewParent {
 	public void requestLayout();
 
 	public void notifySubtreeAccessibilityStateChanged(View child, View source, int changeType);
+
+	public boolean requestSendAccessibilityEvent(View child, android.view.accessibility.AccessibilityEvent event);
+
+	public boolean requestChildRectangleOnScreen(View child, android.graphics.Rect rectangle, boolean immediate);
 }

@@ -13,6 +13,12 @@ public class WindowManagerImpl implements WindowManager, ViewManager {
 		public void notifySubtreeAccessibilityStateChanged(View child, View source, int changeType) {}
 
 		@Override
+		public boolean requestSendAccessibilityEvent(View child, android.view.accessibility.AccessibilityEvent event) { return false; }
+
+		@Override
+		public boolean requestChildRectangleOnScreen(View child, Rect rectangle, boolean immediate) { return false; }
+
+		@Override
 		public android.view.ViewParent getParent() {
 			return null;
 		}
