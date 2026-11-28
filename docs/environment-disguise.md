@@ -47,27 +47,41 @@ Black-box probe on the owner's device, app copy and fork
    with `fopen` right after loading; without `ATL_FAKE_MAPS` it exits
    (status 101) at that read, before the keystore.
 2. With `ATL_FAKE_MAPS` it gets **past** the maps read and then `fopen`s
-   exactly one module from the map, `/system/lib64/libc.so`, and nothing
-   else — not `libdl.so`, not the ART libs. Without the file it exits 101.
-3. `ATL_FAKE_SYSROOT` makes that `fopen` succeed (redirected to a real
-   mapped object). **It makes no difference** — the app still exits at the
-   same point. Tested with three different files behind `/system/lib64/libc.so`:
-   ATL's own `libc_bio.so.0`, ATL's `libpthread_bio.so.0`, and a **real
-   Android 33 bionic `libc.so`** (from the Waydroid image,
-   `/system/lib64/bootstrap/libc.so`). All three fail identically, with the
-   map entry made clean and self-consistent (no duplicate-name artifact).
-4. Conclusion: `/system/lib64/libc.so` is **not** the blocker. The RASP's
-   decisive check right after it is not a file access (so `ATL_TRACE_OPEN`
-   cannot see it) — a syscall / `ptrace` / translation-layer probe that
-   fails because the process is genuinely not Android (ATL hooks libc and
-   runs a translation layer; the code actually mapped and executing is not
-   bionic). Providing an Android-like `/system` tree cannot change that.
-   Confirming the exact probe would need syscall tracing (no `strace` on the
-   device) and defeating it is likely structural, not a bigger fake tree.
+   exactly one module from the map, `/system/lib64/libc.so`, to inspect it.
+   Without the file it exits 101.
+3. `ATL_FAKE_SYSROOT` makes that `fopen` succeed. This **advances** the RASP
+   through two more stages (shown with a full `strace -f`, 2026-11-28):
+   - With ATL's own `libc_bio.so.0` behind `libc.so`, the RASP reads the ELF
+     header, section headers, build-id / `.gnu_debuglink`, and the **dynsym**,
+     then `exit_group(104)` — a *content* check on libc (104 ≠ the maps
+     stage's 101, so the sysroot did move it forward). ATL's bionic shim is
+     not a real Android libc, so it is rejected.
+   - With a **real Android 33 bionic `libc.so`** behind `libc.so` (dumped
+     from the Waydroid image's `/system/lib64/bootstrap/libc.so`), the
+     content check **passes** (no 104); the RASP continues, then computes a
+     function pointer from the libc data and `blr`s to it — faulting
+     `SIGSEGV`/`SEGV_ACCERR` at a non-executable address (`pc==x8`), the
+     call made **from inside `libfiduciagad…so`** (the link register lands in
+     the RASP's own mapping).
+4. Conclusion — a precise, *structural* wall, not a bigger-fake-tree problem.
+   The RASP uses libc as its root of trust: it reads libc from disk **and**
+   executes addresses it computes from that disk image against the **live**
+   libc. It only succeeds when disk libc == in-memory libc == real Android
+   bionic. Under ATL the in-memory libc is the translation shim
+   (`libc_bio`/`libpthread_bio` bridging Android libc calls to host glibc),
+   so the two libc cases are mutually exclusive: a memory-consistent
+   `libc_bio` fails the content check (104); a content-valid real Android
+   libc makes the computed call land in the wrong place and crash. No
+   on-disk `/system` fakery can satisfy both — the app needs a real Android
+   libc actually mapped and executing (Waydroid / GrapheneOS), which is
+   exactly what a translation layer is not. (There is **no** hidden
+   `ptrace`/env-probe syscall; the strace shows none — the earlier guess of
+   a non-file probe was wrong.)
 
 `ATL_FAKE_SYSROOT` remains a correct, reusable disguise primitive (an app
-that only needs to *read* an Android `/system`/`/apex` view benefits); it
-just does not, on its own, get SecureGo plus past its RASP.
+that only needs to *read* an Android `/system`/`/apex` view benefits), and
+it got SecureGo plus two stages further; it cannot get past a RASP that
+validates the live libc itself.
 
 # Building an Android-like /proc/self/maps
 
