@@ -21,6 +21,8 @@ set per app**; with them unset the engine behaves exactly as before. Policy:
 |---|---|
 | `ATL_TRACE_OPEN=1` | Log every path the app opens to stderr (`ATL_OPEN <path>` / `ATL_FOPEN <path>`). Use it to see what a protection library reads. |
 | `ATL_FAKE_MAPS=<file>` | Serve `<file>` in place of this process's `/proc/self/maps` (covers `open` and `fopen`, and `/proc/<pid>/maps` for self). |
+| `ATL_FAKE_SYSROOT=<dir>` | Serve an Android-like `/system` and `/apex` tree from `<dir>`: any `/system/*` or `/apex/*` path the app opens is redirected to `<dir>/<path>` when that file exists, so a RASP that re-opens the modules it listed in the fake maps can read them. Redirect only; `<dir>/<path>` may be a symlink to the real mapped object. |
+| `ATL_DECOY_LIB=<path>[@<hexbase>]` | mmap a real Android library (e.g. a device `libc.so`) as an inert read+exec **decoy** at `<hexbase>` (default `0x5b0000000`), never relocated/initialised and not the libc the app uses. For a RASP that resolves a libc symbol from the on-disk libc and *calls* `<libc_base_from_maps> + <offset>` directly (bypassing its own PLT), name this base for `libc.so` in `ATL_FAKE_MAPS` so the computed call lands in genuine code. Pre-relocate the file for the base if its internal calls must work (see below). |
 
 Set them per app through the Flatpak run, e.g.
 
@@ -28,22 +30,81 @@ Set them per app through the Flatpak run, e.g.
 flatpak run --env=ATL_TRACE_OPEN=1 --env=ATL_FAKE_MAPS=$HOME/fake-maps.txt <app-id>
 ```
 
-Implemented in `bionic_translation` (`libc/libc-open-overrides.c`,
-`bionic_open`/`bionic_fopen`), next to the existing `/proc/self/status`
-`TracerPid` strip.
+`ATL_TRACE_OPEN` / `ATL_FAKE_MAPS` are implemented in `bionic_translation`
+(`libc/libc-open-overrides.c`, `bionic_open`/`bionic_fopen`), next to the
+existing `/proc/self/status` `TracerPid` strip. `ATL_FAKE_SYSROOT` is
+implemented one layer up, in `apply_path_overrides`
+(`src/main-executable/libc_bio_path_overrides.c`), next to the existing
+`/system/fonts` and `/system/etc/security/cacerts` rewrites, so it covers
+`open`, `fopen` and the `stat` family.
 
-# How a maps check stages (VR SecureGo plus, 2026-11-28)
+# What the SecureGo plus RASP checks — and why it still does not pass (2026-11-28)
 
-1. The protection library `libfiduciagad_securego_vr.so` reads
-   `/proc/self/maps` with `fopen` right after loading; without a disguise it
-   exits (status 101) at that read, before the keystore.
-2. With `ATL_FAKE_MAPS` pointing at an Android-like map (host glibc/GTK
-   entries removed, paths rewritten to `/data/app`, `/apex/com.android.art`,
-   `/system/lib64`), it gets **past** that read and then `fopen`s a library
-   named in the map (e.g. `/system/lib64/libc.so`) to inspect it.
-3. So the next step is a library view it can actually open and that passes
-   inspection — the files named in the fake map have to exist and look
-   right. It also reads many `ro.build.*` properties (a further check).
+Black-box probe on the owner's device, app copy and fork
+(`~/scratch-securego/`, PRs #222 `ATL_FAKE_MAPS`, #223 `ATL_FAKE_SYSROOT`):
+
+1. The protection library `libfiduciagad_securego_vr.so` (7.4 MB, stripped,
+   string-encrypted — a commercial anti-tamper) reads `/proc/self/maps`
+   with `fopen` right after loading; without `ATL_FAKE_MAPS` it exits
+   (status 101) at that read, before the keystore.
+2. With `ATL_FAKE_MAPS` it gets **past** the maps read and then `fopen`s
+   exactly one module from the map, `/system/lib64/libc.so`, to inspect it.
+   Without the file it exits 101.
+3. `ATL_FAKE_SYSROOT` makes that `fopen` succeed. This **advances** the RASP
+   through two more stages (shown with a full `strace -f`, 2026-11-28):
+   - With ATL's own `libc_bio.so.0` behind `libc.so`, the RASP reads the ELF
+     header, section headers, build-id / `.gnu_debuglink`, and the **dynsym**,
+     then `exit_group(104)` — a *content* check on libc (104 ≠ the maps
+     stage's 101, so the sysroot did move it forward). ATL's bionic shim is
+     not a real Android libc, so it is rejected.
+   - With a **real Android 33 bionic `libc.so`** behind `libc.so` (dumped
+     from the Waydroid image's `/system/lib64/bootstrap/libc.so`), the
+     content check **passes** (no 104); the RASP continues, then computes a
+     function pointer from the libc data and `blr`s to it — faulting
+     `SIGSEGV`/`SEGV_ACCERR` at a non-executable address (`pc==x8`), the
+     call made **from inside `libfiduciagad…so`** (the link register lands in
+     the RASP's own mapping).
+4. The symbol it computes and calls is **`sysconf`** (offset `0x85f14` in the
+   device's libc; it bypasses its own PLT — an anti-hook move). So it is not
+   a passive content check: the RASP *runs* libc code it trusts.
+
+# How far a real-bionic decoy gets (ATL_DECOY_LIB, 2026-11-28)
+
+Mapping the real device `libc.so` as a decoy at the base the fake map names
+(`ATL_DECOY_LIB`) makes that computed `sysconf` call land in genuine code.
+Each fix then exposes the next bionic-runtime dependency:
+
+1. Flat-mapped decoy → `sysconf` entered, but its first internal call went
+   through an **unrelocated GOT** (jumped to a bare vaddr) → `SEGV`.
+2. Pre-relocating the decoy file for the base (apply `R_AARCH64_RELATIVE`
+   and defined-symbol `JUMP_SLOT`/`GLOB_DAT`) → `sysconf` runs for real
+   (reads `/sys/devices/system/cpu/online`, `/dev/urandom`), then calls an
+   **imported** symbol — `__loader_shared_globals`, one of 12 libc imports
+   from the **bionic dynamic linker** (`dlopen`, `dlsym`, `dl_iterate_phdr`,
+   …) → the lazy PLT stub has no resolver → `SEGV`.
+3. Stubbing those 12 loader imports → it gets past the call, then
+   **null-derefs** the (necessarily empty) `__loader_shared_globals` struct.
+
+Each step moves the fault one level deeper into the bionic runtime. To
+actually satisfy it, `__loader_shared_globals` must return a populated
+bionic globals struct (vdso, auxv, TLS modules), and the thread must carry
+a **bionic TLS** block — but the thread is a glibc/ATL pthread (`TPIDR_EL0`
+points at a glibc TCB), so real bionic code reading its TLS slots reads the
+wrong memory. Providing all of this is reconstructing bionic's runtime
+in-process, i.e. running Android — which is a container (Waydroid) or a real
+device (GrapheneOS), not a translation layer.
+
+**Conclusion.** The disguise knobs move SecureGo plus through four gates
+(maps → libc content → computed `sysconf` address → `sysconf` executing),
+but the RASP's root of trust is the **live libc runtime**, and completing
+it converges on an in-process bionic runtime (linker globals + bionic TLS)
+that conflicts with ATL's glibc base. It is a treadmill, not a single fix;
+the practical answer for SecureGo plus is real bionic (Waydroid/GrapheneOS).
+
+`ATL_FAKE_SYSROOT` and `ATL_DECOY_LIB` remain correct, reusable disguise
+primitives for apps whose checks only *read* an Android view or call a
+**leaf** libc routine via a computed address; they cannot carry an app
+whose RASP drives real libc code into the bionic runtime.
 
 # Building an Android-like /proc/self/maps
 
