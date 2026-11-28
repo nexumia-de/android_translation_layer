@@ -102,7 +102,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/nexumia-de/bionic_translation.git
-        commit: aa88a038528ae4755b20e3ae00623e222f6e04f2
+        commit: 49510e559dbed9f334ecea7a57efb93dd6cbaf5b
         disable-submodules: true
 
   - name: art_standalone
